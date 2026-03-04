@@ -1,0 +1,27 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import { prisma } from "@/lib/db";
+import { authOptions } from "@/lib/auth";
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user || (session.user as any).role !== "ADMIN") {
+    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
+  }
+
+  const tests = await prisma.test.findMany({
+    select: {
+      id: true,
+      type: true,
+      title: true,
+      isActive: true,
+      createdAt: true
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  return NextResponse.json(tests);
+}
+

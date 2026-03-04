@@ -1,0 +1,344 @@
+// Prisma schema for Psychologist CRM
+// Содержит модели пользователей, профилей, диагностики (Шмишек),
+// расписания и пользовательских полей.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  PSYCHOLOGIST
+  ADMIN
+}
+
+enum SlotStatus {
+  FREE
+  BOOKED
+  CANCELED
+}
+
+enum AppointmentStatus {
+  PENDING_CONFIRMATION
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+enum CustomFieldTarget {
+  CLIENT
+  APPOINTMENT
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTILINE
+  BOOLEAN
+}
+
+enum TestType {
+  SHMISHEK
+}
+
+// --- NextAuth core models ---
+
+model User {
+  id             String   @id @default(cuid())
+  name           String?
+  email          String   @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  role           Role     @default(CLIENT)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  notifications Notification[]
+
+  psychologistProfile PsychologistProfile?
+  clientProfile       ClientProfile?
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String?  @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+  oauth_token_secret String? @db.Text
+  oauth_token        String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Domain: profiles ---
+
+model PsychologistProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  firstName      String
+  lastName       String
+  specialization String?
+  bio            String?  @db.Text
+  settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  clients                 ClientProfile[]       @relation("PsychologistClients")
+  scheduleSlots           ScheduleSlot[]
+  customFieldDefinitions  CustomFieldDefinition[]
+  testResults             TestResult[]
+  recommendationsAuthored Recommendation[]
+  diagnosticLinks         DiagnosticLink[]
+  appointments            Appointment[]
+}
+
+model ClientProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  psychologistId String?
+  firstName      String
+  lastName       String
+  dateOfBirth    DateTime?
+  phone          String?
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id])
+  psychologist PsychologistProfile? @relation("PsychologistClients", fields: [psychologistId], references: [id])
+
+  testResults         TestResult[]
+  appointments        Appointment[]      @relation("ClientAppointments")
+  customFieldValues   CustomFieldValue[]
+  recommendationsReceived Recommendation[]
+  diagnosticLinks         DiagnosticLink[]
+}
+
+// --- Domain: diagnostics (tests, questions, results) ---
+
+model Test {
+  id          String   @id @default(cuid())
+  type        TestType
+  title       String
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions TestQuestion[]
+  scales    TestScale[]
+  results   TestResult[]
+  links     DiagnosticLink[]
+
+  @@unique([type])
+}
+
+model TestQuestion {
+  id     String @id @default(cuid())
+  testId String
+  index  Int
+  text   String
+  meta   Json?
+
+  test Test @relation(fields: [testId], references: [id])
+
+  @@unique([testId, index])
+}
+
+model TestScale {
+  id          String @id @default(cuid())
+  testId      String
+  key         String
+  title       String
+  description String? @db.Text
+  meta        Json?
+
+  test Test @relation(fields: [testId], references: [id])
+
+  @@unique([testId, key])
+}
+
+model TestResult {
+  id              String   @id @default(cuid())
+  testId          String
+  clientId        String?
+  psychologistId  String?
+  rawAnswers      Json    // карта: индекс вопроса -> ответ
+  scaleScores     Json    // карта: ключ шкалы -> числовой балл
+  interpretation  String? @db.Text
+  createdAt       DateTime @default(now())
+
+  test         Test               @relation(fields: [testId], references: [id])
+  client       ClientProfile?     @relation(fields: [clientId], references: [id])
+  psychologist PsychologistProfile? @relation(fields: [psychologistId], references: [id])
+  recommendations Recommendation[]
+
+  @@index([clientId])
+  @@index([psychologistId])
+}
+
+// Ссылки, по которым клиент может пройти опросник (например, Шмишека)
+model DiagnosticLink {
+  id             String   @id @default(cuid())
+  testId         String
+  psychologistId String?
+  clientId       String?
+  token          String   @unique
+  expiresAt      DateTime?
+  maxUses        Int?
+  usedCount      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  test         Test               @relation(fields: [testId], references: [id])
+  psychologist PsychologistProfile? @relation(fields: [psychologistId], references: [id])
+  client       ClientProfile?     @relation(fields: [clientId], references: [id])
+
+  @@index([token])
+}
+
+// --- Domain: schedule & appointments ---
+
+model ScheduleSlot {
+  id             String      @id @default(cuid())
+  psychologistId String
+  start          DateTime
+  end            DateTime
+  status         SlotStatus  @default(FREE)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+  appointment  Appointment?
+
+  @@index([psychologistId, start])
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  slotId         String?           @unique
+  psychologistId String
+  clientId       String
+  start          DateTime
+  end            DateTime
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?           @db.Text
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  slot         ScheduleSlot?       @relation(fields: [slotId], references: [id])
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+  client       ClientProfile       @relation("ClientAppointments", fields: [clientId], references: [id])
+  customFieldValues CustomFieldValue[]
+
+  @@index([psychologistId, start])
+  @@index([clientId, start])
+}
+
+// --- Domain: custom fields ---
+
+model CustomFieldDefinition {
+  id             String            @id @default(cuid())
+  psychologistId String
+  target         CustomFieldTarget
+  key            String
+  label          String
+  type           CustomFieldType
+  options        Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+  values       CustomFieldValue[]
+
+  @@unique([psychologistId, target, key])
+}
+
+model CustomFieldValue {
+  id            String   @id @default(cuid())
+  definitionId  String
+  clientId      String?
+  appointmentId String?
+  value         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  definition  CustomFieldDefinition @relation(fields: [definitionId], references: [id])
+  client      ClientProfile?        @relation(fields: [clientId], references: [id])
+  appointment Appointment?          @relation(fields: [appointmentId], references: [id])
+
+  @@index([clientId])
+  @@index([appointmentId])
+}
+
+// --- Domain: recommendations ---
+
+model Recommendation {
+  id             String   @id @default(cuid())
+  psychologistId String
+  clientId       String
+  testResultId   String?
+  title          String
+  body           String   @db.Text
+  createdAt      DateTime @default(now())
+
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+  client       ClientProfile       @relation(fields: [clientId], references: [id])
+  testResult   TestResult?        @relation(fields: [testResultId], references: [id])
+
+  @@index([psychologistId])
+  @@index([clientId])
+}
+

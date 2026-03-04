@@ -1,0 +1,858 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ru } from "date-fns/locale";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
+
+type SlotStatus = "FREE" | "BOOKED" | "CANCELED";
+type AppointmentStatus = "PENDING_CONFIRMATION" | "SCHEDULED" | null;
+
+type SlotDto = {
+  id: string;
+  start: string;
+  end: string;
+  status: SlotStatus;
+  appointmentId?: string | null;
+  appointmentStatus?: AppointmentStatus;
+  clientName?: string | null;
+};
+
+type ClientOption = {
+  id: string;
+  firstName: string;
+  lastName: string;
+};
+
+const HOLIDAYS_BY_MONTH_DAY: Record<string, string> = {
+  "01-01": "Новый год",
+  "01-07": "Рождество (православное)",
+  "03-08": "День женщин",
+  "05-01": "Праздник труда",
+  "05-09": "День Победы",
+  "07-03": "День Независимости",
+  "11-07": "День Октябрьской революции",
+  "12-25": "Рождество (католическое)"
+};
+
+const HOURS: number[] = [];
+for (let h = 0; h <= 23; h += 1) {
+  HOURS.push(h);
+}
+
+const HOUR_ROW_HEIGHT = 56;
+
+function startOfWeek(date: Date): Date {
+  const d = new Date(date.getTime());
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date.getTime());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function dayKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function monthDayKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${month}-${day}`;
+}
+
+function formatTimeLabel(hour: number): string {
+  const hh = hour < 10 ? `0${hour}` : String(hour);
+  return `${hh}:00`;
+}
+
+function formatHumanRange(startIso: string, endIso: string): string {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+
+  const hStart = String(start.getHours()).padStart(2, "0");
+  const mStart = String(start.getMinutes()).padStart(2, "0");
+  const hEnd = String(end.getHours()).padStart(2, "0");
+  const mEnd = String(end.getMinutes()).padStart(2, "0");
+
+  return `${hStart}:${mStart}–${hEnd}:${mEnd}`;
+}
+
+export function PsychologistSchedule() {
+  const [slots, setSlots] = useState<SlotDto[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientsLoading, setClientsLoading] = useState<boolean>(false);
+
+  const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false);
+  const [createDateTime, setCreateDateTime] = useState<Date | null>(null);
+  const [createClientId, setCreateClientId] = useState<string | undefined>(undefined);
+  const [createDuration, setCreateDuration] = useState<number>(50);
+  const [creating, setCreating] = useState<boolean>(false);
+
+  async function loadSlots(retries = 2): Promise<void> {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/schedule/slots");
+      if (!res.ok) {
+        let msg = "Не удалось загрузить расписание";
+        try {
+          const body = await res.json();
+          if (body && typeof body.message === "string") msg = body.message;
+        } catch {
+          // ignore
+        }
+        throw new Error(msg);
+      }
+      const data = (await res.json()) as SlotDto[];
+      setSlots(data);
+    } catch (err) {
+      if (retries > 0) {
+        setTimeout(() => void loadSlots(retries - 1), 500);
+        return;
+      }
+      const msg =
+        err instanceof Error ? err.message : "Не удалось подключиться к серверу расписания";
+      console.error(err);
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadSlots();
+  }, []);
+
+  async function loadClientsOnce(): Promise<void> {
+    if (clients.length > 0 || clientsLoading) return;
+    setClientsLoading(true);
+    try {
+      const res = await fetch("/api/psychologist/clients");
+      if (!res.ok) return;
+      const body = (await res.json().catch(() => null)) as
+        | { clients?: { id: string; firstName: string; lastName: string }[] }
+        | null;
+      if (!body || !Array.isArray(body.clients)) return;
+      setClients(
+        body.clients.map(c => ({
+          id: c.id,
+          firstName: c.firstName,
+          lastName: c.lastName
+        }))
+      );
+    } catch {
+      // ignore
+    } finally {
+      setClientsLoading(false);
+    }
+  }
+
+  function openCreateDialogFor(day: Date, hour: number): void {
+    const dt = new Date(day.getTime());
+    dt.setHours(hour, 0, 0, 0);
+    setCreateDateTime(dt);
+    setCreateClientId(undefined);
+    setCreateDuration(50);
+    setCreateDialogOpen(true);
+    void loadClientsOnce();
+  }
+
+  async function handleCreateAppointment(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    if (!createDateTime) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const startIso = createDateTime.toISOString();
+      let res: Response;
+
+      if (createClientId) {
+        res = await fetch(`/api/psychologist/clients/${createClientId}/appointments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            start: startIso,
+            durationMinutes: createDuration
+          })
+        });
+      } else {
+        res = await fetch("/api/schedule/slots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            start: startIso,
+            durationMinutes: createDuration
+          })
+        });
+      }
+
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        // ignore
+      }
+
+      if (!res.ok) {
+        const msg =
+          body && typeof body.message === "string"
+            ? body.message
+            : "Не удалось создать слот";
+        throw new Error(msg);
+      }
+
+      toast.success(
+        createClientId ? "Запись предложена клиенту." : "Свободный слот создан."
+      );
+      setCreateDialogOpen(false);
+      setCreateDateTime(null);
+      await loadSlots();
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof Error ? err.message : "Не удалось создать запись";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleCancelAppointment(slot: SlotDto): Promise<void> {
+    if (!slot.appointmentId) return;
+    setUpdatingId(slot.id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/appointments/${slot.appointmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELED" })
+      });
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        // ignore
+      }
+      if (!res.ok) {
+        const msg =
+          body && typeof body.message === "string"
+            ? body.message
+            : "Не удалось отменить запись";
+        throw new Error(msg);
+      }
+      setSlots(prev =>
+        prev.map(s =>
+          s.id === slot.id
+            ? { ...s, status: "FREE" as SlotStatus, appointmentId: null, clientName: null }
+            : s
+        )
+      );
+      toast.success("Запись отменена.");
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof Error ? err.message : "Не удалось отменить запись";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handleDeleteSlot(slotId: string): Promise<void> {
+    setUpdatingId(slotId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/schedule/slots/${slotId}`, {
+        method: "DELETE"
+      });
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        // ignore
+      }
+      if (!res.ok) {
+        const msg =
+          body && typeof body.message === "string"
+            ? body.message
+            : "Не удалось удалить слот";
+        throw new Error(msg);
+      }
+      setSlots(prev => prev.filter(s => s.id !== slotId));
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof Error ? err.message : "Не удалось удалить слот";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handleUpdateSlotTime(
+    slot: SlotDto,
+    newTime: string,
+    durationMinutes: number
+  ): Promise<void> {
+    setUpdatingId(slot.id);
+    setError(null);
+    try {
+      const base = new Date(slot.start);
+      const parts = newTime.split(":");
+      const hours = parseInt(parts[0] ?? "0", 10);
+      const minutes = parseInt(parts[1] ?? "0", 10);
+      base.setHours(hours, minutes, 0, 0);
+
+      const res = await fetch(`/api/schedule/slots/${slot.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start: base.toISOString(),
+          durationMinutes
+        })
+      });
+
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        // ignore
+      }
+
+      if (!res.ok) {
+        const msg =
+          body && typeof body.message === "string"
+            ? body.message
+            : "Не удалось обновить слот";
+        throw new Error(msg);
+      }
+
+      const updated = body as SlotDto;
+      setSlots(prev =>
+        prev.map(s =>
+          s.id === slot.id
+            ? { ...s, start: updated.start, end: updated.end, status: updated.status }
+            : s
+        )
+      );
+      toast.success("Слот обновлён.");
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof Error ? err.message : "Не удалось обновить слот";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  const weekStart = startOfWeek(currentDate);
+  const weekDays: Date[] = [];
+  for (let i = 0; i < 7; i += 1) {
+    weekDays.push(addDays(weekStart, i));
+  }
+
+  const slotsByDay: Record<string, SlotDto[]> = {};
+  for (const slot of slots) {
+    const d = new Date(slot.start);
+    const key = dayKey(d);
+    if (!slotsByDay[key]) {
+      slotsByDay[key] = [];
+    }
+    slotsByDay[key].push(slot);
+  }
+  Object.keys(slotsByDay).forEach(key => {
+    slotsByDay[key].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  });
+
+  const timeScrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const node = timeScrollRef.current;
+    if (!node) return;
+    const targetHour = 8;
+    node.scrollTop = targetHour * HOUR_ROW_HEIGHT;
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Планинг недели</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {error && (
+            <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Загружаем слоты...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[720px]">
+                <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] border-b border-border pb-2 text-xs text-muted-foreground">
+                  <div />
+                  {weekDays.map(day => {
+                    const isToday = isSameDay(day, new Date());
+                    const mdKey = monthDayKey(day);
+                    const holiday = HOLIDAYS_BY_MONTH_DAY[mdKey];
+                    return (
+                      <div key={day.toISOString()} className="px-2">
+                        <div className={isToday ? "font-semibold text-foreground" : ""}>
+                          {day.toLocaleDateString("ru-RU", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "2-digit"
+                          })}
+                        </div>
+                        {holiday ? (
+                          <div className="text-[11px] text-red-500">{holiday}</div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div
+                  ref={timeScrollRef}
+                  className="max-h-[672px] overflow-y-auto"
+                >
+                  <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] text-xs">
+                    {HOURS.map((hour, index) => {
+                      const hourLabel = formatTimeLabel(hour);
+                      const isLastRow = index === HOURS.length - 1;
+                      return (
+                        <div key={hour} className="contents">
+                          <div className="border-r border-border pr-2 text-right align-top text-[11px] text-muted-foreground">
+                            {hourLabel}
+                          </div>
+
+                          {weekDays.map(day => {
+                            const key = dayKey(day);
+                            const daySlots = (slotsByDay[key] || []).filter(slot => {
+                              const d = new Date(slot.start);
+                              return d.getHours() === hour;
+                            });
+
+                            const cellClass =
+                              "border-t border-l border-border/40 px-1" +
+                              (isLastRow ? " pb-2" : "");
+
+                            return (
+                              <div
+                                key={`${key}_${hour}`}
+                                className={cellClass}
+                                style={{ minHeight: HOUR_ROW_HEIGHT }}
+                                onClick={() => {
+                                  if (daySlots.length === 0) {
+                                    openCreateDialogFor(day, hour);
+                                  }
+                                }}
+                              >
+                                <div className="relative h-full">
+                                  {daySlots.map(slot => {
+                                    const hasAppointment = Boolean(slot.appointmentId);
+                                    const label = formatHumanRange(slot.start, slot.end);
+
+                                    const startDate = new Date(slot.start);
+                                    const endDate = new Date(slot.end);
+                                    const minutesFromHourStart = startDate.getMinutes();
+                                    const durationMinutes = Math.max(
+                                      5,
+                                      (endDate.getTime() - startDate.getTime()) / 60000
+                                    );
+
+                                    const topOffsetPx =
+                                      (minutesFromHourStart / 60) * HOUR_ROW_HEIGHT;
+                                    const heightPx =
+                                      (durationMinutes / 60) * HOUR_ROW_HEIGHT;
+
+                                    let statusText: string;
+                                    if (hasAppointment) {
+                                      if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
+                                        statusText =
+                                          "Ожидает подтверждения" +
+                                          (slot.clientName ? ": " + slot.clientName : "");
+                                      } else {
+                                        statusText = slot.clientName || "";
+                                      }
+                                    } else {
+                                      statusText = "Свободен";
+                                    }
+
+                                    const initialTime = startDate
+                                      .toTimeString()
+                                      .slice(0, 5);
+
+                                    return (
+                                      <Popover key={slot.id}>
+                                        <PopoverTrigger asChild>
+                                          <div
+                                            className="absolute left-0 right-0 z-10 rounded-md border border-border bg-muted px-2 py-1.5 shadow-sm cursor-pointer"
+                                            style={{
+                                              top: topOffsetPx,
+                                              height: Math.max(22, heightPx)
+                                            }}
+                                            onClick={event => {
+                                              event.stopPropagation();
+                                            }}
+                                          >
+                                            <div className="text-[11px] font-medium">
+                                              {label}
+                                            </div>
+                                            <div className="mt-0.5 text-[11px] text-muted-foreground">
+                                              {statusText}
+                                            </div>
+                                          </div>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          side="right"
+                                          align="start"
+                                          className="w-64 space-y-3 bg-card text-xs"
+                                        >
+                                          <div>
+                                            <div className="text-[11px] font-medium">
+                                              {label}
+                                            </div>
+                                            {statusText && (
+                                              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                                                {statusText}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {!hasAppointment && (
+                                            <form
+                                              className="space-y-2"
+                                              onSubmit={e => {
+                                                e.preventDefault();
+                                                const form = e.currentTarget;
+                                                const timeSelect = form.elements
+                                                  .namedItem("time") as HTMLSelectElement | null;
+                                                const durationSelect = form.elements
+                                                  .namedItem("duration") as HTMLSelectElement | null;
+                                                const timeValue = timeSelect?.value || initialTime;
+                                                const durationValue =
+                                                  durationSelect?.value ||
+                                                  String(durationMinutes);
+                                                void handleUpdateSlotTime(
+                                                  slot,
+                                                  timeValue,
+                                                  Number(durationValue)
+                                                );
+                                              }}
+                                            >
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px]">Время</Label>
+                                                <Select defaultValue={initialTime} name="time">
+                                                  <SelectTrigger className="h-8 text-xs">
+                                                    <SelectValue />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    {HOURS.flatMap(h => [
+                                                      `${String(h).padStart(2, "0")}:00`,
+                                                      `${String(h).padStart(2, "0")}:30`
+                                                    ]).map(t => (
+                                                      <SelectItem key={t} value={t}>
+                                                        {t}
+                                                      </SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px]">
+                                                  Длительность, минут
+                                                </Label>
+                                                <Select
+                                                  defaultValue={String(durationMinutes)}
+                                                  name="duration"
+                                                >
+                                                  <SelectTrigger className="h-8 text-xs">
+                                                    <SelectValue />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    <SelectItem value="30">30</SelectItem>
+                                                    <SelectItem value="50">50</SelectItem>
+                                                    <SelectItem value="60">60</SelectItem>
+                                                    <SelectItem value="90">90</SelectItem>
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                              <div className="flex justify-end gap-2 pt-1">
+                                                <Button
+                                                  type="button"
+                                                  size="sm"
+                                                  variant="destructive"
+                                                  className="h-7 px-2 text-[11px]"
+                                                  disabled={updatingId === slot.id}
+                                                  onClick={() => void handleDeleteSlot(slot.id)}
+                                                >
+                                                  Удалить слот
+                                                </Button>
+                                                <Button
+                                                  type="submit"
+                                                  size="sm"
+                                                  className="h-7 px-2 text-[11px]"
+                                                  disabled={updatingId === slot.id}
+                                                >
+                                                  Сохранить
+                                                </Button>
+                                              </div>
+                                            </form>
+                                          )}
+
+                                          {hasAppointment && (
+                                            <div className="flex justify-end">
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 px-2 text-[11px]"
+                                                disabled={updatingId === slot.id}
+                                                onClick={() => void handleCancelAppointment(slot)}
+                                              >
+                                                Отменить запись
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </PopoverContent>
+                                      </Popover>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentDate(addDays(currentDate, -7))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={() => setCurrentDate(new Date())}
+          >
+            Сегодня
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentDate(addDays(currentDate, 7))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Неделя{" "}
+          {weekStart.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "short"
+          })}{" "}
+          –{" "}
+          {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "short",
+            year:
+              weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
+                ? "numeric"
+                : undefined
+          })}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => void loadSlots()}>
+          Обновить
+        </Button>
+      </div>
+
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Календарь</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Calendar
+            mode="single"
+            selected={currentDate}
+            onSelect={date => {
+              if (date) setCurrentDate(date);
+            }}
+            locale={ru}
+            initialFocus
+          />
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={open => {
+          setCreateDialogOpen(open);
+          if (!open) {
+            setCreateDateTime(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Новая запись</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateAppointment} className="space-y-4 text-sm">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Время</Label>
+              <p className="text-sm font-medium">
+                {createDateTime
+                  ? formatHumanRange(
+                      createDateTime.toISOString(),
+                      new Date(
+                        createDateTime.getTime() + createDuration * 60 * 1000
+                      ).toISOString()
+                    )
+                  : "Не выбрано"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Клиент (необязательно)</Label>
+              <Select
+                value={createClientId ?? "none"}
+                onValueChange={value => {
+                  if (value === "none") {
+                    setCreateClientId(undefined);
+                  } else {
+                    setCreateClientId(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue
+                    placeholder={
+                      clientsLoading
+                        ? "Загрузка..."
+                        : "Не выбран (будет свободный слот)"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Без клиента (свободный слот)</SelectItem>
+                  {clients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.lastName} {c.firstName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Длительность, минут</Label>
+              <Select
+                value={String(createDuration)}
+                onValueChange={value => setCreateDuration(Number(value))}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="60">60</SelectItem>
+                  <SelectItem value="90">90</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {error && (
+              <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+                {error}
+              </div>
+            )}
+            <DialogFooter className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateDialogOpen(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!createDateTime || creating}
+              >
+                {creating ? "Создаём..." : "Создать запись"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+

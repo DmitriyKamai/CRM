@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Psychologist CRM
 
-## Getting Started
+CRM для психологов и их клиентов:
 
-First, run the development server:
+- **Для психолога**: профили клиентов, опросник Шмишека, отправка ссылок на диагностику, расписание приёмов, пользовательские поля.
+- **Для клиента**: запись к психологу, просмотр результатов диагностики, рекомендации.
+- **Админка**: управление пользователями, ролями и диагностическими опросниками.
+
+Основной стек:
+
+- **Next.js 16 (App Router) + React + TypeScript**
+- **Tailwind CSS** + собственные компоненты в стиле `shadcn/ui`
+- **NextAuth v4** для аутентификации (email/пароль, Google, Apple ID)
+- **PostgreSQL + Prisma** для работы с данными
+
+### Аутентификация и роли
+
+- Используется **NextAuth v4** с:
+  - провайдером `credentials` (email + пароль);
+  - OAuth-провайдерами **Google** и **Apple ID** (нужно задать переменные окружения).
+- Бэкенд аутентификации:
+  - конфигурация в `lib/auth.ts` (`authOptions`, провайдеры, коллбэки с ролью пользователя);
+  - обработчик `/api/auth/[...nextauth]` в `app/api/auth/[...nextauth]/route.ts`.
+- Регистрация:
+  - API `POST /api/auth/register` создаёт пользователя с ролью `CLIENT` или `PSYCHOLOGIST` и соответствующий профиль;
+  - UI-страницы:
+    - `/auth/login` – вход (email/пароль + кнопки входа через Google/Apple);
+    - `/auth/register/psychologist` – регистрация психолога;
+    - `/auth/register/client` – регистрация клиента.
+
+### Как запускать проект
+
+1. Установите зависимости:
+
+```bash
+npm install
+```
+
+2. Запустите дев-сервер:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Откройте `http://localhost:3000` в браузере.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Если заходите с другого устройства** (телефон, планшет по Wi‑Fi): в `.env` задайте `NEXTAUTH_URL` с адресом вашего ПК в сети, например `NEXTAUTH_URL=http://192.168.1.10:3000`, и перезапустите `npm run dev`. Иначе возможна ошибка «network error» при запросе сессии.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Структура проекта (вкратце)
 
-## Learn More
+- `app/` – маршруты Next.js (лендинг, auth, кабинеты психолога/клиента, админка).
+- `components/` – переиспользуемые UI-компоненты (кнопки, формы и т.д.).
+- `lib/` – утилиты и доменная логика (валидация, доступ к БД, расчёт результатов тестов).
+- `prisma/` – схема БД (`schema.prisma`) и миграции.
 
-To learn more about Next.js, take a look at the following resources:
+### Схема БД (Prisma)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Основные сущности:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **User**: базовый пользователь + роль (`CLIENT`, `PSYCHOLOGIST`, `ADMIN`), используется NextAuth.
+- **PsychologistProfile / ClientProfile**: отдельные профили психолога и клиента, связанные с `User`.
+- **Test / TestQuestion / TestScale / TestResult / DiagnosticLink**: модель психологических тестов (на старте – опросник Шмишека), вопросы, шкалы, результаты и ссылки для прохождения.
+- **ScheduleSlot / Appointment**: слоты расписания и конкретные записи на приём.
+- **CustomFieldDefinition / CustomFieldValue**: пользовательские поля, которые психолог может заводить для клиентов и приёмов.
+- **Recommendation**: текстовые рекомендации от психолога клиенту, при желании привязанные к результату теста.
 
-## Deploy on Vercel
+Для просмотра полной схемы см. файл `prisma/schema.prisma`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Модуль психологической диагностики (опросник Шмишека)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Структура теста:
+  - Модели `Test`, `TestQuestion`, `TestScale`, `TestResult`, `DiagnosticLink`.
+  - Логика расчёта и интерпретации — в `lib/diagnostics/shmishek.ts`.
+  - Демо-наполнение БД (вопросы и шкалы) — скрипт `prisma/seed-shmishek.ts`.
+- Как подготовить тест:
+  1. Настроить `DATABASE_URL` в `.env`.
+  2. Применить миграции: `npm run prisma:migrate`.
+  3. Заполнить БД демо-структурой Шмишека: `npm run prisma:seed-shmishek`.
+- Прохождение теста:
+  - Психолог создаёт ссылку на тест через `POST /api/diagnostics/shmishek/link`
+    (нужна сессия психолога; опционально можно передать `clientId` и `maxUses`).
+  - Клиент переходит по ссылке вида `/diagnostics/[token]` и заполняет форму
+    (`app/diagnostics/[token]/page.tsx`, компонент `ShmishekTestForm`).
+  - Результат сохраняется в `TestResult` и содержит:
+    - сырые ответы (`rawAnswers`),
+    - баллы по шкалам (`scaleScores`),
+    - развёрнутую текстовую интерпретацию (`interpretation`).
+
+Тексты вопросов в демо-версии упрощены и не претендуют на полное соответствие
+классическому опроснику Шмишека. Для реальной работы рекомендуется заменить их
+на утверждённые формулировки и при необходимости адаптировать шкалы и пороги.
+
+### Расписание и запись на приём
+
+- Модели:
+  - `ScheduleSlot` — слот расписания психолога (время начала/окончания, статус).
+  - `Appointment` — конкретная запись клиента на приём.
+- API:
+  - `GET /api/schedule/slots` — список слотов текущего психолога.
+  - `POST /api/schedule/slots` — создание слота (психолог, `start`, `durationMinutes`).
+  - `GET /api/schedule/psychologists` — список психологов для выбора клиентом.
+  - `GET /api/schedule/psychologists/[id]/slots` — свободные слоты выбранного психолога.
+  - `POST /api/appointments` — создание записи клиентом по выбранному `slotId`.
+- Интерфейсы:
+  - `/psychologist/schedule` — кабинет психолога, создание слотов и просмотр расписания
+    (компонент `PsychologistSchedule`).
+  - `/client/psychologists` — список психологов.
+  - `/client/psychologists/[id]` — выбор свободного слота и запись к выбранному психологу
+    (компонент `ClientBooking`).
+
+Доступ к API и страницам для управления расписанием ограничен по ролям:
+создавать слоты может только психолог, а записываться на приём — только клиент.
+
+### Безопасность и защита данных
+
+- **Базовые меры**:
+  - Предполагается использование только HTTPS (на уровне хостинга).
+  - В `next.config.mjs` настраиваются заголовки `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`.
+- **Аутентификация и роли**:
+  - NextAuth с JWT-сессиями, роль пользователя (`CLIENT`, `PSYCHOLOGIST`, `ADMIN`) прокидывается в токен и проверяется во всех чувствительных API/страницах.
+- **Rate limiting**:
+  - Утилита `lib/rate-limit.ts` ограничивает частоту:
+    - регистрации (`/api/auth/register`),
+    - генерации диагностических ссылок (`/api/diagnostics/shmishek/link`),
+    - создания записей на приём (`/api/appointments`).
+- **Хранение персональных данных**:
+  - В БД хранятся только необходимые поля; расширяемые данные — через пользовательские поля.
+  - Для особо чувствительных данных (заметки психолога и т.п.) при выходе в прод рекомендуется добавить шифрование на уровне приложения и менеджер секретов.
+- **Логи и аудит**:
+  - Ключевые действия (регистрация, изменение ролей, создание записей и результатов тестов) логируются на сервере.
+  - Структура кода упрощает добавление отдельной таблицы `AuditLog` и интеграцию с внешней системой логирования.
+
+Папка `crm-app/` сейчас содержит исходный шаблон, созданный `create-next-app`. Основное приложение собирается из корня репозитория, поэтому папку `crm-app/` можно игнорировать или удалить позже, когда убедимся, что все нужные части перенесены.

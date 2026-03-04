@@ -1,0 +1,113 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import { prisma } from "@/lib/db";
+import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+function randomToken() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+export async function POST(request: Request) {
+  // Только психолог может создавать ссылки на тест
+  const session = await getServerSession(authOptions);
+
+  const ip =
+    request.headers.get("x-forwarded-for") ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+
+  const allowed = checkRateLimit({
+    key: `diagnostic-link:${ip}`,
+    windowMs: 5 * 60 * 1000,
+    max: 50
+  });
+
+  if (!allowed) {
+    return NextResponse.json(
+      { message: "Слишком много запросов, попробуйте позже" },
+      { status: 429 }
+    );
+  }
+
+  if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
+  }
+
+  const userId = (session.user as any).id as string;
+
+  // Профиль психолога нужен, чтобы сохранить корректную ссылку
+  let profile = await prisma.psychologistProfile.findUnique({
+    where: { userId }
+  });
+
+  if (!profile) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    profile = await prisma.psychologistProfile.create({
+      data: {
+        userId,
+        firstName: user?.name ?? "Психолог",
+        lastName: ""
+      }
+    });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const clientId = typeof body.clientId === "string" ? body.clientId : null;
+  const maxUses =
+    typeof body.maxUses === "number" && body.maxUses > 0
+      ? Math.floor(body.maxUses)
+      : 1;
+
+  // Находим тест Шмишека
+  const test = await prisma.test.findFirst({
+    where: {
+      type: "SHMISHEK"
+    }
+  });
+
+  if (!test) {
+    return NextResponse.json(
+      {
+        message:
+          "Тест Шмишека не найден в БД. Сначала запустите наполнение через prisma/seed-shmishek."
+      },
+      { status: 500 }
+    );
+  }
+
+  const token = randomToken();
+
+  const link = await prisma.diagnosticLink.create({
+    data: {
+      testId: test.id,
+      psychologistId: profile.id,
+      clientId,
+      token,
+      maxUses,
+      // по умолчанию ссылки без срока действия; можно добавить expiresAt в теле запроса
+    }
+  });
+
+  const baseUrl =
+    process.env.NEXTAUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3000";
+
+  const url = `${baseUrl}/diagnostics/${link.token}`;
+
+  return NextResponse.json(
+    {
+      id: link.id,
+      url,
+      maxUses: link.maxUses,
+      usedCount: link.usedCount
+    },
+    { status: 201 }
+  );
+}
+

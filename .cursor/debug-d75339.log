@@ -1,0 +1,43 @@
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"GET handler entered","data":{"hypothesisId":"A"},"timestamp":1772583217269}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"handleGet entered","data":{"hypothesisId":"A"},"timestamp":1772583217274}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before getServerSession","data":{"hypothesisId":"B"},"timestamp":1772583217275}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after getServerSession","data":{"hasSession":true,"hypothesisId":"B"},"timestamp":1772583217355}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before prisma findUnique","data":{"userId":"cmmb7eawd0002v8gcu0w9d149","hypothesisId":"C"},"timestamp":1772583217356}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after prisma findUnique","data":{"hasClient":true,"hypothesisId":"C"},"timestamp":1772583217752}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"dashboard returning response","data":{"hypothesisId":"D"},"timestamp":1772583217931}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler entered","data":{"path":["session"],"hypothesisId":"E"},"timestamp":1772583218017}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler returning","data":{"hypothesisId":"E"},"timestamp":1772583218028}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler entered","data":{"path":["session"],"hypothesisId":"E"},"timestamp":1772583254521}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler returning","data":{"hypothesisId":"E"},"timestamp":1772583254528}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"GET handler entered","data":{"hypothesisId":"A"},"timestamp":1772583255129}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"handleGet entered","data":{"hypothesisId":"A"},"timestamp":1772583255130}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before getServerSession","data":{"hypothesisId":"B"},"timestamp":1772583255130}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after getServerSession","data":{"hasSession":true,"hypothesisId":"B"},"timestamp":1772583255144}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before prisma findUnique","data":{"userId":"cmmb7eawd0002v8gcu0w9d149","hypothesisId":"C"},"timestamp":1772583255148}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler entered","data":{"path":["session"],"hypothesisId":"E"},"timestamp":1772583255163}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler returning","data":{"hypothesisId":"E"},"timestamp":1772583255169}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after prisma findUnique","data":{"hasClient":true,"hypothesisId":"C"},"timestamp":1772583255209}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"dashboard returning response","data":{"hypothesisId":"D"},"timestamp":1772583255273}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"GET handler entered","data":{"hypothesisId":"A"},"timestamp":1772583256170}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"handleGet entered","data":{"hypothesisId":"A"},"timestamp":1772583256171}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before getServerSession","data":{"hypothesisId":"B"},"timestamp":1772583256171}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after getServerSession","data":{"hasSession":true,"hypothesisId":"B"},"timestamp":1772583256185}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before prisma findUnique","data":{"userId":"cmmb7eawd0002v8gcu0w9d149","hypothesisId":"C"},"timestamp":1772583256186}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler entered","data":{"path":["session"],"hypothesisId":"E"},"timestamp":1772583256210}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after prisma findUnique","data":{"hasClient":true,"hypothesisId":"C"},"timestamp":1772583256220}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler returning","data":{"hypothesisId":"E"},"timestamp":1772583256223}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"dashboard returning response","data":{"hypothesisId":"D"},"timestamp":1772583256282}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler entered","data":{"path":["session"],"hypothesisId":"E"},"timestamp":1772583259885}
+{"sessionId":"d75339","location":"app/api/auth/[...nextauth]/route.ts","message":"NextAuth handler returning","data":{"hypothesisId":"E"},"timestamp":1772583259891}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"GET handler entered","data":{"hypothesisId":"A"},"timestamp":1772583262032}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"handleGet entered","data":{"hypothesisId":"A"},"timestamp":1772583262033}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before getServerSession","data":{"hypothesisId":"B"},"timestamp":1772583262033}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"GET handler entered","data":{"hypothesisId":"A"},"timestamp":1772583262041}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"handleGet entered","data":{"hypothesisId":"A"},"timestamp":1772583262042}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before getServerSession","data":{"hypothesisId":"B"},"timestamp":1772583262043}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after getServerSession","data":{"hasSession":true,"hypothesisId":"B"},"timestamp":1772583262054}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before prisma findUnique","data":{"userId":"cmmb7eawd0002v8gcu0w9d149","hypothesisId":"C"},"timestamp":1772583262054}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after getServerSession","data":{"hasSession":true,"hypothesisId":"B"},"timestamp":1772583262056}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"before prisma findUnique","data":{"userId":"cmmb7eawd0002v8gcu0w9d149","hypothesisId":"C"},"timestamp":1772583262058}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"after prisma findUnique","data":{"hasClient":true,"hypothesisId":"C"},"timestamp":1772583262084}
+{"sessionId":"d75339","location":"app/api/client/dashboard/route.ts","message":"dashboard returning response","data":{"hypothesisId":"D"},"timestamp":1772583262143}
