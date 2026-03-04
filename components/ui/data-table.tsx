@@ -117,9 +117,9 @@ export function DataTable<TData, TValue>({
       {/* Table */}
       <div className="overflow-hidden rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/10">
             {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map(header => (
                   <TableHead key={header.id} colSpan={header.colSpan}>
                     {header.isPlaceholder
@@ -136,7 +136,10 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
-                  className={onRowDoubleClick ? "cursor-pointer" : undefined}
+                  className={
+                    (onRowDoubleClick ? "cursor-pointer " : "") +
+                    "bg-card hover:bg-muted/30 transition-colors"
+                  }
                   onDoubleClick={
                     onRowDoubleClick ? () => onRowDoubleClick(row.original) : undefined
                   }
@@ -150,7 +153,10 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Нет данных.
                 </TableCell>
               </TableRow>

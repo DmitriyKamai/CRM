@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -34,6 +34,12 @@ import {
   PopoverTrigger,
   PopoverContent
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
 import { DataTable } from "@/components/ui/data-table";
 import { PhoneInput, formatPhoneDisplay } from "@/components/ui/phone-input";
@@ -48,6 +54,7 @@ type ClientDto = {
   phone?: string | null;
   notes?: string | null;
   createdAt: string;
+  hasAccount?: boolean;
 };
 
 function formatDate(value?: string | null) {
@@ -112,6 +119,7 @@ export function PsychologistClientsList() {
     try {
       const body = {
         ...form,
+        email: form.email.trim() || undefined,
         dateOfBirth: dob ? dob.toISOString() : undefined
       };
       const res = await fetch("/api/psychologist/clients", {
@@ -246,7 +254,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-3 h-8 text-slate-100 font-semibold"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Имя
@@ -254,8 +262,23 @@ export function PsychologistClientsList() {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="font-medium">
+          <span className="font-medium inline-flex items-center gap-1.5">
             {row.original.lastName} {row.original.firstName}
+            {row.original.hasAccount === true && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
+                      <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="sr-only">Зарегистрирован</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Клиент зарегистрирован
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </span>
         )
       },
@@ -265,7 +288,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-3 h-8 text-slate-100 font-semibold"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Email
@@ -278,7 +301,9 @@ export function PsychologistClientsList() {
       },
       {
         accessorKey: "phone",
-        header: "Телефон",
+        header: () => (
+          <span className="text-xs font-semibold text-slate-100">Телефон</span>
+        ),
         cell: ({ row }) => (
           <span className="text-muted-foreground">
             {formatPhoneDisplay(row.original.phone)}
@@ -292,7 +317,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8"
+            className="-ml-3 h-8 text-slate-100 font-semibold"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Создан
@@ -392,7 +417,7 @@ export function PsychologistClientsList() {
         </Alert>
       )}
 
-      {/* Loading skeleton */}
+      {/* Loading / table / empty state */}
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -400,7 +425,7 @@ export function PsychologistClientsList() {
           ))}
         </div>
       ) : clients.length === 0 ? (
-        <div className="flex h-24 items-center justify-center rounded-md border text-sm text-muted-foreground">
+        <div className="flex h-24 items-center justify-center rounded-md border bg-card/70 text-sm text-muted-foreground">
           Клиентов пока нет. Нажмите «Добавить клиента», чтобы создать первого.
         </div>
       ) : (
@@ -425,18 +450,18 @@ export function PsychologistClientsList() {
           <DialogHeader>
             <DialogTitle>Новый клиент</DialogTitle>
             <DialogDescription>
-              Укажите основные данные клиента. Email можно будет использовать для
-              доступа в личный кабинет.
+              Укажите основные данные. Email необязателен; если указан и клиент позже
+              зарегистрируется с этим email — профиль автоматически свяжется с аккаунтом.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="add-email">Email</Label>
+              <Label htmlFor="add-email">Email (необязательно)</Label>
               <Input
                 id="add-email"
                 type="email"
-                required
+                placeholder="Для связки при регистрации клиента"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               />
@@ -542,6 +567,7 @@ export function PsychologistClientsList() {
               <PsychologistClientProfile
                 id={profileClient.id}
                 email={profileClient.email ?? null}
+                hasAccount={profileClient.hasAccount}
                 firstName={profileClient.firstName}
                 lastName={profileClient.lastName}
                 dateOfBirth={profileClient.dateOfBirth ?? null}
@@ -553,7 +579,6 @@ export function PsychologistClientsList() {
                   await loadClients();
                 }}
                 onUpdated={next => {
-                  // Обновляем клиента в списке без полного перезагрузки
                   setClients(prev =>
                     prev.map(c =>
                       c.id === profileClient.id
@@ -561,6 +586,7 @@ export function PsychologistClientsList() {
                             ...c,
                             firstName: next.firstName,
                             lastName: next.lastName,
+                            email: next.email ?? null,
                             phone: next.phone ?? null,
                             notes: next.notes ?? null,
                             dateOfBirth: next.dateOfBirth ?? null
@@ -568,14 +594,13 @@ export function PsychologistClientsList() {
                         : c
                     )
                   );
-
-                  // И актуализируем данные в открытом диалоге
                   setProfileClient(prev =>
                     prev
                       ? {
                           ...prev,
                           firstName: next.firstName,
                           lastName: next.lastName,
+                          email: next.email ?? null,
                           phone: next.phone ?? null,
                           notes: next.notes ?? null,
                           dateOfBirth: next.dateOfBirth ?? null

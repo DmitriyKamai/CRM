@@ -51,16 +51,28 @@ function formatDateRange(startIso: string, endIso: string) {
   return `${date}, ${startTime}–${endTime}`;
 }
 
-function statusLabel(status: AppointmentDto["status"]) {
-  switch (status) {
+function statusLabel(appointment: AppointmentDto) {
+  const now = Date.now();
+  const start = new Date(appointment.start);
+  const end = new Date(appointment.end);
+  const isPast = end.getTime() < now;
+  const isNow = start.getTime() <= now && now <= end.getTime();
+
+  switch (appointment.status) {
     case "PENDING_CONFIRMATION":
       return "Ожидает подтверждения";
     case "SCHEDULED":
+      if (isPast) {
+        return "Состоялся";
+      }
+      if (isNow) {
+        return "Идёт сейчас";
+      }
       return "Запланирован";
     case "COMPLETED":
-      return "Завершён";
+      return "Состоялся";
     case "CANCELED":
-      return "Отменён";
+      return isPast ? "Не состоялся (отменён)" : "Отменён";
   }
 }
 
@@ -302,7 +314,7 @@ export function ClientAppointments({ clientId }: Props) {
                     {formatDateRange(item.start, item.end)}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    {statusLabel(item.status)}
+                    {statusLabel(item)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

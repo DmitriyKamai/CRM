@@ -6,8 +6,12 @@ import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 const createClientSchema = z.object({
-  email: z.string().email("Некорректный email"),
+  email: z.string().email("Некорректный email").optional().or(z.literal("")),
   firstName: z.string().min(1, "Укажите имя"),
   lastName: z.string().min(1, "Укажите фамилию"),
   dateOfBirth: z.string().optional(),
@@ -41,25 +45,31 @@ export async function GET() {
     const clients = await prisma.clientProfile.findMany({
       where: { psychologistId: profile.id },
       orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            email: true
-          }
-        }
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
+        phone: true,
+        notes: true,
+        createdAt: true,
+        userId: true,
+        email: true,
+        user: { select: { email: true } }
       }
     });
 
     return NextResponse.json({
-      clients: clients.map((client: (typeof clients)[number]) => ({
-        id: client.id,
-        firstName: client.firstName,
-        lastName: client.lastName,
-        dateOfBirth: client.dateOfBirth,
-        phone: client.phone,
-        notes: client.notes,
-        createdAt: client.createdAt,
-        email: client.user?.email ?? null
+      clients: clients.map(c => ({
+        id: c.id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        dateOfBirth: c.dateOfBirth,
+        phone: c.phone,
+        notes: c.notes,
+        createdAt: c.createdAt,
+        email: c.user?.email ?? c.email ?? null,
+        hasAccount: !!c.userId
       }))
     });
   });
@@ -87,67 +97,89 @@ export async function POST(request: Request) {
     }
 
     const json = await request.json();
-    const data = createClientSchema.parse(json);
-
-    // Ищем существующего пользователя-клиента по email
-    let user = await prisma.user.findUnique({
-      where: { email: data.email }
-    });
-
-    if (user && user.role !== "CLIENT") {
-      return NextResponse.json(
-        { message: "Пользователь с таким email уже существует и не является клиентом" },
-        { status: 400 }
-      );
-    }
-
-    if (!user) {
-      // Создаём пользователя-клиента без пароля (для входа позже можно будет настроить reset)
-      user = await prisma.user.create({
-        data: {
-          email: data.email,
-          name: `${data.firstName} ${data.lastName}`,
-          role: "CLIENT"
-        }
-      });
-    }
-
-    // Ищем/создаём клиентский профиль
-    let clientProfile = await prisma.clientProfile.findUnique({
-      where: { userId: user.id }
-    });
+    const parsed = createClientSchema.parse(json);
+    const emailRaw = typeof parsed.email === "string" ? parsed.email.trim() : "";
+    const email = emailRaw ? normalizeEmail(emailRaw) : null;
 
     const dob =
-      data.dateOfBirth && data.dateOfBirth.trim().length > 0
-        ? new Date(data.dateOfBirth)
+      parsed.dateOfBirth && parsed.dateOfBirth.trim().length > 0
+        ? new Date(parsed.dateOfBirth)
         : null;
 
-    if (!clientProfile) {
-      clientProfile = await prisma.clientProfile.create({
+    if (email) {
+      const user = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (user && user.role !== "CLIENT") {
+        return NextResponse.json(
+          { message: "Пользователь с таким email уже существует и не является клиентом" },
+          { status: 400 }
+        );
+      }
+
+      if (user) {
+        // Пользователь с таким email есть — создаём новый профиль у этого психолога (не переиспользуем чужой)
+        const existingForPsych = await prisma.clientProfile.findFirst({
+          where: { psychologistId: psych.id, userId: user.id }
+        });
+        if (existingForPsych) {
+          return NextResponse.json(
+            { message: "Клиент с таким email уже есть в вашем списке" },
+            { status: 400 }
+          );
+        }
+        const clientProfile = await prisma.clientProfile.create({
+          data: {
+            userId: user.id,
+            psychologistId: psych.id,
+            firstName: parsed.firstName,
+            lastName: parsed.lastName,
+            dateOfBirth: dob ?? undefined,
+            phone: parsed.phone,
+            notes: parsed.notes
+          }
+        });
+        return NextResponse.json(clientProfile, { status: 201 });
+      }
+
+      // Нет пользователя — проверяем уникальность email у этого психолога
+      const duplicate = await prisma.clientProfile.findFirst({
+        where: { psychologistId: psych.id, email }
+      });
+      if (duplicate) {
+        return NextResponse.json(
+          { message: "Клиент с таким email уже есть в вашем списке" },
+          { status: 400 }
+        );
+      }
+
+      // Создаём только ClientProfile, User не создаём — связка при регистрации
+      const clientProfile = await prisma.clientProfile.create({
         data: {
-          userId: user.id,
           psychologistId: psych.id,
-          firstName: data.firstName,
-          lastName: data.lastName,
+          email,
+          firstName: parsed.firstName,
+          lastName: parsed.lastName,
           dateOfBirth: dob ?? undefined,
-          phone: data.phone,
-          notes: data.notes
+          phone: parsed.phone,
+          notes: parsed.notes
         }
       });
-    } else {
-      clientProfile = await prisma.clientProfile.update({
-        where: { id: clientProfile.id },
-        data: {
-          psychologistId: psych.id,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          dateOfBirth: dob ?? undefined,
-          phone: data.phone,
-          notes: data.notes
-        }
-      });
+      return NextResponse.json(clientProfile, { status: 201 });
     }
 
+    // Без email — только профиль у психолога
+    const clientProfile = await prisma.clientProfile.create({
+      data: {
+        psychologistId: psych.id,
+        firstName: parsed.firstName,
+        lastName: parsed.lastName,
+        dateOfBirth: dob ?? undefined,
+        phone: parsed.phone,
+        notes: parsed.notes
+      }
+    });
     return NextResponse.json(clientProfile, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {

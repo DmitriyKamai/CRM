@@ -11,12 +11,17 @@ type ParamsPromise = {
   }>;
 };
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 const updateClientSchema = z.object({
   firstName: z.string().min(1, "Укажите имя").optional(),
   lastName: z.string().min(1, "Укажите фамилию").optional(),
   dateOfBirth: z.string().optional(),
   phone: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  email: z.string().email("Некорректный email").optional().or(z.literal(""))
 });
 
 export async function GET(_req: Request, { params }: ParamsPromise) {
@@ -67,7 +72,8 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     phone: client.phone,
     notes: client.notes,
     createdAt: client.createdAt,
-    email: client.user?.email ?? null
+    email: client.user?.email ?? client.email ?? null,
+    hasAccount: !!client.userId
   });
 }
 
@@ -106,19 +112,54 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     }
 
     const dob =
-      data.dateOfBirth && data.dateOfBirth.trim().length > 0
-        ? new Date(data.dateOfBirth)
-        : null;
+      data.dateOfBirth !== undefined
+        ? data.dateOfBirth && data.dateOfBirth.trim().length > 0
+          ? new Date(data.dateOfBirth)
+          : null
+        : existing.dateOfBirth;
+
+    const updateData: {
+      firstName?: string;
+      lastName?: string;
+      dateOfBirth?: Date | null;
+      phone?: string | null;
+      notes?: string | null;
+      email?: string | null;
+    } = {
+      firstName: data.firstName ?? existing.firstName,
+      lastName: data.lastName ?? existing.lastName,
+      dateOfBirth: dob,
+      phone: data.phone !== undefined ? data.phone : existing.phone,
+      notes: data.notes !== undefined ? data.notes : existing.notes
+    };
+
+    // Email редактируем только если у клиента ещё нет аккаунта
+    if (existing.userId == null && data.email !== undefined) {
+      const emailRaw = typeof data.email === "string" ? data.email.trim() : "";
+      if (emailRaw) {
+        const email = normalizeEmail(emailRaw);
+        const duplicate = await prisma.clientProfile.findFirst({
+          where: {
+            psychologistId: psych.id,
+            email,
+            id: { not: existing.id }
+          }
+        });
+        if (duplicate) {
+          return NextResponse.json(
+            { message: "Клиент с таким email уже есть в вашем списке" },
+            { status: 400 }
+          );
+        }
+        updateData.email = email;
+      } else {
+        updateData.email = null;
+      }
+    }
 
     const updated = await prisma.clientProfile.update({
       where: { id: existing.id },
-      data: {
-        firstName: data.firstName ?? existing.firstName,
-        lastName: data.lastName ?? existing.lastName,
-        dateOfBirth: dob ?? existing.dateOfBirth,
-        phone: data.phone ?? existing.phone,
-        notes: data.notes ?? existing.notes
-      }
+      data: updateData
     });
 
     return NextResponse.json(updated);

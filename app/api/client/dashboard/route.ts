@@ -41,13 +41,14 @@ async function handleGet(): Promise<Response> {
       );
     }
 
-    let client;
+    let clientProfiles: { id: string; firstName: string; lastName: string }[];
     try {
-      client = await prisma.clientProfile.findUnique({
-        where: { userId }
+      clientProfiles = await prisma.clientProfile.findMany({
+        where: { userId },
+        select: { id: true, firstName: true, lastName: true }
       });
     } catch (dbErr) {
-      console.error("[API /api/client/dashboard] prisma findUnique:", dbErr);
+      console.error("[API /api/client/dashboard] prisma findMany:", dbErr);
       return NextResponse.json(
         {
           error:
@@ -58,6 +59,8 @@ async function handleGet(): Promise<Response> {
         { status: 500 }
       );
     }
+
+    const clientIds = clientProfiles.map((c) => c.id);
 
     let upcomingAppointmentsList: Array<{
       id: string;
@@ -83,12 +86,12 @@ async function handleGet(): Promise<Response> {
       psychologistName: string;
     }> = [];
 
-    if (client) {
+    if (clientIds.length > 0) {
       try {
         const now = new Date();
         const appointments = await prisma.appointment.findMany({
           where: {
-            clientId: client.id,
+            clientId: { in: clientIds },
             start: { gte: now },
             status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] }
           },
@@ -113,7 +116,7 @@ async function handleGet(): Promise<Response> {
         }));
 
         const results = await prisma.testResult.findMany({
-          where: { clientId: client.id },
+          where: { clientId: { in: clientIds } },
           include: {
             test: {
               select: { title: true }
@@ -131,7 +134,7 @@ async function handleGet(): Promise<Response> {
         }));
 
         const recs = await prisma.recommendation.findMany({
-          where: { clientId: client.id },
+          where: { clientId: { in: clientIds } },
           include: {
             psychologist: {
               select: { firstName: true, lastName: true }
@@ -153,9 +156,9 @@ async function handleGet(): Promise<Response> {
     }
 
     const name =
-      client != null
-        ? `${client.lastName} ${client.firstName}`
-        : session.user.email ?? "Клиент";
+      clientProfiles.length > 0
+        ? `${clientProfiles[0].lastName} ${clientProfiles[0].firstName}`
+        : (session.user as { name?: string | null }).name ?? session.user?.email ?? "Клиент";
 
     return NextResponse.json({
       name,

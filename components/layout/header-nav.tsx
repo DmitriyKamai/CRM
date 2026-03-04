@@ -91,7 +91,7 @@ export function HeaderNav() {
   const initials = name
     ? name
         .split(/\s+/)
-        .map((s) => s[0])
+        .map((s: string) => s[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)

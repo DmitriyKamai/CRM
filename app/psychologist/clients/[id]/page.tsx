@@ -54,6 +54,9 @@ export default async function PsychologistClientProfilePage({
     notFound();
   }
 
+  const email = client.user?.email ?? client.email ?? null;
+  const hasAccount = !!client.userId;
+
   const testResults = await prisma.testResult.findMany({
     where: {
       clientId: client.id,
@@ -85,7 +88,8 @@ export default async function PsychologistClientProfilePage({
 
       <PsychologistClientProfile
         id={client.id}
-        email={client.user?.email ?? null}
+        email={email}
+        hasAccount={hasAccount}
         firstName={client.firstName}
         lastName={client.lastName}
         dateOfBirth={client.dateOfBirth?.toISOString() ?? null}

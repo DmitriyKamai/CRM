@@ -5,7 +5,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8">
       <section className="text-center space-y-4 max-w-2xl">
-        <h1 className="text-3xl md:text-4xl font-semibold text-slate-50">
+        <h1 className="text-6xl md:text-7xl font-semibold text-slate-50 tangerine-bold">
           Empatix
         </h1>
         <p className="text-slate-300">

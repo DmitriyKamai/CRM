@@ -16,3 +16,5 @@ if (typeof process !== "undefined") {
     if (reason instanceof Error && reason.stack) console.error(reason.stack);
   });
 }
+
+export {};

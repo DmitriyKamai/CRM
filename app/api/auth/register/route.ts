@@ -53,9 +53,11 @@ export async function POST(request: Request) {
     const role =
       data.role === "psychologist" ? "PSYCHOLOGIST" : "CLIENT" as const;
 
+    const emailNormalized = data.email.trim().toLowerCase();
+
     const user = await prisma.user.create({
       data: {
-        email: data.email,
+        email: emailNormalized,
         name: `${data.firstName} ${data.lastName}`,
         hashedPassword,
         role,
@@ -68,16 +70,19 @@ export async function POST(request: Request) {
                 }
               }
             }
-          : {
-              clientProfile: {
-                create: {
-                  firstName: data.firstName,
-                  lastName: data.lastName
-                }
-              }
-            })
+          : undefined)
       }
     });
+
+    if (role === "CLIENT") {
+      await prisma.clientProfile.updateMany({
+        where: {
+          email: emailNormalized,
+          userId: null
+        },
+        data: { userId: user.id }
+      });
+    }
 
     return NextResponse.json(
       { id: user.id, email: user.email, role: user.role },

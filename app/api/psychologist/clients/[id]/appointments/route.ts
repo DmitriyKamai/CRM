@@ -120,6 +120,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     const start = new Date(startIso);
     const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
 
+    const hasAccount = !!client.userId;
     const result = await prisma.$transaction(async tx => {
       const slot = await tx.scheduleSlot.create({
         data: {
@@ -137,12 +138,12 @@ export async function POST(request: Request, { params }: ParamsPromise) {
           clientId: client.id,
           start,
           end,
-          status: "PENDING_CONFIRMATION",
-          notes: "PROPOSED_BY_PSYCHOLOGIST"
+          status: hasAccount ? "PENDING_CONFIRMATION" : "SCHEDULED",
+          notes: hasAccount ? "PROPOSED_BY_PSYCHOLOGIST" : null
         }
       });
 
-      if (client.userId) {
+      if (hasAccount) {
         const dateStr = start.toLocaleString("ru-RU", {
           dateStyle: "short",
           timeStyle: "short"
@@ -150,7 +151,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
         const psychologistName = `${psych.lastName} ${psych.firstName}`.trim() || "Психолог";
         await tx.notification.create({
           data: {
-            userId: client.userId,
+            userId: client.userId!,
             title: "Предложена запись на приём",
             body: `Психолог ${psychologistName} предложил(а) вам запись на приём ${dateStr}. Подтвердите или отмените её в личном кабинете.`
           }
@@ -166,7 +167,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
         start: result.start.toISOString(),
         end: result.end.toISOString(),
         status: result.status,
-        proposedByPsychologist: true
+        proposedByPsychologist: hasAccount
       },
       { status: 201 }
     );

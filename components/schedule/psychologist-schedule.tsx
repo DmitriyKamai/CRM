@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -46,17 +46,20 @@ type ClientOption = {
   id: string;
   firstName: string;
   lastName: string;
+  hasAccount?: boolean;
 };
 
 const HOLIDAYS_BY_MONTH_DAY: Record<string, string> = {
   "01-01": "Новый год",
-  "01-07": "Рождество (православное)",
-  "03-08": "День женщин",
-  "05-01": "Праздник труда",
+  "01-02": "Новый год",
+  "01-07": "Рождество Христово (православное)",
+  "03-08": "Международный женский день",
+  "04-21": "Радуница",
+  "05-01": "День труда",
   "05-09": "День Победы",
-  "07-03": "День Независимости",
+  "07-03": "День Независимости Республики Беларусь",
   "11-07": "День Октябрьской революции",
-  "12-25": "Рождество (католическое)"
+  "12-25": "Рождество Христово (католическое)"
 };
 
 const HOURS: number[] = [];
@@ -119,12 +122,23 @@ function formatHumanRange(startIso: string, endIso: string): string {
   return `${hStart}:${mStart}–${hEnd}:${mEnd}`;
 }
 
+function toMonthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toFirstOfMonth(d: Date): Date {
+  const out = new Date(d.getFullYear(), d.getMonth(), 1);
+  return out;
+}
+
 export function PsychologistSchedule() {
   const [slots, setSlots] = useState<SlotDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+  const [displayedMonth, setDisplayedMonth] = useState<Date>(() => toFirstOfMonth(new Date()));
+  const lastMonthKeyRef = useRef<string>(toMonthKey(new Date()));
 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [clientsLoading, setClientsLoading] = useState<boolean>(false);
@@ -134,6 +148,12 @@ export function PsychologistSchedule() {
   const [createClientId, setCreateClientId] = useState<string | undefined>(undefined);
   const [createDuration, setCreateDuration] = useState<number>(50);
   const [creating, setCreating] = useState<boolean>(false);
+  const [openSlotId, setOpenSlotId] = useState<string | null>(null);
+
+  const currentMonthKey = String(displayedMonth.getMonth() + 1).padStart(2, "0");
+  const holidaysThisMonth = Object.entries(HOLIDAYS_BY_MONTH_DAY)
+    .filter(([md]) => md.slice(0, 2) === currentMonthKey)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 
   async function loadSlots(retries = 2): Promise<void> {
     setLoading(true);
@@ -177,14 +197,15 @@ export function PsychologistSchedule() {
       const res = await fetch("/api/psychologist/clients");
       if (!res.ok) return;
       const body = (await res.json().catch(() => null)) as
-        | { clients?: { id: string; firstName: string; lastName: string }[] }
+        | { clients?: { id: string; firstName: string; lastName: string; hasAccount?: boolean }[] }
         | null;
       if (!body || !Array.isArray(body.clients)) return;
       setClients(
         body.clients.map(c => ({
           id: c.id,
           firstName: c.firstName,
-          lastName: c.lastName
+          lastName: c.lastName,
+          hasAccount: c.hasAccount
         }))
       );
     } catch {
@@ -418,20 +439,141 @@ export function PsychologistSchedule() {
 
   const timeScrollRef = useRef<HTMLDivElement | null>(null);
 
+  const handleCalendarSelect = useCallback((date: Date | undefined) => {
+    if (!date) return;
+    if (isSameDay(date, currentDate)) return;
+    setCurrentDate(date);
+    setDisplayedMonth(toFirstOfMonth(date));
+  }, [currentDate]);
+
+  const handleCalendarMonthChange = useCallback((month: Date | undefined) => {
+    if (!month) return;
+    const key = toMonthKey(month);
+    if (lastMonthKeyRef.current === key) return;
+    lastMonthKeyRef.current = key;
+    setDisplayedMonth(toFirstOfMonth(month));
+  }, []);
+
   useEffect(() => {
+    if (loading) return;
     const node = timeScrollRef.current;
     if (!node) return;
     const targetHour = 8;
-    node.scrollTop = targetHour * HOUR_ROW_HEIGHT;
-  }, []);
+    const scroll = targetHour * HOUR_ROW_HEIGHT;
+    node.scrollTop = scroll;
+    const id = window.requestAnimationFrame(() => {
+      if (node) {
+        node.scrollTop = scroll;
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [loading]);
 
   return (
-    <div className="space-y-4">
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Планинг недели</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+    <>
+      <div className="flex gap-1 items-start">
+        <div className="w-72 shrink-0 flex flex-col">
+          <div className="h-10 shrink-0" aria-hidden />
+          <Calendar
+            mode="single"
+            selected={currentDate}
+            month={displayedMonth}
+            onSelect={handleCalendarSelect}
+            onMonthChange={handleCalendarMonthChange}
+            locale={ru}
+            initialFocus
+          />
+          {holidaysThisMonth.length > 0 && (
+            <div className="mt-3 space-y-3 text-xs text-muted-foreground">
+              <div className="space-y-1">
+                <div className="text-sm font-semibold text-foreground">
+                  Праздничные дни месяца
+                </div>
+                <ul className="space-y-0.5">
+                  {holidaysThisMonth.map(([md, title]) => {
+                    const day = md.slice(3, 5);
+                    return (
+                      <li key={md} className="flex gap-2">
+                        <span className="w-8 text-left font-medium text-foreground">
+                          {day}.{currentMonthKey}
+                        </span>
+                        <span className="flex-1">{title}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-sm font-semibold text-foreground">
+                  Условные обозначения
+                </div>
+                <ul className="space-y-0.5">
+                  <li className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-sm bg-sky-500/40 border border-sky-500/60" />
+                    <span>Свободный слот</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-sm bg-amber-400/60 border border-amber-500/70" />
+                    <span>Запись, ожидающая подтверждения</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-sm bg-emerald-500/60 border border-emerald-500/70" />
+                    <span>Подтверждённая запись</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  const next = addDays(currentDate, -7);
+                  setCurrentDate(next);
+                  setDisplayedMonth(toFirstOfMonth(next));
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="px-1 text-sm font-medium">
+                {weekStart.toLocaleDateString("ru-RU", {
+                  day: "2-digit",
+                  month: "short"
+                })}{" "}
+                –{" "}
+                {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
+                  day: "2-digit",
+                  month: "short",
+                  year:
+                    weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
+                      ? "numeric"
+                      : undefined
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  const next = addDays(currentDate, 7);
+                  setCurrentDate(next);
+                  setDisplayedMonth(toFirstOfMonth(next));
+                }}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <Card className="overflow-hidden">
+            <CardContent className="space-y-2 px-4 py-3">
           {error && (
             <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
               {error}
@@ -468,7 +610,7 @@ export function PsychologistSchedule() {
 
                 <div
                   ref={timeScrollRef}
-                  className="max-h-[672px] overflow-y-auto"
+                  className="max-h-[672px] overflow-y-auto scrollbar-schedule"
                 >
                   <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] text-xs">
                     {HOURS.map((hour, index) => {
@@ -520,12 +662,28 @@ export function PsychologistSchedule() {
                                     const heightPx =
                                       (durationMinutes / 60) * HOUR_ROW_HEIGHT;
 
-                                    let statusText: string;
-                                    if (hasAppointment) {
+                                    const popupStatusText = (() => {
+                                      if (!hasAppointment) {
+                                        return "Свободный слот";
+                                      }
                                       if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
-                                        statusText =
-                                          "Ожидает подтверждения" +
-                                          (slot.clientName ? ": " + slot.clientName : "");
+                                        return slot.clientName
+                                          ? `${slot.clientName} (ожидает подтверждения)`
+                                          : "Ожидает подтверждения";
+                                      }
+                                      return slot.clientName || "Занято";
+                                    })();
+
+                                    // Компактный режим: если слот низкий, внутри блока показываем только время,
+                                    // а всё остальное (статус, имя) — во всплывающей подсказке/попапе.
+                                    const isCompact = heightPx < 56;
+
+                                    let statusText: string;
+                                    if (isCompact) {
+                                      statusText = "";
+                                    } else if (hasAppointment) {
+                                      if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
+                                        statusText = "Ожидает подтверждения";
                                       } else {
                                         statusText = slot.clientName || "";
                                       }
@@ -533,15 +691,44 @@ export function PsychologistSchedule() {
                                       statusText = "Свободен";
                                     }
 
+                                    const tooltipTitle = popupStatusText;
+
+                                    let slotBgClass = "";
+                                    let slotBorderClass = "";
+                                    if (!hasAppointment) {
+                                      slotBgClass = "bg-sky-500/10";
+                                      slotBorderClass = "border-sky-500/40";
+                                    } else if (
+                                      slot.appointmentStatus === "PENDING_CONFIRMATION"
+                                    ) {
+                                      slotBgClass = "bg-amber-400/15";
+                                      slotBorderClass = "border-amber-400/40";
+                                    } else {
+                                      slotBgClass = "bg-emerald-500/15";
+                                      slotBorderClass = "border-emerald-500/40";
+                                    }
+
                                     const initialTime = startDate
                                       .toTimeString()
                                       .slice(0, 5);
 
                                     return (
-                                      <Popover key={slot.id}>
+                                      <Popover
+                                        key={slot.id}
+                                        open={openSlotId === slot.id}
+                                        onOpenChange={open =>
+                                          setOpenSlotId(open ? slot.id : null)
+                                        }
+                                      >
                                         <PopoverTrigger asChild>
                                           <div
-                                            className="absolute left-0 right-0 z-10 rounded-md border border-border bg-muted px-2 py-1.5 shadow-sm cursor-pointer"
+                                            className={
+                                              "absolute left-0 right-0 z-10 rounded-md border px-2 py-1.5 shadow-sm cursor-pointer " +
+                                              slotBgClass +
+                                              " " +
+                                              slotBorderClass
+                                            }
+                                            title={tooltipTitle}
                                             style={{
                                               top: topOffsetPx,
                                               height: Math.max(22, heightPx)
@@ -563,15 +750,23 @@ export function PsychologistSchedule() {
                                           align="start"
                                           className="w-64 space-y-3 bg-card text-xs"
                                         >
-                                          <div>
-                                            <div className="text-[11px] font-medium">
-                                              {label}
-                                            </div>
-                                            {statusText && (
-                                              <div className="mt-0.5 text-[11px] text-muted-foreground">
-                                                {statusText}
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                              <div className="text-[11px] font-medium">
+                                                {label}
                                               </div>
-                                            )}
+                                              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                                                {popupStatusText}
+                                              </div>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted"
+                                              onClick={() => setOpenSlotId(null)}
+                                              aria-label="Закрыть"
+                                            >
+                                              <X className="h-3 w-3 text-muted-foreground" />
+                                            </button>
                                           </div>
 
                                           {!hasAppointment && (
@@ -684,74 +879,11 @@ export function PsychologistSchedule() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentDate(addDays(currentDate, -7))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3"
-            onClick={() => setCurrentDate(new Date())}
-          >
-            Сегодня
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentDate(addDays(currentDate, 7))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            </CardContent>
+          </Card>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Неделя{" "}
-          {weekStart.toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "short"
-          })}{" "}
-          –{" "}
-          {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "short",
-            year:
-              weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
-                ? "numeric"
-                : undefined
-          })}
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => void loadSlots()}>
-          Обновить
-        </Button>
       </div>
-
-      <Card className="h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Календарь</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Calendar
-            mode="single"
-            selected={currentDate}
-            onSelect={date => {
-              if (date) setCurrentDate(date);
-            }}
-            locale={ru}
-            initialFocus
-          />
-        </CardContent>
-      </Card>
-
+      
       <Dialog
         open={createDialogOpen}
         onOpenChange={open => {
@@ -805,6 +937,7 @@ export function PsychologistSchedule() {
                   {clients.map(c => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.lastName} {c.firstName}
+                      {c.hasAccount === false && " (без аккаунта)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -852,7 +985,7 @@ export function PsychologistSchedule() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 

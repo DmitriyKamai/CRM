@@ -14,12 +14,36 @@ export async function POST(request: Request) {
   }
 
   const userId = (session.user as any).id as string;
-  const clientProfile = await prisma.clientProfile.findUnique({
-    where: { userId }
+
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body.slotId !== "string") {
+    return NextResponse.json(
+      { message: "Не указан слот для записи" },
+      { status: 400 }
+    );
+  }
+  const slotId = body.slotId as string;
+
+  const slot = await prisma.scheduleSlot.findUnique({
+    where: { id: slotId },
+    select: { psychologistId: true }
+  });
+  if (!slot) {
+    return NextResponse.json(
+      { message: "Слот не найден" },
+      { status: 400 }
+    );
+  }
+
+  const clientProfile = await prisma.clientProfile.findFirst({
+    where: {
+      userId,
+      psychologistId: slot.psychologistId
+    }
   });
   if (!clientProfile) {
     return NextResponse.json(
-      { message: "Профиль клиента не найден. Обратитесь к психологу для создания профиля." },
+      { message: "Профиль клиента у этого психолога не найден. Обратитесь к психологу для добавления в список." },
       { status: 400 }
     );
   }
@@ -42,16 +66,6 @@ export async function POST(request: Request) {
       { status: 429 }
     );
   }
-
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body.slotId !== "string") {
-    return NextResponse.json(
-      { message: "Не указан слот для записи" },
-      { status: 400 }
-    );
-  }
-
-  const slotId = body.slotId as string;
 
   try {
     const result = await prisma.$transaction(async tx => {

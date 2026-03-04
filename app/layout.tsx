@@ -18,11 +18,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <AuthProvider>
           <header className="border-b bg-background/80 backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-              <div className="text-sm font-semibold tracking-tight">
+              <div className="text-3xl md:text-4xl font-semibold tracking-tight tangerine-bold">
                 Empatix
               </div>
               <Suspense fallback={<div className="text-xs text-muted-foreground">Загрузка…</div>}>

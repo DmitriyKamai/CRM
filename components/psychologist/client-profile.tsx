@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar as CalendarIcon, Pencil, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Pencil, Trash2, UserCheck } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -34,6 +34,7 @@ import { ClientAppointments } from "@/components/psychologist/client-appointment
 type ClientProfileProps = {
   id: string;
   email: string | null;
+  hasAccount?: boolean;
   firstName: string;
   lastName: string;
   dateOfBirth: string | null;
@@ -44,6 +45,7 @@ type ClientProfileProps = {
   onUpdated?: (next: {
     firstName: string;
     lastName: string;
+    email: string | null;
     phone: string | null;
     notes: string | null;
     dateOfBirth: string | null;
@@ -68,11 +70,13 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
   const [firstName, setFirstName] = useState(props.firstName);
   const [lastName, setLastName] = useState(props.lastName);
+  const [email, setEmail] = useState(props.email ?? "");
   const [phone, setPhone] = useState(props.phone ?? "");
   const [notes, setNotes] = useState(props.notes ?? "");
   const [dob, setDob] = useState<Date | undefined>(
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
   );
+  const hasAccount = props.hasAccount ?? false;
 
   function formatDate(value?: string | null) {
     if (!value) return "—";
@@ -86,13 +90,16 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     setSaving(true);
     setError(null);
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         firstName,
         lastName,
         phone: phone || undefined,
         notes: notes || undefined,
         dateOfBirth: dob ? dob.toISOString() : undefined
       };
+      if (!hasAccount) {
+        body.email = email.trim() || "";
+      }
 
       const res = await fetch(`/api/psychologist/clients/${props.id}`, {
         method: "PATCH",
@@ -112,6 +119,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         props.onUpdated({
           firstName,
           lastName,
+          email: email.trim() || null,
           phone: phone || null,
           notes: notes || null,
           dateOfBirth: dob ? dob.toISOString() : null
@@ -195,8 +203,25 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           className="mt-3 space-y-4 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
         >
           <div className="space-y-1">
-            <div className="text-base font-semibold leading-none tracking-tight">
-              {props.lastName} {props.firstName}
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold leading-none tracking-tight">
+                {props.lastName} {props.firstName}
+              </span>
+              {hasAccount && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
+                        <UserCheck className="h-4 w-4" aria-hidden />
+                        <span className="sr-only">Зарегистрирован</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Клиент зарегистрирован
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             <div className="text-sm text-muted-foreground">
               {props.email ?? "Email ещё не указан"} · Создан{" "}
@@ -218,6 +243,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
                 disabled={!isEditing}
+                style={!isEditing ? { cursor: "text" } : undefined}
               />
             </div>
             <div className="space-y-1">
@@ -230,6 +256,26 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 value={lastName}
                 onChange={e => setLastName(e.target.value)}
                 disabled={!isEditing}
+                style={!isEditing ? { cursor: "text" } : undefined}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="profile-email" className="text-xs">
+                Email
+                {hasAccount && (
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    (из аккаунта, изменить нельзя)
+                  </span>
+                )}
+              </Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                disabled={!isEditing || hasAccount}
+                placeholder={hasAccount ? undefined : "Для связки при регистрации"}
+                style={!isEditing || hasAccount ? { cursor: "text" } : undefined}
               />
             </div>
             <div className="space-y-1">
@@ -241,6 +287,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     type="button"
                     className="w-full justify-start text-left font-normal bg-card border-input text-sm hover:bg-card/90"
                     disabled={!isEditing}
+                    style={!isEditing ? { cursor: "text" } : undefined}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                     {dob ? (
@@ -273,6 +320,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 value={phone}
                 onChange={value => setPhone(value)}
                 disabled={!isEditing}
+                style={!isEditing ? { cursor: "text" } : undefined}
               />
             </div>
             <div className="space-y-1 md:col-span-2">
@@ -285,6 +333,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 disabled={!isEditing}
+                style={!isEditing ? { cursor: "text" } : undefined}
               />
             </div>
 

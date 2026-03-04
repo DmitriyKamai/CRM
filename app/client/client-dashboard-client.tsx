@@ -131,20 +131,22 @@ export function ClientDashboardClient() {
       if (!res.ok) {
         throw new Error(body?.message ?? "Не удалось обновить запись");
       }
-      setData(prev =>
-        !prev
-          ? prev
-          : {
-              ...prev,
-              upcomingAppointmentsList: prev.upcomingAppointmentsList.map(a =>
-                a.id === id ? { ...a, status } : a
-              ),
-              upcomingAppointments:
-                status === "CANCELED"
-                  ? prev.upcomingAppointments - 1
-                  : prev.upcomingAppointments
-            }
-      );
+      setData(prev => {
+        if (!prev) return prev;
+        if (status === "CANCELED") {
+          return {
+            ...prev,
+            upcomingAppointmentsList: prev.upcomingAppointmentsList.filter(a => a.id !== id),
+            upcomingAppointments: Math.max(0, prev.upcomingAppointments - 1)
+          };
+        }
+        return {
+          ...prev,
+          upcomingAppointmentsList: prev.upcomingAppointmentsList.map(a =>
+            a.id === id ? { ...a, status: status as "PENDING_CONFIRMATION" | "SCHEDULED" } : a
+          )
+        };
+      });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Не удалось обновить запись");

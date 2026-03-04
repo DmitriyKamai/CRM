@@ -70,3 +70,37 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+@layer utilities {
+  .tangerine-regular {
+    font-family: "Tangerine", cursive;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .tangerine-bold {
+    font-family: "Tangerine", cursive;
+    font-weight: 700;
+    font-style: italic;
+  }
+}
+
+/* Узкий скроллбар в цветах темы для планинга расписания */
+.scrollbar-schedule {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+.scrollbar-schedule::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-schedule::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.scrollbar-schedule::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 9999px;
+}
+
