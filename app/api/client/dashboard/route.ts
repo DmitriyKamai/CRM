@@ -78,6 +78,14 @@ async function handleGet(): Promise<Response> {
       createdAt: string;
       interpretation?: string | null;
     }> = [];
+    let pendingDiagnosticLinks: Array<{
+      id: string;
+      token: string;
+      testTitle: string;
+      psychologistName: string;
+      createdAt: string;
+      hasProgress: boolean;
+    }> = [];
     let recommendations: Array<{
       id: string;
       title: string;
@@ -133,6 +141,47 @@ async function handleGet(): Promise<Response> {
           interpretation: r.interpretation
         }));
 
+        const pendingLinksRaw = await prisma.diagnosticLink.findMany({
+          where: { clientId: { in: clientIds } },
+          include: {
+            test: { select: { title: true } },
+            psychologist: {
+              select: { firstName: true, lastName: true }
+            }
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50
+        });
+        const pendingLinksFiltered = pendingLinksRaw.filter((l) => {
+          if (l.expiresAt && l.expiresAt <= new Date()) return false;
+          if (l.maxUses != null && (l.usedCount ?? 0) >= l.maxUses) return false;
+          return true;
+        });
+        const linkIds = pendingLinksFiltered.slice(0, 20).map((l) => l.id);
+        let progressByLinkId = new Map<string, number>();
+        try {
+          const progressList = await (prisma as any).diagnosticProgress.findMany({
+            where: { diagnosticLinkId: { in: linkIds } },
+            select: { diagnosticLinkId: true, currentStep: true }
+          }) as { diagnosticLinkId: string; currentStep: number }[];
+          progressByLinkId = new Map(
+            progressList.map((p) => [p.diagnosticLinkId, p.currentStep])
+          );
+        } catch {
+          // DiagnosticProgress table may not exist yet
+        }
+        pendingDiagnosticLinks = pendingLinksFiltered.slice(0, 20).map((l) => {
+          const currentStep = progressByLinkId.get(l.id) ?? 0;
+          return {
+            id: l.id,
+            token: l.token,
+            testTitle: l.test.title,
+            psychologistName: `${l.psychologist?.lastName ?? ""} ${l.psychologist?.firstName ?? ""}`.trim() || "Психолог",
+            createdAt: l.createdAt.toISOString(),
+            hasProgress: currentStep > 0
+          };
+        });
+
         const recs = await prisma.recommendation.findMany({
           where: { clientId: { in: clientIds } },
           include: {
@@ -166,6 +215,7 @@ async function handleGet(): Promise<Response> {
       upcomingAppointmentsList,
       testResults,
       diagnosticResults,
+      pendingDiagnosticLinks,
       recommendations
     });
   } catch (err) {

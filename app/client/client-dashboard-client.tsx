@@ -23,6 +23,15 @@ type DiagnosticItem = {
   interpretation?: string | null;
 };
 
+type PendingDiagnosticLink = {
+  id: string;
+  token: string;
+  testTitle: string;
+  psychologistName: string;
+  createdAt: string;
+  hasProgress?: boolean;
+};
+
 type RecommendationItem = {
   id: string;
   title: string;
@@ -37,6 +46,7 @@ type DashboardData = {
   upcomingAppointmentsList: AppointmentItem[];
   testResults: number;
   diagnosticResults: DiagnosticItem[];
+  pendingDiagnosticLinks: PendingDiagnosticLink[];
   recommendations: RecommendationItem[];
 };
 
@@ -310,13 +320,49 @@ export function ClientDashboardClient() {
         </TabsContent>
 
         <TabsContent value="diagnostics" className="space-y-3">
-          {data.diagnosticResults.length === 0 ? (
+          {data.pendingDiagnosticLinks && data.pendingDiagnosticLinks.length > 0 && (
             <Card>
-              <CardContent className="py-6 text-sm text-slate-400">
-                Результаты психологической диагностики пока не сохранены.
+              <CardHeader>
+                <CardTitle className="text-sm">Тесты к прохождению</CardTitle>
+                <p className="text-xs text-slate-400">
+                  Психолог отправил вам эти тесты. Пройдите их по ссылке.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <ul className="space-y-2">
+                  {data.pendingDiagnosticLinks.map(link => (
+                    <li
+                      key={link.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
+                    >
+                      <div>
+                        <div className="font-medium text-slate-50">
+                          {link.testTitle}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {link.psychologistName} · {formatDate(link.createdAt)}
+                        </div>
+                      </div>
+                      <Button size="sm" variant="default" asChild>
+                        <Link href={`/diagnostics/${link.token}`}>
+                          {link.hasProgress ? "Продолжить" : "Пройти тест"}
+                        </Link>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
-          ) : (
+          )}
+          {data.diagnosticResults.length === 0 && (!data.pendingDiagnosticLinks || data.pendingDiagnosticLinks.length === 0) ? (
+            <Card>
+              <CardContent className="py-6 text-sm text-slate-400">
+                Результаты психологической диагностики пока не сохранены. Если
+                психолог отправит вам тест, он появится здесь в блоке «Тесты к
+                прохождению».
+              </CardContent>
+            </Card>
+          ) : data.diagnosticResults.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">
@@ -348,7 +394,7 @@ export function ClientDashboardClient() {
                 </ul>
               </CardContent>
             </Card>
-          )}
+          ) : null}
         </TabsContent>
 
         <TabsContent value="recommendations" className="space-y-3">

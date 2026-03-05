@@ -248,11 +248,23 @@ model DiagnosticLink {
   usedCount      Int      @default(0)
   createdAt      DateTime @default(now())
 
-  test         Test               @relation(fields: [testId], references: [id])
+  test     Test                     @relation(fields: [testId], references: [id])
   psychologist PsychologistProfile? @relation(fields: [psychologistId], references: [id])
-  client       ClientProfile?     @relation(fields: [clientId], references: [id])
+  client   ClientProfile?           @relation(fields: [clientId], references: [id])
+  progress DiagnosticProgress?
 
   @@index([token])
+}
+
+// Черновик прохождения теста (прогресс до отправки результата)
+model DiagnosticProgress {
+  id               String   @id @default(cuid())
+  diagnosticLinkId String   @unique
+  answers          Json     // Record<number, 0|1|2|3>
+  currentStep      Int      @default(0) // 0 = инструкция, 1..N = вопрос
+  updatedAt       DateTime @updatedAt
+
+  link DiagnosticLink @relation(fields: [diagnosticLinkId], references: [id], onDelete: Cascade)
 }
 
 // --- Domain: schedule & appointments ---

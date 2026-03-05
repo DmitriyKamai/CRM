@@ -66,6 +66,8 @@ export function PsychologistDiagnosticsClient() {
   const [clientsLoading, setClientsLoading] = useState(false);
   const [clientsError, setClientsError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [sendingToClient, setSendingToClient] = useState(false);
+  const [sendToClientSuccess, setSendToClientSuccess] = useState<string | null>(null);
 
   async function handleCreateLink() {
     setLoadingLink(true);
@@ -149,6 +151,40 @@ export function PsychologistDiagnosticsClient() {
     })();
   }, [sendDialogOpen, clients.length, clientsLoading]);
 
+  /** Отправить тест в кабинет клиента: создаём ссылку с clientId и уведомление */
+  async function handleSendToClient() {
+    if (!selectedClientId) return;
+    setSendingToClient(true);
+    setClientsError(null);
+    setSendToClientSuccess(null);
+    try {
+      const res = await fetch("/api/diagnostics/shmishek/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: selectedClientId })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось отправить тест клиенту");
+      }
+      const url = typeof data.url === "string" ? data.url : null;
+      setSendToClientSuccess(
+        url
+          ? "Тест отправлен. Клиент получит уведомление и увидит тест в личном кабинете."
+          : "Тест отправлен клиенту."
+      );
+      setLinkUrl(url);
+    } catch (err) {
+      console.error(err);
+      setClientsError(
+        err instanceof Error ? err.message : "Не удалось отправить тест клиенту"
+      );
+    } finally {
+      setSendingToClient(false);
+    }
+  }
+
+  /** Скопировать текст приглашения в буфер (для ручной отправки) */
   async function handlePrepareMessage() {
     if (!linkUrl) {
       setError("Сначала создайте ссылку для прохождения.");
@@ -288,19 +324,29 @@ export function PsychologistDiagnosticsClient() {
       </div>
 
       {/* Диалог отправки клиенту */}
-      <Dialog open={sendDialogOpen} onOpenChange={open => setSendDialogOpen(open)}>
+      <Dialog
+        open={sendDialogOpen}
+        onOpenChange={open => {
+          setSendDialogOpen(open);
+          if (!open) {
+            setSendToClientSuccess(null);
+            setClientsError(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Отправка ссылки клиенту</DialogTitle>
+            <DialogTitle>Отправка теста клиенту</DialogTitle>
             <DialogDescription>
-              Выберите клиента. Текст приглашения с ссылкой будет скопирован в буфер
-              обмена, чтобы вы могли вставить его в письмо или мессенджер.
+              Выберите клиента. При нажатии «Отправить в кабинет» клиент получит
+              уведомление, а тест появится в его личном кабинете. Либо скопируйте
+              приглашение для отправки вручную.
             </DialogDescription>
           </DialogHeader>
 
-          {!linkUrl && (
-            <div className="rounded-md border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              Сначала создайте ссылку для прохождения теста.
+          {sendToClientSuccess && (
+            <div className="rounded-md border border-green-500/60 bg-green-500/10 px-3 py-2 text-xs text-green-200">
+              {sendToClientSuccess}
             </div>
           )}
 
@@ -332,22 +378,34 @@ export function PsychologistDiagnosticsClient() {
             )}
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 flex flex-col gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="w-full"
+              disabled={!selectedClientId || sendingToClient}
+              onClick={handleSendToClient}
+            >
+              {sendingToClient ? "Отправка…" : "Отправить в кабинет"}
+            </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setSendDialogOpen(false)}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              size="sm"
+              className="w-full"
               disabled={!linkUrl || !selectedClientId}
               onClick={handlePrepareMessage}
             >
               Скопировать приглашение
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => setSendDialogOpen(false)}
+            >
+              {sendToClientSuccess ? "Закрыть" : "Отмена"}
             </Button>
           </DialogFooter>
         </DialogContent>

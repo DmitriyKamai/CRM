@@ -3,14 +3,13 @@ import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
-import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
 };
 
 export async function PATCH(request: Request, { params }: ParamsPromise) {
-  return withPrismaLock(async () => {
+  try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
@@ -44,11 +43,17 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       read: updated.read,
       createdAt: updated.createdAt.toISOString()
     });
-  });
+  } catch (err) {
+    console.error("[PATCH /api/notifications/[id]]", err);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(_request: Request, { params }: ParamsPromise) {
-  return withPrismaLock(async () => {
+  try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
@@ -66,5 +71,11 @@ export async function DELETE(_request: Request, { params }: ParamsPromise) {
 
     await prisma.notification.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  });
+  } catch (err) {
+    console.error("[DELETE /api/notifications/[id]]", err);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }

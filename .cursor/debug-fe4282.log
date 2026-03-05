@@ -1,0 +1,100 @@
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670178053}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670178056}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670178057}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670311021}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670311023}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670311024}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670311867}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670311869}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670381140}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670381144}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670381145}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670382009}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":1},"timestamp":1772670382011}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670382012}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670382080}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670382092}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670382125}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670387468}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":1},"timestamp":1772670387649}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670387649}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670387686}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670387697}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670387731}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"schedule/slots/route.ts:GET","message":"slots GET requested","data":{},"timestamp":1772670390394}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670390395}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getStart","message":"slots get start","data":{},"timestamp":1772670390396}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getEnd","message":"slots get end","data":{},"timestamp":1772670390706}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670390707}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"schedule/slots/route.ts:GET","message":"slots GET requested","data":{},"timestamp":1772670390717}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getStart","message":"slots get start","data":{},"timestamp":1772670390718}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670390718}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getEnd","message":"slots get end","data":{},"timestamp":1772670390837}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670390838}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670391038}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670391128}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670391138}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670391229}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"schedule/slots/route.ts:GET","message":"slots GET requested","data":{},"timestamp":1772670392682}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getStart","message":"slots get start","data":{},"timestamp":1772670392683}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670392683}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getEnd","message":"slots get end","data":{},"timestamp":1772670392831}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670392833}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"schedule/slots/route.ts:GET","message":"slots GET requested","data":{},"timestamp":1772670392841}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getStart","message":"slots get start","data":{},"timestamp":1772670392843}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670392842}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getEnd","message":"slots get end","data":{},"timestamp":1772670392961}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670392962}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670393265}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670393354}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670393364}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670393462}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670394535}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670394625}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670394634}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670394721}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"schedule/slots/route.ts:GET","message":"slots GET requested","data":{},"timestamp":1772670395405}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getStart","message":"slots get start","data":{},"timestamp":1772670395406}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670395406}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getEnd","message":"slots get end","data":{},"timestamp":1772670395526}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670395527}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"schedule/slots/route.ts:GET","message":"slots GET requested","data":{},"timestamp":1772670395536}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getStart","message":"slots get start","data":{},"timestamp":1772670395537}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670395536}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"schedule/slots/route.ts:getEnd","message":"slots get end","data":{},"timestamp":1772670395656}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670395657}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670395925}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670396016}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670396024}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670396113}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670403643}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670403679}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670405748}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670405749}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670405750}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670406042}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670406043}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670406052}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670406053}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670406052}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670406343}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670406344}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670426944}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670426946}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670426947}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670427275}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670427277}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":1},"timestamp":1772670427276}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670427313}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670427321}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670427355}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670429655}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670429656}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670429656}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670429946}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670429947}
+{"sessionId":"fe4282","hypothesisId":"H6","location":"client/dashboard/route.ts:GET","message":"dashboard GET requested","data":{},"timestamp":1772670429956}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getStart","message":"dashboard get start","data":{},"timestamp":1772670429957}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:acquire","message":"lock acquired","data":{"active":1,"queueLen":0},"timestamp":1772670429956}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"client/dashboard/route.ts:getEnd","message":"dashboard get end","data":{},"timestamp":1772670430244}
+{"sessionId":"fe4282","hypothesisId":"H4","location":"prisma-request-lock.ts:release","message":"lock released","data":{"active":0},"timestamp":1772670430246}

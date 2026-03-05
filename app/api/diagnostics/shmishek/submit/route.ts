@@ -107,6 +107,9 @@ export async function POST(request: Request) {
             increment: 1
           }
         }
+      }),
+      prisma.diagnosticProgress.deleteMany({
+        where: { diagnosticLinkId: link.id }
       })
     ]);
 

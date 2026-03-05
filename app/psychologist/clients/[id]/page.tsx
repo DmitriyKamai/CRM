@@ -59,8 +59,15 @@ export default async function PsychologistClientProfilePage({
 
   const testResults = await prisma.testResult.findMany({
     where: {
-      clientId: client.id,
-      psychologistId: psych.id
+      AND: [
+        { clientId: client.id },
+        {
+          OR: [
+            { psychologistId: psych.id },
+            { psychologistId: null }
+          ]
+        }
+      ]
     },
     include: {
       test: {

@@ -6,8 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 export async function GET() {
-  return withPrismaLock(async () => {
-  // Список слотов только для текущего психолога
+  try {
+    return await withPrismaLock(async () => {
   const session = await getServerSession(authOptions);
 
   if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
@@ -98,9 +98,17 @@ export async function GET() {
     })
   );
   });
+  } catch (err) {
+    console.error("[GET /api/schedule/slots]", err);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
+  try {
   const session = await getServerSession(authOptions);
 
   if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
@@ -201,5 +209,12 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(slot, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/schedule/slots]", err);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }
 

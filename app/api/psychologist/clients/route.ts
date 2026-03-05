@@ -24,55 +24,63 @@ const bulkDeleteSchema = z.object({
 });
 
 export async function GET() {
-  return withPrismaLock(async () => {
-    const session = await getServerSession(authOptions);
+  try {
+    return await withPrismaLock(async () => {
+      const session = await getServerSession(authOptions);
 
-    if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as any).id as string;
-
-    const profile = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-
-    if (!profile) {
-      return NextResponse.json({ clients: [] });
-    }
-
-    const clients = await prisma.clientProfile.findMany({
-      where: { psychologistId: profile.id },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        dateOfBirth: true,
-        phone: true,
-        notes: true,
-        createdAt: true,
-        userId: true,
-        email: true,
-        user: { select: { email: true } }
+      if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+        return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
       }
-    });
 
-    return NextResponse.json({
-      clients: clients.map(c => ({
-        id: c.id,
-        firstName: c.firstName,
-        lastName: c.lastName,
-        dateOfBirth: c.dateOfBirth,
-        phone: c.phone,
-        notes: c.notes,
-        createdAt: c.createdAt,
-        email: c.user?.email ?? c.email ?? null,
-        hasAccount: !!c.userId
-      }))
+      const userId = (session.user as any).id as string;
+
+      const profile = await prisma.psychologistProfile.findUnique({
+        where: { userId },
+        select: { id: true }
+      });
+
+      if (!profile) {
+        return NextResponse.json({ clients: [] });
+      }
+
+      const clients = await prisma.clientProfile.findMany({
+        where: { psychologistId: profile.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          dateOfBirth: true,
+          phone: true,
+          notes: true,
+          createdAt: true,
+          userId: true,
+          email: true,
+          user: { select: { email: true } }
+        }
+      });
+
+      return NextResponse.json({
+        clients: clients.map(c => ({
+          id: c.id,
+          firstName: c.firstName,
+          lastName: c.lastName,
+          dateOfBirth: c.dateOfBirth,
+          phone: c.phone,
+          notes: c.notes,
+          createdAt: c.createdAt,
+          email: c.user?.email ?? c.email ?? null,
+          hasAccount: !!c.userId
+        }))
+      });
     });
-  });
+  } catch (err) {
+    console.error("[GET /api/psychologist/clients]", err);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {

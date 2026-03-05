@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
-import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 type ParamsPromise = {
   params: Promise<{
@@ -12,7 +11,7 @@ type ParamsPromise = {
 };
 
 export async function PATCH(request: Request, { params }: ParamsPromise) {
-  return withPrismaLock(async () => {
+  try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
 
@@ -111,6 +110,12 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     });
 
     return NextResponse.json(result);
-  });
+  } catch (err) {
+    console.error("[PATCH /api/client/appointments/[id]]", err);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }
 

@@ -1,18 +1,55 @@
 /**
- * Serializes API handlers that use Prisma to avoid process crash when multiple
- * requests run Prisma concurrently (e.g. dashboard + slots, or Strict Mode double fetch).
+ * Ограничивает число одновременных запросов к Prisma (семафор).
+ * Снижает пиковую нагрузку на БД и риск падения при большом числе запросов.
  */
-let lock: Promise<void> = Promise.resolve();
+const MAX_CONCURRENT = 1;
+const TIMEOUT_MS = 25_000;
+
+let active = 0;
+const waitQueue: Array<() => void> = [];
+
+function release(): void {
+  active--;
+  const next = waitQueue.shift();
+  if (next) {
+    active++;
+    next();
+  }
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("PRISMA_TIMEOUT")), ms);
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(t);
+        reject(err);
+      }
+    );
+  });
+}
 
 export async function withPrismaLock<T>(fn: () => Promise<T>): Promise<T> {
-  const wait = lock;
-  let release!: () => void;
-  lock = new Promise((r) => {
-    release = r;
+  await new Promise<void>((resolve) => {
+    if (active < MAX_CONCURRENT) {
+      active++;
+      resolve();
+    } else {
+      waitQueue.push(() => resolve());
+    }
   });
-  await wait;
+
   try {
-    return await fn();
+    return await withTimeout(fn(), TIMEOUT_MS);
+  } catch (err) {
+    if (err instanceof Error && err.message === "PRISMA_TIMEOUT") {
+      console.error("[withPrismaLock] Таймаут запроса к БД");
+    }
+    throw err;
   } finally {
     release();
   }
