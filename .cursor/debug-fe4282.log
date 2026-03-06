@@ -703,3 +703,26 @@
 {"sessionId":"fe4282","runId":"run1","hypothesisId":"H4","location":"progress/route.ts:PATCH:entry","message":"progress PATCH entry","data":{},"timestamp":1772833374396}
 {"sessionId":"fe4282","runId":"run1","hypothesisId":"H4","location":"progress/route.ts:PATCH:before findUnique","message":"progress PATCH before findUnique","data":{},"timestamp":1772833374397}
 {"sessionId":"fe4282","runId":"run1","hypothesisId":"H4","location":"progress/route.ts:PATCH:after findUnique","message":"progress PATCH after findUnique","data":{"hasLink":true},"timestamp":1772833374425}
+{"sessionId":"fe4282","location":"lib/db.ts:init","message":"Prisma init","data":{"hasUrl":true,"hasLimitInUrl":true,"datasourceUrlLength":202},"timestamp":1772840926932,"hypothesisId":"H2"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:entry","message":"schedule page entry","data":{},"timestamp":1772840927002,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:afterSession","message":"after session","data":{"hasUser":true},"timestamp":1772840927168,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"lib/db.ts:init","message":"Prisma init","data":{"hasUrl":true,"hasLimitInUrl":true,"datasourceUrlLength":202},"timestamp":1772840927642,"hypothesisId":"H2"}
+{"sessionId":"fe4282","location":"slots/route.ts:GET:entry","message":"GET slots entry","data":{},"timestamp":1772840927699,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"slots/route.ts:insideLock","message":"inside lock","data":{},"timestamp":1772840927700,"hypothesisId":"H3"}
+{"sessionId":"fe4282","location":"app/api/calendar/feed-url/route.ts:GET:entry","message":"GET feed-url entry","data":{},"timestamp":1772840927737,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"slots/route.ts:afterSession","message":"after session","data":{"hasUser":true,"role":"PSYCHOLOGIST"},"timestamp":1772840927754,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"app/api/calendar/feed-url/route.ts:GET:afterSession","message":"after session","data":{"hasUser":true,"role":"PSYCHOLOGIST"},"timestamp":1772840927762,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"lib/db.ts:init","message":"Prisma init","data":{"hasUrl":true,"hasLimitInUrl":true,"datasourceUrlLength":203},"timestamp":1772841016859,"hypothesisId":"H2"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:entry","message":"schedule page entry","data":{},"timestamp":1772841016926,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:entry","message":"schedule page entry","data":{},"timestamp":1772841016965,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:entry","message":"schedule page entry","data":{},"timestamp":1772841016985,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:afterSession","message":"after session","data":{"hasUser":true},"timestamp":1772841017170,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:afterSession","message":"after session","data":{"hasUser":true},"timestamp":1772841017178,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"app/psychologist/schedule/page.tsx:afterSession","message":"after session","data":{"hasUser":true},"timestamp":1772841017183,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"lib/db.ts:init","message":"Prisma init","data":{"hasUrl":true,"hasLimitInUrl":true,"datasourceUrlLength":203},"timestamp":1772841017796,"hypothesisId":"H2"}
+{"sessionId":"fe4282","location":"app/api/calendar/feed-url/route.ts:GET:entry","message":"GET feed-url entry","data":{},"timestamp":1772841017856,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"slots/route.ts:GET:entry","message":"GET slots entry","data":{},"timestamp":1772841017902,"hypothesisId":"H1"}
+{"sessionId":"fe4282","location":"slots/route.ts:insideLock","message":"inside lock","data":{},"timestamp":1772841017903,"hypothesisId":"H3"}
+{"sessionId":"fe4282","location":"app/api/calendar/feed-url/route.ts:GET:afterSession","message":"after session","data":{"hasUser":true,"role":"PSYCHOLOGIST"},"timestamp":1772841017938,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"slots/route.ts:afterSession","message":"after session","data":{"hasUser":true,"role":"PSYCHOLOGIST"},"timestamp":1772841017949,"hypothesisId":"H4"}
+{"sessionId":"fe4282","location":"slots/route.ts:afterProfile","message":"after profile","data":{"profileId":"cmmay7ezz0001v83w3kwqxloi"},"timestamp":1772841018282,"hypothesisId":"H5"}

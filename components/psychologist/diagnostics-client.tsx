@@ -34,15 +34,24 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-type Method = {
-  id: "shmishek";
-  name: string;
-  author?: string;
-  description: string;
+type AdaptationId = "shmishek" | "pavlova";
+
+/** Параметры адаптации; количество вопросов может различаться между адаптациями. */
+type Adaptation = {
+  id: AdaptationId;
+  label: string;
   questionCount: number;
   approximateTime: string;
+  linkAvailable: boolean;
 };
 
 type ClientOption = {
@@ -52,22 +61,35 @@ type ClientOption = {
   email?: string | null;
 };
 
-const METHODS: Method[] = [
+const QUESTIONNAIRE = {
+  name: "Личностный опросник для определения типа акцентуаций",
+  author: "Леонгард К., Шмишек Г.",
+  description:
+    "Методика была разработана Гансом Шмишеком в 1970 году на основе концепции «акцентуированных личностей» Карла Леонгарда. Опросник предназначен для определения как явных, так и скрытых акцентуаций характера у подростков и взрослых."
+};
+
+const ADAPTATIONS: Adaptation[] = [
   {
     id: "shmishek",
-    name: "Тест по изучению акцентуаций характера (детский вариант)",
-    author: "Шмишек Х.",
-    description:
-      "Методика для диагностики типа акцентуации личности у детей и подростков (Х. Шмишек, 1970; концепция К. Леонгарда). Ответы «да»/«нет». Результаты: сырые баллы по 10 шкалам и развёрнутая текстовая интерпретация.",
+    label: "Крук И.В., 1975 (детская)",
     questionCount: 88,
-    approximateTime: "15–20 мин"
+    approximateTime: "15–20 мин",
+    linkAvailable: true
+  },
+  {
+    id: "pavlova",
+    label: "Павлова Г.Г., 2025",
+    questionCount: 88,
+    approximateTime: "15–20 мин",
+    linkAvailable: true
   }
 ];
 
 export function PsychologistDiagnosticsClient() {
-  const [selectedMethodId, setSelectedMethodId] = useState<Method["id"]>("shmishek");
-  const selectedMethod =
-    METHODS.find(m => m.id === selectedMethodId) ?? METHODS[0];
+  const [selectedAdaptationId, setSelectedAdaptationId] =
+    useState<AdaptationId>("shmishek");
+  const selectedAdaptation =
+    ADAPTATIONS.find(a => a.id === selectedAdaptationId) ?? ADAPTATIONS[0];
 
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const [loadingLink, setLoadingLink] = useState(false);
@@ -82,11 +104,19 @@ export function PsychologistDiagnosticsClient() {
   const [sendingToClient, setSendingToClient] = useState(false);
   const [sendToClientSuccess, setSendToClientSuccess] = useState<string | null>(null);
 
+  useEffect(() => {
+    setLinkUrl(null);
+  }, [selectedAdaptationId]);
+
   async function handleCreateLink() {
+    const endpoint =
+      selectedAdaptationId === "pavlova"
+        ? "/api/diagnostics/pavlova/link"
+        : "/api/diagnostics/shmishek/link";
     setLoadingLink(true);
     setError(null);
     try {
-      const res = await fetch("/api/diagnostics/shmishek/link", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -212,7 +242,7 @@ export function PsychologistDiagnosticsClient() {
       }!`
     );
     textParts.push(
-      `Пожалуйста, пройдите психодиагностический тест «${selectedMethod.name}».`
+      `Пожалуйста, пройдите психодиагностический тест «${QUESTIONNAIRE.name}» (адаптация: ${selectedAdaptation.label}).`
     );
     textParts.push(`Ссылка для прохождения: ${linkUrl}`);
     const message = textParts.join("\n\n");
@@ -231,7 +261,7 @@ export function PsychologistDiagnosticsClient() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-[minmax(0,380px),minmax(0,1fr)]">
-        {/* Список методик слева: полное название и автор */}
+        {/* Один опросник слева */}
         <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Психодиагностические методики</CardTitle>
@@ -239,59 +269,65 @@ export function PsychologistDiagnosticsClient() {
               Выберите опросник, чтобы посмотреть описание и доступные действия.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="flex flex-col gap-1">
-              {METHODS.map(method => {
-                const active = method.id === selectedMethodId;
-                return (
-                  <button
-                    key={method.id}
-                    type="button"
-                    onClick={() => setSelectedMethodId(method.id)}
-                    className={
-                      "flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left text-sm transition-colors " +
-                      (active
-                        ? "bg-muted text-foreground"
-                        : "bg-background/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground")
-                    }
-                  >
-                    <span className="font-medium leading-snug">{method.name}</span>
-                    {method.author && (
-                      <span className="text-xs text-muted-foreground">Автор: {method.author}</span>
-                    )}
-                  </button>
-                );
-              })}
+          <CardContent>
+            <div className="flex flex-col gap-0.5 rounded-md bg-muted/50 px-3 py-2.5 text-left text-sm">
+              <span className="font-medium leading-snug text-foreground">
+                {QUESTIONNAIRE.name}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Автор: {QUESTIONNAIRE.author}
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Детали выбранной методики справа */}
+        {/* Детали и выбор адаптации справа */}
         <Card className="h-full">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {selectedMethod.name}
-              {selectedMethod.author && (
-                <span className="ml-1.5 font-normal text-muted-foreground">({selectedMethod.author})</span>
-              )}
-            </CardTitle>
+            <CardTitle className="text-base">{QUESTIONNAIRE.name}</CardTitle>
+            <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+              <span>Автор: {QUESTIONNAIRE.author}</span>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            <div>
+              <label className="mb-1.5 block font-medium text-muted-foreground">
+                Адаптация:
+              </label>
+              <Select
+                value={selectedAdaptationId}
+                onValueChange={(v: AdaptationId) => setSelectedAdaptationId(v)}
+              >
+                <SelectTrigger className="w-full max-w-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ADAPTATIONS.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <dl className="grid gap-2 text-sm">
               <div>
                 <dt className="font-medium text-muted-foreground">Описание:</dt>
-                <dd className="mt-0.5">{selectedMethod.description}</dd>
+                <dd className="mt-0.5 text-justify">{QUESTIONNAIRE.description}</dd>
               </div>
               <div>
                 <dt className="font-medium text-muted-foreground">Количество вопросов:</dt>
-                <dd className="mt-0.5">{selectedMethod.questionCount}</dd>
+                <dd className="mt-0.5">{selectedAdaptation.questionCount}</dd>
               </div>
               <div>
                 <dt className="font-medium text-muted-foreground">Примерное время:</dt>
-                <dd className="mt-0.5">{selectedMethod.approximateTime}</dd>
+                <dd className="mt-0.5">{selectedAdaptation.approximateTime}</dd>
               </div>
             </dl>
 
+            {selectedAdaptation.linkAvailable ? (
+              <>
             {error && (
               <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
                 {error}
@@ -346,6 +382,13 @@ export function PsychologistDiagnosticsClient() {
                 </div>
               </div>
             )}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground rounded-md border border-muted bg-muted/30 px-3 py-2">
+                Данная адаптация пока доступна только в виде описания.
+              </p>
+            )}
+
           </CardContent>
           <CardFooter>
             <p className="text-xs text-muted-foreground">

@@ -46,7 +46,9 @@ enum CustomFieldType {
 
 enum TestType {
   SHMISHEK
+  PAVLOVA_SHMISHEK
 }
+
 
 // --- NextAuth core models ---
 
@@ -143,6 +145,7 @@ model PsychologistProfile {
   recommendationsAuthored Recommendation[]
   diagnosticLinks         DiagnosticLink[]
   appointments            Appointment[]
+  clientRegistrationInvites ClientRegistrationInvite[]
 }
 
 model ClientProfile {
@@ -171,6 +174,7 @@ model ClientProfile {
   customFieldValues   CustomFieldValue[]
   recommendationsReceived Recommendation[]
   diagnosticLinks         DiagnosticLink[]
+  clientRegistrationInvites ClientRegistrationInvite[]
 }
 
 // --- Domain: diagnostics (tests, questions, results) ---

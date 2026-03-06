@@ -10,7 +10,8 @@
     "lint": "next lint",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed-shmishek": "tsx prisma/seed-shmishek.ts"
+    "prisma:seed-shmishek": "tsx prisma/seed-shmishek.ts",
+    "prisma:seed-pavlova": "tsx prisma/seed-pavlova.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

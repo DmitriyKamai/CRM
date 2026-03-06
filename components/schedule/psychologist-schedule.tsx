@@ -28,6 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
+import { ScheduleGridSkeleton } from "@/components/schedule/schedule-skeleton";
 
 type SlotStatus = "FREE" | "BOOKED" | "CANCELED";
 type AppointmentStatus = "PENDING_CONFIRMATION" | "SCHEDULED" | null;
@@ -581,8 +582,8 @@ export function PsychologistSchedule() {
           )}
 
           {loading ? (
-            <div className="text-sm text-muted-foreground">Загружаем слоты...</div>
-          ) : (
+            <ScheduleGridSkeleton />
+          ) : error ? null : (
             <div className="overflow-x-auto">
               <div className="min-w-[720px]">
                 <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] border-b border-border pb-2 text-xs text-muted-foreground">

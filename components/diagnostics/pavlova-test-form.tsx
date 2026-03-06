@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 
-/** Задержка перед отправкой прогресса на сервер (мс). При частых кликах отправляется один запрос с последним состоянием. */
 const PROGRESS_SAVE_DEBOUNCE_MS = 500;
 
 import { Button } from "@/components/ui/button";
@@ -20,15 +19,18 @@ interface Props {
   questions: QuestionDto[];
 }
 
-type AnswerValue = 0 | 1;
+/** 0 = нет, 1 = в некоторой степени, 2 = да */
+type AnswerValue = 0 | 1 | 2;
 
-const INSTRUCTIONS = `Тест по изучению акцентуаций характера (детский вариант) Шмишек Х.
+const INSTRUCTIONS = `Личностный опросник для определения типа акцентуаций К. Леонгарда, Г. Шмишека. Адаптация: Павлова Г.Г., 2025.
 
-Вам предлагается ответить на 88 вопросов, касающихся различных сторон вашей личности. На каждый вопрос ответьте «Да», если согласны с утверждением, или «Нет», если не согласны. Отвечайте честно, опираясь на то, как вы обычно себя ведёте. Правильных или неправильных ответов нет.
+Вам будут предложены утверждения, касающиеся вашего поведения и характера. Внимательно прочтите и выразите степень согласия, выбрав один из вариантов ответов: «Да», «В некоторой степени», «Нет». Не раздумывайте над вопросами долго, отвечайте так, как вам кажется в настоящий момент.
 
 Вы можете в любой момент закрыть окно и вернуться к тесту позже — прогресс сохраняется.`;
 
-async function fetchProgress(token: string): Promise<{ answers: Record<number, AnswerValue>; currentStep: number }> {
+async function fetchProgress(
+  token: string
+): Promise<{ answers: Record<number, AnswerValue>; currentStep: number }> {
   const res = await fetch(`/api/diagnostics/progress?token=${encodeURIComponent(token)}`);
   if (!res.ok) {
     if (res.status === 404 || res.status === 410 || res.status === 409) {
@@ -44,7 +46,7 @@ async function fetchProgress(token: string): Promise<{ answers: Record<number, A
     const idx = Number(k);
     if (!Number.isFinite(idx)) continue;
     const num = typeof v === "number" ? v : Number(v);
-    if (num === 0 || num === 1) {
+    if (num === 0 || num === 1 || num === 2) {
       answers[idx] = num as AnswerValue;
     }
   }
@@ -70,7 +72,20 @@ async function saveProgress(
   }
 }
 
-export function ShmishekTestForm({ token, questions }: Props) {
+const SCALE_LABELS: Record<string, string> = {
+  hyperthymic: "Гипертимный",
+  stuck: "Застревающий",
+  emotive: "Эмотивный",
+  pedantic: "Педантичный",
+  anxious: "Тревожно-боязливый",
+  cyclothymic: "Циклотимный",
+  demonstrative: "Демонстративный",
+  excitable: "Возбудимый",
+  dysthymic: "Дистимный",
+  exalted: "Экзальтированный"
+};
+
+export function PavlovaTestForm({ token, questions }: Props) {
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -81,7 +96,10 @@ export function ShmishekTestForm({ token, questions }: Props) {
   const [savingProgress, setSavingProgress] = useState(false);
 
   const progressDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingProgressRef = useRef<{ answers: Record<number, AnswerValue>; step: number } | null>(null);
+  const pendingProgressRef = useRef<{
+    answers: Record<number, AnswerValue>;
+    step: number;
+  } | null>(null);
   const submittedRef = useRef(false);
 
   const totalSteps = 1 + questions.length;
@@ -90,27 +108,34 @@ export function ShmishekTestForm({ token, questions }: Props) {
     currentStep >= 1 && questions[currentQuestionIndex]
       ? questions[currentQuestionIndex]
       : null;
-  const getAnswer = (questionIndex: number): 0 | 1 | undefined => {
-    const v = answers[questionIndex] ?? answers[Number(questionIndex)] ?? answers[String(questionIndex) as unknown as number];
-    if (v === 0 || v === 1) return v;
+
+  const getAnswer = (questionIndex: number): AnswerValue | undefined => {
+    const v =
+      answers[questionIndex] ??
+      answers[Number(questionIndex)] ??
+      answers[String(questionIndex) as unknown as number];
+    if (v === 0 || v === 1 || v === 2) return v;
     const vNum = Number(v);
-    if (Number.isFinite(vNum) && (vNum === 0 || vNum === 1)) return vNum as AnswerValue;
+    if (Number.isFinite(vNum) && vNum >= 0 && vNum <= 2) return vNum as AnswerValue;
     return undefined;
   };
-  const hasAnswer = (q: QuestionDto) => getAnswer(q.index) !== undefined;
+
   const allAnswered =
     questions.length > 0 &&
     questions.every(q => {
-      const v = answers[q.index] ?? answers[Number(q.index)] ?? answers[String(q.index) as unknown as number];
-      return v === 0 || v === 1;
+      const v = answers[q.index] ?? answers[Number(q.index)];
+      return v === 0 || v === 1 || v === 2;
     });
+
   const isInstructions = currentStep === 0;
   const isLastQuestion = currentStep >= 1 && currentStep === questions.length;
 
-  const missingQuestionIndices = questions.filter(q => {
-    const v = answers[q.index] ?? answers[Number(q.index)] ?? answers[String(q.index) as unknown as number];
-    return v !== 0 && v !== 1;
-  }).map(q => q.index);
+  const missingQuestionIndices = questions
+    .filter(q => {
+      const v = answers[q.index] ?? answers[Number(q.index)];
+      return v !== 0 && v !== 1 && v !== 2;
+    })
+    .map(q => q.index);
 
   const persistProgress = useCallback(
     (nextAnswers: Record<number, AnswerValue>, nextStep: number) => {
@@ -179,25 +204,25 @@ export function ShmishekTestForm({ token, questions }: Props) {
   }, [currentStep]);
 
   function handleSelectAnswer(questionIndex: number, value: AnswerValue) {
-    const nextAnswers: Record<number, AnswerValue> = { ...answers, [questionIndex]: value };
+    const nextAnswers = { ...answers, [questionIndex]: value };
     setAnswers(nextAnswers);
 
     if (isLastQuestion) {
       const allDone = questions.every(q => {
         const v = q.index === questionIndex ? value : nextAnswers[q.index];
-        return v === 0 || v === 1;
+        return v === 0 || v === 1 || v === 2;
       });
       if (allDone) {
         setSubmitting(true);
         setError(null);
-        fetch("/api/diagnostics/shmishek/submit", {
+        fetch("/api/diagnostics/pavlova/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token, answers: nextAnswers })
         })
-          .then(res => {
-            return res.json().catch(() => null).then(data => ({ ok: res.ok, data }));
-          })
+          .then(res =>
+            res.json().catch(() => null).then(data => ({ ok: res.ok, data }))
+          )
           .then(({ ok, data }) => {
             if (!ok) {
               setError(data?.message ?? "Не удалось сохранить результат");
@@ -222,9 +247,6 @@ export function ShmishekTestForm({ token, questions }: Props) {
       return;
     }
 
-    // Переход к следующему только при валидном ответе (0 или 1) на текущий вопрос
-    const currentAnswer = nextAnswers[questionIndex];
-    if (currentAnswer !== 0 && currentAnswer !== 1) return;
     const nextStep = currentStep + 1;
     persistProgress(nextAnswers, nextStep);
     setCurrentStep(nextStep);
@@ -235,7 +257,7 @@ export function ShmishekTestForm({ token, questions }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/diagnostics/shmishek/submit", {
+      const res = await fetch("/api/diagnostics/pavlova/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, answers })
@@ -261,39 +283,34 @@ export function ShmishekTestForm({ token, questions }: Props) {
     }
   }
 
-  const scaleLabels: Record<string, string> = {
-    hyperthymic: "Гипертимный",
-    dysthymic: "Дистимный",
-    cyclothymic: "Циклотимный",
-    exalted: "Экзальтированный",
-    anxious: "Тревожно-боязливый",
-    emotive: "Эмотивный",
-    demonstrative: "Демонстративный",
-    stuck: "Застревающий",
-    excitable: "Возбудимый",
-    pedantic: "Педантичный"
-  };
-
   if (resultText) {
     return (
       <Card className="relative max-w-2xl w-full mx-auto">
         <CardHeader className="pr-10">
-          <CardTitle className="text-lg">Результаты: Тест по изучению акцентуаций характера (детский вариант) Шмишек Х.</CardTitle>
+          <CardTitle className="text-lg">
+            Результаты: Личностный опросник для определения типа акцентуаций К. Леонгарда, Г. Шмишека (адаптация Павлова Г.Г., 2025)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {resultScores && Object.keys(resultScores).length > 0 && (
             <div className="rounded-lg border bg-muted/40 p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Сырые баллы по шкалам</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Баллы по шкалам (0–48)
+              </p>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
-                {Object.entries(resultScores).map(([key, value]) => (
-                  <li key={key}>
-                    {scaleLabels[key] ?? key}: <strong>{value}</strong>
-                  </li>
-                ))}
+                {(Object.entries(resultScores) as [string, number][]).map(
+                  ([key, value]) => (
+                    <li key={key}>
+                      {SCALE_LABELS[key] ?? key}: <strong>{value}</strong>
+                    </li>
+                  )
+                )}
               </ul>
             </div>
           )}
-          <p className="whitespace-pre-line text-justify text-sm text-foreground">{resultText}</p>
+          <p className="whitespace-pre-line text-justify text-sm text-foreground">
+            {resultText}
+          </p>
           <div className="mt-4">
             <Button asChild variant="outline" size="sm">
               <Link href="/client">Вернуться в кабинет</Link>
@@ -335,7 +352,9 @@ export function ShmishekTestForm({ token, questions }: Props) {
       <CardHeader className="pr-10 pb-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-lg">
-            {isInstructions ? "Инструкция" : `Вопрос ${currentStep} из ${questions.length}`}
+            {isInstructions
+              ? "Инструкция"
+              : `Вопрос ${currentStep} из ${questions.length}`}
           </CardTitle>
           <Button
             variant="ghost"
@@ -401,28 +420,38 @@ export function ShmishekTestForm({ token, questions }: Props) {
                     {currentQuestion.index}. {currentQuestion.text}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Выберите ответ: Да или Нет
+                    Выберите степень согласия:
                   </p>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <Button
-                      type="button"
-                      variant={getAnswer(currentQuestion.index) === 1 ? "default" : "outline"}
-                      size="lg"
-                      className="h-12 text-base"
-                      disabled={submitting || savingProgress}
-                      onClick={() => handleSelectAnswer(currentQuestion.index, 1)}
-                    >
-                      Да
-                    </Button>
+                  <div className="grid grid-cols-3 gap-2 pt-2">
                     <Button
                       type="button"
                       variant={getAnswer(currentQuestion.index) === 0 ? "default" : "outline"}
                       size="lg"
-                      className="h-12 text-base"
+                      className="h-12 text-sm"
                       disabled={submitting || savingProgress}
                       onClick={() => handleSelectAnswer(currentQuestion.index, 0)}
                     >
                       Нет
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={getAnswer(currentQuestion.index) === 1 ? "default" : "outline"}
+                      size="lg"
+                      className="h-12 text-sm"
+                      disabled={submitting || savingProgress}
+                      onClick={() => handleSelectAnswer(currentQuestion.index, 1)}
+                    >
+                      В некоторой степени
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={getAnswer(currentQuestion.index) === 2 ? "default" : "outline"}
+                      size="lg"
+                      className="h-12 text-sm"
+                      disabled={submitting || savingProgress}
+                      onClick={() => handleSelectAnswer(currentQuestion.index, 2)}
+                    >
+                      Да
                     </Button>
                   </div>
 
@@ -435,7 +464,8 @@ export function ShmishekTestForm({ token, questions }: Props) {
                   {missingPrevious.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
                       <span>
-                        Чтобы завершить тест, ответьте на вопрос{missingPrevious.length === 1 ? "" : "ы"}:{" "}
+                        Чтобы завершить тест, ответьте на вопрос
+                        {missingPrevious.length === 1 ? "" : "ы"}:{" "}
                         {missingPrevious.slice().sort((a, b) => a - b).join(", ")}.
                       </span>
                       <Button

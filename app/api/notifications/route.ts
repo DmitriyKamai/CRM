@@ -31,6 +31,14 @@ export async function GET() {
       );
     });
   } catch (err) {
+    const isConnectionError =
+      err &&
+      typeof err === "object" &&
+      "name" in err &&
+      (err as Error).name === "PrismaClientInitializationError";
+    if (isConnectionError) {
+      return NextResponse.json([]);
+    }
     console.error("[GET /api/notifications]", err);
     return NextResponse.json(
       { message: "Внутренняя ошибка сервера" },

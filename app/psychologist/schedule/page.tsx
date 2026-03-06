@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { PsychologistSchedule } from "@/components/schedule/psychologist-schedule";
+import { CalendarSubscriptionBlock } from "@/components/schedule/calendar-subscription";
 
 export default async function PsychologistSchedulePage() {
   const session = await getServerSession(authOptions);
@@ -24,6 +25,7 @@ export default async function PsychologistSchedulePage() {
         Здесь вы можете создавать слоты в расписании, которые будут доступны
         клиентам для записи.
       </p>
+      <CalendarSubscriptionBlock />
       <PsychologistSchedule />
     </div>
   );
