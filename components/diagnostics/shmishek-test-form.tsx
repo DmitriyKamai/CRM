@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+
+/** Задержка перед отправкой прогресса на сервер (мс). При частых кликах отправляется один запрос с последним состоянием. */
+const PROGRESS_SAVE_DEBOUNCE_MS = 500;
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,20 +20,13 @@ interface Props {
   questions: QuestionDto[];
 }
 
-type AnswerValue = 0 | 1 | 2 | 3;
+type AnswerValue = 0 | 1;
 
-const INSTRUCTIONS = `Опросник акцентуаций характера (Шмишек)
+const INSTRUCTIONS = `Тест по изучению акцентуаций характера (детский вариант) Шмишек Х.
 
-Вам будет предложен ряд утверждений. Оцените, насколько каждое из них характерно для вас, выбрав один из четырёх вариантов:
+Вам предлагается ответить на 88 вопросов, касающихся различных сторон вашей личности. На каждый вопрос ответьте «Да», если согласны с утверждением, или «Нет», если не согласны. Отвечайте честно, опираясь на то, как вы обычно себя ведёте. Правильных или неправильных ответов нет.
 
-• 0 — совсем не характерно, не про меня
-• 1 — скорее не характерно
-• 2 — скорее характерно
-• 3 — очень характерно, про меня
-
-Отвечайте честно, опираясь на то, как вы обычно себя ведёте. Правильных или неправильных ответов нет.
-
-Вы можете в любой момент закрыть окно и вернуться к тесту позже с любого устройства — прогресс сохраняется.`;
+Вы можете в любой момент закрыть окно и вернуться к тесту позже — прогресс сохраняется.`;
 
 async function fetchProgress(token: string): Promise<{ answers: Record<number, AnswerValue>; currentStep: number }> {
   const res = await fetch(`/api/diagnostics/progress?token=${encodeURIComponent(token)}`);
@@ -48,7 +44,7 @@ async function fetchProgress(token: string): Promise<{ answers: Record<number, A
     const idx = Number(k);
     if (!Number.isFinite(idx)) continue;
     const num = typeof v === "number" ? v : Number(v);
-    if (num === 0 || num === 1 || num === 2 || num === 3) {
+    if (num === 0 || num === 1) {
       answers[idx] = num as AnswerValue;
     }
   }
@@ -80,8 +76,12 @@ export function ShmishekTestForm({ token, questions }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
+  const [resultScores, setResultScores] = useState<Record<string, number> | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
+
+  const progressDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingProgressRef = useRef<{ answers: Record<number, AnswerValue>; step: number } | null>(null);
 
   const totalSteps = 1 + questions.length;
   const currentQuestionIndex = currentStep - 1;
@@ -89,39 +89,43 @@ export function ShmishekTestForm({ token, questions }: Props) {
     currentStep >= 1 && questions[currentQuestionIndex]
       ? questions[currentQuestionIndex]
       : null;
-  const getAnswer = (questionIndex: number): number | undefined => {
+  const getAnswer = (questionIndex: number): 0 | 1 | undefined => {
     const v = answers[questionIndex] ?? answers[Number(questionIndex)] ?? answers[String(questionIndex) as unknown as number];
-    if (v === 0 || v === 1 || v === 2 || v === 3) return v;
+    if (v === 0 || v === 1) return v;
     const vNum = Number(v);
-    if (Number.isFinite(vNum) && vNum >= 0 && vNum <= 3) return vNum as AnswerValue;
+    if (Number.isFinite(vNum) && (vNum === 0 || vNum === 1)) return vNum as AnswerValue;
     return undefined;
   };
   const hasAnswer = (q: QuestionDto) => getAnswer(q.index) !== undefined;
-  // Проверяем каждый вопрос (0 — валидный ответ; ключи могут быть number или string из JSON)
   const allAnswered =
     questions.length > 0 &&
     questions.every(q => {
       const v = answers[q.index] ?? answers[Number(q.index)] ?? answers[String(q.index) as unknown as number];
-      return v === 0 || v === 1 || v === 2 || v === 3;
+      return v === 0 || v === 1;
     });
   const isInstructions = currentStep === 0;
   const isLastQuestion = currentStep >= 1 && currentStep === questions.length;
 
   const missingQuestionIndices = questions.filter(q => {
     const v = answers[q.index] ?? answers[Number(q.index)] ?? answers[String(q.index) as unknown as number];
-    return !(v === 0 || v === 1 || v === 2 || v === 3);
+    return v !== 0 && v !== 1;
   }).map(q => q.index);
 
   const persistProgress = useCallback(
-    async (nextAnswers: Record<number, AnswerValue>, nextStep: number) => {
-      setSavingProgress(true);
-      try {
-        await saveProgress(token, nextAnswers, nextStep);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setSavingProgress(false);
+    (nextAnswers: Record<number, AnswerValue>, nextStep: number) => {
+      pendingProgressRef.current = { answers: nextAnswers, step: nextStep };
+      if (progressDebounceTimerRef.current) {
+        clearTimeout(progressDebounceTimerRef.current);
       }
+      progressDebounceTimerRef.current = setTimeout(() => {
+        progressDebounceTimerRef.current = null;
+        const pending = pendingProgressRef.current;
+        if (!pending) return;
+        setSavingProgress(true);
+        saveProgress(token, pending.answers, pending.step)
+          .catch(e => console.error(e))
+          .finally(() => setSavingProgress(false));
+      }, PROGRESS_SAVE_DEBOUNCE_MS);
     },
     [token]
   );
@@ -146,6 +150,19 @@ export function ShmishekTestForm({ token, questions }: Props) {
     };
   }, [token, totalSteps]);
 
+  useEffect(() => {
+    return () => {
+      if (progressDebounceTimerRef.current) {
+        clearTimeout(progressDebounceTimerRef.current);
+        progressDebounceTimerRef.current = null;
+        const pending = pendingProgressRef.current;
+        if (pending) {
+          saveProgress(token, pending.answers, pending.step).catch(() => {});
+        }
+      }
+    };
+  }, [token]);
+
   const goNext = useCallback(() => {
     if (currentStep < totalSteps - 1) {
       const next = currentStep + 1;
@@ -167,7 +184,7 @@ export function ShmishekTestForm({ token, questions }: Props) {
     if (isLastQuestion) {
       const allDone = questions.every(q => {
         const v = q.index === questionIndex ? value : nextAnswers[q.index];
-        return v === 0 || v === 1 || v === 2 || v === 3;
+        return v === 0 || v === 1;
       });
       if (allDone) {
         setSubmitting(true);
@@ -186,6 +203,7 @@ export function ShmishekTestForm({ token, questions }: Props) {
               return;
             }
             setResultText(data?.interpretation ?? "Результат сохранён.");
+            setResultScores(data?.scaleScores ?? null);
           })
           .catch(() => {
             setError("Не удалось подключиться к серверу");
@@ -200,7 +218,7 @@ export function ShmishekTestForm({ token, questions }: Props) {
 
     // Переход к следующему только при валидном ответе (0–3) на текущий вопрос
     const currentAnswer = nextAnswers[questionIndex];
-    if (currentAnswer !== 0 && currentAnswer !== 1 && currentAnswer !== 2 && currentAnswer !== 3) return;
+    if (currentAnswer !== 0 && currentAnswer !== 1) return;
     const nextStep = currentStep + 1;
     persistProgress(nextAnswers, nextStep);
     setCurrentStep(nextStep);
@@ -223,6 +241,7 @@ export function ShmishekTestForm({ token, questions }: Props) {
         return;
       }
       setResultText(data.interpretation ?? "Результат сохранён.");
+      setResultScores(data.scaleScores ?? null);
     } catch (err) {
       console.error(err);
       setError("Не удалось подключиться к серверу");
@@ -231,13 +250,38 @@ export function ShmishekTestForm({ token, questions }: Props) {
     }
   }
 
+  const scaleLabels: Record<string, string> = {
+    hyperthymic: "Гипертимный",
+    dysthymic: "Дистимный",
+    cyclothymic: "Циклотимный",
+    exalted: "Экзальтированный",
+    anxious: "Тревожно-боязливый",
+    emotive: "Эмотивный",
+    demonstrative: "Демонстративный",
+    stuck: "Застревающий",
+    excitable: "Возбудимый",
+    pedantic: "Педантичный"
+  };
+
   if (resultText) {
     return (
       <Card className="relative max-w-2xl w-full mx-auto">
         <CardHeader className="pr-10">
-          <CardTitle className="text-lg">Результаты опросника Шмишека</CardTitle>
+          <CardTitle className="text-lg">Результаты: Тест по изучению акцентуаций характера (детский вариант) Шмишек Х.</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {resultScores && Object.keys(resultScores).length > 0 && (
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Сырые баллы по шкалам</p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
+                {Object.entries(resultScores).map(([key, value]) => (
+                  <li key={key}>
+                    {scaleLabels[key] ?? key}: <strong>{value}</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="whitespace-pre-line text-sm text-foreground">{resultText}</p>
           <div className="mt-4">
             <Button asChild variant="outline" size="sm">
@@ -339,22 +383,29 @@ export function ShmishekTestForm({ token, questions }: Props) {
               {currentQuestion.index}. {currentQuestion.text}
             </p>
             <p className="text-xs text-muted-foreground">
-              Нажмите на вариант (0 — совсем не про меня, 3 — очень про меня):
+              Выберите ответ: Да или Нет
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-              {([0, 1, 2, 3] as const).map(value => (
-                <Button
-                  key={value}
-                  type="button"
-                  variant={getAnswer(currentQuestion.index) === value ? "default" : "outline"}
-                  size="lg"
-                  className="h-12 text-base"
-                  disabled={submitting || savingProgress}
-                  onClick={() => handleSelectAnswer(currentQuestion.index, value)}
-                >
-                  {value}
-                </Button>
-              ))}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Button
+                type="button"
+                variant={getAnswer(currentQuestion.index) === 1 ? "default" : "outline"}
+                size="lg"
+                className="h-12 text-base"
+                disabled={submitting || savingProgress}
+                onClick={() => handleSelectAnswer(currentQuestion.index, 1)}
+              >
+                Да
+              </Button>
+              <Button
+                type="button"
+                variant={getAnswer(currentQuestion.index) === 0 ? "default" : "outline"}
+                size="lg"
+                className="h-12 text-base"
+                disabled={submitting || savingProgress}
+                onClick={() => handleSelectAnswer(currentQuestion.index, 0)}
+              >
+                Нет
+              </Button>
             </div>
 
             {error && (

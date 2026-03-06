@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,14 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -20,19 +28,21 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type Method = {
   id: "shmishek";
   name: string;
-  shortName: string;
+  author?: string;
   description: string;
+  questionCount: number;
+  approximateTime: string;
 };
 
 type ClientOption = {
@@ -45,10 +55,12 @@ type ClientOption = {
 const METHODS: Method[] = [
   {
     id: "shmishek",
-    name: "Опросник акцентуаций характера Шмишека",
-    shortName: "Шмишек",
+    name: "Тест по изучению акцентуаций характера (детский вариант)",
+    author: "Шмишек Х.",
     description:
-      "Классический опросник для оценки акцентуаций характера по методике К. Леонгарда – Х. Шмишека. Используется для первичной диагностики и уточнения индивидуально‑типологических особенностей клиента."
+      "Методика для диагностики типа акцентуации личности у детей и подростков (Х. Шмишек, 1970; концепция К. Леонгарда). Ответы «да»/«нет». Результаты: сырые баллы по 10 шкалам и развёрнутая текстовая интерпретация.",
+    questionCount: 88,
+    approximateTime: "15–20 мин"
   }
 ];
 
@@ -66,6 +78,7 @@ export function PsychologistDiagnosticsClient() {
   const [clientsLoading, setClientsLoading] = useState(false);
   const [clientsError, setClientsError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
   const [sendingToClient, setSendingToClient] = useState(false);
   const [sendToClientSuccess, setSendToClientSuccess] = useState<string | null>(null);
 
@@ -217,8 +230,8 @@ export function PsychologistDiagnosticsClient() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,260px),minmax(0,1fr)]">
-        {/* Список методик слева */}
+      <div className="grid gap-4 md:grid-cols-[minmax(0,380px),minmax(0,1fr)]">
+        {/* Список методик слева: полное название и автор */}
         <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Психодиагностические методики</CardTitle>
@@ -236,13 +249,16 @@ export function PsychologistDiagnosticsClient() {
                     type="button"
                     onClick={() => setSelectedMethodId(method.id)}
                     className={
-                      "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors " +
+                      "flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left text-sm transition-colors " +
                       (active
                         ? "bg-muted text-foreground"
                         : "bg-background/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground")
                     }
                   >
-                    <span className="font-medium">{method.shortName}</span>
+                    <span className="font-medium leading-snug">{method.name}</span>
+                    {method.author && (
+                      <span className="text-xs text-muted-foreground">Автор: {method.author}</span>
+                    )}
                   </button>
                 );
               })}
@@ -253,12 +269,29 @@ export function PsychologistDiagnosticsClient() {
         {/* Детали выбранной методики справа */}
         <Card className="h-full">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">{selectedMethod.name}</CardTitle>
-            <CardDescription className="text-xs">
-              {selectedMethod.description}
-            </CardDescription>
+            <CardTitle className="text-base">
+              {selectedMethod.name}
+              {selectedMethod.author && (
+                <span className="ml-1.5 font-normal text-muted-foreground">({selectedMethod.author})</span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            <dl className="grid gap-2 text-sm">
+              <div>
+                <dt className="font-medium text-muted-foreground">Описание:</dt>
+                <dd className="mt-0.5">{selectedMethod.description}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted-foreground">Количество вопросов:</dt>
+                <dd className="mt-0.5">{selectedMethod.questionCount}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted-foreground">Примерное время:</dt>
+                <dd className="mt-0.5">{selectedMethod.approximateTime}</dd>
+              </div>
+            </dl>
+
             {error && (
               <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
                 {error}
@@ -352,27 +385,68 @@ export function PsychologistDiagnosticsClient() {
 
           <div className="space-y-2 pt-2">
             <p className="text-xs text-muted-foreground">Клиент</p>
-            <Select
-              value={selectedClientId ?? ""}
-              onValueChange={value => setSelectedClientId(value || null)}
-              disabled={clientsLoading}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue
-                  placeholder={
-                    clientsLoading ? "Загрузка..." : "Выберите клиента из списка"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.lastName} {c.firstName}
-                    {c.email ? ` (${c.email})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={clientPopoverOpen}
+                  disabled={clientsLoading}
+                  className={cn(
+                    "h-9 w-full justify-between font-normal text-sm",
+                    !selectedClientId && "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate">
+                  {clientsLoading
+                    ? "Загрузка..."
+                    : selectedClientId
+                      ? (() => {
+                          const c = clients.find(x => x.id === selectedClientId);
+                          return c
+                            ? `${c.lastName} ${c.firstName}${c.email ? ` (${c.email})` : ""}`
+                            : "Выберите клиента";
+                        })()
+                            : "Выберите клиента из списка"}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    const s = search.toLowerCase().trim();
+                    if (!s) return 1;
+                    return value.toLowerCase().includes(s) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Поиск по имени или email..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>Клиент не найден</CommandEmpty>
+                    <CommandGroup>
+                      {clients.map(c => {
+                        const label = `${c.lastName} ${c.firstName}${c.email ? ` ${c.email}` : ""}`;
+                        return (
+                          <CommandItem
+                            key={c.id}
+                            value={label}
+                            onSelect={() => {
+                              setSelectedClientId(c.id);
+                              setClientPopoverOpen(false);
+                            }}
+                          >
+                            {c.lastName} {c.firstName}
+                            {c.email ? (
+                              <span className="text-muted-foreground"> ({c.email})</span>
+                            ) : null}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {clientsError && (
               <p className="text-xs text-destructive">{clientsError}</p>
             )}

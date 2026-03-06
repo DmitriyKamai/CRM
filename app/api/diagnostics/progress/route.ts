@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 function validateToken(token: unknown): string | null {
   if (typeof token !== "string" || !token.trim()) return null;
@@ -30,45 +31,46 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
+    return await withPrismaLock(async () => {
+      const link = await prisma.diagnosticLink.findUnique({
+        where: { token },
+        include: {
+          test: { select: { isActive: true } },
+          progress: true
+        }
+      });
 
-    const link = await prisma.diagnosticLink.findUnique({
-      where: { token },
-      include: {
-        test: { select: { isActive: true } },
-        progress: true
+      if (!link || !link.test || !link.test.isActive) {
+        return NextResponse.json(
+          { message: "Ссылка недействительна" },
+          { status: 404 }
+        );
       }
-    });
 
-    if (!link || !link.test || !link.test.isActive) {
-      return NextResponse.json(
-        { message: "Ссылка недействительна" },
-        { status: 404 }
-      );
-    }
+      const now = new Date();
+      if (link.expiresAt && link.expiresAt < now) {
+        return NextResponse.json(
+          { message: "Срок действия ссылки истёк" },
+          { status: 410 }
+        );
+      }
+      if (link.maxUses != null && link.usedCount >= link.maxUses) {
+        return NextResponse.json(
+          { message: "Ссылка уже использована" },
+          { status: 409 }
+        );
+      }
 
-    const now = new Date();
-    if (link.expiresAt && link.expiresAt < now) {
-      return NextResponse.json(
-        { message: "Срок действия ссылки истёк" },
-        { status: 410 }
-      );
-    }
-    if (link.maxUses != null && link.usedCount >= link.maxUses) {
-      return NextResponse.json(
-        { message: "Ссылка уже использована" },
-        { status: 409 }
-      );
-    }
+      const progress = link.progress;
+      if (!progress) {
+        return NextResponse.json({ answers: {}, currentStep: 0 });
+      }
 
-    const progress = link.progress;
-    if (!progress) {
-      return NextResponse.json({ answers: {}, currentStep: 0 });
-    }
-
-    const answers = progress.answers as Record<number, 0 | 1 | 2 | 3>;
-    return NextResponse.json({
-      answers: typeof answers === "object" && answers !== null ? answers : {},
-      currentStep: Math.max(0, progress.currentStep)
+      const answers = progress.answers as Record<number, 0 | 1 | 2 | 3>;
+      return NextResponse.json({
+        answers: typeof answers === "object" && answers !== null ? answers : {},
+        currentStep: Math.max(0, progress.currentStep)
+      });
     });
   } catch (err) {
     console.error("[GET /api/diagnostics/progress]", err);
@@ -103,46 +105,48 @@ export async function PATCH(request: Request) {
         ? Math.max(0, Math.floor(body.currentStep))
         : 0;
 
-    const link = await prisma.diagnosticLink.findUnique({
-      where: { token },
-      select: { id: true, testId: true, expiresAt: true, maxUses: true, usedCount: true }
-    });
+    return await withPrismaLock(async () => {
+      const link = await prisma.diagnosticLink.findUnique({
+        where: { token },
+        select: { id: true, testId: true, expiresAt: true, maxUses: true, usedCount: true }
+      });
 
-    if (!link) {
-      return NextResponse.json(
-        { message: "Ссылка не найдена" },
-        { status: 404 }
-      );
-    }
-
-    const now = new Date();
-    if (link.expiresAt && link.expiresAt < now) {
-      return NextResponse.json(
-        { message: "Срок действия ссылки истёк" },
-        { status: 410 }
-      );
-    }
-    if (link.maxUses != null && link.usedCount >= link.maxUses) {
-      return NextResponse.json(
-        { message: "Ссылка уже использована" },
-        { status: 409 }
-      );
-    }
-
-    await prisma.diagnosticProgress.upsert({
-      where: { diagnosticLinkId: link.id },
-      create: {
-        diagnosticLinkId: link.id,
-        answers,
-        currentStep
-      },
-      update: {
-        answers,
-        currentStep
+      if (!link) {
+        return NextResponse.json(
+          { message: "Ссылка не найдена" },
+          { status: 404 }
+        );
       }
-    });
 
-    return NextResponse.json({ ok: true });
+      const now = new Date();
+      if (link.expiresAt && link.expiresAt < now) {
+        return NextResponse.json(
+          { message: "Срок действия ссылки истёк" },
+          { status: 410 }
+        );
+      }
+      if (link.maxUses != null && link.usedCount >= link.maxUses) {
+        return NextResponse.json(
+          { message: "Ссылка уже использована" },
+          { status: 409 }
+        );
+      }
+
+      await prisma.diagnosticProgress.upsert({
+        where: { diagnosticLinkId: link.id },
+        create: {
+          diagnosticLinkId: link.id,
+          answers,
+          currentStep
+        },
+        update: {
+          answers,
+          currentStep
+        }
+      });
+
+      return NextResponse.json({ ok: true });
+    });
   } catch (err) {
     console.error("[PATCH /api/diagnostics/progress]", err);
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/db";
+import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { ShmishekTestForm } from "@/components/diagnostics/shmishek-test-form";
 
 interface Props {
@@ -10,14 +11,16 @@ interface Props {
 export default async function DiagnosticByTokenPage({ params }: Props) {
   const { token } = await params;
 
-  const link = await prisma.diagnosticLink.findUnique({
-    where: { token },
-    include: {
-      test: {
-        include: { questions: true }
+  const link = await withPrismaLock(() =>
+    prisma.diagnosticLink.findUnique({
+      where: { token },
+      include: {
+        test: {
+          include: { questions: true }
+        }
       }
-    }
-  });
+    })
+  );
 
   if (!link || !link.test || !link.test.isActive) {
     notFound();

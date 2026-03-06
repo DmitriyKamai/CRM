@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { withPrismaLock } from "@/lib/prisma-request-lock";
 import {
   buildShmishekInterpretation,
   computeShmishekScores
 } from "@/lib/diagnostics/shmishek";
 
+const REQUIRED_QUESTIONS = 88;
+
 const answersSchema = {
   validate(payload: unknown): {
     token: string;
-    answers: Record<number, 0 | 1 | 2 | 3>;
+    answers: Record<number, 0 | 1>;
   } {
     if (
       !payload ||
@@ -20,7 +23,7 @@ const answersSchema = {
       throw new Error("Неверный формат данных");
     }
 
-    const { token, answers } = payload as any;
+    const { token, answers } = payload as { token: unknown; answers: unknown };
 
     if (typeof token !== "string" || !token) {
       throw new Error("Не указан токен ссылки");
@@ -30,20 +33,22 @@ const answersSchema = {
       throw new Error("Не указаны ответы");
     }
 
-    const normalized: Record<number, 0 | 1 | 2 | 3> = {};
+    const normalized: Record<number, 0 | 1> = {};
 
     for (const [k, v] of Object.entries(answers)) {
       const index = Number(k);
-      if (!Number.isFinite(index)) continue;
+      if (!Number.isFinite(index) || index < 1 || index > REQUIRED_QUESTIONS) continue;
 
       const num = Number(v);
-      if (num < 0 || num > 3) continue;
+      if (num !== 0 && num !== 1) continue;
 
-      normalized[index] = num as 0 | 1 | 2 | 3;
+      normalized[index] = num as 0 | 1;
     }
 
-    if (Object.keys(normalized).length === 0) {
-      throw new Error("Не заполнены ответы");
+    for (let q = 1; q <= REQUIRED_QUESTIONS; q++) {
+      if (normalized[q] === undefined) {
+        throw new Error(`Нет ответа на вопрос ${q}. Необходимо ответить на все ${REQUIRED_QUESTIONS} вопросов.`);
+      }
     }
 
     return { token, answers: normalized };
@@ -55,71 +60,73 @@ export async function POST(request: Request) {
     const json = await request.json();
     const { token, answers } = answersSchema.validate(json);
 
-    const link = await prisma.diagnosticLink.findUnique({
-      where: { token },
-      include: {
-        test: true,
-        client: true,
-        psychologist: true
-      }
-    });
-
-    if (!link || !link.test || !link.test.isActive) {
-      return NextResponse.json(
-        { message: "Ссылка на тест недействительна" },
-        { status: 404 }
-      );
-    }
-
-    const now = new Date();
-    if (link.expiresAt && link.expiresAt < now) {
-      return NextResponse.json(
-        { message: "Срок действия ссылки истёк" },
-        { status: 410 }
-      );
-    }
-
-    if (link.maxUses && link.usedCount >= link.maxUses) {
-      return NextResponse.json(
-        { message: "Ссылка уже была использована" },
-        { status: 409 }
-      );
-    }
-
     const scores = computeShmishekScores(answers);
     const interpretation = buildShmishekInterpretation(scores);
 
-    await prisma.$transaction([
-      prisma.testResult.create({
-        data: {
-          testId: link.testId,
-          clientId: link.clientId ?? null,
-          psychologistId: link.psychologistId ?? null,
-          rawAnswers: answers,
+    return await withPrismaLock(async () => {
+      const link = await prisma.diagnosticLink.findUnique({
+        where: { token },
+        include: {
+          test: true,
+          client: true,
+          psychologist: true
+        }
+      });
+
+      if (!link || !link.test || !link.test.isActive) {
+        return NextResponse.json(
+          { message: "Ссылка на тест недействительна" },
+          { status: 404 }
+        );
+      }
+
+      const now = new Date();
+      if (link.expiresAt && link.expiresAt < now) {
+        return NextResponse.json(
+          { message: "Срок действия ссылки истёк" },
+          { status: 410 }
+        );
+      }
+
+      if (link.maxUses && link.usedCount >= link.maxUses) {
+        return NextResponse.json(
+          { message: "Ссылка уже была использована" },
+          { status: 409 }
+        );
+      }
+
+      await prisma.$transaction([
+        prisma.testResult.create({
+          data: {
+            testId: link.testId,
+            clientId: link.clientId ?? null,
+            psychologistId: link.psychologistId ?? null,
+            rawAnswers: answers,
+            scaleScores: scores,
+            interpretation
+          }
+        }),
+        prisma.diagnosticLink.update({
+          where: { id: link.id },
+          data: {
+            usedCount: {
+              increment: 1
+            }
+          }
+        }),
+        prisma.diagnosticProgress.deleteMany({
+          where: { diagnosticLinkId: link.id }
+        })
+      ]);
+
+      return NextResponse.json(
+        {
           scaleScores: scores,
           interpretation
-        }
-      }),
-      prisma.diagnosticLink.update({
-        where: { id: link.id },
-        data: {
-          usedCount: {
-            increment: 1
-          }
-        }
-      }),
-      prisma.diagnosticProgress.deleteMany({
-        where: { diagnosticLinkId: link.id }
-      })
-    ]);
-
-    return NextResponse.json(
-      {
-        scaleScores: scores,
-        interpretation
-      },
-      { status: 201 }
-    );
+        },
+        { status: 201 }
+      );
+    });
   } catch (error) {
     console.error("Shmishek submit error", error);
     const message =
