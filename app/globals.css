@@ -85,7 +85,32 @@
   }
 }
 
-/* Узкий скроллбар в цветах темы для планинга расписания */
+/* Скроллбар в стиле планинга: используем только для основного окна и явных контейнеров,
+   чтобы не \"вылазил\" в каждом внутреннем контроле. */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 9999px;
+}
+
+/* Класс для явного применения (например, в планинге) — дублирует глобальные стили */
 .scrollbar-schedule {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground)) transparent;

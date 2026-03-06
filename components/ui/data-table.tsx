@@ -138,7 +138,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() ? "selected" : undefined}
                   className={
                     (onRowDoubleClick ? "cursor-pointer " : "") +
-                    "bg-card hover:bg-muted/30 transition-colors"
+                    "hover:bg-muted/40 transition-colors"
                   }
                   onDoubleClick={
                     onRowDoubleClick ? () => onRowDoubleClick(row.original) : undefined

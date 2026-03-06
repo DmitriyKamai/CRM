@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-// Схема валидации для регистрации
+// Схема валидации для регистрации (без inviteToken, он обрабатывается отдельно)
 const registerSchema = z.object({
   role: z.enum(["psychologist", "client"]),
   email: z.string().email("Некорректный email"),
@@ -35,6 +35,10 @@ export async function POST(request: Request) {
     }
 
     const json = await request.json();
+    const inviteTokenRaw =
+      typeof json.inviteToken === "string" && json.inviteToken.length > 0
+        ? (json.inviteToken as string)
+        : null;
     const data = registerSchema.parse(json);
 
     const existing = await prisma.user.findUnique({
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const role =
-      data.role === "psychologist" ? "PSYCHOLOGIST" : "CLIENT" as const;
+      data.role === "psychologist" ? "PSYCHOLOGIST" : ("CLIENT" as const);
 
     const emailNormalized = data.email.trim().toLowerCase();
 
@@ -75,13 +79,44 @@ export async function POST(request: Request) {
     });
 
     if (role === "CLIENT") {
-      await prisma.clientProfile.updateMany({
-        where: {
-          email: emailNormalized,
-          userId: null
-        },
-        data: { userId: user.id }
-      });
+      let linked = false;
+
+      if (inviteTokenRaw) {
+        const invite = await prisma.clientRegistrationInvite.findUnique({
+          where: { token: inviteTokenRaw }
+        });
+
+        if (invite && !invite.usedAt) {
+          await prisma.$transaction([
+            prisma.clientProfile.updateMany({
+              where: {
+                id: invite.clientId,
+                userId: null
+              },
+              data: {
+                userId: user.id,
+                // обновим email профиля, чтобы он совпадал с регистрацией
+                email: emailNormalized
+              }
+            }),
+            prisma.clientRegistrationInvite.update({
+              where: { token: invite.token },
+              data: { usedAt: new Date() }
+            })
+          ]);
+          linked = true;
+        }
+      }
+
+      if (!linked) {
+        await prisma.clientProfile.updateMany({
+          where: {
+            email: emailNormalized,
+            userId: null
+          },
+          data: { userId: user.id }
+        });
+      }
     }
 
     return NextResponse.json(

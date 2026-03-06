@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ role }: RegisterFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,6 +30,9 @@ export function RegisterForm({ role }: RegisterFormProps) {
     setError(null);
 
     try {
+      const inviteToken =
+        role === "client" ? searchParams.get("invite") ?? undefined : undefined;
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -39,7 +43,8 @@ export function RegisterForm({ role }: RegisterFormProps) {
           firstName,
           lastName,
           email,
-          password
+          password,
+          inviteToken
         })
       });
 

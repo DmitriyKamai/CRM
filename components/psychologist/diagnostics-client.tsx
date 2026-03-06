@@ -398,15 +398,6 @@ export function PsychologistDiagnosticsClient() {
             >
               Скопировать приглашение
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full"
-              onClick={() => setSendDialogOpen(false)}
-            >
-              {sendToClientSuccess ? "Закрыть" : "Отмена"}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

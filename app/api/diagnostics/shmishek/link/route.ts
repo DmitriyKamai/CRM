@@ -57,7 +57,14 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const clientId = typeof body.clientId === "string" ? body.clientId : null;
+    let clientId: string | null = typeof body.clientId === "string" ? body.clientId : null;
+    if (clientId) {
+      const clientBelongs = await prisma.clientProfile.findFirst({
+        where: { id: clientId, psychologistId: profile.id },
+        select: { id: true }
+      });
+      if (!clientBelongs) clientId = null;
+    }
     const maxUses =
       typeof body.maxUses === "number" && body.maxUses > 0
         ? Math.floor(body.maxUses)

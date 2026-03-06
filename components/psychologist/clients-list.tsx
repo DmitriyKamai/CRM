@@ -254,7 +254,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 text-slate-100 font-semibold"
+            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Имя
@@ -288,7 +288,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 text-slate-100 font-semibold"
+            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Email
@@ -302,7 +302,7 @@ export function PsychologistClientsList() {
       {
         accessorKey: "phone",
         header: () => (
-          <span className="text-xs font-semibold text-slate-100">Телефон</span>
+          <span className="text-xs font-medium text-muted-foreground">Телефон</span>
         ),
         cell: ({ row }) => (
           <span className="text-muted-foreground">
@@ -317,7 +317,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 text-slate-100 font-semibold"
+            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Создан

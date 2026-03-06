@@ -267,6 +267,23 @@ model DiagnosticProgress {
   link DiagnosticLink @relation(fields: [diagnosticLinkId], references: [id], onDelete: Cascade)
 }
 
+// Приглашение клиента к регистрации в личном кабинете
+model ClientRegistrationInvite {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  clientId       String
+  psychologistId String
+  email          String
+  createdAt      DateTime @default(now())
+  usedAt         DateTime?
+
+  client       ClientProfile       @relation(fields: [clientId], references: [id])
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+
+  @@index([clientId])
+  @@index([psychologistId])
+}
+
 // --- Domain: schedule & appointments ---
 
 model ScheduleSlot {

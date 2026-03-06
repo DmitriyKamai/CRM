@@ -171,7 +171,7 @@ export function HeaderNav() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="cursor-pointer text-muted-foreground focus:text-destructive"
+            className="cursor-pointer text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/15 focus:text-destructive"
             onSelect={() => signOut({ callbackUrl: "/" })}
           >
             <LogOut className="mr-2 h-4 w-4" />

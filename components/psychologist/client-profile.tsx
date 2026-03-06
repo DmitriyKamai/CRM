@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar as CalendarIcon, Pencil, Trash2, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -78,6 +78,30 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   );
   const hasAccount = props.hasAccount ?? false;
 
+  type DiagnosticItem = {
+    id: string;
+    testTitle: string;
+    createdAt: string;
+    interpretation: string | null;
+  };
+  const [diagnosticsList, setDiagnosticsList] = useState<DiagnosticItem[]>(
+    props.diagnostics ?? []
+  );
+  const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
+  const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
+
+  useEffect(() => {
+    if (!diagnosticsTabActive || !props.id) return;
+    setDiagnosticsLoading(true);
+    fetch(`/api/psychologist/clients/${props.id}/diagnostics`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { diagnostics?: DiagnosticItem[] } | null) => {
+        if (Array.isArray(data?.diagnostics)) setDiagnosticsList(data.diagnostics);
+      })
+      .catch(() => {})
+      .finally(() => setDiagnosticsLoading(false));
+  }, [diagnosticsTabActive, props.id]);
+
   function formatDate(value?: string | null) {
     if (!value) return "—";
     const d = new Date(value);
@@ -135,6 +159,34 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     }
   }
 
+  async function handleSendRegistrationInvite() {
+    if (hasAccount) return;
+    const targetEmail = (email || "").trim() || props.email || "";
+    if (!targetEmail) return;
+
+    try {
+      const res = await fetch(`/api/psychologist/clients/${props.id}/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: targetEmail })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(
+          data?.message ??
+            "Не удалось отправить приглашение. Проверьте настройки почты на сервере."
+        );
+        return;
+      }
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Не удалось отправить приглашение. Попробуйте позже.");
+    }
+  }
+
   function openDeleteDialog() {
     setDeleteDialogOpen(true);
   }
@@ -187,7 +239,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Tabs defaultValue="profile">
+      <Tabs
+        defaultValue="profile"
+        onValueChange={(v) => setDiagnosticsTabActive(v === "diagnostics")}
+      >
         <div className="flex items-center justify-between gap-2">
           <TabsList>
             <TabsTrigger value="profile">Профиль</TabsTrigger>
@@ -268,15 +323,37 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   </span>
                 )}
               </Label>
-              <Input
-                id="profile-email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                disabled={!isEditing || hasAccount}
-                placeholder={hasAccount ? undefined : "Для связки при регистрации"}
-                style={!isEditing || hasAccount ? { cursor: "text" } : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="profile-email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={!isEditing || hasAccount}
+                  placeholder={hasAccount ? undefined : "Для связки при регистрации"}
+                  style={!isEditing || hasAccount ? { cursor: "text" } : undefined}
+                  className="pr-8"
+                />
+                {!hasAccount && email.trim() && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={handleSendRegistrationInvite}
+                          className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
+                          aria-label="Отправить приглашение зарегистрироваться"
+                        >
+                          <Mail className="h-4 w-4" aria-hidden />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Отправить приглашение зарегистрироваться
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Дата рождения</Label>
@@ -397,17 +474,17 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           value="diagnostics"
           className="mt-3 space-y-3 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
         >
-          {props.diagnostics && props.diagnostics.length > 0 ? (
+          {diagnosticsLoading ? (
+            <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
+          ) : diagnosticsList.length > 0 ? (
             <ul className="space-y-2">
-              {props.diagnostics.map(result => (
+              {diagnosticsList.map((result) => (
                 <li
                   key={result.id}
                   className="rounded-md border bg-card px-3 py-2 text-sm"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">
-                      {result.testTitle}
-                    </span>
+                    <span className="font-medium">{result.testTitle}</span>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(result.createdAt)}
                     </span>

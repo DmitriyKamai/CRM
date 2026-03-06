@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{
     id: string;
@@ -105,7 +107,7 @@ export default async function PsychologistClientProfilePage({
         createdAt={client.createdAt.toISOString()}
         diagnostics={testResults.map(r => ({
           id: r.id,
-          testTitle: r.test.title,
+          testTitle: r.test?.title ?? "Диагностика",
           createdAt: r.createdAt.toISOString(),
           interpretation: r.interpretation ?? null
         }))}
