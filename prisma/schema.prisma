@@ -53,15 +53,16 @@ enum TestType {
 // --- NextAuth core models ---
 
 model User {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   name           String?
-  email          String   @unique
+  email          String    @unique
   emailVerified  DateTime?
   image          String?
+  dateOfBirth    DateTime?
   hashedPassword String?
-  role           Role     @default(CLIENT)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  role           Role      @default(CLIENT)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   accounts      Account[]
   sessions      Session[]
@@ -130,6 +131,7 @@ model PsychologistProfile {
   userId         String   @unique
   firstName      String
   lastName       String
+  phone          String?
   specialization String?
   bio            String?  @db.Text
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию

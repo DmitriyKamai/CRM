@@ -384,6 +384,12 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     onSelect={setDob}
                     locale={ru}
                     initialFocus
+                    defaultMonth={dob ?? new Date()}
+                    captionLayout="dropdown"
+                    startMonth={new Date(1920, 0)}
+                    endMonth={new Date()}
+                    reverseYears
+                    hideNavigation
                   />
                 </PopoverContent>
               </Popover>

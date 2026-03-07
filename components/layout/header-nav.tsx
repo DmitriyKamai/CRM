@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { LogOut, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings } from "lucide-react";
 
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -163,9 +163,17 @@ export function HeaderNav() {
             </div>
           </div>
           <DropdownMenuSeparator />
+          {role === "PSYCHOLOGIST" && (
+            <DropdownMenuItem asChild>
+              <Link href="/psychologist/settings" className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Настройки профиля
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <Link href={profileHref} className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
+              <LayoutDashboard className="mr-2 h-4 w-4" />
               Перейти в кабинет
             </Link>
           </DropdownMenuItem>
