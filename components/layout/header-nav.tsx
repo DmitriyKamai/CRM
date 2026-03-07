@@ -1,10 +1,23 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { LayoutDashboard, LogOut, Moon, Settings, Sun } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Moon, Settings, Sun } from "lucide-react";
+
+/** Подписи профессии из профессионального профиля (значение → отображаемое название). */
+const PROFESSION_LABELS: Record<string, string> = {
+  psychologist: "Психолог",
+  psychotherapist: "Врач-психотерапевт",
+  psychiatrist: "Психиатр"
+};
+
+function getProfessionLabel(specialization: string | null | undefined): string {
+  if (!specialization?.trim()) return "Специалист";
+  return PROFESSION_LABELS[specialization.trim()] ?? "Специалист";
+}
 
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,17 +29,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 function NavLink({
   href,
-  label
+  label,
+  exact
 }: {
   href: string;
   label: string;
+  exact?: boolean;
 }) {
   const pathname = usePathname();
-  const active = pathname === href || pathname.startsWith(href + "/");
+  const active = exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <Link
@@ -40,6 +63,26 @@ function NavLink({
     >
       {label}
     </Link>
+  );
+}
+
+function SheetNavLink({ href, label, exact }: { href: string; label: string; exact?: boolean }) {
+  const pathname = usePathname();
+  const active = exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
+  return (
+    <SheetClose asChild>
+      <Link
+        href={href}
+        className={cn(
+          "block rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+          active
+            ? "bg-accent text-accent-foreground"
+            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        )}
+      >
+        {label}
+      </Link>
+    </SheetClose>
   );
 }
 
@@ -66,6 +109,36 @@ function ThemeToggle() {
 
 export function HeaderNav() {
   const { data: session, status } = useSession();
+  const [professionLabel, setProfessionLabel] = useState<string | null>(null);
+
+  const role = (session?.user as { role?: string } | undefined)?.role as
+    | "CLIENT"
+    | "PSYCHOLOGIST"
+    | "ADMIN"
+    | undefined;
+
+  const fetchProfessionLabel = useCallback(() => {
+    if (role !== "PSYCHOLOGIST") return;
+    fetch("/api/user/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { psychologistProfile?: { specialization?: string | null } } | null) => {
+        if (!data?.psychologistProfile) {
+          setProfessionLabel("Специалист");
+          return;
+        }
+        setProfessionLabel(
+          getProfessionLabel(data.psychologistProfile.specialization ?? null)
+        );
+      })
+      .catch(() => setProfessionLabel("Специалист"));
+  }, [role]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user || role !== "PSYCHOLOGIST") {
+      return;
+    }
+    fetchProfessionLabel();
+  }, [status, session?.user, role, fetchProfessionLabel]);
 
   if (status === "loading") {
     return (
@@ -86,13 +159,7 @@ export function HeaderNav() {
     );
   }
 
-  const role = (session.user as any).role as
-    | "CLIENT"
-    | "PSYCHOLOGIST"
-    | "ADMIN"
-    | undefined;
-
-  const email = (session.user as any).email ?? "";
+  const email = (session.user as { email?: string }).email ?? "";
   const name = session.user?.name ?? email;
   const profileHref =
     role === "PSYCHOLOGIST"
@@ -104,7 +171,7 @@ export function HeaderNav() {
           : "/";
   const roleLabel =
     role === "PSYCHOLOGIST"
-      ? "Психолог"
+      ? (professionLabel ?? "Специалист")
       : role === "CLIENT"
         ? "Клиент"
         : role === "ADMIN"
@@ -122,13 +189,60 @@ export function HeaderNav() {
       ? email.slice(0, 2).toUpperCase()
       : "?";
 
+  const mobileNavLinks =
+    role === "PSYCHOLOGIST"
+      ? [
+          { href: "/psychologist", label: "Кабинет", exact: true },
+          { href: "/psychologist/schedule", label: "Расписание" },
+          { href: "/psychologist/clients", label: "Клиенты" },
+          { href: "/psychologist/diagnostics", label: "Диагностика" },
+          { href: "/psychologist/settings", label: "Настройки" }
+        ]
+        : role === "CLIENT"
+        ? [
+            { href: "/client/psychologists", label: "Запись к психологу" },
+            { href: "/client", label: "Кабинет клиента", exact: true },
+            { href: "/client/settings", label: "Настройки" }
+          ]
+        : role === "ADMIN"
+          ? [
+              { href: "/admin", label: "Админка", exact: true },
+              { href: "/admin/users", label: "Пользователи" }
+            ]
+          : [];
+
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <ThemeToggle />
+      {/* Мобильное меню */}
+      {mobileNavLinks.length > 0 && (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 md:hidden"
+              aria-label="Открыть меню"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[280px] sm:w-[300px]">
+            <SheetHeader>
+              <SheetTitle className="text-left">Меню</SheetTitle>
+            </SheetHeader>
+            <nav className="mt-6 flex flex-col gap-1">
+              {mobileNavLinks.map(({ href, label, exact }) => (
+                <SheetNavLink key={href} href={href} label={label} exact={exact} />
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
+      )}
       <div className="hidden md:flex items-center gap-2">
         {role === "PSYCHOLOGIST" && (
           <>
-            <NavLink href="/psychologist" label="Кабинет" />
+            <NavLink href="/psychologist" label="Кабинет" exact />
             <NavLink href="/psychologist/schedule" label="Расписание" />
             <NavLink href="/psychologist/clients" label="Клиенты" />
             <NavLink href="/psychologist/diagnostics" label="Диагностика" />
@@ -140,19 +254,24 @@ export function HeaderNav() {
               href="/client/psychologists"
               label="Запись к психологу"
             />
-            <NavLink href="/client" label="Кабинет клиента" />
+            <NavLink href="/client" label="Кабинет клиента" exact />
+            <NavLink href="/client/settings" label="Настройки" />
           </>
         )}
         {role === "ADMIN" && (
           <>
-            <NavLink href="/admin" label="Админка" />
+            <NavLink href="/admin" label="Админка" exact />
             <NavLink href="/admin/users" label="Пользователи" />
           </>
         )}
       </div>
 
       <NotificationsPanel />
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open && role === "PSYCHOLOGIST") fetchProfessionLabel();
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -187,9 +306,12 @@ export function HeaderNav() {
             </div>
           </div>
           <DropdownMenuSeparator />
-          {role === "PSYCHOLOGIST" && (
+          {(role === "PSYCHOLOGIST" || role === "CLIENT") && (
             <DropdownMenuItem asChild>
-              <Link href="/psychologist/settings" className="cursor-pointer">
+              <Link
+                href={role === "PSYCHOLOGIST" ? "/psychologist/settings" : "/client/settings"}
+                className="cursor-pointer"
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 Настройки профиля
               </Link>

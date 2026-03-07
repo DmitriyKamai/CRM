@@ -103,6 +103,10 @@ export default async function PsychologistClientProfilePage({
         lastName={client.lastName}
         dateOfBirth={client.dateOfBirth?.toISOString() ?? null}
         phone={client.phone ?? null}
+        country={client.country ?? null}
+        city={client.city ?? null}
+        gender={client.gender ?? null}
+        maritalStatus={client.maritalStatus ?? null}
         notes={client.notes ?? null}
         createdAt={client.createdAt.toISOString()}
         diagnostics={testResults.map(r => ({

@@ -59,6 +59,11 @@ model User {
   emailVerified  DateTime?
   image          String?
   dateOfBirth    DateTime?
+  phone          String?
+  country        String?
+  city           String?
+  gender         String?   // male | female | other
+  maritalStatus  String?   // single | married | divorced | widowed | unspecified
   hashedPassword String?
   role           Role      @default(CLIENT)
   createdAt      DateTime  @default(now())
@@ -132,7 +137,11 @@ model PsychologistProfile {
   firstName      String
   lastName       String
   phone          String?
-  specialization String?
+  country        String?
+  city           String?
+  gender         String?  // male | female | other
+  maritalStatus  String?  // single | married | divorced | widowed | civil | unspecified
+  specialization String?  // psychologist | psychotherapist | psychiatrist
   bio            String?  @db.Text
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
   createdAt      DateTime @default(now())
@@ -159,6 +168,10 @@ model ClientProfile {
   lastName       String
   dateOfBirth    DateTime?
   phone          String?
+  country        String?
+  city           String?
+  gender         String?  // male | female | other
+  maritalStatus  String?  // single | married | divorced | widowed | unspecified
   notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -286,6 +299,7 @@ model ClientRegistrationInvite {
   client       ClientProfile       @relation(fields: [clientId], references: [id])
   psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
 
+  @@unique([clientId, psychologistId])
   @@index([clientId])
   @@index([psychologistId])
 }

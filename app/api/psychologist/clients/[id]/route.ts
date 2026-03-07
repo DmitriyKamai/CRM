@@ -20,6 +20,10 @@ const updateClientSchema = z.object({
   lastName: z.string().min(1, "Укажите фамилию").optional(),
   dateOfBirth: z.string().optional(),
   phone: z.string().optional(),
+  country: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
+  maritalStatus: z.string().optional().nullable(),
   notes: z.string().optional(),
   email: z.string().email("Некорректный email").optional().or(z.literal(""))
 });
@@ -70,6 +74,10 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     lastName: client.lastName,
     dateOfBirth: client.dateOfBirth,
     phone: client.phone,
+    country: client.country,
+    city: client.city,
+    gender: client.gender,
+    maritalStatus: client.maritalStatus,
     notes: client.notes,
     createdAt: client.createdAt,
     email: client.user?.email ?? client.email ?? null,
@@ -123,6 +131,10 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       lastName?: string;
       dateOfBirth?: Date | null;
       phone?: string | null;
+      country?: string | null;
+      city?: string | null;
+      gender?: string | null;
+      maritalStatus?: string | null;
       notes?: string | null;
       email?: string | null;
     } = {
@@ -130,6 +142,10 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       lastName: data.lastName ?? existing.lastName,
       dateOfBirth: dob,
       phone: data.phone !== undefined ? data.phone : existing.phone,
+      country: data.country !== undefined ? data.country : existing.country,
+      city: data.city !== undefined ? data.city : existing.city,
+      gender: data.gender !== undefined ? data.gender : existing.gender,
+      maritalStatus: data.maritalStatus !== undefined ? data.maritalStatus : existing.maritalStatus,
       notes: data.notes !== undefined ? data.notes : existing.notes
     };
 

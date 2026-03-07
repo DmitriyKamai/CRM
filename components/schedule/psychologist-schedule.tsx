@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -287,6 +288,42 @@ export function PsychologistSchedule() {
     }
   }
 
+  async function handleConfirmAppointment(slot: SlotDto): Promise<void> {
+    if (!slot.appointmentId) return;
+    setUpdatingId(slot.id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/appointments/${slot.appointmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "SCHEDULED" })
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg =
+          body && typeof body.message === "string"
+            ? body.message
+            : "Не удалось подтвердить запись";
+        throw new Error(msg);
+      }
+      setSlots(prev =>
+        prev.map(s =>
+          s.id === slot.id ? { ...s, appointmentStatus: "SCHEDULED" as AppointmentStatus } : s
+        )
+      );
+      setOpenSlotId(null);
+      toast.success("Запись подтверждена.");
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof Error ? err.message : "Не удалось подтвердить запись";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   async function handleCancelAppointment(slot: SlotDto): Promise<void> {
     if (!slot.appointmentId) return;
     setUpdatingId(slot.id);
@@ -438,7 +475,114 @@ export function PsychologistSchedule() {
     slotsByDay[key].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
   });
 
+  /** По дням: какие типы записей есть (для точек под датой в календаре). */
+  const dayDotsMap = useMemo(() => {
+    const map: Record<
+      string,
+      { free?: boolean; pending?: boolean; scheduled?: boolean }
+    > = {};
+    for (const slot of slots) {
+      const key = dayKey(new Date(slot.start));
+      if (!map[key]) map[key] = {};
+      const hasAppointment = Boolean(slot.appointmentId);
+      if (!hasAppointment) {
+        map[key].free = true;
+      } else if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
+        map[key].pending = true;
+      } else {
+        map[key].scheduled = true;
+      }
+    }
+    return map;
+  }, [slots]);
+
   const timeScrollRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(1);
+  const [innerHeight, setInnerHeight] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const updateScale = () => {
+      const w = el.offsetWidth;
+      setScale(w >= 1008 ? 1 : Math.max(0.25, w / 1008));
+    };
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (scale >= 1) return;
+    const el = innerRef.current;
+    if (!el) return;
+    const updateHeight = () => setInnerHeight(el.offsetHeight);
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scale, loading]);
+
+  const ScheduleDayButton = useCallback(
+    (props: React.ComponentProps<typeof CalendarDayButton>) => {
+      const { day, children, modifiers, ...rest } = props;
+      const key = dayKey(day.date);
+      const dots = dayDotsMap[key];
+      const hasDots =
+        dots && (dots.free || dots.pending || dots.scheduled);
+      const isSelectedSingle =
+        modifiers?.selected &&
+        !modifiers?.range_start &&
+        !modifiers?.range_end &&
+        !modifiers?.range_middle;
+      const dotRing = "ring-2 ring-white";
+      return (
+        <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
+          <span className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit]">
+            <span className="block w-full text-center leading-none">{children}</span>
+            {hasDots && (
+              <div
+                className="absolute bottom-0 left-0 right-0 flex justify-center gap-0.5 py-0.5"
+                aria-hidden
+              >
+                {dots!.free && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      isSelectedSingle ? "bg-sky-300 " + dotRing : "bg-sky-500"
+                    )}
+                    title="Свободный слот"
+                  />
+                )}
+                {dots!.pending && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      isSelectedSingle ? "bg-amber-300 " + dotRing : "bg-amber-400"
+                    )}
+                    title="Ожидает подтверждения"
+                  />
+                )}
+                {dots!.scheduled && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      isSelectedSingle ? "bg-emerald-400 " + dotRing : "bg-emerald-500"
+                    )}
+                    title="Подтверждённая запись"
+                  />
+                )}
+              </div>
+            )}
+          </span>
+        </CalendarDayButton>
+      );
+    },
+    [dayDotsMap]
+  );
 
   const handleCalendarSelect = useCallback((date: Date | undefined) => {
     if (!date) return;
@@ -470,9 +614,29 @@ export function PsychologistSchedule() {
     return () => window.cancelAnimationFrame(id);
   }, [loading]);
 
+  const scaled = scale < 1;
+
   return (
     <>
-      <div className="flex gap-1 items-start">
+      <div ref={containerRef} className="w-full min-w-0">
+        <div
+          className={scaled ? "overflow-hidden" : ""}
+          style={{
+            width: scaled ? 1008 * scale : "100%",
+            height: scaled && innerHeight > 0 ? innerHeight * scale : undefined,
+            maxWidth: "100%",
+            margin: scaled ? "0 auto" : undefined
+          }}
+        >
+          <div
+            ref={innerRef}
+            className="flex gap-1 items-start"
+            style={{
+              width: scaled ? 1008 : "100%",
+              transform: scaled ? `scale(${scale})` : undefined,
+              transformOrigin: "0 0"
+            }}
+          >
         <div className="w-72 shrink-0 flex flex-col">
           <div className="h-10 shrink-0" aria-hidden />
           <Calendar
@@ -483,6 +647,7 @@ export function PsychologistSchedule() {
             onMonthChange={handleCalendarMonthChange}
             locale={ru}
             initialFocus
+            components={{ DayButton: ScheduleDayButton }}
           />
           {holidaysThisMonth.length > 0 && (
             <div className="mt-3 space-y-3 text-xs text-muted-foreground">
@@ -528,7 +693,7 @@ export function PsychologistSchedule() {
           )}
         </div>
 
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Button
@@ -573,7 +738,7 @@ export function PsychologistSchedule() {
             </div>
           </div>
 
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border border-border rounded-lg">
             <CardContent className="space-y-2 px-4 py-3">
           {error && (
             <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
@@ -584,8 +749,7 @@ export function PsychologistSchedule() {
           {loading ? (
             <ScheduleGridSkeleton />
           ) : error ? null : (
-            <div className="overflow-x-auto">
-              <div className="min-w-[720px]">
+            <>
                 <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] border-b border-border pb-2 text-xs text-muted-foreground">
                   <div />
                   {weekDays.map(day => {
@@ -609,10 +773,7 @@ export function PsychologistSchedule() {
                   })}
                 </div>
 
-                <div
-                  ref={timeScrollRef}
-                  className="max-h-[672px] overflow-y-auto scrollbar-schedule"
-                >
+                <div ref={timeScrollRef}>
                   <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] text-xs">
                     {HOURS.map((hour, index) => {
                       const hourLabel = formatTimeLabel(hour);
@@ -623,15 +784,17 @@ export function PsychologistSchedule() {
                             {hourLabel}
                           </div>
 
-                          {weekDays.map(day => {
+                          {weekDays.map((day, dayIndex) => {
                             const key = dayKey(day);
                             const daySlots = (slotsByDay[key] || []).filter(slot => {
                               const d = new Date(slot.start);
                               return d.getHours() === hour;
                             });
+                            const isLastCol = dayIndex === weekDays.length - 1;
 
                             const cellClass =
                               "border-t border-l border-border/40 px-1" +
+                              (isLastCol ? " border-r border-border/40" : "") +
                               (isLastRow ? " pb-2" : "");
 
                             return (
@@ -852,15 +1015,25 @@ export function PsychologistSchedule() {
                                           )}
 
                                           {hasAppointment && (
-                                            <div className="flex justify-end">
+                                            <div className="flex items-center justify-end gap-2">
+                                              {slot.appointmentStatus === "PENDING_CONFIRMATION" && (
+                                                <Button
+                                                  size="sm"
+                                                  className="h-8 min-h-8 px-3 text-[11px]"
+                                                  disabled={updatingId === slot.id}
+                                                  onClick={() => void handleConfirmAppointment(slot)}
+                                                >
+                                                  Подтвердить запись
+                                                </Button>
+                                              )}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-7 px-2 text-[11px]"
+                                                className="h-8 min-h-8 px-3 text-[11px]"
                                                 disabled={updatingId === slot.id}
                                                 onClick={() => void handleCancelAppointment(slot)}
                                               >
-                                                Отменить запись
+                                                Отменить
                                               </Button>
                                             </div>
                                           )}
@@ -877,11 +1050,12 @@ export function PsychologistSchedule() {
                     })}
                   </div>
                 </div>
-              </div>
-            </div>
+            </>
           )}
             </CardContent>
           </Card>
+        </div>
+      </div>
         </div>
       </div>
       

@@ -31,8 +31,8 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem storageKey="empatix-theme">
           <AuthProvider>
             <header className="border-b bg-background/80 backdrop-blur">
-              <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-                <div className="text-3xl md:text-4xl font-semibold tracking-tight tangerine-bold">
+              <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
+                <div className="text-2xl font-semibold tracking-tight tangerine-bold min-w-0 sm:text-3xl md:text-4xl">
                   Empatix
                 </div>
                 <Suspense fallback={<div className="text-xs text-muted-foreground">Загрузка…</div>}>
@@ -40,7 +40,7 @@ export default function RootLayout({
                 </Suspense>
               </div>
             </header>
-            <main className="mx-auto flex min-h-[calc(100vh-3.25rem)] max-w-6xl flex-col px-4 py-6">
+            <main className="mx-auto flex min-h-[calc(100vh-3.25rem)] max-w-6xl flex-col px-3 py-4 sm:px-4 sm:py-6">
               {children}
             </main>
           </AuthProvider>

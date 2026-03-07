@@ -16,6 +16,7 @@ export default async function DiagnosticByTokenPage({ params }: Props) {
   let link: Awaited<
     ReturnType<
       typeof prisma.diagnosticLink.findUnique<{
+        where: { token: string };
         include: { test: { include: { questions: true } } };
       }>
     >

@@ -52,6 +52,10 @@ type ClientDto = {
   email?: string | null;
   dateOfBirth?: string | null;
   phone?: string | null;
+  country?: string | null;
+  city?: string | null;
+  gender?: string | null;
+  maritalStatus?: string | null;
   notes?: string | null;
   createdAt: string;
   hasAccount?: boolean;
@@ -340,7 +344,7 @@ export function PsychologistClientsList() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">
-            Двойной клик по строке открывает профиль клиента.
+            Нажмите на строку, чтобы открыть профиль клиента.
           </p>
           {multiSelectMode && selectedIds.size > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -440,7 +444,7 @@ export function PsychologistClientsList() {
             phone: "Телефон",
             createdAt: "Создан"
           }}
-          onRowDoubleClick={client => setProfileClient(client)}
+          onRowClick={client => setProfileClient(client)}
         />
       )}
 
@@ -572,6 +576,10 @@ export function PsychologistClientsList() {
                 lastName={profileClient.lastName}
                 dateOfBirth={profileClient.dateOfBirth ?? null}
                 phone={profileClient.phone ?? null}
+                country={profileClient.country ?? null}
+                city={profileClient.city ?? null}
+                gender={profileClient.gender ?? null}
+                maritalStatus={profileClient.maritalStatus ?? null}
                 notes={profileClient.notes ?? null}
                 createdAt={profileClient.createdAt}
                 onDeleted={async () => {
@@ -588,6 +596,10 @@ export function PsychologistClientsList() {
                             lastName: next.lastName,
                             email: next.email ?? null,
                             phone: next.phone ?? null,
+                            country: next.country ?? null,
+                            city: next.city ?? null,
+                            gender: next.gender ?? null,
+                            maritalStatus: next.maritalStatus ?? null,
                             notes: next.notes ?? null,
                             dateOfBirth: next.dateOfBirth ?? null
                           }
@@ -602,6 +614,10 @@ export function PsychologistClientsList() {
                           lastName: next.lastName,
                           email: next.email ?? null,
                           phone: next.phone ?? null,
+                          country: next.country ?? null,
+                          city: next.city ?? null,
+                          gender: next.gender ?? null,
+                          maritalStatus: next.maritalStatus ?? null,
                           notes: next.notes ?? null,
                           dateOfBirth: next.dateOfBirth ?? null
                         }

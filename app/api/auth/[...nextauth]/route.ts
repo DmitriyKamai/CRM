@@ -8,8 +8,18 @@ async function wrappedHandler(
   req: Request,
   context: { params: Promise<{ nextauth: string[] }> }
 ) {
+  // #region agent log
+  const url = req.url;
+  const m0 = process.memoryUsage();
+  console.log(`[DBG] nextauth-start ${url} heap=${Math.round(m0.heapUsed/1024/1024)}/${Math.round(m0.heapTotal/1024/1024)}MB rss=${Math.round(m0.rss/1024/1024)}MB`);
+  // #endregion
   try {
-    return await nextAuthHandler(req, context);
+    const result = await nextAuthHandler(req, context);
+    // #region agent log
+    const m1 = process.memoryUsage();
+    console.log(`[DBG] nextauth-end ${url} heap=${Math.round(m1.heapUsed/1024/1024)}/${Math.round(m1.heapTotal/1024/1024)}MB rss=${Math.round(m1.rss/1024/1024)}MB`);
+    // #endregion
+    return result;
   } catch (err) {
     console.error("[NextAuth] handler error:", err);
     return NextResponse.json(

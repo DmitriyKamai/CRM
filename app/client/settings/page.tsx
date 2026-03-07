@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { SettingsLoader } from "./settings-loader";
+import { ClientSettingsLoader } from "./settings-loader";
 
-export default async function PsychologistSettingsPage() {
+export default async function ClientSettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
-    redirect("/auth/login?callbackUrl=/psychologist/settings");
+    redirect("/auth/login?callbackUrl=/client/settings");
   }
 
-  if ((session.user as { role?: string }).role !== "PSYCHOLOGIST") {
+  if ((session.user as { role?: string }).role !== "CLIENT") {
     redirect("/");
   }
 
@@ -17,9 +17,9 @@ export default async function PsychologistSettingsPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold text-foreground">Настройки профиля</h1>
       <p className="text-sm text-muted-foreground">
-        Личные данные, безопасность, аккаунты и календарь — по вкладкам.
+        Личные данные, безопасность и привязка аккаунтов — по вкладкам.
       </p>
-      <SettingsLoader />
+      <ClientSettingsLoader />
     </div>
   );
 }

@@ -36,6 +36,9 @@ import {
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /** Один клик/тап — удобно на мобильных */
+  onRowClick?: (row: TData) => void;
+  /** Двойной клик — только десктоп */
   onRowDoubleClick?: (row: TData) => void;
   filterColumnId?: string;
   filterPlaceholder?: string;
@@ -46,6 +49,7 @@ export interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
+  onRowClick,
   onRowDoubleClick,
   filterColumnId,
   filterPlaceholder,
@@ -114,9 +118,9 @@ export function DataTable<TData, TValue>({
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-md border">
-        <Table>
+      {/* Table: горизонтальный скролл на узких экранах */}
+      <div className="overflow-x-auto rounded-md border">
+        <Table className="min-w-[600px]">
           <TableHeader className="bg-muted/10">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
@@ -137,8 +141,11 @@ export function DataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
                   className={
-                    (onRowDoubleClick ? "cursor-pointer " : "") +
+                    (onRowClick || onRowDoubleClick ? "cursor-pointer " : "") +
                     "hover:bg-muted/40 transition-colors"
+                  }
+                  onClick={
+                    onRowClick ? () => onRowClick(row.original) : undefined
                   }
                   onDoubleClick={
                     onRowDoubleClick ? () => onRowDoubleClick(row.original) : undefined

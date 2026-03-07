@@ -1,9 +1,6 @@
-/**
- * Запускается при старте Next.js. В Node.js подключает логирование необработанных
- * исключений и отказов промисов. В Edge Runtime не выполняет ничего.
- */
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    await import("./instrumentation-node");
-  }
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Dynamic import ensures Turbopack does NOT compile this for Edge Runtime
+  const { setupNodeInstrumentation } = await import("./lib/node-instrumentation");
+  setupNodeInstrumentation();
 }

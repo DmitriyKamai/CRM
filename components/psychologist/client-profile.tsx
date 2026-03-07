@@ -24,12 +24,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { CountryAutocomplete, CityAutocomplete } from "@/components/ui/location-autocomplete";
+import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
+
+const MARITAL_OPTIONS: { value: string; label: string }[] = [
+  { value: "single", label: "Не в браке" },
+  { value: "married", label: "В браке" },
+  { value: "divorced", label: "В разводе" },
+  { value: "widowed", label: "Вдовец / Вдова" },
+  { value: "unspecified", label: "Не указано" }
+];
 
 type ClientProfileProps = {
   id: string;
@@ -39,6 +57,10 @@ type ClientProfileProps = {
   lastName: string;
   dateOfBirth: string | null;
   phone: string | null;
+  country: string | null;
+  city: string | null;
+  gender: string | null;
+  maritalStatus: string | null;
   notes: string | null;
   createdAt: string;
   onDeleted?: () => void;
@@ -47,6 +69,10 @@ type ClientProfileProps = {
     lastName: string;
     email: string | null;
     phone: string | null;
+    country: string | null;
+    city: string | null;
+    gender: string | null;
+    maritalStatus: string | null;
     notes: string | null;
     dateOfBirth: string | null;
   }) => void;
@@ -72,6 +98,13 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [lastName, setLastName] = useState(props.lastName);
   const [email, setEmail] = useState(props.email ?? "");
   const [phone, setPhone] = useState(props.phone ?? "");
+  const [country, setCountry] = useState(props.country ?? "");
+  const [city, setCity] = useState(props.city ?? "");
+  const [countryCode, setCountryCode] = useState<string | null>(
+    props.country ? getCountryCodeByName(props.country) : null
+  );
+  const [gender, setGender] = useState(props.gender ?? "");
+  const [maritalStatus, setMaritalStatus] = useState(props.maritalStatus ?? "");
   const [notes, setNotes] = useState(props.notes ?? "");
   const [dob, setDob] = useState<Date | undefined>(
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
@@ -89,6 +122,14 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   );
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
+
+  useEffect(() => {
+    setCountry(props.country ?? "");
+    setCity(props.city ?? "");
+    setCountryCode(props.country ? getCountryCodeByName(props.country) : null);
+    setGender(props.gender ?? "");
+    setMaritalStatus(props.maritalStatus ?? "");
+  }, [props.country, props.city, props.gender, props.maritalStatus]);
 
   useEffect(() => {
     if (!diagnosticsTabActive || !props.id) return;
@@ -118,6 +159,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         firstName,
         lastName,
         phone: phone || undefined,
+        country: country.trim() || null,
+        city: city.trim() || null,
+        gender: gender || null,
+        maritalStatus: maritalStatus || null,
         notes: notes || undefined,
         dateOfBirth: dob ? dob.toISOString() : undefined
       };
@@ -145,6 +190,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           lastName,
           email: email.trim() || null,
           phone: phone || null,
+          country: country.trim() || null,
+          city: city.trim() || null,
+          gender: gender || null,
+          maritalStatus: maritalStatus || null,
           notes: notes || null,
           dateOfBirth: dob ? dob.toISOString() : null
         });
@@ -405,6 +454,78 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 disabled={!isEditing}
                 style={!isEditing ? { cursor: "text" } : undefined}
               />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="client-country" className="text-xs">
+                Страна
+              </Label>
+              <CountryAutocomplete
+                id="client-country"
+                value={country}
+                onChange={(name, code) => {
+                  setCountry(name);
+                  setCountryCode(code || null);
+                  if (!name) setCity("");
+                }}
+                placeholder="Начните вводить страну"
+                disabled={!isEditing}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="client-city" className="text-xs">
+                Город
+              </Label>
+              <CityAutocomplete
+                id="client-city"
+                value={city}
+                onChange={setCity}
+                countryCode={countryCode}
+                placeholder="Начните вводить город"
+                disabled={!isEditing}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Пол</Label>
+              <RadioGroup
+                value={gender}
+                onValueChange={setGender}
+                className="flex flex-wrap gap-4"
+                disabled={!isEditing}
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="male" id="client-gender-male" />
+                  <Label htmlFor="client-gender-male" className="font-normal cursor-pointer text-xs">
+                    Мужской
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="female" id="client-gender-female" />
+                  <Label htmlFor="client-gender-female" className="font-normal cursor-pointer text-xs">
+                    Женский
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="client-marital" className="text-xs">
+                Семейное положение
+              </Label>
+              <Select
+                value={maritalStatus || "unspecified"}
+                onValueChange={setMaritalStatus}
+                disabled={!isEditing}
+              >
+                <SelectTrigger id="client-marital">
+                  <SelectValue placeholder="Выберите" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MARITAL_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1 md:col-span-2">
               <Label htmlFor="notes" className="text-xs">

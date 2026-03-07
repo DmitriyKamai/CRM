@@ -43,22 +43,64 @@ export async function GET() {
         return NextResponse.json({ clients: [] });
       }
 
-      const clients = await prisma.clientProfile.findMany({
-        where: { psychologistId: profile.id },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          dateOfBirth: true,
-          phone: true,
-          notes: true,
-          createdAt: true,
-          userId: true,
-          email: true,
-          user: { select: { email: true } }
-        }
-      });
+      const selectBase = {
+        id: true,
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
+        phone: true,
+        notes: true,
+        createdAt: true,
+        userId: true,
+        email: true,
+        user: { select: { email: true } }
+      } as const;
+
+      type ClientRow = {
+        id: string;
+        firstName: string;
+        lastName: string;
+        dateOfBirth: Date | null;
+        phone: string | null;
+        notes: string | null;
+        createdAt: Date;
+        userId: string | null;
+        email: string | null;
+        user: { email: string } | null;
+        country?: string | null;
+        city?: string | null;
+        gender?: string | null;
+        maritalStatus?: string | null;
+      };
+
+      let clients: ClientRow[];
+      try {
+        clients = await prisma.clientProfile.findMany({
+          where: { psychologistId: profile.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            ...selectBase,
+            country: true,
+            city: true,
+            gender: true,
+            maritalStatus: true
+          }
+        }) as ClientRow[];
+      } catch (e) {
+        // Колонки country, city, gender, maritalStatus могут отсутствовать, если миграция не применена
+        clients = (await prisma.clientProfile.findMany({
+          where: { psychologistId: profile.id },
+          orderBy: { createdAt: "desc" },
+          select: selectBase
+        })) as ClientRow[];
+        clients = clients.map((c) => ({
+          ...c,
+          country: null,
+          city: null,
+          gender: null,
+          maritalStatus: null
+        }));
+      }
 
       return NextResponse.json({
         clients: clients.map(c => ({
@@ -67,6 +109,10 @@ export async function GET() {
           lastName: c.lastName,
           dateOfBirth: c.dateOfBirth,
           phone: c.phone,
+          country: c.country ?? null,
+          city: c.city ?? null,
+          gender: c.gender ?? null,
+          maritalStatus: c.maritalStatus ?? null,
           notes: c.notes,
           createdAt: c.createdAt,
           email: c.user?.email ?? c.email ?? null,

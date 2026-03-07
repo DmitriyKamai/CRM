@@ -35,17 +35,40 @@ export async function POST(request: Request) {
     );
   }
 
-  const clientProfile = await prisma.clientProfile.findFirst({
+  let clientProfile = await prisma.clientProfile.findFirst({
     where: {
       userId,
       psychologistId: slot.psychologistId
     }
   });
+
   if (!clientProfile) {
-    return NextResponse.json(
-      { message: "Профиль клиента у этого психолога не найден. Обратитесь к психологу для добавления в список." },
-      { status: 400 }
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true }
+    });
+    const nameParts = (user?.name ?? "Клиент").trim().split(/\s+/);
+    const firstName = nameParts[0] ?? "Клиент";
+    const lastName = nameParts.slice(1).join(" ") || "";
+    try {
+      clientProfile = await prisma.clientProfile.create({
+        data: {
+          userId,
+          psychologistId: slot.psychologistId,
+          email: user?.email ?? undefined,
+          firstName,
+          lastName
+        }
+      });
+    } catch (createErr: unknown) {
+      if (createErr && typeof createErr === "object" && (createErr as { code?: string }).code === "P2002") {
+        const existing = await prisma.clientProfile.findFirst({
+          where: { userId, psychologistId: slot.psychologistId }
+        });
+        if (existing) clientProfile = existing;
+      }
+      if (!clientProfile) throw createErr;
+    }
   }
   const clientId = clientProfile.id;
 
