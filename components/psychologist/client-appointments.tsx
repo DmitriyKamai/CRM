@@ -76,6 +76,17 @@ function statusLabel(appointment: AppointmentDto) {
   }
 }
 
+function statusMarkerClasses(status: AppointmentDto["status"]) {
+  switch (status) {
+    case "PENDING_CONFIRMATION":
+      return "border-l-4 border-l-[hsl(var(--status-warning))]";
+    case "CANCELED":
+      return "border-l-4 border-l-destructive";
+    default:
+      return "border-l-4 border-l-[hsl(var(--status-success))]";
+  }
+}
+
 export function ClientAppointments({ clientId }: Props) {
   const [items, setItems] = useState<AppointmentDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -307,7 +318,7 @@ export function ClientAppointments({ clientId }: Props) {
             return (
               <li
                 key={item.id}
-                className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2"
+                className={`flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 ${statusMarkerClasses(item.status)}`}
               >
                 <div className="space-y-0.5">
                   <div className="font-medium">

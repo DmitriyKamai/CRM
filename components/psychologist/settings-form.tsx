@@ -279,7 +279,7 @@ export function PsychologistSettingsForm() {
                 <Button
                   variant="outline"
                   type="button"
-                  className="w-full justify-start text-left font-normal text-foreground data-[empty=true]:text-muted-foreground"
+                  className="w-full justify-start text-left font-normal text-foreground bg-[hsl(var(--input-bg))] data-[empty=true]:text-muted-foreground hover:bg-[hsl(var(--input-bg))]/90"
                   data-empty={!dateOfBirth}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { useTheme } from "next-themes";
+import { LayoutDashboard, LogOut, Moon, Settings, Sun } from "lucide-react";
 
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +43,27 @@ function NavLink({
   );
 }
 
+function ThemeToggle() {
+  const { setTheme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-9 w-9 shrink-0"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      title={isDark ? "Светлая тема" : "Тёмная тема"}
+      aria-label={isDark ? "Светлая тема" : "Тёмная тема"}
+    >
+      {isDark ? (
+        <Sun className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+      ) : (
+        <Moon className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+      )}
+    </Button>
+  );
+}
+
 export function HeaderNav() {
   const { data: session, status } = useSession();
 
@@ -56,6 +78,7 @@ export function HeaderNav() {
   if (!session?.user) {
     return (
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <NavLink href="/auth/login" label="Войти" />
         <NavLink href="/auth/register/psychologist" label="Я психолог" />
         <NavLink href="/auth/register/client" label="Я клиент" />
@@ -101,6 +124,7 @@ export function HeaderNav() {
 
   return (
     <div className="flex items-center gap-3">
+      <ThemeToggle />
       <div className="hidden md:flex items-center gap-2">
         {role === "PSYCHOLOGIST" && (
           <>

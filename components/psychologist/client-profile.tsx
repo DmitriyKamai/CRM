@@ -362,7 +362,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   <Button
                     variant="outline"
                     type="button"
-                    className="w-full justify-start text-left font-normal bg-card border-input text-sm hover:bg-card/90"
+                    className="w-full justify-start text-left font-normal bg-[hsl(var(--input-bg))] border-input text-sm hover:bg-[hsl(var(--input-bg))]/90"
                     disabled={!isEditing}
                     style={!isEditing ? { cursor: "text" } : undefined}
                   >

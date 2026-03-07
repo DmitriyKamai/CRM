@@ -17,33 +17,39 @@
     --gray-900: 0 0% 9%;
     --gray-950: 0 0% 3.9%;
 
-    /* shadcn/ui semantic tokens mapped to gray */
+    /* shadcn/ui semantic tokens mapped to gray — светлая тема с контрастом */
     --background: var(--gray-50);
     --foreground: var(--gray-950);
-    --card: var(--gray-50);
+    --card: var(--gray-100);
     --card-foreground: var(--gray-950);
     --popover: var(--gray-50);
     --popover-foreground: var(--gray-950);
     --primary: var(--gray-900);
     --primary-foreground: var(--gray-50);
-    --secondary: var(--gray-100);
+    --secondary: var(--gray-200);
     --secondary-foreground: var(--gray-900);
-    --muted: var(--gray-100);
-    --muted-foreground: var(--gray-500);
-    --accent: var(--gray-100);
+    --muted: var(--gray-200);
+    --muted-foreground: var(--gray-600);
+    --accent: var(--gray-200);
     --accent-foreground: var(--gray-900);
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: var(--gray-50);
-    --border: var(--gray-200);
-    --input: var(--gray-200);
+    --border: var(--gray-300);
+    --input: var(--gray-300);
+    --input-bg: var(--gray-50);
     --ring: var(--gray-950);
     --radius: 0.625rem;
+
+    /* Мягкие маркеры статусов (записи, слоты) */
+    --status-success: 142 45% 42%;
+    --status-warning: 38 88% 48%;
+    --status-free: 199 89% 48%;
   }
 
   .dark {
     --background: var(--gray-950);
     --foreground: var(--gray-50);
-    --card: var(--gray-900);
+    --card: 0 0% 6%;
     --card-foreground: var(--gray-50);
     --popover: var(--gray-950);
     --popover-foreground: var(--gray-50);
@@ -59,7 +65,12 @@
     --destructive-foreground: var(--gray-50);
     --border: var(--gray-800);
     --input: var(--gray-800);
+    --input-bg: var(--gray-900);
     --ring: var(--gray-300);
+
+    --status-success: 142 40% 45%;
+    --status-warning: 38 75% 50%;
+    --status-free: 199 80% 52%;
   }
 
   * {
