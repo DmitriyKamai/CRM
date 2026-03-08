@@ -47,6 +47,7 @@ enum CustomFieldType {
 enum TestType {
   SHMISHEK
   PAVLOVA_SHMISHEK
+  SMIL
 }
 
 
@@ -66,15 +67,31 @@ model User {
   maritalStatus  String?   // single | married | divorced | widowed | unspecified
   hashedPassword String?
   role           Role      @default(CLIENT)
+  telegramChatId String?   // привязка к Telegram для уведомлений и бота
+  telegramUsername String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   accounts      Account[]
   sessions      Session[]
   notifications Notification[]
+  telegramLinkTokens TelegramLinkToken[]
 
   psychologistProfile PsychologistProfile?
   clientProfiles      ClientProfile[]
+}
+
+/// Одноразовые токены для привязки Telegram (ссылка с сайта → бот).
+model TelegramLinkToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expiresAt])
 }
 
 model Notification {
@@ -281,6 +298,7 @@ model DiagnosticProgress {
   diagnosticLinkId String   @unique
   answers          Json     // Record<number, 0|1|2|3>
   currentStep      Int      @default(0) // 0 = инструкция, 1..N = вопрос
+  meta             Json?    // для СМИЛ: { variant, gender?, age? }
   updatedAt       DateTime @updatedAt
 
   link DiagnosticLink @relation(fields: [diagnosticLinkId], references: [id], onDelete: Cascade)

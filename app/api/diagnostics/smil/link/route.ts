@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
+import { TestType } from "@prisma/client";
+
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -36,10 +38,10 @@ export async function POST(request: Request) {
 
   try {
     return await withPrismaLock(async () => {
-      if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+      if (!session?.user || (session.user as { role?: string }).role !== "PSYCHOLOGIST") {
         return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
       }
-      const userId = (session.user as any).id as string;
+      const userId = (session.user as { id: string }).id;
 
       let profile = await prisma.psychologistProfile.findUnique({
         where: { userId }
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
         profile = await prisma.psychologistProfile.create({
           data: {
             userId,
-            firstName: user?.name ?? "Специалист",
+            firstName: user?.name ?? "Психолог",
             lastName: ""
           }
         });
@@ -71,14 +73,14 @@ export async function POST(request: Request) {
           : 1;
 
       const test = await prisma.test.findFirst({
-        where: { type: "PAVLOVA_SHMISHEK" }
+        where: { type: TestType.SMIL }
       });
 
       if (!test) {
         return NextResponse.json(
           {
             message:
-              "Опросник (адаптация Павлова Г.Г., 2025) не найден в БД. Запустите npm run prisma:seed-pavlova."
+              "Тест СМИЛ не найден в БД. Запустите seed для диагностики (prisma/seed или seed-smil)."
           },
           { status: 500 }
         );
@@ -135,7 +137,7 @@ export async function POST(request: Request) {
       );
     });
   } catch (err) {
-    console.error("[POST /api/diagnostics/pavlova/link]", err);
+    console.error("[POST /api/diagnostics/smil/link]", err);
     const message =
       err instanceof Error ? err.message : "Не удалось создать ссылку на тест";
     return NextResponse.json({ message }, { status: 500 });

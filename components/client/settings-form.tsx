@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
+import { TelegramAccountBlock } from "@/components/account/telegram-account-block";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -554,6 +555,10 @@ export function ClientSettingsForm() {
                     Привязать Apple
                   </Button>
                 )}
+                <div className="w-full border-t pt-3 mt-2">
+                  <p className="text-xs text-muted-foreground mb-2">Telegram — уведомления и бот</p>
+                  <TelegramAccountBlock />
+                </div>
               </div>
             </Section>
           )}

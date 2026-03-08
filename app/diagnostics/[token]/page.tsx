@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PavlovaTestForm } from "@/components/diagnostics/pavlova-test-form";
 import { ShmishekTestForm } from "@/components/diagnostics/shmishek-test-form";
+import { SmilTestForm } from "@/components/diagnostics/smil-test-form";
 import { prisma } from "@/lib/db";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
@@ -17,7 +18,10 @@ export default async function DiagnosticByTokenPage({ params }: Props) {
     ReturnType<
       typeof prisma.diagnosticLink.findUnique<{
         where: { token: string };
-        include: { test: { include: { questions: true } } };
+        include: {
+          test: { include: { questions: true } };
+          client: true;
+        };
       }>
     >
   >;
@@ -28,7 +32,8 @@ export default async function DiagnosticByTokenPage({ params }: Props) {
         include: {
           test: {
             include: { questions: true }
-          }
+          },
+          client: true
         }
       })
     );
@@ -73,6 +78,24 @@ export default async function DiagnosticByTokenPage({ params }: Props) {
 
   if (link.maxUses && link.usedCount >= link.maxUses) {
     notFound();
+  }
+
+  if (link.test.type === "SMIL") {
+    const client = link.client;
+    const clientInfo =
+      client && (client.gender != null || client.dateOfBirth != null)
+        ? {
+            gender: client.gender ?? undefined,
+            dateOfBirth: client.dateOfBirth
+              ? client.dateOfBirth.toISOString().slice(0, 10)
+              : undefined
+          }
+        : undefined;
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <SmilTestForm token={token} clientInfo={clientInfo} />
+      </div>
+    );
   }
 
   const questions = link.test.questions

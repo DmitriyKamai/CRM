@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
@@ -63,13 +64,15 @@ export async function GET(request: Request) {
 
       const progress = link.progress;
       if (!progress) {
-        return NextResponse.json({ answers: {}, currentStep: 0 });
+        return NextResponse.json({ answers: {}, currentStep: 0, meta: null });
       }
 
       const answers = progress.answers as Record<number, 0 | 1 | 2 | 3>;
+      const meta = (progress as { meta?: unknown }).meta as Record<string, unknown> | null;
       return NextResponse.json({
         answers: typeof answers === "object" && answers !== null ? answers : {},
-        currentStep: Math.max(0, progress.currentStep)
+        currentStep: Math.max(0, progress.currentStep),
+        meta: meta ?? null
       });
     });
   } catch (err) {
@@ -93,22 +96,19 @@ export async function PATCH(request: Request) {
     }
 
     const answers = validateAnswers(body.answers);
-    if (answers === null) {
-      return NextResponse.json(
-        { message: "Неверный формат ответов" },
-        { status: 400 }
-      );
-    }
-
     const currentStep =
       typeof body.currentStep === "number" && Number.isFinite(body.currentStep)
         ? Math.max(0, Math.floor(body.currentStep))
-        : 0;
+        : undefined;
+    const meta =
+      body.meta !== undefined && body.meta !== null && typeof body.meta === "object"
+        ? (body.meta as Record<string, unknown>)
+        : undefined;
 
     return await withPrismaLock(async () => {
       const link = await prisma.diagnosticLink.findUnique({
         where: { token },
-        select: { id: true, testId: true, expiresAt: true, maxUses: true, usedCount: true }
+        include: { progress: true }
       });
 
       if (!link) {
@@ -132,16 +132,34 @@ export async function PATCH(request: Request) {
         );
       }
 
+      const existing = link.progress;
+      const prevAnswers = existing?.answers as Record<number, 0 | 1 | 2 | 3> | undefined;
+      const prevStep = existing?.currentStep ?? 0;
+      const prevMeta = (existing as { meta?: unknown } | null | undefined)?.meta as Record<string, unknown> | null | undefined;
+
+      const nextAnswers = answers ?? prevAnswers ?? {};
+      const nextStep = currentStep ?? prevStep;
+      const nextMeta = meta !== undefined ? meta : prevMeta;
+
+      const metaPayload =
+        nextMeta !== undefined && nextMeta !== null
+          ? (nextMeta as Prisma.InputJsonValue)
+          : undefined;
+
       await prisma.diagnosticProgress.upsert({
         where: { diagnosticLinkId: link.id },
         create: {
           diagnosticLinkId: link.id,
-          answers,
-          currentStep
+          answers: nextAnswers,
+          currentStep: nextStep,
+          ...(metaPayload !== undefined && { meta: metaPayload })
         },
         update: {
-          answers,
-          currentStep
+          answers: nextAnswers,
+          currentStep: nextStep,
+          ...(nextMeta !== undefined && {
+          meta: nextMeta === null ? Prisma.JsonNull : (nextMeta as Prisma.InputJsonValue)
+        })
         }
       });
 

@@ -125,7 +125,7 @@ export function UsersTable() {
                       onChange={e => changeRole(user.id, e.target.value as Role)}
                     >
                       <option value="CLIENT">Клиент</option>
-                      <option value="PSYCHOLOGIST">Психолог</option>
+                      <option value="PSYCHOLOGIST">Специалист</option>
                       <option value="ADMIN">Админ</option>
                     </select>
                   </td>

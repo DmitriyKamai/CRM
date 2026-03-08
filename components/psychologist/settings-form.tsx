@@ -51,6 +51,10 @@ const CalendarSubscriptionBlock = dynamic(
   () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
   { ssr: false }
 );
+const TelegramAccountBlock = dynamic(
+  () => import("@/components/account/telegram-account-block").then((m) => ({ default: m.TelegramAccountBlock })),
+  { ssr: false }
+);
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -672,6 +676,10 @@ export function PsychologistSettingsForm() {
                 Привязать Apple
               </Button>
             )}
+            <div className="w-full border-t pt-3 mt-2">
+              <p className="text-xs text-muted-foreground mb-2">Telegram — уведомления и бот</p>
+              <TelegramAccountBlock />
+            </div>
           </div>
         </Section>
         )}

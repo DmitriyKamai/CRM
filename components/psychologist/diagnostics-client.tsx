@@ -43,9 +43,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+type MethodologyId = "shmishek" | "smil";
 type AdaptationId = "shmishek" | "pavlova";
 
-/** Параметры адаптации; количество вопросов может различаться между адаптациями. */
+/** Параметры адаптации опросника Леонгарда–Шмишека. */
 type Adaptation = {
   id: AdaptationId;
   label: string;
@@ -61,6 +62,7 @@ type ClientOption = {
   email?: string | null;
 };
 
+/** Опросник Леонгарда–Шмишека (адаптации: Крук, Павлова). */
 const QUESTIONNAIRE = {
   name: "Личностный опросник для определения типа акцентуаций",
   author: "Леонгард К., Шмишек Г.",
@@ -68,6 +70,7 @@ const QUESTIONNAIRE = {
     "Методика была разработана Гансом Шмишеком в 1970 году на основе концепции «акцентуированных личностей» Карла Леонгарда. Опросник предназначен для определения как явных, так и скрытых акцентуаций характера у подростков и взрослых."
 };
 
+/** Только адаптации опросника Леонгарда–Шмишека (без СМИЛ). */
 const ADAPTATIONS: Adaptation[] = [
   {
     id: "shmishek",
@@ -85,7 +88,22 @@ const ADAPTATIONS: Adaptation[] = [
   }
 ];
 
+/** СМИЛ — отдельная методика. */
+const SMIL_METHODOLOGY = {
+  name: "СМИЛ — Стандартизированный многофакторный метод исследования личности",
+  author: "Л.Н. Собчик",
+  description:
+    "Методика СМИЛ (MMPI в адаптации Л.Н. Собчик) предназначена для многомерной оценки личности. 566 утверждений, ответы «верно»/«неверно». Оцениваются базовые шкалы (L, F, K, 1–0), контрольные и клинические. Результаты переводятся в T-баллы по половым нормам."
+};
+
+const METHODOLOGIES: { id: MethodologyId; name: string; author: string }[] = [
+  { id: "shmishek", name: QUESTIONNAIRE.name, author: QUESTIONNAIRE.author },
+  { id: "smil", name: SMIL_METHODOLOGY.name, author: SMIL_METHODOLOGY.author }
+];
+
 export function PsychologistDiagnosticsClient() {
+  const [selectedMethodologyId, setSelectedMethodologyId] =
+    useState<MethodologyId>("shmishek");
   const [selectedAdaptationId, setSelectedAdaptationId] =
     useState<AdaptationId>("shmishek");
   const selectedAdaptation =
@@ -106,13 +124,15 @@ export function PsychologistDiagnosticsClient() {
 
   useEffect(() => {
     setLinkUrl(null);
-  }, [selectedAdaptationId]);
+  }, [selectedMethodologyId, selectedAdaptationId]);
 
   async function handleCreateLink() {
     const endpoint =
-      selectedAdaptationId === "pavlova"
-        ? "/api/diagnostics/pavlova/link"
-        : "/api/diagnostics/shmishek/link";
+      selectedMethodologyId === "smil"
+        ? "/api/diagnostics/smil/link"
+        : selectedAdaptationId === "pavlova"
+          ? "/api/diagnostics/pavlova/link"
+          : "/api/diagnostics/shmishek/link";
     setLoadingLink(true);
     setError(null);
     try {
@@ -200,8 +220,14 @@ export function PsychologistDiagnosticsClient() {
     setSendingToClient(true);
     setClientsError(null);
     setSendToClientSuccess(null);
+    const sendEndpoint =
+      selectedMethodologyId === "smil"
+        ? "/api/diagnostics/smil/link"
+        : selectedAdaptationId === "pavlova"
+          ? "/api/diagnostics/pavlova/link"
+          : "/api/diagnostics/shmishek/link";
     try {
-      const res = await fetch("/api/diagnostics/shmishek/link", {
+      const res = await fetch(sendEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientId: selectedClientId })
@@ -242,7 +268,9 @@ export function PsychologistDiagnosticsClient() {
       }!`
     );
     textParts.push(
-      `Пожалуйста, пройдите психодиагностический тест «${QUESTIONNAIRE.name}» (адаптация: ${selectedAdaptation.label}).`
+      selectedMethodologyId === "smil"
+        ? `Пожалуйста, пройдите психодиагностический тест «СМИЛ» (Л.Н. Собчик).`
+        : `Пожалуйста, пройдите психодиагностический тест «${QUESTIONNAIRE.name}» (адаптация: ${selectedAdaptation.label}).`
     );
     textParts.push(`Ссылка для прохождения: ${linkUrl}`);
     const message = textParts.join("\n\n");
@@ -261,135 +289,230 @@ export function PsychologistDiagnosticsClient() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-[minmax(0,380px),minmax(0,1fr)]">
-        {/* Один опросник слева */}
+        {/* Список методик слева */}
         <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Психодиагностические методики</CardTitle>
             <CardDescription className="text-xs">
-              Выберите опросник, чтобы посмотреть описание и доступные действия.
+              Выберите методику, чтобы посмотреть описание и создать ссылку.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-0.5 rounded-md bg-muted/50 px-3 py-2.5 text-left text-sm">
-              <span className="font-medium leading-snug text-foreground">
-                {QUESTIONNAIRE.name}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Автор: {QUESTIONNAIRE.author}
-              </span>
-            </div>
+          <CardContent className="space-y-1">
+            {METHODOLOGIES.map(m => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setSelectedMethodologyId(m.id)}
+                className={cn(
+                  "flex w-full flex-col gap-0.5 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
+                  selectedMethodologyId === m.id
+                    ? "bg-primary/10 ring-1 ring-primary/30"
+                    : "bg-muted/50 hover:bg-muted/70"
+                )}
+              >
+                <span className="font-medium leading-snug text-foreground">
+                  {m.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Автор: {m.author}
+                </span>
+              </button>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Детали и выбор адаптации справа */}
+        {/* Детали выбранной методики справа */}
         <Card className="h-full">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{QUESTIONNAIRE.name}</CardTitle>
-            <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-              <span>Автор: {QUESTIONNAIRE.author}</span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div>
-              <label className="mb-1.5 block font-medium text-muted-foreground">
-                Адаптация:
-              </label>
-              <Select
-                value={selectedAdaptationId}
-                onValueChange={(v: AdaptationId) => setSelectedAdaptationId(v)}
-              >
-                <SelectTrigger className="w-full max-w-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ADAPTATIONS.map(a => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {selectedMethodologyId === "smil" ? (
+            <>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{SMIL_METHODOLOGY.name}</CardTitle>
+                <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                  <span>Автор: {SMIL_METHODOLOGY.author}</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <dl className="grid gap-2 text-sm">
+                  <div>
+                    <dt className="font-medium text-muted-foreground">Описание:</dt>
+                    <dd className="mt-0.5 text-justify">{SMIL_METHODOLOGY.description}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-muted-foreground">Количество вопросов:</dt>
+                    <dd className="mt-0.5">566</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-muted-foreground">Примерное время:</dt>
+                    <dd className="mt-0.5">60–90 мин</dd>
+                  </div>
+                </dl>
 
-            <dl className="grid gap-2 text-sm">
-              <div>
-                <dt className="font-medium text-muted-foreground">Описание:</dt>
-                <dd className="mt-0.5 text-justify">{QUESTIONNAIRE.description}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-muted-foreground">Количество вопросов:</dt>
-                <dd className="mt-0.5">{selectedAdaptation.questionCount}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-muted-foreground">Примерное время:</dt>
-                <dd className="mt-0.5">{selectedAdaptation.approximateTime}</dd>
-              </div>
-            </dl>
+                {error && (
+                  <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+                    {error}
+                  </div>
+                )}
 
-            {selectedAdaptation.linkAvailable ? (
-              <>
-            {error && (
-              <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-                {error}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                onClick={handleCreateLink}
-                disabled={loadingLink}
-              >
-                {loadingLink ? "Создаём ссылку..." : "Создать ссылку для прохождения"}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleOpenInNewTab}
-              >
-                Открыть форму теста
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSendDialogOpen(true)}
-              >
-                Отправить клиенту
-              </Button>
-            </div>
-
-            {!linkUrl && (
-              <p className="text-xs text-muted-foreground">
-                Для открытия формы и отправки клиенту сначала создайте ссылку.
-              </p>
-            )}
-
-            {linkUrl && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">
-                  Сгенерированная ссылка (можно отправить вручную клиенту):
-                </p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input readOnly value={linkUrl} className="text-xs" />
+                <div className="flex flex-wrap gap-2">
                   <Button
-                    type="button"
-                    variant="outline"
                     size="sm"
-                    onClick={handleCopy}
+                    onClick={handleCreateLink}
+                    disabled={loadingLink}
                   >
-                    Скопировать
+                    {loadingLink ? "Создаём ссылку..." : "Создать ссылку для прохождения"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleOpenInNewTab}
+                  >
+                    Открыть форму теста
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSendDialogOpen(true)}
+                  >
+                    Отправить клиенту
                   </Button>
                 </div>
-              </div>
-            )}
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground rounded-md border border-muted bg-muted/30 px-3 py-2">
-                Данная адаптация пока доступна только в виде описания.
-              </p>
-            )}
 
-          </CardContent>
+                {!linkUrl && (
+                  <p className="text-xs text-muted-foreground">
+                    Для открытия формы и отправки клиенту сначала создайте ссылку.
+                  </p>
+                )}
+
+                {linkUrl && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Сгенерированная ссылка (можно отправить вручную клиенту):
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <Input readOnly value={linkUrl} className="text-xs" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopy}
+                      >
+                        Скопировать
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </>
+          ) : (
+            <>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{QUESTIONNAIRE.name}</CardTitle>
+                <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                  <span>Автор: {QUESTIONNAIRE.author}</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div>
+                  <label className="mb-1.5 block font-medium text-muted-foreground">
+                    Адаптация:
+                  </label>
+                  <Select
+                    value={selectedAdaptationId}
+                    onValueChange={(v: AdaptationId) => setSelectedAdaptationId(v)}
+                  >
+                    <SelectTrigger className="w-full max-w-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ADAPTATIONS.map(a => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <dl className="grid gap-2 text-sm">
+                  <div>
+                    <dt className="font-medium text-muted-foreground">Описание:</dt>
+                    <dd className="mt-0.5 text-justify">{QUESTIONNAIRE.description}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-muted-foreground">Количество вопросов:</dt>
+                    <dd className="mt-0.5">{selectedAdaptation.questionCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-muted-foreground">Примерное время:</dt>
+                    <dd className="mt-0.5">{selectedAdaptation.approximateTime}</dd>
+                  </div>
+                </dl>
+
+                {selectedAdaptation.linkAvailable ? (
+                  <>
+                    {error && (
+                      <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleCreateLink}
+                        disabled={loadingLink}
+                      >
+                        {loadingLink ? "Создаём ссылку..." : "Создать ссылку для прохождения"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleOpenInNewTab}
+                      >
+                        Открыть форму теста
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSendDialogOpen(true)}
+                      >
+                        Отправить клиенту
+                      </Button>
+                    </div>
+
+                    {!linkUrl && (
+                      <p className="text-xs text-muted-foreground">
+                        Для открытия формы и отправки клиенту сначала создайте ссылку.
+                      </p>
+                    )}
+
+                    {linkUrl && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                          Сгенерированная ссылка (можно отправить вручную клиенту):
+                        </p>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <Input readOnly value={linkUrl} className="text-xs" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCopy}
+                          >
+                            Скопировать
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground rounded-md border border-muted bg-muted/30 px-3 py-2">
+                    Данная адаптация пока доступна только в виде описания.
+                  </p>
+                )}
+              </CardContent>
+            </>
+          )}
           <CardFooter>
             <p className="text-xs text-muted-foreground">
               В дальнейшем здесь можно будет добавить другие опросники и смотреть
