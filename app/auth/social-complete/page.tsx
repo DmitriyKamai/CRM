@@ -5,10 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 type Props = {
-  searchParams: {
-    role?: string;
-    from?: string;
-  };
+  searchParams: Promise<{ role?: string; from?: string }>;
 };
 
 export default async function SocialCompletePage({ searchParams }: Props) {
@@ -23,8 +20,9 @@ export default async function SocialCompletePage({ searchParams }: Props) {
     redirect("/");
   }
 
-  const roleParam = searchParams.role === "psychologist" ? "psychologist" : "client";
-  console.log("[social-complete] searchParams.role:", searchParams.role, "roleParam:", roleParam);
+  const params = await searchParams;
+  const roleParam = params.role === "psychologist" ? "psychologist" : "client";
+  console.log("[social-complete] searchParams.role:", params.role, "roleParam:", roleParam);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -63,6 +61,7 @@ export default async function SocialCompletePage({ searchParams }: Props) {
           connectOrCreate: {
             where: { userId },
             create: {
+              userId,
               firstName: session.user.name ?? "Психолог",
               lastName: ""
             }

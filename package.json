@@ -7,7 +7,7 @@
     "dev:turbopack": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" next dev",
     "dev": "next build && next start",
     "dev:debug": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --unhandled-rejections=strict\" next dev --webpack",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
