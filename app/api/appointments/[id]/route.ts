@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
   params: Promise<{
@@ -128,6 +129,26 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
     return updated;
   });
+
+    // Уведомление клиенту в Telegram при подтверждении или отмене
+    const clientUserId = appt.client?.userId;
+    if (clientUserId && (status === "SCHEDULED" || status === "CANCELED")) {
+      const clientUser = await prisma.user.findUnique({
+        where: { id: clientUserId },
+        select: { telegramChatId: true }
+      });
+      if (clientUser?.telegramChatId) {
+        const dateStr = appt.start.toLocaleString("ru-RU", {
+          dateStyle: "short",
+          timeStyle: "short"
+        });
+        const text =
+          status === "SCHEDULED"
+            ? `Запись подтверждена.\n\nПсихолог ${psychologistName} подтвердил(а) вашу запись на приём ${dateStr}.`
+            : `Запись отменена.\n\nПсихолог ${psychologistName} отменил(а) вашу запись на приём ${dateStr}.`;
+        sendTelegramMessage(clientUser.telegramChatId, text).catch(console.error);
+      }
+    }
 
     return NextResponse.json({
       ...result,

@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { sendNewAppointmentToPsychologist } from "@/lib/telegram";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -149,6 +150,50 @@ export async function POST(request: Request) {
 
       return appointment;
     });
+
+    // Уведомление психологу в Telegram с кнопками «Подтвердить» / «Отменить»
+    const [psychUser, client] = await Promise.all([
+      prisma.psychologistProfile
+        .findUnique({
+          where: { id: result.psychologistId },
+          select: { userId: true }
+        })
+        .then(p =>
+          p
+            ? prisma.user.findUnique({
+                where: { id: p.userId },
+                select: { telegramChatId: true }
+              })
+            : null
+        ),
+      prisma.clientProfile.findUnique({
+        where: { id: result.clientId },
+        select: { firstName: true, lastName: true }
+      })
+    ]);
+    const clientName = client
+      ? `${(client.lastName ?? "").trim()} ${(client.firstName ?? "").trim()}`.trim() || "Клиент"
+      : "Клиент";
+    const dateStr = result.start.toLocaleString("ru-RU", {
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+    if (psychUser?.telegramChatId) {
+      const sent = await sendNewAppointmentToPsychologist(
+        psychUser.telegramChatId,
+        result.id,
+        clientName,
+        dateStr
+      ).catch((err) => {
+        console.error("[appointments] Ошибка отправки уведомления в Telegram:", err);
+        return false;
+      });
+      if (!sent) {
+        console.warn("[appointments] Не удалось отправить уведомление психологу в Telegram (chatId:", psychUser.telegramChatId, ")");
+      }
+    } else {
+      console.warn("[appointments] У психолога не привязан Telegram (userId по psychologistId не найден или telegramChatId пустой) — уведомление не отправлено.");
+    }
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
