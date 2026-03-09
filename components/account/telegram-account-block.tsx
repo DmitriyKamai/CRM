@@ -77,7 +77,7 @@ export function TelegramAccountBlock() {
 
   if (loading) {
     return (
-      <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
+      <span className="inline-flex items-center rounded-lg bg-muted px-4 py-2.5 text-sm font-medium">
         Загрузка…
       </span>
     );
@@ -87,13 +87,13 @@ export function TelegramAccountBlock() {
     <div className="flex flex-wrap items-center gap-2">
       {status?.linked ? (
         <>
-          <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
-            <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
+          <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm font-medium">
+            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
               <svg
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 48 48"
-                className="h-4 w-4"
+                className="h-5 w-5"
               >
                 <path
                   fill="#29b6f6"
@@ -134,13 +134,13 @@ export function TelegramAccountBlock() {
             disabled={linkLoading}
             onClick={handleLink}
           >
-            <span className="flex items-center gap-1">
-              <span className="inline-flex h-4 w-4 items-center justify-center">
+            <span className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
                 <svg
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 48 48"
-                  className="h-4 w-4"
+                  className="h-5 w-5"
                 >
                   <path
                     fill="#29b6f6"

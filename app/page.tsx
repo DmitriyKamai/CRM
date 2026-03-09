@@ -1,7 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (session?.user && role === "UNSPECIFIED") {
+    redirect("/auth/choose-role");
+  }
+
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8">
       <section className="text-center space-y-4 max-w-2xl">

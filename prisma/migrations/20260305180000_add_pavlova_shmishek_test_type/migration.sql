@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "TestType" ADD VALUE 'PAVLOVA_SHMISHEK';

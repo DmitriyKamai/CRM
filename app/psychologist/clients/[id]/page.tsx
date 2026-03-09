@@ -43,17 +43,42 @@ export default async function PsychologistClientProfilePage({
       id,
       psychologistId: psych.id
     },
-    include: {
-      user: {
-        select: {
-          email: true
-        }
-      }
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      phone: true,
+      notes: true,
+      createdAt: true,
+      userId: true,
+      email: true,
+      user: { select: { email: true } }
     }
   });
 
   if (!client) {
     notFound();
+  }
+
+  // Опциональные поля могли не быть в миграциях на части окружений — запрашиваем отдельно при необходимости
+  let country: string | null = null;
+  let city: string | null = null;
+  let gender: string | null = null;
+  let maritalStatus: string | null = null;
+  try {
+    const extra = await prisma.clientProfile.findFirst({
+      where: { id, psychologistId: psych.id },
+      select: { country: true, city: true, gender: true, maritalStatus: true }
+    });
+    if (extra) {
+      country = extra.country;
+      city = extra.city;
+      gender = extra.gender;
+      maritalStatus = extra.maritalStatus;
+    }
+  } catch {
+    // колонки могут отсутствовать
   }
 
   const email = client.user?.email ?? client.email ?? null;
@@ -103,10 +128,10 @@ export default async function PsychologistClientProfilePage({
         lastName={client.lastName}
         dateOfBirth={client.dateOfBirth?.toISOString() ?? null}
         phone={client.phone ?? null}
-        country={client.country ?? null}
-        city={client.city ?? null}
-        gender={client.gender ?? null}
-        maritalStatus={client.maritalStatus ?? null}
+        country={country}
+        city={city}
+        gender={gender}
+        maritalStatus={maritalStatus}
         notes={client.notes ?? null}
         createdAt={client.createdAt.toISOString()}
         diagnostics={testResults.map(r => ({

@@ -55,7 +55,7 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "text-xs px-2 py-1 rounded-md transition-colors",
+        "text-sm px-2 py-1.5 rounded-md transition-colors",
         active
           ? "bg-accent text-accent-foreground"
           : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -288,9 +288,9 @@ export function HeaderNav() {
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 align-end" align="end" forceMount>
-          <div className="flex items-center gap-2 p-2">
-            <Avatar className="h-10 w-10">
+        <DropdownMenuContent className="min-w-72 w-max max-w-[min(22rem,95vw)] align-end" align="end" forceMount>
+          <div className="flex items-center gap-3 p-2">
+            <Avatar className="h-14 w-14 shrink-0">
               <AvatarImage
                 src={session.user?.image ?? undefined}
                 alt={name}
@@ -299,9 +299,9 @@ export function HeaderNav() {
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-medium leading-none">{name}</p>
-              <p className="text-xs text-muted-foreground">{email}</p>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <p className="truncate text-sm font-medium leading-none">{name}</p>
+              <p className="break-all text-xs text-muted-foreground">{email}</p>
               <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
           </div>

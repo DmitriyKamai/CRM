@@ -1,11 +1,14 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('CLIENT', 'PSYCHOLOGIST', 'ADMIN');
+CREATE TYPE "Role" AS ENUM ('UNSPECIFIED', 'CLIENT', 'PSYCHOLOGIST', 'ADMIN');
 
 -- CreateEnum
 CREATE TYPE "SlotStatus" AS ENUM ('FREE', 'BOOKED', 'CANCELED');
 
 -- CreateEnum
-CREATE TYPE "AppointmentStatus" AS ENUM ('SCHEDULED', 'COMPLETED', 'CANCELED');
+CREATE TYPE "AppointmentStatus" AS ENUM ('PENDING_CONFIRMATION', 'SCHEDULED', 'COMPLETED', 'CANCELED');
 
 -- CreateEnum
 CREATE TYPE "CustomFieldTarget" AS ENUM ('CLIENT', 'APPOINTMENT');
@@ -14,7 +17,7 @@ CREATE TYPE "CustomFieldTarget" AS ENUM ('CLIENT', 'APPOINTMENT');
 CREATE TYPE "CustomFieldType" AS ENUM ('TEXT', 'NUMBER', 'DATE', 'SELECT', 'MULTILINE', 'BOOLEAN');
 
 -- CreateEnum
-CREATE TYPE "TestType" AS ENUM ('SHMISHEK');
+CREATE TYPE "TestType" AS ENUM ('SHMISHEK', 'PAVLOVA_SHMISHEK', 'SMIL');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -23,12 +26,42 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "emailVerified" TIMESTAMP(3),
     "image" TEXT,
+    "dateOfBirth" TIMESTAMP(3),
+    "phone" TEXT,
+    "country" TEXT,
+    "city" TEXT,
+    "gender" TEXT,
+    "maritalStatus" TEXT,
     "hashedPassword" TEXT,
-    "role" "Role" NOT NULL DEFAULT 'CLIENT',
+    "role" "Role" NOT NULL DEFAULT 'UNSPECIFIED',
+    "telegramChatId" TEXT,
+    "telegramUsername" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TelegramLinkToken" (
+    "id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TelegramLinkToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "body" TEXT,
+    "read" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -74,6 +107,11 @@ CREATE TABLE "PsychologistProfile" (
     "userId" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
+    "phone" TEXT,
+    "country" TEXT,
+    "city" TEXT,
+    "gender" TEXT,
+    "maritalStatus" TEXT,
     "specialization" TEXT,
     "bio" TEXT,
     "settingsJson" JSONB,
@@ -86,12 +124,17 @@ CREATE TABLE "PsychologistProfile" (
 -- CreateTable
 CREATE TABLE "ClientProfile" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "userId" TEXT,
+    "email" TEXT,
     "psychologistId" TEXT,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "dateOfBirth" TIMESTAMP(3),
     "phone" TEXT,
+    "country" TEXT,
+    "city" TEXT,
+    "gender" TEXT,
+    "maritalStatus" TEXT,
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -162,6 +205,31 @@ CREATE TABLE "DiagnosticLink" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "DiagnosticLink_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DiagnosticProgress" (
+    "id" TEXT NOT NULL,
+    "diagnosticLinkId" TEXT NOT NULL,
+    "answers" JSONB NOT NULL,
+    "currentStep" INTEGER NOT NULL DEFAULT 0,
+    "meta" JSONB,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "DiagnosticProgress_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ClientRegistrationInvite" (
+    "id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "psychologistId" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "usedAt" TIMESTAMP(3),
+
+    CONSTRAINT "ClientRegistrationInvite_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -238,6 +306,21 @@ CREATE TABLE "Recommendation" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "TelegramLinkToken_token_key" ON "TelegramLinkToken"("token");
+
+-- CreateIndex
+CREATE INDEX "TelegramLinkToken_token_idx" ON "TelegramLinkToken"("token");
+
+-- CreateIndex
+CREATE INDEX "TelegramLinkToken_expiresAt_idx" ON "TelegramLinkToken"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_read_idx" ON "Notification"("userId", "read");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
 
 -- CreateIndex
@@ -253,7 +336,19 @@ CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationTok
 CREATE UNIQUE INDEX "PsychologistProfile_userId_key" ON "PsychologistProfile"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ClientProfile_userId_key" ON "ClientProfile"("userId");
+CREATE INDEX "ClientProfile_userId_idx" ON "ClientProfile"("userId");
+
+-- CreateIndex
+CREATE INDEX "ClientProfile_psychologistId_idx" ON "ClientProfile"("psychologistId");
+
+-- CreateIndex
+CREATE INDEX "ClientProfile_email_idx" ON "ClientProfile"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ClientProfile_psychologistId_email_key" ON "ClientProfile"("psychologistId", "email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Test_type_key" ON "Test"("type");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TestQuestion_testId_index_key" ON "TestQuestion"("testId", "index");
@@ -272,6 +367,21 @@ CREATE UNIQUE INDEX "DiagnosticLink_token_key" ON "DiagnosticLink"("token");
 
 -- CreateIndex
 CREATE INDEX "DiagnosticLink_token_idx" ON "DiagnosticLink"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DiagnosticProgress_diagnosticLinkId_key" ON "DiagnosticProgress"("diagnosticLinkId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ClientRegistrationInvite_token_key" ON "ClientRegistrationInvite"("token");
+
+-- CreateIndex
+CREATE INDEX "ClientRegistrationInvite_clientId_idx" ON "ClientRegistrationInvite"("clientId");
+
+-- CreateIndex
+CREATE INDEX "ClientRegistrationInvite_psychologistId_idx" ON "ClientRegistrationInvite"("psychologistId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ClientRegistrationInvite_clientId_psychologistId_key" ON "ClientRegistrationInvite"("clientId", "psychologistId");
 
 -- CreateIndex
 CREATE INDEX "ScheduleSlot_psychologistId_start_idx" ON "ScheduleSlot"("psychologistId", "start");
@@ -301,6 +411,12 @@ CREATE INDEX "Recommendation_psychologistId_idx" ON "Recommendation"("psychologi
 CREATE INDEX "Recommendation_clientId_idx" ON "Recommendation"("clientId");
 
 -- AddForeignKey
+ALTER TABLE "TelegramLinkToken" ADD CONSTRAINT "TelegramLinkToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -310,7 +426,7 @@ ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "PsychologistProfile" ADD CONSTRAINT "PsychologistProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ClientProfile" ADD CONSTRAINT "ClientProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ClientProfile" ADD CONSTRAINT "ClientProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ClientProfile" ADD CONSTRAINT "ClientProfile_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -338,6 +454,15 @@ ALTER TABLE "DiagnosticLink" ADD CONSTRAINT "DiagnosticLink_psychologistId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "DiagnosticLink" ADD CONSTRAINT "DiagnosticLink_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "ClientProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DiagnosticProgress" ADD CONSTRAINT "DiagnosticProgress_diagnosticLinkId_fkey" FOREIGN KEY ("diagnosticLinkId") REFERENCES "DiagnosticLink"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientRegistrationInvite" ADD CONSTRAINT "ClientRegistrationInvite_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "ClientProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientRegistrationInvite" ADD CONSTRAINT "ClientRegistrationInvite_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ScheduleSlot" ADD CONSTRAINT "ScheduleSlot_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

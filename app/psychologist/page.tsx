@@ -26,7 +26,12 @@ export default function PsychologistDashboardPage() {
       router.replace("/auth/login?callbackUrl=/psychologist");
       return;
     }
-    if ((session.user as any).role !== "PSYCHOLOGIST") {
+    const role = (session.user as any).role;
+    if (role === "UNSPECIFIED") {
+      router.replace("/auth/choose-role");
+      return;
+    }
+    if (role !== "PSYCHOLOGIST") {
       router.replace("/");
       return;
     }
@@ -45,11 +50,12 @@ export default function PsychologistDashboardPage() {
     );
   }
 
-  if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+  const role = (session?.user as any)?.role;
+  if (!session?.user || role === "UNSPECIFIED" || role !== "PSYCHOLOGIST") {
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Перенаправляем вас на страницу входа...
+          Перенаправляем…
         </p>
       </div>
     );

@@ -144,9 +144,9 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (!session.user || !token) return session;
       (session.user as any).id = token.id;
-      // Всегда подставляем актуальные name, email, image из БД, чтобы навбар обновлялся после изменений в профиле
       const userId = (token.id ?? token.sub) as string | undefined;
-      if (userId) {
+      if (!userId) return session;
+      try {
         const user = await prisma.user.findUnique({
           where: { id: userId },
           select: { name: true, email: true, image: true, role: true }
@@ -173,6 +173,8 @@ export const authOptions: NextAuthOptions = {
             if (user.name) session.user.name = user.name;
           }
         }
+      } catch (e) {
+        console.error("[auth] session callback:", e);
       }
       return session;
     }
