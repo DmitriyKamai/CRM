@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 
 async function wrappedHandler(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ nextauth: string[] }> }
 ) {
   const url = req.url;
