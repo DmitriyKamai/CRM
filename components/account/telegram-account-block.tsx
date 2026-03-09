@@ -88,6 +88,14 @@ export function TelegramAccountBlock() {
       {status?.linked ? (
         <>
           <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
+            <span className="mr-1 inline-flex h-3 w-3 items-center justify-center text-sky-500">
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
+                <path
+                  d="M21.7 4.3c-.3-.2-.7-.3-1.1-.2L3.6 10c-.4.1-.8.5-.8.9-.1.4.2.9.6 1.1l3.9 1.5 1.5 4c.1.4.5.7 1 .8h.2c.4 0 .8-.3 1-.6l2-3.2 3.9 3.1c.2.2.5.3.8.3.1 0 .3 0 .4-.1.4-.1.7-.4.8-.8l2.2-11.8c.1-.4-.1-.8-.3-1.1z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
             Telegram привязан{status.username ? ` (@${status.username})` : ""}
           </span>
           <Button
@@ -109,7 +117,17 @@ export function TelegramAccountBlock() {
             disabled={linkLoading}
             onClick={handleLink}
           >
-            {linkLoading ? "Создание ссылки…" : "Привязать Telegram"}
+            <span className="flex items-center gap-1">
+              <span className="inline-flex h-3 w-3 items-center justify-center text-sky-500">
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
+                  <path
+                    d="M21.7 4.3c-.3-.2-.7-.3-1.1-.2L3.6 10c-.4.1-.8.5-.8.9-.1.4.2.9.6 1.1l3.9 1.5 1.5 4c.1.4.5.7 1 .8h.2c.4 0 .8-.3 1-.6l2-3.2 3.9 3.1c.2.2.5.3.8.3.1 0 .3 0 .4-.1.4-.1.7-.4.8-.8l2.2-11.8c.1-.4-.1-.8-.3-1.1z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span>{linkLoading ? "Создание ссылки…" : "Привязать Telegram"}</span>
+            </span>
           </Button>
           {linkResult && (
             <>

@@ -529,6 +529,14 @@ export function ClientSettingsForm() {
               <div className="flex flex-wrap gap-2">
                 {hasGoogle ? (
                   <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
+                    <span className="mr-1 inline-flex h-3 w-3 items-center justify-center">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
+                        <path
+                          fill="#EA4335"
+                          d="M12 10.2v3.6h5.1C16.7 16.7 14.7 18 12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6c1.6 0 3 .6 4.1 1.6l2.5-2.5C16.9 3.3 14.6 2.4 12 2.4 6.9 2.4 2.7 6.6 2.7 11.7S6.9 21 12 21c5 0 8.7-3.5 8.7-8.4 0-.6-.1-1.1-.2-1.6H12z"
+                        />
+                      </svg>
+                    </span>
                     Google привязан
                   </span>
                 ) : (
@@ -538,11 +546,26 @@ export function ClientSettingsForm() {
                     size="sm"
                     onClick={() => signIn("google", { callbackUrl: "/client/settings" })}
                   >
-                    Привязать Google
+                    <span className="flex items-center gap-1">
+                      <span className="inline-flex h-3 w-3 items-center justify-center">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
+                          <path
+                            fill="#EA4335"
+                            d="M12 10.2v3.6h5.1C16.7 16.7 14.7 18 12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6c1.6 0 3 .6 4.1 1.6l2.5-2.5C16.9 3.3 14.6 2.4 12 2.4 6.9 2.4 2.7 6.6 2.7 11.7S6.9 21 12 21c5 0 8.7-3.5 8.7-8.4 0-.6-.1-1.1-.2-1.6H12z"
+                          />
+                        </svg>
+                      </span>
+                      <span>Привязать Google</span>
+                    </span>
                   </Button>
                 )}
                 {hasApple ? (
                   <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
+                    <span className="mr-1 inline-flex h-3 w-3 items-center justify-center">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-foreground">
+                        <path d="M16.7 2.4c0 1-.4 1.9-1 2.6-.7.8-1.9 1.4-2.9 1.3-.1-1 .4-2 .9-2.6.7-.8 1.9-1.4 3-1.5.1.1.1.1 0 .2zm2.3 6.5c-.1.1-1.6.9-1.6 2.6 0 2.1 2 2.8 2 2.8 0 .1-.3 1-1 2-.6.9-1.3 1.8-2.3 1.8-.9 0-1.2-.6-2.4-.6s-1.6.6-2.5.6c-1 .1-1.9-1-2.5-1.9-1.4-1.9-2.5-5.3-1-7.6.7-1.1 1.9-1.8 3.1-1.8 1.2 0 2 .6 3 0 .2-.1 1.4-.8 2.6-.7.4.1 1.6.1 2.6 1.2z" />
+                      </svg>
+                    </span>
                     Apple привязан
                   </span>
                 ) : (
@@ -552,7 +575,14 @@ export function ClientSettingsForm() {
                     size="sm"
                     onClick={() => signIn("apple", { callbackUrl: "/client/settings" })}
                   >
-                    Привязать Apple
+                    <span className="flex items-center gap-1">
+                      <span className="inline-flex h-3 w-3 items-center justify-center">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-foreground">
+                          <path d="M16.7 2.4c0 1-.4 1.9-1 2.6-.7.8-1.9 1.4-2.9 1.3-.1-1 .4-2 .9-2.6.7-.8 1.9-1.4 3-1.5.1.1.1.1 0 .2zm2.3 6.5c-.1.1-1.6.9-1.6 2.6 0 2.1 2 2.8 2 2.8 0 .1-.3 1-1 2-.6.9-1.3 1.8-2.3 1.8-.9 0-1.2-.6-2.4-.6s-1.6.6-2.5.6c-1 .1-1.9-1-2.5-1.9-1.4-1.9-2.5-5.3-1-7.6.7-1.1 1.9-1.8 3.1-1.8 1.2 0 2 .6 3 0 .2-.1 1.4-.8 2.6-.7.4.1 1.6.1 2.6 1.2z" />
+                        </svg>
+                      </span>
+                      <span>Привязать Apple</span>
+                    </span>
                   </Button>
                 )}
                 <div className="w-full border-t pt-3 mt-2">

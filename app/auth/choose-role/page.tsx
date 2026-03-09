@@ -1,0 +1,66 @@
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { Button } from "@/components/ui/button";
+
+export default async function ChooseRolePage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const userId = (session.user as any).id as string | undefined;
+  if (!userId) {
+    redirect("/auth/login");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      psychologistProfile: { select: { id: true } },
+      clientProfiles: { select: { id: true } }
+    }
+  });
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  // Если уже есть профиль психолога или клиента — роль фактически выбрана, уводим в кабинет.
+  if (user.psychologistProfile) {
+    redirect("/psychologist");
+  }
+  if (user.clientProfiles.length > 0) {
+    redirect("/client");
+  }
+
+  // Новый пользователь по соцлогину: просим выбрать роль.
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <div className="w-full max-w-md space-y-4 rounded-lg border bg-card p-6 shadow-sm">
+        <h1 className="text-lg font-semibold">Кто вы?</h1>
+        <p className="text-sm text-muted-foreground">
+          Выберите роль, с которой вы будете использовать Empatix.
+        </p>
+        <div className="flex flex-col gap-3 pt-2">
+          <form action="/auth/social-complete" method="GET">
+            <input type="hidden" name="role" value="client" />
+            <Button type="submit" className="w-full" variant="outline">
+              Я клиент
+            </Button>
+          </form>
+          <form action="/auth/social-complete" method="GET">
+            <input type="hidden" name="role" value="psychologist" />
+            <Button type="submit" className="w-full" variant="outline">
+              Я психолог
+            </Button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
