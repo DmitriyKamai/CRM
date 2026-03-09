@@ -61,7 +61,6 @@ export default async function SocialCompletePage({ searchParams }: Props) {
           connectOrCreate: {
             where: { userId },
             create: {
-              userId,
               firstName: session.user.name ?? "Психолог",
               lastName: ""
             }
