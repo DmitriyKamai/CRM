@@ -137,7 +137,22 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = (user as any).id;
         token.role = (user as any).role;
+        return token;
       }
+
+      // Для уже залогиненных пользователей обновляем роль из БД,
+      // чтобы изменения (например, выбор роли после соцлогина) применялись без повторного входа.
+      const userId = (token.id ?? token.sub) as string | undefined;
+      if (userId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
