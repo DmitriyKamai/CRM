@@ -27,42 +27,50 @@ export default async function SocialCompletePage({ searchParams }: Props) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true }
+    select: {
+      role: true,
+      psychologistProfile: { select: { id: true } },
+      clientProfiles: { select: { id: true } }
+    }
   });
 
   if (!user) {
     redirect("/auth/login");
   }
 
+  // Если роль уже выбрана (или есть профиль) — не даём менять её руками через URL.
+  if (user.psychologistProfile || user.clientProfiles.length > 0) {
+    if (user.psychologistProfile) {
+      redirect("/psychologist");
+    }
+    redirect("/client");
+  }
+
+  // Роль ещё не зафиксирована: разрешаем один раз выбрать.
   if (roleParam === "psychologist") {
-    if (user.role !== "PSYCHOLOGIST") {
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          role: "PSYCHOLOGIST",
-          psychologistProfile: {
-            connectOrCreate: {
-              where: { userId },
-              create: {
-                firstName: session.user.name ?? "Психолог",
-                lastName: ""
-              }
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        role: "PSYCHOLOGIST",
+        psychologistProfile: {
+          connectOrCreate: {
+            where: { userId },
+            create: {
+              firstName: session.user.name ?? "Психолог",
+              lastName: ""
             }
           }
         }
-      });
-    }
+      }
+    });
     redirect("/psychologist");
   }
 
   // client
-  if (user.role !== "CLIENT") {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { role: "CLIENT" }
-    });
-  }
-
+  await prisma.user.update({
+    where: { id: userId },
+    data: { role: "CLIENT" }
+  });
   redirect("/client");
 }
 

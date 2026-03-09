@@ -133,24 +133,10 @@ export const authOptions: NextAuthOptions = {
   providers: buildProviders(),
   callbacks: {
     async jwt({ token, user }) {
-      // При логине добавляем роль и id пользователя в токен
+      // При логине добавляем id пользователя в токен
       if (user) {
         token.id = (user as any).id;
-        token.role = (user as any).role;
         return token;
-      }
-
-      // Для уже залогиненных пользователей обновляем роль из БД,
-      // чтобы изменения (например, выбор роли после соцлогина) применялись без повторного входа.
-      const userId = (token.id ?? token.sub) as string | undefined;
-      if (userId) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { role: true }
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-        }
       }
 
       return token;
@@ -158,18 +144,18 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (!session.user || !token) return session;
       (session.user as any).id = token.id;
-      (session.user as any).role = token.role;
       // Всегда подставляем актуальные name, email, image из БД, чтобы навбар обновлялся после изменений в профиле
       const userId = (token.id ?? token.sub) as string | undefined;
       if (userId) {
         const user = await prisma.user.findUnique({
           where: { id: userId },
-          select: { name: true, email: true, image: true }
+          select: { name: true, email: true, image: true, role: true }
         });
         if (user) {
           session.user.email = user.email;
           session.user.image = user.image ?? undefined;
-          if ((token.role as string) === "PSYCHOLOGIST") {
+          (session.user as any).role = user.role;
+          if (user.role === "PSYCHOLOGIST") {
             const profile = await prisma.psychologistProfile.findUnique({
               where: { userId },
               select: { firstName: true, lastName: true }

@@ -20,6 +20,7 @@ export default async function ChooseRolePage() {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      role: true,
       psychologistProfile: { select: { id: true } },
       clientProfiles: { select: { id: true } }
     }
@@ -29,11 +30,13 @@ export default async function ChooseRolePage() {
     redirect("/auth/login");
   }
 
-  // Если уже есть профиль психолога или клиента — роль фактически выбрана, уводим в кабинет.
-  if (user.psychologistProfile) {
+  // Если роль уже выбрана — сразу ведём в соответствующий кабинет.
+  // Новый соц-пользователь после первого логина имеет role=CLIENT, но без профилей —
+  // в этом случае выбор роли ещё не сделан, и мы показываем экран выбора.
+  if (user.role === "PSYCHOLOGIST" || user.psychologistProfile) {
     redirect("/psychologist");
   }
-  if (user.clientProfiles.length > 0) {
+  if (user.role === "CLIENT" && user.clientProfiles.length > 0) {
     redirect("/client");
   }
 
