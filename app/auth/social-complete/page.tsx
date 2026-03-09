@@ -29,6 +29,8 @@ export default async function SocialCompletePage({ searchParams }: Props) {
     where: { id: userId },
     select: {
       role: true,
+      email: true,
+      name: true,
       psychologistProfile: { select: { id: true } },
       clientProfiles: { select: { id: true } }
     }
@@ -67,9 +69,23 @@ export default async function SocialCompletePage({ searchParams }: Props) {
   }
 
   // client
-  await prisma.user.update({
-    where: { id: userId },
-    data: { role: "CLIENT" }
+  const nameParts = (user.name ?? "").trim().split(/\s+/);
+  const firstName = nameParts[0] || "Клиент";
+  const lastName = nameParts.slice(1).join(" ");
+
+  await prisma.$transaction(async tx => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { role: "CLIENT" }
+    });
+    await tx.clientProfile.create({
+      data: {
+        userId,
+        email: user.email ?? null,
+        firstName,
+        lastName
+      }
+    });
   });
   redirect("/client");
 }
