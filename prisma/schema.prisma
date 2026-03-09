@@ -161,6 +161,8 @@ model PsychologistProfile {
   maritalStatus  String?  // single | married | divorced | widowed | civil | unspecified
   specialization String?  // psychologist | psychotherapist | psychiatrist
   bio            String?  @db.Text
+  profilePhotoUrl     String?   // фото для карточки в «Запись к психологу» (отдельно от User.image — аватар)
+  profilePhotoPublished Boolean @default(false) // «Опубликовать профиль» — тогда профиль виден в «Записаться к психологу»
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

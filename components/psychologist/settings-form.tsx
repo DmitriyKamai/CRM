@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, useEffect, useState } from "react";
+import React, { Component, useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { signIn } from "next-auth/react";
 import { useSession, signOut } from "next-auth/react";
@@ -24,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Popover,
   PopoverContent,
@@ -51,6 +50,8 @@ const CalendarSubscriptionBlock = dynamic(
   () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
   { ssr: false }
 );
+import { AvatarUploadBlock } from "@/components/account/avatar-upload-block";
+import { ProfilePhotoUploadBlock } from "@/components/psychologist/profile-photo-upload-block";
 const TelegramAccountBlock = dynamic(
   () => import("@/components/account/telegram-account-block").then((m) => ({ default: m.TelegramAccountBlock })),
   { ssr: false }
@@ -91,6 +92,8 @@ type Profile = {
     maritalStatus: string | null;
     specialization: string | null;
     bio: string | null;
+    profilePhotoUrl: string | null;
+    profilePhotoPublished: boolean;
   } | null;
 };
 
@@ -165,6 +168,76 @@ export function PsychologistSettingsForm() {
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [savingProfessional, setSavingProfessional] = useState(false);
+  const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
+  const [savingPublish, setSavingPublish] = useState(false);
+  const [unlinkAccountProvider, setUnlinkAccountProvider] = useState<"google" | "apple" | null>(null);
+
+  const refetchAccounts = useCallback(() => {
+    fetch("/api/user/accounts")
+      .then((r) => (r?.ok ? r.json() : { accounts: [] }))
+      .then((a) => {
+        if (a?.accounts) setAccounts(a.accounts);
+      });
+  }, []);
+
+  const refetchProfile = useCallback(() => {
+    fetch("/api/user/profile")
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((p) => {
+        if (p) {
+          setProfile(p);
+          setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
+        }
+      });
+  }, []);
+
+  async function handlePublishProfileChange(published: boolean) {
+    setSavingPublish(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profilePhotoPublished: published })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message ?? "Не удалось сохранить");
+        return;
+      }
+      setProfilePhotoPublished(published);
+      setProfile((prev) =>
+        prev?.psychologistProfile
+          ? {
+              ...prev,
+              psychologistProfile: {
+                ...prev.psychologistProfile,
+                profilePhotoPublished: published
+              }
+            }
+          : prev
+      );
+      toast.success(published ? "Профиль опубликован" : "Профиль снят с публикации");
+    } finally {
+      setSavingPublish(false);
+    }
+  }
+
+  async function handleUnlinkAccount(provider: "google" | "apple") {
+    setUnlinkAccountProvider(provider);
+    try {
+      const res = await fetch(`/api/user/accounts?provider=${provider}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message ?? "Не удалось отвязать");
+        return;
+      }
+      toast.success(provider === "google" ? "Google отвязан" : "Apple отвязан");
+      refetchAccounts();
+      updateSession?.();
+    } finally {
+      setUnlinkAccountProvider(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -193,6 +266,7 @@ export function PsychologistSettingsForm() {
           setMaritalStatus(p.psychologistProfile?.maritalStatus ?? "");
           setBio(p.psychologistProfile?.bio ?? "");
           setSpecialization(p.psychologistProfile?.specialization ?? "");
+          setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
           setCountryCode(
             p.psychologistProfile?.country
               ? getCountryCodeByName(p.psychologistProfile.country) ?? null
@@ -442,17 +516,12 @@ export function PsychologistSettingsForm() {
         {activeTab === "profile" && (
         <Section title="Личные данные">
           <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={image ?? undefined} alt={name} />
-                <AvatarFallback className="bg-muted text-lg">
-                  {initials.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <p className="text-xs text-muted-foreground">
-                Аватар подтягивается из привязанного Google или Apple. Загрузка своего аватара — позже.
-              </p>
-            </div>
+            <AvatarUploadBlock
+              image={image}
+              initials={initials}
+              alt={name}
+              onSuccess={() => updateSession?.()}
+            />
             <div className="space-y-2 max-w-sm">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -595,6 +664,17 @@ export function PsychologistSettingsForm() {
             </Button>
           </form>
         </Section>
+        <Section title="Фото профиля">
+          <ProfilePhotoUploadBlock
+            profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
+            profilePhotoPublished={profilePhotoPublished}
+            initials={initials}
+            alt={name || "Психолог"}
+            onSuccess={refetchProfile}
+            onPublishChange={handlePublishProfileChange}
+            publishSaving={savingPublish}
+          />
+        </Section>
         )}
       </TabsContent>
 
@@ -649,42 +729,53 @@ export function PsychologistSettingsForm() {
           </p>
           <div className="flex flex-wrap gap-2">
             {hasGoogle ? (
-              <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
-                <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
-                  <svg
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 16 16"
-                    width="16"
-                    height="16"
-                    className="block"
-                  >
-                    <g clipPath="url(#gh_google_clip_psy)">
-                      <path
-                        d="M8.00018 3.16667C9.18018 3.16667 10.2368 3.57333 11.0702 4.36667L13.3535 2.08333C11.9668 0.793333 10.1568 0 8.00018 0C4.87352 0 2.17018 1.79333 0.853516 4.40667L3.51352 6.47C4.14352 4.57333 5.91352 3.16667 8.00018 3.16667Z"
-                        fill="#EA4335"
-                      />
-                      <path
-                        d="M15.66 8.18335C15.66 7.66002 15.61 7.15335 15.5333 6.66669H8V9.67335H12.3133C12.12 10.66 11.56 11.5 10.72 12.0667L13.2967 14.0667C14.8 12.6734 15.66 10.6134 15.66 8.18335Z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M3.51 9.53001C3.35 9.04668 3.25667 8.53334 3.25667 8.00001C3.25667 7.46668 3.34667 6.95334 3.51 6.47001L0.85 4.40668C0.306667 5.48668 0 6.70668 0 8.00001C0 9.29334 0.306667 10.5133 0.853333 11.5933L3.51 9.53001Z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M8.0001 16C10.1601 16 11.9768 15.29 13.2968 14.0633L10.7201 12.0633C10.0034 12.5467 9.0801 12.83 8.0001 12.83C5.91343 12.83 4.14343 11.4233 3.5101 9.52667L0.850098 11.59C2.1701 14.2067 4.87343 16 8.0001 16Z"
-                        fill="#34A853"
-                      />
-                    </g>
-                    <defs>
-                      <clipPath id="gh_google_clip_psy">
-                        <rect width="16" height="16" fill="white" />
-                      </clipPath>
-                    </defs>
-                  </svg>
+              <span className="inline-flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
+                  <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
+                    <svg
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      height="16"
+                      className="block"
+                    >
+                      <g clipPath="url(#gh_google_clip_psy)">
+                        <path
+                          d="M8.00018 3.16667C9.18018 3.16667 10.2368 3.57333 11.0702 4.36667L13.3535 2.08333C11.9668 0.793333 10.1568 0 8.00018 0C4.87352 0 2.17018 1.79333 0.853516 4.40667L3.51352 6.47C4.14352 4.57333 5.91352 3.16667 8.00018 3.16667Z"
+                          fill="#EA4335"
+                        />
+                        <path
+                          d="M15.66 8.18335C15.66 7.66002 15.61 7.15335 15.5333 6.66669H8V9.67335H12.3133C12.12 10.66 11.56 11.5 10.72 12.0667L13.2967 14.0667C14.8 12.6734 15.66 10.6134 15.66 8.18335Z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M3.51 9.53001C3.35 9.04668 3.25667 8.53334 3.25667 8.00001C3.25667 7.46668 3.34667 6.95334 3.51 6.47001L0.85 4.40668C0.306667 5.48668 0 6.70668 0 8.00001C0 9.29334 0.306667 10.5133 0.853333 11.5933L3.51 9.53001Z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M8.0001 16C10.1601 16 11.9768 15.29 13.2968 14.0633L10.7201 12.0633C10.0034 12.5467 9.0801 12.83 8.0001 12.83C5.91343 12.83 4.14343 11.4233 3.5101 9.52667L0.850098 11.59C2.1701 14.2067 4.87343 16 8.0001 16Z"
+                          fill="#34A853"
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="gh_google_clip_psy">
+                          <rect width="16" height="16" fill="white" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </span>
+                  Google привязан
                 </span>
-                Google привязан
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={unlinkAccountProvider !== null}
+                  onClick={() => handleUnlinkAccount("google")}
+                >
+                  {unlinkAccountProvider === "google" ? "Отвязка…" : "Отвязать"}
+                </Button>
               </span>
             ) : (
               <Button
@@ -733,30 +824,41 @@ export function PsychologistSettingsForm() {
               </Button>
             )}
             {hasApple ? (
-              <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
-                <span className="mr-1 inline-flex h-4 w-4 items-center justify-center relative -top-px">
-                  <svg
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 16 16"
-                    width="16"
-                    height="16"
-                    className="block"
-                  >
-                    <g clipPath="url(#gh_apple_clip_psy)">
-                      <path
-                        d="M8.08803 4.3535C8.74395 4.3535 9.56615 3.91006 10.0558 3.31881C10.4992 2.78299 10.8226 2.03469 10.8226 1.28639C10.8226 1.18477 10.8133 1.08314 10.7948 1C10.065 1.02771 9.18738 1.48963 8.6608 2.10859C8.24508 2.57975 7.86631 3.31881 7.86631 4.07635C7.86631 4.18721 7.88479 4.29807 7.89402 4.33502C7.94021 4.34426 8.01412 4.3535 8.08803 4.3535ZM5.77846 15.5318C6.67457 15.5318 7.07182 14.9313 8.18965 14.9313C9.32596 14.9313 9.57539 15.5133 10.5731 15.5133C11.5524 15.5133 12.2083 14.608 12.8273 13.7211C13.5201 12.7049 13.8065 11.7072 13.825 11.661C13.7603 11.6425 11.885 10.8757 11.885 8.7232C11.885 6.85707 13.3631 6.01639 13.4462 5.95172C12.467 4.5475 10.9796 4.51055 10.5731 4.51055C9.47377 4.51055 8.57766 5.1757 8.01412 5.1757C7.4044 5.1757 6.60066 4.5475 5.64912 4.5475C3.83842 4.5475 2 6.0441 2 8.87101C2 10.6263 2.68363 12.4832 3.52432 13.6842C4.2449 14.7004 4.87311 15.5318 5.77846 15.5318Z"
-                        fill="currentColor"
-                      />
-                    </g>
-                    <defs>
-                      <clipPath id="gh_apple_clip_psy">
-                        <rect width="16" height="16" />
-                      </clipPath>
-                    </defs>
-                  </svg>
+              <span className="inline-flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
+                  <span className="mr-1 inline-flex h-4 w-4 items-center justify-center relative -top-px">
+                    <svg
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      height="16"
+                      className="block"
+                    >
+                      <g clipPath="url(#gh_apple_clip_psy)">
+                        <path
+                          d="M8.08803 4.3535C8.74395 4.3535 9.56615 3.91006 10.0558 3.31881C10.4992 2.78299 10.8226 2.03469 10.8226 1.28639C10.8226 1.18477 10.8133 1.08314 10.7948 1C10.065 1.02771 9.18738 1.48963 8.6608 2.10859C8.24508 2.57975 7.86631 3.31881 7.86631 4.07635C7.86631 4.18721 7.88479 4.29807 7.89402 4.33502C7.94021 4.34426 8.01412 4.3535 8.08803 4.3535ZM5.77846 15.5318C6.67457 15.5318 7.07182 14.9313 8.18965 14.9313C9.32596 14.9313 9.57539 15.5133 10.5731 15.5133C11.5524 15.5133 12.2083 14.608 12.8273 13.7211C13.5201 12.7049 13.8065 11.7072 13.825 11.661C13.7603 11.6425 11.885 10.8757 11.885 8.7232C11.885 6.85707 13.3631 6.01639 13.4462 5.95172C12.467 4.5475 10.9796 4.51055 10.5731 4.51055C9.47377 4.51055 8.57766 5.1757 8.01412 5.1757C7.4044 5.1757 6.60066 4.5475 5.64912 4.5475C3.83842 4.5475 2 6.0441 2 8.87101C2 10.6263 2.68363 12.4832 3.52432 13.6842C4.2449 14.7004 4.87311 15.5318 5.77846 15.5318Z"
+                          fill="currentColor"
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="gh_apple_clip_psy">
+                          <rect width="16" height="16" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </span>
+                  Apple привязан
                 </span>
-                Apple привязан
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={unlinkAccountProvider !== null}
+                  onClick={() => handleUnlinkAccount("apple")}
+                >
+                  {unlinkAccountProvider === "apple" ? "Отвязка…" : "Отвязать"}
+                </Button>
               </span>
             ) : (
               <Button
@@ -793,7 +895,7 @@ export function PsychologistSettingsForm() {
               </Button>
             )}
             <div className="w-full border-t pt-3 mt-2">
-              <p className="text-xs text-muted-foreground mb-2">Telegram — уведомления и бот</p>
+              <p className="text-sm text-muted-foreground mb-2">Telegram — уведомления и бот</p>
               <TelegramAccountBlock />
             </div>
           </div>

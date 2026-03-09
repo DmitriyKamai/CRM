@@ -54,6 +54,8 @@ export async function GET() {
       maritalStatus: string | null;
       specialization: string | null;
       bio: string | null;
+      profilePhotoUrl: string | null;
+      profilePhotoPublished: boolean;
     } | null = null;
     if ((session.user as { role?: string }).role === "PSYCHOLOGIST") {
       const profile = await prisma.psychologistProfile.findUnique({
@@ -67,7 +69,9 @@ export async function GET() {
           gender: true,
           maritalStatus: true,
           specialization: true,
-          bio: true
+          bio: true,
+          profilePhotoUrl: true,
+          profilePhotoPublished: true
         }
       });
       psychologistProfile = profile
@@ -81,7 +85,9 @@ export async function GET() {
             gender: null,
             maritalStatus: null,
             specialization: null,
-            bio: null
+            bio: null,
+            profilePhotoUrl: null,
+            profilePhotoPublished: false
           };
     }
 
@@ -147,6 +153,7 @@ export async function PATCH(request: Request) {
         maritalStatus?: string | null;
         specialization?: string | null;
         bio?: string | null;
+        profilePhotoPublished?: boolean;
       } = {};
       if (typeof body.firstName === "string") profileUpdates.firstName = body.firstName;
       if (typeof body.lastName === "string") profileUpdates.lastName = body.lastName;
@@ -157,6 +164,7 @@ export async function PATCH(request: Request) {
       if (body.maritalStatus !== undefined) profileUpdates.maritalStatus = body.maritalStatus === null || body.maritalStatus === "" ? null : String(body.maritalStatus);
       if (body.specialization !== undefined) profileUpdates.specialization = body.specialization === null || body.specialization === "" ? null : String(body.specialization);
       if (body.bio !== undefined) profileUpdates.bio = body.bio === null ? null : String(body.bio).slice(0, BIO_MAX_LENGTH);
+      if (typeof body.profilePhotoPublished === "boolean") profileUpdates.profilePhotoPublished = body.profilePhotoPublished;
       if (Object.keys(profileUpdates).length > 0) {
         const updated = await prisma.psychologistProfile.upsert({
           where: { userId },

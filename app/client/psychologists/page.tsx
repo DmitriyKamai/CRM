@@ -25,24 +25,25 @@ export default async function PsychologistsListPage() {
     lastName: string;
     specialization: string | null;
     bio: string | null;
-    user: { image: string | null };
+    profilePhotoUrl: string | null;
+    profilePhotoPublished: boolean;
   }[] = [];
   let loadError: string | null = null;
 
   try {
-    psychologists = await prisma.psychologistProfile.findMany({
+    const all = await prisma.psychologistProfile.findMany({
       select: {
         id: true,
         firstName: true,
         lastName: true,
         specialization: true,
         bio: true,
-        user: {
-          select: { image: true }
-        }
+        profilePhotoUrl: true,
+        profilePhotoPublished: true
       },
       orderBy: { lastName: "asc" }
     });
+    psychologists = all.filter((p) => p.profilePhotoPublished);
   } catch (err) {
     console.error("Psychologists list error:", err);
     loadError = err instanceof Error ? err.message : "Не удалось загрузить список.";
@@ -95,7 +96,7 @@ export default async function PsychologistsListPage() {
                   <div className="w-full aspect-square relative bg-muted overflow-hidden rounded-t-lg">
                     <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-lg">
                       <AvatarImage
-                        src={p.user?.image ?? undefined}
+                        src={p.profilePhotoUrl ?? undefined}
                         alt={`${p.firstName} ${p.lastName}`}
                         className="rounded-none rounded-t-lg object-cover"
                       />
