@@ -78,18 +78,20 @@ export function ProfilePhotoUploadBlock({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <Avatar className="h-20 w-20 shrink-0 rounded-lg">
-          <AvatarImage
-            src={profilePhotoUrl ?? undefined}
-            alt={alt}
-            className="rounded-lg object-cover"
-          />
-          <AvatarFallback className="rounded-lg bg-muted text-xl">
-            {initials.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="w-full max-w-[280px] aspect-square relative bg-muted overflow-hidden rounded-t-lg rounded-b-lg shrink-0">
+          <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-lg">
+            <AvatarImage
+              src={profilePhotoUrl ?? undefined}
+              alt={alt}
+              className="rounded-lg object-cover"
+            />
+            <AvatarFallback className="rounded-lg bg-muted text-4xl font-medium text-muted-foreground">
+              {initials.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+        <div className="flex flex-col gap-2 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <input
               ref={inputRef}
@@ -139,6 +141,7 @@ export function ProfilePhotoUploadBlock({
           checked={profilePhotoPublished}
           onCheckedChange={handlePublishChange}
           disabled={publishSaving}
+          className="cursor-pointer disabled:cursor-pointer"
         />
       </div>
     </div>

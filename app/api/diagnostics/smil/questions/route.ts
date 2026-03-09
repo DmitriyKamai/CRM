@@ -18,8 +18,9 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     console.error("[GET /api/diagnostics/smil/questions]", err);
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { message: "Ошибка сервера" },
+      { message: message ? `Ошибка сервера: ${message}` : "Ошибка сервера" },
       { status: 500 }
     );
   }

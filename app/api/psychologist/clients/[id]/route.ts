@@ -188,8 +188,9 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     }
 
     console.error("Update client error", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { message: "Внутренняя ошибка сервера" },
+      { message: message ? `Внутренняя ошибка сервера: ${message}` : "Внутренняя ошибка сервера" },
       { status: 500 }
     );
   }

@@ -45,8 +45,9 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     });
   } catch (err) {
     console.error("[PATCH /api/notifications/[id]]", err);
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { message: "Внутренняя ошибка сервера" },
+      { message: message ? `Внутренняя ошибка сервера: ${message}` : "Внутренняя ошибка сервера" },
       { status: 500 }
     );
   }

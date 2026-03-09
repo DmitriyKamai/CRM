@@ -46,6 +46,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Токен истёк" }, { status: 410 });
     }
 
+    const chatIdStr = String(chatId);
+    const otherUser = await prisma.user.findFirst({
+      where: {
+        telegramChatId: chatIdStr,
+        id: { not: linkToken.userId }
+      },
+      select: { id: true }
+    });
+    if (otherUser) {
+      return NextResponse.json(
+        { message: "Этот Telegram уже привязан к другому пользователю. Сначала отвяжите его в настройках того аккаунта." },
+        { status: 409 }
+      );
+    }
+
     await prisma.$transaction([
       prisma.user.update({
         where: { id: linkToken.userId },
@@ -60,8 +75,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[POST /api/telegram/claim-link]", err);
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { message: "Ошибка сервера" },
+      { message: message ? `Ошибка сервера: ${message}` : "Ошибка сервера" },
       { status: 500 }
     );
   }

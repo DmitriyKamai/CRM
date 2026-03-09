@@ -67,6 +67,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("[GET /api/calendar/feed]", err);
-    return new NextResponse("Ошибка сервера", { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { message: message ? `Ошибка сервера: ${message}` : "Ошибка сервера" },
+      { status: 500 }
+    );
   }
 }

@@ -53,10 +53,25 @@ export async function POST(request: Request) {
     const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "gif";
     const pathname = `avatars/${userId}-${Date.now()}.${ext}`;
 
-    const blob = await put(pathname, file, {
-      access: "public",
-      addRandomSuffix: false
-    });
+    let blob;
+    try {
+      blob = await put(pathname, file, {
+        access: "public",
+        addRandomSuffix: false
+      });
+    } catch (blobErr) {
+      const msg = blobErr instanceof Error ? blobErr.message : String(blobErr);
+      console.error("[POST /api/user/avatar] Blob upload failed:", msg);
+      const isAuth = /unauthorized|token|forbidden|401|403/i.test(msg);
+      return NextResponse.json(
+        {
+          message: isAuth
+            ? "Ошибка доступа к хранилищу. Проверьте BLOB_READ_WRITE_TOKEN в настройках проекта."
+            : "Не удалось загрузить файл в хранилище. Попробуйте позже."
+        },
+        { status: 503 }
+      );
+    }
 
     await prisma.user.update({
       where: { id: userId },
@@ -66,8 +81,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error("[POST /api/user/avatar]", err);
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { message: "Не удалось загрузить аватар" },
+      {
+        message:
+          process.env.NODE_ENV === "development"
+            ? `Ошибка: ${message}`
+            : "Не удалось загрузить аватар"
+      },
       { status: 500 }
     );
   }

@@ -120,25 +120,39 @@ function hasOAuthProviders(): boolean {
   return !!(googleId && googleSecret) || !!(appleId && appleSecret);
 }
 
-// Общая конфигурация NextAuth (используется в API-роуте и middleware).
-// При отсутствии OAuth используем noopAdapter, чтобы не обращаться к Account/Session и не падать.
-export const authOptions: NextAuthOptions = {
-  adapter: hasOAuthProviders() ? PrismaAdapter(prisma) : noopAdapter,
-  session: {
-    strategy: "jwt"
-  },
-  pages: {
-    signIn: "/auth/login"
-  },
-  providers: buildProviders(),
-  callbacks: {
+export const OAUTH_LINK_COOKIE = "oauth_link_uid";
+
+function parseCookieUserId(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(new RegExp(`${OAUTH_LINK_COOKIE}=([^;]+)`));
+  return match ? decodeURIComponent(match[1].trim()) : null;
+}
+
+function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
+  return {
+    async signIn({ user, account }) {
+      if (!req || !account || (account.provider !== "google" && account.provider !== "apple")) return true;
+      const linkUserId = parseCookieUserId(req.headers.get("cookie") ?? null);
+      if (!linkUserId) return true;
+      const existing = await prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId
+          }
+        },
+        select: { userId: true }
+      });
+      if (existing && existing.userId !== linkUserId) {
+        return "/auth/login?error=AccountAlreadyLinked";
+      }
+      return true;
+    },
     async jwt({ token, user }) {
-      // При логине добавляем id пользователя в токен
       if (user) {
         token.id = (user as any).id;
         return token;
       }
-
       return token;
     },
     async session({ session, token }) {
@@ -178,6 +192,24 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     }
-  }
+  };
+}
+
+// Общая конфигурация NextAuth (используется в API-роуте и middleware).
+// При отсутствии OAuth используем noopAdapter, чтобы не обращаться к Account/Session и не падать.
+export const authOptions: NextAuthOptions = {
+  adapter: hasOAuthProviders() ? PrismaAdapter(prisma) : noopAdapter,
+  session: { strategy: "jwt" },
+  pages: { signIn: "/auth/login" },
+  providers: buildProviders(),
+  callbacks: buildCallbacks(null)
 };
+
+/** Вариант с проверкой «привязки»: один Google/Apple не может быть привязан к разным пользователям. */
+export function getAuthOptions(req: Request): NextAuthOptions {
+  return {
+    ...authOptions,
+    callbacks: buildCallbacks(req)
+  };
+}
 

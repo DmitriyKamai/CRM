@@ -53,6 +53,10 @@ export default async function SocialCompletePage({ searchParams }: Props) {
   // Роль ещё не зафиксирована: разрешаем один раз выбрать.
   if (roleParam === "psychologist") {
     console.log("[social-complete] applying PSYCHOLOGIST for userId:", userId);
+    const fullName = (session.user.name ?? user.name ?? "Психолог").trim();
+    const nameParts = fullName.split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] ?? "Психолог";
+    const lastName = nameParts.slice(1).join(" ") ?? "";
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -61,8 +65,8 @@ export default async function SocialCompletePage({ searchParams }: Props) {
           connectOrCreate: {
             where: { userId },
             create: {
-              firstName: session.user.name ?? "Психолог",
-              lastName: ""
+              firstName,
+              lastName
             }
           }
         }
