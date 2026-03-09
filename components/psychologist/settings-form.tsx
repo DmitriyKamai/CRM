@@ -650,12 +650,38 @@ export function PsychologistSettingsForm() {
           <div className="flex flex-wrap gap-2">
             {hasGoogle ? (
               <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
-                <span className="mr-1 inline-flex h-3 w-3 items-center justify-center">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
-                    <path
-                      fill="#EA4335"
-                      d="M12 10.2v3.6h5.1C16.7 16.7 14.7 18 12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6c1.6 0 3 .6 4.1 1.6l2.5-2.5C16.9 3.3 14.6 2.4 12 2.4 6.9 2.4 2.7 6.6 2.7 11.7S6.9 21 12 21c5 0 8.7-3.5 8.7-8.4 0-.6-.1-1.1-.2-1.6H12z"
-                    />
+                <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
+                  <svg
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    width="16"
+                    height="16"
+                    className="block"
+                  >
+                    <g clipPath="url(#gh_google_clip_psy)">
+                      <path
+                        d="M8.00018 3.16667C9.18018 3.16667 10.2368 3.57333 11.0702 4.36667L13.3535 2.08333C11.9668 0.793333 10.1568 0 8.00018 0C4.87352 0 2.17018 1.79333 0.853516 4.40667L3.51352 6.47C4.14352 4.57333 5.91352 3.16667 8.00018 3.16667Z"
+                        fill="#EA4335"
+                      />
+                      <path
+                        d="M15.66 8.18335C15.66 7.66002 15.61 7.15335 15.5333 6.66669H8V9.67335H12.3133C12.12 10.66 11.56 11.5 10.72 12.0667L13.2967 14.0667C14.8 12.6734 15.66 10.6134 15.66 8.18335Z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M3.51 9.53001C3.35 9.04668 3.25667 8.53334 3.25667 8.00001C3.25667 7.46668 3.34667 6.95334 3.51 6.47001L0.85 4.40668C0.306667 5.48668 0 6.70668 0 8.00001C0 9.29334 0.306667 10.5133 0.853333 11.5933L3.51 9.53001Z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M8.0001 16C10.1601 16 11.9768 15.29 13.2968 14.0633L10.7201 12.0633C10.0034 12.5467 9.0801 12.83 8.0001 12.83C5.91343 12.83 4.14343 11.4233 3.5101 9.52667L0.850098 11.59C2.1701 14.2067 4.87343 16 8.0001 16Z"
+                        fill="#34A853"
+                      />
+                    </g>
+                    <defs>
+                      <clipPath id="gh_google_clip_psy">
+                        <rect width="16" height="16" fill="white" />
+                      </clipPath>
+                    </defs>
                   </svg>
                 </span>
                 Google привязан
@@ -668,12 +694,38 @@ export function PsychologistSettingsForm() {
                 onClick={() => signIn("google", { callbackUrl: "/psychologist/settings" })}
               >
                 <span className="flex items-center gap-1">
-                  <span className="inline-flex h-3 w-3 items-center justify-center">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
-                      <path
-                        fill="#EA4335"
-                        d="M12 10.2v3.6h5.1C16.7 16.7 14.7 18 12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6c1.6 0 3 .6 4.1 1.6l2.5-2.5C16.9 3.3 14.6 2.4 12 2.4 6.9 2.4 2.7 6.6 2.7 11.7S6.9 21 12 21c5 0 8.7-3.5 8.7-8.4 0-.6-.1-1.1-.2-1.6H12z"
-                      />
+                  <span className="inline-flex h-4 w-4 items-center justify-center">
+                    <svg
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      height="16"
+                      className="block"
+                    >
+                      <g clipPath="url(#gh_google_clip_psy_btn)">
+                        <path
+                          d="M8.00018 3.16667C9.18018 3.16667 10.2368 3.57333 11.0702 4.36667L13.3535 2.08333C11.9668 0.793333 10.1568 0 8.00018 0C4.87352 0 2.17018 1.79333 0.853516 4.40667L3.51352 6.47C4.14352 4.57333 5.91352 3.16667 8.00018 3.16667Z"
+                          fill="#EA4335"
+                        />
+                        <path
+                          d="M15.66 8.18335C15.66 7.66002 15.61 7.15335 15.5333 6.66669H8V9.67335H12.3133C12.12 10.66 11.56 11.5 10.72 12.0667L13.2967 14.0667C14.8 12.6734 15.66 10.6134 15.66 8.18335Z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M3.51 9.53001C3.35 9.04668 3.25667 8.53334 3.25667 8.00001C3.25667 7.46668 3.34667 6.95334 3.51 6.47001L0.85 4.40668C0.306667 5.48668 0 6.70668 0 8.00001C0 9.29334 0.306667 10.5133 0.853333 11.5933L3.51 9.53001Z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M8.0001 16C10.1601 16 11.9768 15.29 13.2968 14.0633L10.7201 12.0633C10.0034 12.5467 9.0801 12.83 8.0001 12.83C5.91343 12.83 4.14343 11.4233 3.5101 9.52667L0.850098 11.59C2.1701 14.2067 4.87343 16 8.0001 16Z"
+                          fill="#34A853"
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="gh_google_clip_psy_btn">
+                          <rect width="16" height="16" fill="white" />
+                        </clipPath>
+                      </defs>
                     </svg>
                   </span>
                   <span>Привязать Google</span>
@@ -682,10 +734,8 @@ export function PsychologistSettingsForm() {
             )}
             {hasApple ? (
               <span className="inline-flex items-center rounded-md bg-muted px-3 py-1.5 text-xs font-medium">
-                <span className="mr-1 inline-flex h-3 w-3 items-center justify-center">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-foreground">
-                    <path d="M16.7 2.4c0 1-.4 1.9-1 2.6-.7.8-1.9 1.4-2.9 1.3-.1-1 .4-2 .9-2.6.7-.8 1.9-1.4 3-1.5.1.1.1.1 0 .2zm2.3 6.5c-.1.1-1.6.9-1.6 2.6 0 2.1 2 2.8 2 2.8 0 .1-.3 1-1 2-.6.9-1.3 1.8-2.3 1.8-.9 0-1.2-.6-2.4-.6s-1.6.6-2.5.6c-1 .1-1.9-1-2.5-1.9-1.4-1.9-2.5-5.3-1-7.6.7-1.1 1.9-1.8 3.1-1.8 1.2 0 2 .6 3 0 .2-.1 1.4-.8 2.6-.7.4.1 1.6.1 2.6 1.2z" />
-                  </svg>
+                <span className="mr-1 inline-flex h-4 w-4 items-center justify-center relative -top-px">
+                  
                 </span>
                 Apple привязан
               </span>
@@ -697,10 +747,8 @@ export function PsychologistSettingsForm() {
                 onClick={() => signIn("apple", { callbackUrl: "/psychologist/settings" })}
               >
                 <span className="flex items-center gap-1">
-                  <span className="inline-flex h-3 w-3 items-center justify-center">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-foreground">
-                      <path d="M16.7 2.4c0 1-.4 1.9-1 2.6-.7.8-1.9 1.4-2.9 1.3-.1-1 .4-2 .9-2.6.7-.8 1.9-1.4 3-1.5.1.1.1.1 0 .2zm2.3 6.5c-.1.1-1.6.9-1.6 2.6 0 2.1 2 2.8 2 2.8 0 .1-.3 1-1 2-.6.9-1.3 1.8-2.3 1.8-.9 0-1.2-.6-2.4-.6s-1.6.6-2.5.6c-1 .1-1.9-1-2.5-1.9-1.4-1.9-2.5-5.3-1-7.6.7-1.1 1.9-1.8 3.1-1.8 1.2 0 2 .6 3 0 .2-.1 1.4-.8 2.6-.7.4.1 1.6.1 2.6 1.2z" />
-                    </svg>
+                  <span className="inline-flex h-4 w-4 items-center justify-center text-[13px] leading-none">
+                    
                   </span>
                   <span>Привязать Apple</span>
                 </span>
