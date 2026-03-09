@@ -514,6 +514,7 @@ export function PsychologistSettingsForm() {
 
       <TabsContent value="profile" className="mt-4">
         {activeTab === "profile" && (
+        <>
         <Section title="Личные данные">
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <AvatarUploadBlock
@@ -675,6 +676,7 @@ export function PsychologistSettingsForm() {
             publishSaving={savingPublish}
           />
         </Section>
+        </>
         )}
       </TabsContent>
 
