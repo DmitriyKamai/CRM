@@ -205,12 +205,13 @@ export function PsychologistSettingsForm() {
         return;
       }
       setProfilePhotoPublished(published);
-      setProfile((prev) =>
+      setProfile((prev): Profile | null =>
         prev?.psychologistProfile
           ? {
               ...prev,
               psychologistProfile: {
                 ...prev.psychologistProfile,
+                profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
                 profilePhotoPublished: published
               }
             }
@@ -318,7 +319,7 @@ export function PsychologistSettingsForm() {
       }
       toast.success("Сохранено");
       updateSession?.();
-      setProfile((prev) =>
+      setProfile((prev): Profile | null =>
         prev
           ? {
               ...prev,
@@ -347,7 +348,9 @@ export function PsychologistSettingsForm() {
                     gender: gender || null,
                     maritalStatus: maritalStatus || null,
                     specialization: null,
-                    bio: null
+                    bio: null,
+                    profilePhotoUrl: null,
+                    profilePhotoPublished: false
                   }
             }
           : null
@@ -376,7 +379,7 @@ export function PsychologistSettingsForm() {
         return;
       }
       toast.success("Сохранено");
-      setProfile((prev) =>
+      setProfile((prev): Profile | null =>
         prev
           ? {
               ...prev,
@@ -384,7 +387,9 @@ export function PsychologistSettingsForm() {
                 ? {
                     ...prev.psychologistProfile,
                     bio: bio.trim() || null,
-                    specialization: specialization || null
+                    specialization: specialization || null,
+                    profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
+                    profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished
                   }
                 : prev.psychologistProfile
             }
