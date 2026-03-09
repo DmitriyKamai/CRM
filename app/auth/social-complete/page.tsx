@@ -24,6 +24,7 @@ export default async function SocialCompletePage({ searchParams }: Props) {
   }
 
   const roleParam = searchParams.role === "psychologist" ? "psychologist" : "client";
+  console.log("[social-complete] searchParams.role:", searchParams.role, "roleParam:", roleParam);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -40,8 +41,11 @@ export default async function SocialCompletePage({ searchParams }: Props) {
     redirect("/auth/login");
   }
 
+  console.log("[social-complete] userId:", userId, "user.role:", user.role, "psychologistProfile:", !!user.psychologistProfile, "clientProfiles:", user.clientProfiles.length);
+
   // Если роль уже выбрана (или есть профиль) — не даём менять её руками через URL.
   if (user.psychologistProfile || user.clientProfiles.length > 0) {
+    console.log("[social-complete] already has profile, redirecting");
     if (user.psychologistProfile) {
       redirect("/psychologist");
     }
@@ -50,6 +54,7 @@ export default async function SocialCompletePage({ searchParams }: Props) {
 
   // Роль ещё не зафиксирована: разрешаем один раз выбрать.
   if (roleParam === "psychologist") {
+    console.log("[social-complete] applying PSYCHOLOGIST for userId:", userId);
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -65,10 +70,12 @@ export default async function SocialCompletePage({ searchParams }: Props) {
         }
       }
     });
+    console.log("[social-complete] psychologist profile created, redirecting to /psychologist");
     redirect("/psychologist");
   }
 
   // client
+  console.log("[social-complete] applying CLIENT for userId:", userId);
   const nameParts = (user.name ?? "").trim().split(/\s+/);
   const firstName = nameParts[0] || "Клиент";
   const lastName = nameParts.slice(1).join(" ");

@@ -1,2 +1,2 @@
--- Baseline: уникальное ограничение уже применено через db push (запись для истории).
-ALTER TABLE "ClientRegistrationInvite" ADD CONSTRAINT "ClientRegistrationInvite_clientId_psychologistId_key" UNIQUE ("clientId", "psychologistId");
+-- No-op: ограничение добавляется в миграции 20260307160000_baseline_sync после создания таблицы.
+DO $$ BEGIN NULL; END $$;
