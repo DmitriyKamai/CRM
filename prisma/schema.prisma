@@ -12,6 +12,7 @@ datasource db {
 }
 
 enum Role {
+  UNSPECIFIED
   CLIENT
   PSYCHOLOGIST
   ADMIN
@@ -66,7 +67,7 @@ model User {
   gender         String?   // male | female | other
   maritalStatus  String?   // single | married | divorced | widowed | unspecified
   hashedPassword String?
-  role           Role      @default(CLIENT)
+  role           Role      @default(UNSPECIFIED)
   telegramChatId String?   // привязка к Telegram для уведомлений и бота
   telegramUsername String?
   createdAt      DateTime  @default(now())
