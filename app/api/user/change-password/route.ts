@@ -30,6 +30,24 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  if (!/[A-Za-zА-Яа-я]/.test(newPassword)) {
+    return NextResponse.json(
+      { message: "Новый пароль должен содержать буквы" },
+      { status: 400 }
+    );
+  }
+  if (!/\d/.test(newPassword)) {
+    return NextResponse.json(
+      { message: "Новый пароль должен содержать цифры" },
+      { status: 400 }
+    );
+  }
+  if (!/[^A-Za-zА-Яа-я0-9\s]/.test(newPassword)) {
+    return NextResponse.json(
+      { message: "Добавьте в новый пароль специальный символ (например, !, ?, %)" },
+      { status: 400 }
+    );
+  }
 
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({

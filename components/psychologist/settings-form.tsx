@@ -12,7 +12,7 @@ import {
   DEFAULT_COUNTRY_CODE,
   getCountryCodeByName
 } from "@/lib/data/countries-ru";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -99,6 +99,22 @@ type Profile = {
 
 type Account = { provider: string; label: string };
 
+type PasswordChecks = {
+  length: boolean;
+  letters: boolean;
+  digits: boolean;
+  special: boolean;
+};
+
+function evaluatePassword(password: string): PasswordChecks {
+  return {
+    length: password.length >= 8,
+    letters: /[A-Za-zА-Яа-я]/.test(password),
+    digits: /\d/.test(password),
+    special: /[^A-Za-zА-Яа-я0-9\s]/.test(password)
+  };
+}
+
 /** Перехватывает ошибки рендера контента настроек и логирует их. */
 class SettingsFormErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -167,6 +183,10 @@ export function PsychologistSettingsForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [newPasswordChecks, setNewPasswordChecks] = useState<PasswordChecks>(
+    () => evaluatePassword("")
+  );
+  const [touchedNewPassword, setTouchedNewPassword] = useState(false);
   const [savingProfessional, setSavingProfessional] = useState(false);
   const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
   const [savingPublish, setSavingPublish] = useState(false);
@@ -406,8 +426,11 @@ export function PsychologistSettingsForm() {
       toast.error("Пароли не совпадают");
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error("Пароль не менее 8 символов");
+    const passwordValid =
+      newPassword.length > 0 &&
+      Object.values(newPasswordChecks).every(Boolean);
+    if (!passwordValid) {
+      toast.error("Новый пароль не соответствует требованиям безопасности");
       return;
     }
     setPasswordSaving(true);
@@ -694,10 +717,60 @@ export function PsychologistSettingsForm() {
                 id="newPassword"
                 type="password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNewPassword(value);
+                  setNewPasswordChecks(evaluatePassword(value));
+                  if (!touchedNewPassword) setTouchedNewPassword(true);
+                }}
                 autoComplete="new-password"
                 minLength={8}
               />
+              <div className="space-y-1 rounded-md border bg-muted/40 px-3 py-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Пароль должен содержать:
+                </p>
+                <ul className="space-y-0.5 text-xs">
+                  <li className="flex items-center gap-2">
+                    {newPasswordChecks.length ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span>Не менее 8 символов</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {newPasswordChecks.letters ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span>Буквы (латиница или кириллица)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {newPasswordChecks.digits ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span>Цифры</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {newPasswordChecks.special ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span>Специальные символы (например, !, ?, %)</span>
+                  </li>
+                </ul>
+                {touchedNewPassword && !passwordValid && newPassword.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>Сделайте пароль сложнее, чтобы защитить аккаунт.</span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPasswordConfirm">Повторите новый пароль</Label>
