@@ -89,7 +89,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       redirect("/client/psychologists");
     }
 
-    const fullName = `${psychologist.lastName} ${psychologist.firstName}`.trim();
+    const fullName = `${psychologist.firstName} ${psychologist.lastName}`.trim();
     const cityLine =
       psychologist.country || psychologist.city
         ? [psychologist.country, psychologist.city].filter(Boolean).join(", ")
@@ -110,7 +110,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
 
     return (
       <div className="space-y-8">
-        {/* Верхний блок-профиль в стиле соцсети с большим фото из профессионального профиля */}
+        {/* Верхний блок‑профиль с большим фото из профессионального профиля */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="flex flex-col gap-6 p-6 lg:flex-row">
             <div className="mx-auto max-h-[520px] w-full shrink-0 overflow-hidden rounded-2xl bg-muted lg:mx-0 lg:w-[380px] flex items-center justify-center">
@@ -160,81 +160,87 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                 </div>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-                {(phoneHref || telegramHref || whatsappHref || viberHref) && (
-                  <section className="space-y-3">
-                    <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                      Контакты
-                    </h2>
-                    <div className="space-y-2 text-sm">
-                      {phoneHref && (
-                        <a
-                          href={phoneHref}
-                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                        >
-                          <span>Телефон</span>
-                          <span className="text-xs text-muted-foreground">
-                            Набрать
-                          </span>
-                        </a>
-                      )}
-                      {telegramHref && (
-                        <a
-                          href={telegramHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                        >
-                          <span>Telegram</span>
-                          <span className="text-xs text-muted-foreground">
-                            Открыть чат
-                          </span>
-                        </a>
-                      )}
-                      {whatsappHref && (
-                        <a
-                          href={whatsappHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                        >
-                          <span>WhatsApp</span>
-                          <span className="text-xs text-muted-foreground">
-                            Открыть чат
-                          </span>
-                        </a>
-                      )}
-                      {viberHref && (
-                        <a
-                          href={viberHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                        >
-                          <span>Viber</span>
-                          <span className="text-xs text-muted-foreground">
-                            Открыть чат
-                          </span>
-                        </a>
-                      )}
-                    </div>
-                  </section>
-                )}
-
-                <section className="space-y-3">
-                  <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                    О себе
-                  </h2>
-                  <div className="rounded-lg border bg-background/60 px-4 py-3 text-sm text-foreground/90 whitespace-pre-line">
-                    {psychologist.bio
-                      ? psychologist.bio
-                      : "Психолог ещё не заполнил информацию о себе."}
-                  </div>
-                </section>
-              </div>
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                  О себе
+                </h2>
+                <div className="rounded-lg border bg-background/60 px-4 py-3 text-sm text-foreground/90 whitespace-pre-line">
+                  {psychologist.bio
+                    ? psychologist.bio
+                    : "Психолог ещё не заполнил информацию о себе."}
+                </div>
+              </section>
             </div>
           </div>
         </div>
+
+        {(phoneHref || telegramHref || whatsappHref || viberHref) && (
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
+            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+              Контакты
+            </h2>
+            <div className="mt-3 grid gap-4 text-sm md:grid-cols-2">
+              {phoneHref && psychologist.contactPhone && (
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Телефон
+                  </p>
+                  <a
+                    href={phoneHref}
+                    className="text-sm text-primary underline-offset-2 hover:underline"
+                  >
+                    {psychologist.contactPhone}
+                  </a>
+                </div>
+              )}
+              {telegramHref && psychologist.contactTelegram && (
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Telegram
+                  </p>
+                  <a
+                    href={telegramHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline-offset-2 hover:underline break-all"
+                  >
+                    {psychologist.contactTelegram}
+                  </a>
+                </div>
+              )}
+              {whatsappHref && psychologist.contactWhatsapp && (
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    WhatsApp
+                  </p>
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline-offset-2 hover:underline break-all"
+                  >
+                    {psychologist.contactWhatsapp}
+                  </a>
+                </div>
+              )}
+              {viberHref && psychologist.contactViber && (
+                <div className="space-y-0.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Viber
+                  </p>
+                  <a
+                    href={viberHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline-offset-2 hover:underline break-all"
+                  >
+                    {psychologist.contactViber}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
             {(phoneHref || telegramHref || whatsappHref || viberHref) && (
               <section className="space-y-3">
                 <h2 className="text-sm font-semibold tracking-tight text-foreground">
