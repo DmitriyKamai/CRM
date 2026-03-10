@@ -5,6 +5,15 @@ import { prisma } from "@/lib/db";
 
 /** Максимум символов в блоке «О себе» профессионального профиля */
 const BIO_MAX_LENGTH = 1500;
+const MAX_EMAIL_LENGTH = 64;
+const MAX_NAME_LENGTH = 64;
+const MAX_FIRST_NAME_LENGTH = 32;
+const MAX_LAST_NAME_LENGTH = 32;
+const MAX_PHONE_LENGTH = 32;
+const MAX_COUNTRY_LENGTH = 64;
+const MAX_CITY_LENGTH = 64;
+const MAX_SPECIALIZATION_LENGTH = 64;
+const MAX_CONTACT_LINK_LENGTH = 128;
 
 export async function GET() {
   try {
@@ -44,51 +53,49 @@ export async function GET() {
       ? user.dateOfBirth.toISOString().slice(0, 10)
       : null;
 
-    let psychologistProfile: {
-      firstName: string;
-      lastName: string;
-      phone: string | null;
-      country: string | null;
-      city: string | null;
-      gender: string | null;
-      maritalStatus: string | null;
-      specialization: string | null;
-      bio: string | null;
-      profilePhotoUrl: string | null;
-      profilePhotoPublished: boolean;
-    } | null = null;
+    let psychologistProfile: any | null = null;
     if ((session.user as { role?: string }).role === "PSYCHOLOGIST") {
       const profile = await prisma.psychologistProfile.findUnique({
-        where: { userId },
-        select: {
-          firstName: true,
-          lastName: true,
-          phone: true,
-          country: true,
-          city: true,
-          gender: true,
-          maritalStatus: true,
-          specialization: true,
-          bio: true,
-          profilePhotoUrl: true,
-          profilePhotoPublished: true
-        }
+        where: { userId }
       });
-      psychologistProfile = profile
-        ? profile
-        : {
-            firstName: "",
-            lastName: "",
-            phone: null,
-            country: null,
-            city: null,
-            gender: null,
-            maritalStatus: null,
-            specialization: null,
-            bio: null,
-            profilePhotoUrl: null,
-            profilePhotoPublished: false
-          };
+      if (profile) {
+        const p = profile as any;
+        psychologistProfile = {
+          firstName: p.firstName,
+          lastName: p.lastName,
+          phone: p.phone ?? null,
+          country: p.country ?? null,
+          city: p.city ?? null,
+          gender: p.gender ?? null,
+          maritalStatus: p.maritalStatus ?? null,
+          specialization: p.specialization ?? null,
+          bio: p.bio ?? null,
+          profilePhotoUrl: p.profilePhotoUrl ?? null,
+          profilePhotoPublished: p.profilePhotoPublished ?? false,
+          contactPhone: p.contactPhone ?? null,
+          contactTelegram: p.contactTelegram ?? null,
+          contactViber: p.contactViber ?? null,
+          contactWhatsapp: p.contactWhatsapp ?? null
+        };
+      } else {
+        psychologistProfile = {
+          firstName: "",
+          lastName: "",
+          phone: null,
+          country: null,
+          city: null,
+          gender: null,
+          maritalStatus: null,
+          specialization: null,
+          bio: null,
+          profilePhotoUrl: null,
+          profilePhotoPublished: false,
+          contactPhone: null,
+          contactTelegram: null,
+          contactViber: null,
+          contactWhatsapp: null
+        };
+      }
     }
 
     return NextResponse.json({
@@ -154,15 +161,76 @@ export async function PATCH(request: Request) {
         specialization?: string | null;
         bio?: string | null;
         profilePhotoPublished?: boolean;
+        contactPhone?: string | null;
+        contactTelegram?: string | null;
+        contactViber?: string | null;
+        contactWhatsapp?: string | null;
       } = {};
-      if (typeof body.firstName === "string") profileUpdates.firstName = body.firstName;
-      if (typeof body.lastName === "string") profileUpdates.lastName = body.lastName;
-      if (body.phone !== undefined) profileUpdates.phone = body.phone === null || body.phone === "" ? null : String(body.phone);
-      if (body.country !== undefined) profileUpdates.country = body.country === null || body.country === "" ? null : String(body.country);
-      if (body.city !== undefined) profileUpdates.city = body.city === null || body.city === "" ? null : String(body.city);
+      if (typeof body.firstName === "string") {
+        const v = body.firstName.trim().slice(0, MAX_FIRST_NAME_LENGTH);
+        profileUpdates.firstName = v;
+      }
+      if (typeof body.lastName === "string") {
+        const v = body.lastName.trim().slice(0, MAX_LAST_NAME_LENGTH);
+        profileUpdates.lastName = v;
+      }
+      if (body.phone !== undefined) {
+        const raw = body.phone === null || body.phone === "" ? null : String(body.phone);
+        profileUpdates.phone =
+          raw === null ? null : raw.trim().slice(0, MAX_PHONE_LENGTH);
+      }
+      if (body.country !== undefined) {
+        const raw = body.country === null || body.country === "" ? null : String(body.country);
+        profileUpdates.country =
+          raw === null ? null : raw.trim().slice(0, MAX_COUNTRY_LENGTH);
+      }
+      if (body.city !== undefined) {
+        const raw = body.city === null || body.city === "" ? null : String(body.city);
+        profileUpdates.city =
+          raw === null ? null : raw.trim().slice(0, MAX_CITY_LENGTH);
+      }
       if (body.gender !== undefined) profileUpdates.gender = body.gender === null || body.gender === "" ? null : String(body.gender);
       if (body.maritalStatus !== undefined) profileUpdates.maritalStatus = body.maritalStatus === null || body.maritalStatus === "" ? null : String(body.maritalStatus);
-      if (body.specialization !== undefined) profileUpdates.specialization = body.specialization === null || body.specialization === "" ? null : String(body.specialization);
+      if (body.specialization !== undefined) {
+        const raw =
+          body.specialization === null || body.specialization === ""
+            ? null
+            : String(body.specialization);
+        profileUpdates.specialization =
+          raw === null ? null : raw.trim().slice(0, MAX_SPECIALIZATION_LENGTH);
+      }
+      if (body.contactPhone !== undefined) {
+        const raw =
+          body.contactPhone === null || body.contactPhone === ""
+            ? null
+            : String(body.contactPhone);
+        profileUpdates.contactPhone =
+          raw === null ? null : raw.trim().slice(0, MAX_PHONE_LENGTH);
+      }
+      if (body.contactTelegram !== undefined) {
+        const raw =
+          body.contactTelegram === null || body.contactTelegram === ""
+            ? null
+            : String(body.contactTelegram);
+        profileUpdates.contactTelegram =
+          raw === null ? null : raw.trim().slice(0, MAX_CONTACT_LINK_LENGTH);
+      }
+      if (body.contactViber !== undefined) {
+        const raw =
+          body.contactViber === null || body.contactViber === ""
+            ? null
+            : String(body.contactViber);
+        profileUpdates.contactViber =
+          raw === null ? null : raw.trim().slice(0, MAX_CONTACT_LINK_LENGTH);
+      }
+      if (body.contactWhatsapp !== undefined) {
+        const raw =
+          body.contactWhatsapp === null || body.contactWhatsapp === ""
+            ? null
+            : String(body.contactWhatsapp);
+        profileUpdates.contactWhatsapp =
+          raw === null ? null : raw.trim().slice(0, MAX_CONTACT_LINK_LENGTH);
+      }
       if (body.bio !== undefined) profileUpdates.bio = body.bio === null ? null : String(body.bio).slice(0, BIO_MAX_LENGTH);
       if (typeof body.profilePhotoPublished === "boolean") profileUpdates.profilePhotoPublished = body.profilePhotoPublished;
       if (Object.keys(profileUpdates).length > 0) {
@@ -199,22 +267,39 @@ export async function PATCH(request: Request) {
       maritalStatus?: string | null;
     } = {};
     if (role === "PSYCHOLOGIST" && displayName) {
-      userData.name = displayName;
+      userData.name = displayName.slice(0, MAX_NAME_LENGTH);
     } else if (body.name !== undefined) {
-      userData.name = body.name === null || body.name === "" ? null : String(body.name);
+      if (body.name === null || body.name === "") {
+        userData.name = null;
+      } else {
+        const v = String(body.name).trim().slice(0, MAX_NAME_LENGTH);
+        userData.name = v.length === 0 ? null : v;
+      }
     }
     if (dateOfBirthValue !== undefined) userData.dateOfBirth = dateOfBirthValue;
-    if (body.phone !== undefined) userData.phone = body.phone === null || body.phone === "" ? null : String(body.phone);
-    if (body.country !== undefined) userData.country = body.country === null || body.country === "" ? null : String(body.country);
-    if (body.city !== undefined) userData.city = body.city === null || body.city === "" ? null : String(body.city);
+  if (body.phone !== undefined) {
+      const raw = body.phone === null || body.phone === "" ? null : String(body.phone);
+      userData.phone =
+        raw === null ? null : raw.trim().slice(0, MAX_PHONE_LENGTH);
+  }
+  if (body.country !== undefined) {
+      const raw = body.country === null || body.country === "" ? null : String(body.country);
+      userData.country =
+        raw === null ? null : raw.trim().slice(0, MAX_COUNTRY_LENGTH);
+  }
+  if (body.city !== undefined) {
+      const raw = body.city === null || body.city === "" ? null : String(body.city);
+      userData.city =
+        raw === null ? null : raw.trim().slice(0, MAX_CITY_LENGTH);
+  }
     if (body.gender !== undefined) userData.gender = body.gender === null || body.gender === "" ? null : String(body.gender);
     if (body.maritalStatus !== undefined) userData.maritalStatus = body.maritalStatus === null || body.maritalStatus === "" ? null : String(body.maritalStatus);
 
     if (typeof body.email === "string") {
       const email = body.email.trim().toLowerCase();
-      if (!email.includes("@") || !email.includes(".") || email.length < 5) {
+      if (!email.includes("@") || !email.includes(".") || email.length < 5 || email.length > MAX_EMAIL_LENGTH) {
         return NextResponse.json(
-          { message: "Укажите корректный email" },
+          { message: "Укажите корректный email (не более 64 символов)" },
           { status: 400 }
         );
       }

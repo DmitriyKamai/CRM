@@ -8,15 +8,27 @@ import { checkRateLimit } from "@/lib/rate-limit";
 // Схема валидации для регистрации (без inviteToken, он обрабатывается отдельно)
 const registerSchema = z.object({
   role: z.enum(["psychologist", "client"]),
-  email: z.string().email("Некорректный email"),
+  email: z
+    .string()
+    .trim()
+    .email("Некорректный email")
+    .max(64, "Слишком длинный email"),
   password: z
     .string()
     .min(8, "Минимум 8 символов")
     .regex(/[A-Za-zА-Яа-я]/, "Пароль должен содержать буквы")
     .regex(/\d/, "Пароль должен содержать цифры")
     .regex(/[^A-Za-zА-Яа-я0-9\s]/, "Добавьте специальный символ (например, !, ?, %)"),
-  firstName: z.string().min(1, "Укажите имя"),
-  lastName: z.string().min(1, "Укажите фамилию")
+  firstName: z
+    .string()
+    .trim()
+    .min(2, "Имя не короче 2 символов")
+    .max(32, "Имя слишком длинное"),
+  lastName: z
+    .string()
+    .trim()
+    .min(2, "Фамилия не короче 2 символов")
+    .max(32, "Фамилия слишком длинная")
 });
 
 export async function POST(request: Request) {

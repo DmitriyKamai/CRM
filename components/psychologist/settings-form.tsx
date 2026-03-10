@@ -94,6 +94,10 @@ type Profile = {
     bio: string | null;
     profilePhotoUrl: string | null;
     profilePhotoPublished: boolean;
+    contactPhone: string | null;
+    contactTelegram: string | null;
+    contactViber: string | null;
+    contactWhatsapp: string | null;
   } | null;
 };
 
@@ -113,6 +117,17 @@ function evaluatePassword(password: string): PasswordChecks {
     digits: /\d/.test(password),
     special: /[^A-Za-zА-Яа-я0-9\s]/.test(password)
   };
+}
+
+function getPasswordError(password: string, checks: PasswordChecks): string | null {
+  if (password.length === 0) return null;
+  if (!checks.length) return "Пароль должен быть не короче 8 символов";
+  if (!checks.letters) return "Пароль должен содержать буквы";
+  if (!checks.digits) return "Пароль должен содержать цифры";
+  if (!checks.special) {
+    return "Добавьте специальный символ (например, !, ?, %)";
+  }
+  return null;
 }
 
 /** Перехватывает ошибки рендера контента настроек и логирует их. */
@@ -180,6 +195,10 @@ export function PsychologistSettingsForm() {
   const [maritalStatus, setMaritalStatus] = useState("");
   const [bio, setBio] = useState("");
   const [specialization, setSpecialization] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactTelegram, setContactTelegram] = useState("");
+  const [contactViber, setContactViber] = useState("");
+  const [contactWhatsapp, setContactWhatsapp] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
@@ -287,6 +306,10 @@ export function PsychologistSettingsForm() {
           setMaritalStatus(p.psychologistProfile?.maritalStatus ?? "");
           setBio(p.psychologistProfile?.bio ?? "");
           setSpecialization(p.psychologistProfile?.specialization ?? "");
+          setContactPhone(p.psychologistProfile?.contactPhone ?? "");
+          setContactTelegram(p.psychologistProfile?.contactTelegram ?? "");
+          setContactViber(p.psychologistProfile?.contactViber ?? "");
+          setContactWhatsapp(p.psychologistProfile?.contactWhatsapp ?? "");
           setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
           setCountryCode(
             p.psychologistProfile?.country
@@ -390,7 +413,11 @@ export function PsychologistSettingsForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bio: bio.trim() || null,
-          specialization: specialization || null
+          specialization: specialization || null,
+          contactPhone: contactPhone.trim() || null,
+          contactTelegram: contactTelegram.trim() || null,
+          contactViber: contactViber.trim() || null,
+          contactWhatsapp: contactWhatsapp.trim() || null
         })
       });
       const data = await res.json().catch(() => ({}));
@@ -409,7 +436,11 @@ export function PsychologistSettingsForm() {
                     bio: bio.trim() || null,
                     specialization: specialization || null,
                     profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
-                    profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished
+                    profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished,
+                    contactPhone: contactPhone.trim() || null,
+                    contactTelegram: contactTelegram.trim() || null,
+                    contactViber: contactViber.trim() || null,
+                    contactWhatsapp: contactWhatsapp.trim() || null
                   }
                 : prev.psychologistProfile
             }
@@ -426,11 +457,10 @@ export function PsychologistSettingsForm() {
       toast.error("Пароли не совпадают");
       return;
     }
-    const passwordValid =
-      newPassword.length > 0 &&
-      Object.values(newPasswordChecks).every(Boolean);
-    if (!passwordValid) {
-      toast.error("Новый пароль не соответствует требованиям безопасности");
+    const checks = evaluatePassword(newPassword);
+    const error = getPasswordError(newPassword, checks);
+    if (error) {
+      toast.error(error);
       return;
     }
     setPasswordSaving(true);
@@ -510,9 +540,22 @@ export function PsychologistSettingsForm() {
 
   const savedBio = profile.psychologistProfile?.bio ?? "";
   const savedSpecialization = profile.psychologistProfile?.specialization ?? "";
+  const savedContactPhone = profile.psychologistProfile?.contactPhone ?? "";
+  const savedContactTelegram = profile.psychologistProfile?.contactTelegram ?? "";
+  const savedContactViber = profile.psychologistProfile?.contactViber ?? "";
+  const savedContactWhatsapp = profile.psychologistProfile?.contactWhatsapp ?? "";
   const hasProfessionalChanges =
     (bio.trim() || "") !== (savedBio || "") ||
-    (specialization || "") !== (savedSpecialization || "");
+    (specialization || "") !== (savedSpecialization || "") ||
+    (contactPhone.trim() || "") !== (savedContactPhone || "") ||
+    (contactTelegram.trim() || "") !== (savedContactTelegram || "") ||
+    (contactViber.trim() || "") !== (savedContactViber || "") ||
+    (contactWhatsapp.trim() || "") !== (savedContactWhatsapp || "");
+
+  const newPasswordError = touchedNewPassword
+    ? getPasswordError(newPassword, newPasswordChecks)
+    : null;
+  const newPasswordValid = !!newPassword && !newPasswordError;
 
   return (
     <SettingsFormErrorBoundary>
@@ -560,6 +603,7 @@ export function PsychologistSettingsForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
                 autoComplete="email"
+                maxLength={64}
               />
             </div>
             <div className="space-y-2 max-w-sm">
@@ -578,6 +622,7 @@ export function PsychologistSettingsForm() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Имя"
+                  maxLength={32}
                 />
               </div>
               <div className="space-y-2">
@@ -587,6 +632,7 @@ export function PsychologistSettingsForm() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Фамилия"
+                  maxLength={32}
                 />
               </div>
             </div>
@@ -725,52 +771,20 @@ export function PsychologistSettingsForm() {
                 }}
                 autoComplete="new-password"
                 minLength={8}
+                className={
+                  newPasswordError
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : newPasswordValid
+                    ? "border-emerald-500 focus-visible:ring-emerald-500"
+                    : undefined
+                }
               />
-              <div className="space-y-1 rounded-md border bg-muted/40 px-3 py-2">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Пароль должен содержать:
+              {newPasswordError && (
+                <p className="text-xs text-destructive flex items-center gap-1.5">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  <span>{newPasswordError}</span>
                 </p>
-                <ul className="space-y-0.5 text-xs">
-                  <li className="flex items-center gap-2">
-                    {newPasswordChecks.length ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : (
-                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                    <span>Не менее 8 символов</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {newPasswordChecks.letters ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : (
-                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                    <span>Буквы (латиница или кириллица)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {newPasswordChecks.digits ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : (
-                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                    <span>Цифры</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {newPasswordChecks.special ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : (
-                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                    <span>Специальные символы (например, !, ?, %)</span>
-                  </li>
-                </ul>
-                {touchedNewPassword && !passwordValid && newPassword.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
-                    <span>Сделайте пароль сложнее, чтобы защитить аккаунт.</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPasswordConfirm">Повторите новый пароль</Label>
@@ -794,7 +808,7 @@ export function PsychologistSettingsForm() {
         {activeTab === "accounts" && (
         <Section title="Привязка аккаунтов">
           <p className="text-sm text-muted-foreground mb-4">
-            Привяжите Google или Apple, чтобы входить без пароля и использовать аватар из профиля.
+            Привяжите Google, чтобы входить без пароля и использовать аватар из профиля.
           </p>
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -933,6 +947,51 @@ export function PsychologistSettingsForm() {
                   </div>
                 ))}
               </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact-phone">Контактный телефон для клиентов</Label>
+              <Input
+                id="contact-phone"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="+7 999 123-45-67"
+                maxLength={32}
+              />
+              <p className="text-xs text-muted-foreground">
+                Этот номер будет виден клиентам в вашем профиле.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="contact-telegram">Telegram</Label>
+                <Input
+                  id="contact-telegram"
+                  value={contactTelegram}
+                  onChange={(e) => setContactTelegram(e.target.value)}
+                  placeholder="@username или ссылка"
+                  maxLength={128}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-viber">Viber</Label>
+                <Input
+                  id="contact-viber"
+                  value={contactViber}
+                  onChange={(e) => setContactViber(e.target.value)}
+                  placeholder="Номер или ссылка"
+                  maxLength={128}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-whatsapp">WhatsApp</Label>
+                <Input
+                  id="contact-whatsapp"
+                  value={contactWhatsapp}
+                  onChange={(e) => setContactWhatsapp(e.target.value)}
+                  placeholder="Номер или ссылка"
+                  maxLength={128}
+                />
+              </div>
             </div>
             <Button
               type="submit"

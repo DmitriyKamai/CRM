@@ -77,6 +77,17 @@ function evaluatePassword(password: string): PasswordChecks {
   };
 }
 
+function getPasswordError(password: string, checks: PasswordChecks): string | null {
+  if (password.length === 0) return null;
+  if (!checks.length) return "Пароль должен быть не короче 8 символов";
+  if (!checks.letters) return "Пароль должен содержать буквы";
+  if (!checks.digits) return "Пароль должен содержать цифры";
+  if (!checks.special) {
+    return "Добавьте специальный символ (например, !, ?, %)";
+  }
+  return null;
+}
+
 class SettingsFormErrorBoundary extends Component<
   { children: React.ReactNode },
   { hasError: boolean; message: string }
@@ -272,11 +283,10 @@ export function ClientSettingsForm() {
       toast.error("Пароли не совпадают");
       return;
     }
-    const passwordValid =
-      newPassword.length > 0 &&
-      Object.values(newPasswordChecks).every(Boolean);
-    if (!passwordValid) {
-      toast.error("Новый пароль не соответствует требованиям безопасности");
+    const checks = evaluatePassword(newPassword);
+    const error = getPasswordError(newPassword, checks);
+    if (error) {
+      toast.error(error);
       return;
     }
     setPasswordSaving(true);
@@ -346,6 +356,11 @@ export function ClientSettingsForm() {
     (gender || "") !== (profile.user?.gender ?? "") ||
     (maritalStatus || "") !== (profile.user?.maritalStatus ?? "");
 
+  const newPasswordError = touchedNewPassword
+    ? getPasswordError(newPassword, newPasswordChecks)
+    : null;
+  const newPasswordValid = !!newPassword && !newPasswordError;
+
   return (
     <SettingsFormErrorBoundary>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
@@ -383,6 +398,7 @@ export function ClientSettingsForm() {
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="Имя"
                       autoComplete="given-name"
+                      maxLength={32}
                     />
                   </div>
                   <div className="space-y-2">
@@ -393,6 +409,7 @@ export function ClientSettingsForm() {
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Фамилия"
                       autoComplete="family-name"
+                      maxLength={32}
                     />
                   </div>
                 </div>
@@ -405,6 +422,7 @@ export function ClientSettingsForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
                     autoComplete="email"
+                    maxLength={64}
                   />
                 </div>
                 <div className="space-y-2 max-w-xs">
@@ -549,52 +567,20 @@ export function ClientSettingsForm() {
                     }}
                     autoComplete="new-password"
                     minLength={8}
+                    className={
+                      newPasswordError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : newPasswordValid
+                        ? "border-emerald-500 focus-visible:ring-emerald-500"
+                        : undefined
+                    }
                   />
-                  <div className="space-y-1 rounded-md border bg-muted/40 px-3 py-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Пароль должен содержать:
+                  {newPasswordError && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      <span>{newPasswordError}</span>
                     </p>
-                    <ul className="space-y-0.5 text-xs">
-                      <li className="flex items-center gap-2">
-                        {newPasswordChecks.length ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <span>Не менее 8 символов</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        {newPasswordChecks.letters ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <span>Буквы (латиница или кириллица)</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        {newPasswordChecks.digits ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <span>Цифры</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        {newPasswordChecks.special ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <span>Специальные символы (например, !, ?, %)</span>
-                      </li>
-                    </ul>
-                    {touchedNewPassword && !passwordValid && newPassword.length > 0 && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
-                        <AlertCircle className="h-3 w-3 shrink-0" />
-                        <span>Сделайте пароль сложнее, чтобы защитить аккаунт.</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="newPasswordConfirm">Повторите новый пароль</Label>
@@ -618,7 +604,7 @@ export function ClientSettingsForm() {
           {activeTab === "accounts" && (
             <Section title="Привязка аккаунтов">
               <p className="text-sm text-muted-foreground mb-4">
-                Привяжите Google или Apple, чтобы входить без пароля и использовать аватар из профиля.
+                Привяжите Google, чтобы входить без пароля и использовать аватар из профиля.
               </p>
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">

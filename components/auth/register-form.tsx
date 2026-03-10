@@ -32,6 +32,17 @@ function evaluatePassword(password: string): PasswordChecks {
   };
 }
 
+function getPasswordError(password: string, checks: PasswordChecks): string | null {
+  if (password.length === 0) return null;
+  if (!checks.length) return "Пароль должен быть не короче 8 символов";
+  if (!checks.letters) return "Пароль должен содержать буквы";
+  if (!checks.digits) return "Пароль должен содержать цифры";
+  if (!checks.special) {
+    return "Добавьте специальный символ (например, !, ?, %)";
+  }
+  return null;
+}
+
 export function RegisterForm({ role }: RegisterFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -77,6 +88,9 @@ export function RegisterForm({ role }: RegisterFormProps) {
     }
 
     try {
+      const safeFirstName = firstName.trim();
+      const safeLastName = lastName.trim();
+      const safeEmail = email.trim();
       const inviteToken =
         role === "client" ? searchParams.get("invite") ?? undefined : undefined;
 
@@ -87,9 +101,9 @@ export function RegisterForm({ role }: RegisterFormProps) {
         },
         body: JSON.stringify({
           role,
-          firstName,
-          lastName,
-          email,
+          firstName: safeFirstName,
+          lastName: safeLastName,
+          email: safeEmail,
           password,
           inviteToken
         })
@@ -102,7 +116,21 @@ export function RegisterForm({ role }: RegisterFormProps) {
         return;
       }
 
-      router.push("/auth/login");
+      const callbackUrl = role === "psychologist" ? "/psychologist" : "/client";
+      const signInResult = await signIn("credentials", {
+        redirect: false,
+        email: safeEmail,
+        password,
+        callbackUrl
+      });
+
+      if (signInResult?.error) {
+        // Если автологин не удался, просто отправляем на страницу входа.
+        router.push("/auth/login");
+        return;
+      }
+
+      router.push(signInResult?.url ?? callbackUrl);
     } catch (err) {
       console.error(err);
       const isRefused =
@@ -119,9 +147,10 @@ export function RegisterForm({ role }: RegisterFormProps) {
   const title =
     role === "psychologist" ? "Регистрация психолога" : "Регистрация клиента";
 
-  const passwordValid =
-    password.length > 0 &&
-    Object.values(passwordChecks).every(Boolean);
+  const passwordError = touchedPassword
+    ? getPasswordError(password, passwordChecks)
+    : null;
+  const passwordValid = !!password && !passwordError;
   const passwordsMatch =
     password.length > 0 &&
     passwordConfirm.length > 0 &&
@@ -150,6 +179,8 @@ export function RegisterForm({ role }: RegisterFormProps) {
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
                 required
+                minLength={2}
+                maxLength={32}
               />
             </div>
             <div className="space-y-1">
@@ -159,6 +190,8 @@ export function RegisterForm({ role }: RegisterFormProps) {
                 value={lastName}
                 onChange={e => setLastName(e.target.value)}
                 required
+                minLength={2}
+                maxLength={32}
               />
             </div>
           </div>
@@ -171,6 +204,7 @@ export function RegisterForm({ role }: RegisterFormProps) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              maxLength={64}
             />
           </div>
 
@@ -189,7 +223,13 @@ export function RegisterForm({ role }: RegisterFormProps) {
                 }}
                 required
                 autoComplete="new-password"
-                className="pr-10"
+                className={`pr-10 ${
+                  passwordError
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : passwordValid && passwordsMatch
+                    ? "border-emerald-500 focus-visible:ring-emerald-500"
+                    : ""
+                }`}
                 minLength={8}
               />
               <button
@@ -201,51 +241,12 @@ export function RegisterForm({ role }: RegisterFormProps) {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <div className="space-y-1 rounded-md border bg-muted/40 px-3 py-2">
-              <p className="text-xs font-medium text-muted-foreground">
-                Пароль должен содержать:
+            {passwordError && (
+              <p className="text-xs text-destructive flex items-center gap-1.5">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                <span>{passwordError}</span>
               </p>
-              <ul className="space-y-0.5 text-xs">
-                <li className="flex items-center gap-2">
-                  {passwordChecks.length ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  <span>Не менее 8 символов</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  {passwordChecks.letters ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  <span>Буквы (латиница или кириллица)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  {passwordChecks.digits ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  <span>Цифры</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  {passwordChecks.special ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  <span>Специальные символы (например, !, ?, %)</span>
-                </li>
-              </ul>
-              {touchedPassword && !passwordValid && password.length > 0 && (
-                <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
-                  <AlertCircle className="h-3 w-3 shrink-0" />
-                  <span>Сделайте пароль сложнее, чтобы защитить аккаунт.</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -258,7 +259,13 @@ export function RegisterForm({ role }: RegisterFormProps) {
                 onChange={e => setPasswordConfirm(e.target.value)}
                 required
                 autoComplete="new-password"
-                className="pr-10"
+                className={`pr-10 ${
+                  passwordConfirm.length > 0 && !passwordsMatch
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : passwordsMatch && passwordValid
+                    ? "border-emerald-500 focus-visible:ring-emerald-500"
+                    : ""
+                }`}
               />
               <button
                 type="button"
