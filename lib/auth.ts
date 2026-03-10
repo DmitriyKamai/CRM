@@ -103,11 +103,22 @@ function buildProviders() {
     providers.push(GP({ clientId: googleId, clientSecret: googleSecret }));
   }
   const appleId = process.env.APPLE_ID?.trim();
-  const appleSecret = process.env.APPLE_PRIVATE_KEY?.trim();
-  if (appleId && appleSecret) {
+  const applePrivateKey = process.env.APPLE_PRIVATE_KEY?.trim();
+  const appleTeamId = process.env.APPLE_TEAM_ID?.trim();
+  const appleKeyId = process.env.APPLE_KEY_ID?.trim();
+  if (appleId && applePrivateKey && appleTeamId && appleKeyId) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const AP = require("next-auth/providers/apple").default;
-    providers.push(AP({ clientId: appleId, clientSecret: appleSecret }));
+    providers.push(
+      AP({
+        clientId: appleId,
+        clientSecret: {
+          teamId: appleTeamId,
+          privateKey: applePrivateKey,
+          keyId: appleKeyId
+        }
+      })
+    );
   }
   return providers;
 }
@@ -116,8 +127,11 @@ function hasOAuthProviders(): boolean {
   const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
   const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   const appleId = process.env.APPLE_ID?.trim();
-  const appleSecret = process.env.APPLE_PRIVATE_KEY?.trim();
-  return !!(googleId && googleSecret) || !!(appleId && appleSecret);
+  const applePrivateKey = process.env.APPLE_PRIVATE_KEY?.trim();
+  const appleTeamId = process.env.APPLE_TEAM_ID?.trim();
+  const appleKeyId = process.env.APPLE_KEY_ID?.trim();
+  const hasApple = !!(appleId && applePrivateKey && appleTeamId && appleKeyId);
+  return !!(googleId && googleSecret) || hasApple;
 }
 
 export const OAUTH_LINK_COOKIE = "oauth_link_uid";

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { Eye, EyeOff, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,22 @@ interface RegisterFormProps {
   role: Role;
 }
 
+type PasswordChecks = {
+  length: boolean;
+  letters: boolean;
+  digits: boolean;
+  special: boolean;
+};
+
+function evaluatePassword(password: string): PasswordChecks {
+  return {
+    length: password.length >= 8,
+    letters: /[A-Za-zА-Яа-я]/.test(password),
+    digits: /\d/.test(password),
+    special: /[^A-Za-zА-Яа-я0-9\s]/.test(password)
+  };
+}
+
 export function RegisterForm({ role }: RegisterFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,6 +39,13 @@ export function RegisterForm({ role }: RegisterFormProps) {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [passwordChecks, setPasswordChecks] = useState<PasswordChecks>(
+    () => evaluatePassword("")
+  );
+  const [touchedPassword, setTouchedPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +62,19 @@ export function RegisterForm({ role }: RegisterFormProps) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    const passwordValid =
+      password.length > 0 &&
+      Object.values(passwordChecks).every(Boolean);
+    const passwordsMatch =
+      password.length > 0 &&
+      passwordConfirm.length > 0 &&
+      password === passwordConfirm;
+
+    if (!passwordValid || !passwordsMatch) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const inviteToken =
@@ -81,6 +118,16 @@ export function RegisterForm({ role }: RegisterFormProps) {
 
   const title =
     role === "psychologist" ? "Регистрация психолога" : "Регистрация клиента";
+
+  const passwordValid =
+    password.length > 0 &&
+    Object.values(passwordChecks).every(Boolean);
+  const passwordsMatch =
+    password.length > 0 &&
+    passwordConfirm.length > 0 &&
+    password === passwordConfirm;
+  const canSubmit =
+    !loading && passwordValid && passwordsMatch && firstName && lastName && email;
 
   return (
     <Card className="max-w-md w-full mx-auto">
@@ -127,19 +174,113 @@ export function RegisterForm({ role }: RegisterFormProps) {
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Label htmlFor="password">Пароль</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={e => {
+                  const value = e.target.value;
+                  setPassword(value);
+                  setPasswordChecks(evaluatePassword(value));
+                  if (!touchedPassword) setTouchedPassword(true);
+                }}
+                required
+                autoComplete="new-password"
+                className="pr-10"
+                minLength={8}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword(prev => !prev)}
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="space-y-1 rounded-md border bg-muted/40 px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Пароль должен содержать:
+              </p>
+              <ul className="space-y-0.5 text-xs">
+                <li className="flex items-center gap-2">
+                  {passwordChecks.length ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>Не менее 8 символов</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {passwordChecks.letters ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>Буквы (латиница или кириллица)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {passwordChecks.digits ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>Цифры</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {passwordChecks.special ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>Специальные символы (например, !, ?, %)</span>
+                </li>
+              </ul>
+              {touchedPassword && !passwordValid && password.length > 0 && (
+                <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  <span>Сделайте пароль сложнее, чтобы защитить аккаунт.</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <div className="space-y-2">
+            <Label htmlFor="passwordConfirm">Повторите пароль</Label>
+            <div className="relative">
+              <Input
+                id="passwordConfirm"
+                type={showPasswordConfirm ? "text" : "password"}
+                value={passwordConfirm}
+                onChange={e => setPasswordConfirm(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPasswordConfirm(prev => !prev)}
+                aria-label={showPasswordConfirm ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPasswordConfirm ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {passwordConfirm.length > 0 && !passwordsMatch && (
+              <p className="text-xs text-destructive">
+                Пароли не совпадают.
+              </p>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full" disabled={!canSubmit}>
             {loading ? "Создаём аккаунт..." : "Зарегистрироваться"}
           </Button>
         </form>

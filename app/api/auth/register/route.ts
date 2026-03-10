@@ -9,7 +9,12 @@ import { checkRateLimit } from "@/lib/rate-limit";
 const registerSchema = z.object({
   role: z.enum(["psychologist", "client"]),
   email: z.string().email("Некорректный email"),
-  password: z.string().min(6, "Минимум 6 символов"),
+  password: z
+    .string()
+    .min(8, "Минимум 8 символов")
+    .regex(/[A-Za-zА-Яа-я]/, "Пароль должен содержать буквы")
+    .regex(/\d/, "Пароль должен содержать цифры")
+    .regex(/[^A-Za-zА-Яа-я0-9\s]/, "Добавьте специальный символ (например, !, ?, %)"),
   firstName: z.string().min(1, "Укажите имя"),
   lastName: z.string().min(1, "Укажите фамилию")
 });
