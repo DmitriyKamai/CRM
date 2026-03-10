@@ -109,106 +109,191 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       : "";
 
     return (
-      <div className="space-y-6">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-muted">
+      <div className="space-y-8">
+        {/* Верхний блок-профиль в стиле соцсети с большим фото из профессионального профиля */}
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <div className="flex flex-col gap-6 p-6 lg:flex-row">
+            <div className="mx-auto max-h-[520px] w-full shrink-0 overflow-hidden rounded-2xl bg-muted lg:mx-0 lg:w-[380px] flex items-center justify-center">
               {psychologist.profilePhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={psychologist.profilePhotoUrl}
                   alt={fullName || "Психолог"}
-                  className="h-full w-full object-cover"
+                  className="h-auto max-h-[520px] w-auto max-w-full object-contain"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-lg font-semibold">
-                  {fullName
-                    .split(" ")
-                    .filter(Boolean)
-                    .map((p) => p[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
+                <div className="flex h-full w-full items-center justify-center bg-muted">
+                  <span className="text-5xl font-semibold text-muted-foreground">
+                    {fullName
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((p) => p[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </span>
                 </div>
               )}
             </div>
-            <div className="flex-1 space-y-2">
+
+            <div className="flex-1 space-y-4">
               <div>
-                <h1 className="text-xl font-semibold leading-tight">
+                <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">
                   {fullName || "Психолог"}
                 </h1>
-                {psychologist.specialization && (
-                  <p className="text-sm text-muted-foreground">
-                    {psychologist.specialization === "psychotherapist"
-                      ? "Врач-психотерапевт"
-                      : psychologist.specialization === "psychiatrist"
-                      ? "Психиатр"
-                      : "Психолог"}
-                  </p>
-                )}
-                {cityLine && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {cityLine}
-                  </p>
-                )}
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  {psychologist.specialization && (
+                    <span>
+                      {psychologist.specialization === "psychotherapist"
+                        ? "Врач-психотерапевт"
+                        : psychologist.specialization === "psychiatrist"
+                        ? "Психиатр"
+                        : "Психолог"}
+                    </span>
+                  )}
+                  {cityLine && (
+                    <>
+                      <span className="text-xs">•</span>
+                      <span>{cityLine}</span>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {psychologist.bio && (
-                <p className="text-sm text-foreground/90 whitespace-pre-line">
-                  {psychologist.bio}
-                </p>
-              )}
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                {(phoneHref || telegramHref || whatsappHref || viberHref) && (
+                  <section className="space-y-3">
+                    <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                      Контакты
+                    </h2>
+                    <div className="space-y-2 text-sm">
+                      {phoneHref && (
+                        <a
+                          href={phoneHref}
+                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                        >
+                          <span>Телефон</span>
+                          <span className="text-xs text-muted-foreground">
+                            Набрать
+                          </span>
+                        </a>
+                      )}
+                      {telegramHref && (
+                        <a
+                          href={telegramHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                        >
+                          <span>Telegram</span>
+                          <span className="text-xs text-muted-foreground">
+                            Открыть чат
+                          </span>
+                        </a>
+                      )}
+                      {whatsappHref && (
+                        <a
+                          href={whatsappHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                        >
+                          <span>WhatsApp</span>
+                          <span className="text-xs text-muted-foreground">
+                            Открыть чат
+                          </span>
+                        </a>
+                      )}
+                      {viberHref && (
+                        <a
+                          href={viberHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                        >
+                          <span>Viber</span>
+                          <span className="text-xs text-muted-foreground">
+                            Открыть чат
+                          </span>
+                        </a>
+                      )}
+                    </div>
+                  </section>
+                )}
 
-              {(phoneHref || telegramHref || whatsappHref || viberHref) && (
-                <div className="mt-2 space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Контакты для связи
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {phoneHref && (
-                      <a
-                        href={phoneHref}
-                        className="inline-flex items-center rounded-full border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-                      >
-                        Телефон
-                      </a>
-                    )}
-                    {telegramHref && (
-                      <a
-                        href={telegramHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-full border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-                      >
-                        Telegram
-                      </a>
-                    )}
-                    {whatsappHref && (
-                      <a
-                        href={whatsappHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-full border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-                      >
-                        WhatsApp
-                      </a>
-                    )}
-                    {viberHref && (
-                      <a
-                        href={viberHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-full border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-                      >
-                        Viber
-                      </a>
-                    )}
+                <section className="space-y-3">
+                  <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                    О себе
+                  </h2>
+                  <div className="rounded-lg border bg-background/60 px-4 py-3 text-sm text-foreground/90 whitespace-pre-line">
+                    {psychologist.bio
+                      ? psychologist.bio
+                      : "Психолог ещё не заполнил информацию о себе."}
                   </div>
-                </div>
-              )}
+                </section>
+              </div>
             </div>
           </div>
         </div>
+            {(phoneHref || telegramHref || whatsappHref || viberHref) && (
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                  Контакты
+                </h2>
+                <div className="space-y-2 text-sm">
+                  {phoneHref && (
+                    <a
+                      href={phoneHref}
+                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                    >
+                      <span>Телефон</span>
+                      <span className="text-xs text-muted-foreground">
+                        Набрать
+                      </span>
+                    </a>
+                  )}
+                  {telegramHref && (
+                    <a
+                      href={telegramHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                    >
+                      <span>Telegram</span>
+                      <span className="text-xs text-muted-foreground">
+                        Открыть чат
+                      </span>
+                    </a>
+                  )}
+                  {whatsappHref && (
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                    >
+                      <span>WhatsApp</span>
+                      <span className="text-xs text-muted-foreground">
+                        Открыть чат
+                      </span>
+                    </a>
+                  )}
+                  {viberHref && (
+                    <a
+                      href={viberHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+                    >
+                      <span>Viber</span>
+                      <span className="text-xs text-muted-foreground">
+                        Открыть чат
+                      </span>
+                    </a>
+                  )}
+                </div>
+              </section>
+            )}
 
         <ClientBooking
           psychologistId={psychologist.id}
