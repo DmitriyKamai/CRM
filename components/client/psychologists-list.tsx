@@ -104,10 +104,7 @@ export function PublicPsychologistsList() {
       </section>
 
       <section className="rounded-xl border bg-card px-4 py-3 sm:px-6 sm:py-4">
-        <form
-          className="grid items-end gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-          onSubmit={(e) => e.preventDefault()}
-        >
+        <div className="grid items-end gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="country">Страна</Label>
             <Input
@@ -126,18 +123,7 @@ export function PublicPsychologistsList() {
               onChange={(e) => setCityFilter(e.target.value)}
             />
           </div>
-          <div className="space-y-1 text-xs text-muted-foreground md:col-span-1 lg:col-span-2">
-            <p>
-              Фильтрация по вхождению текста — как только вы меняете значения,
-              список обновляется.
-            </p>
-          </div>
-          <div className="sm:col-span-2 md:col-span-1 lg:col-span-1 flex justify-start sm:justify-end">
-            <Button type="submit" className="w-full sm:w-auto">
-              Найти
-            </Button>
-          </div>
-        </form>
+        </div>
       </section>
 
       {error && (

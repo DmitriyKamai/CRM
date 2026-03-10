@@ -32,9 +32,12 @@ export default function RootLayout({
           <AuthProvider>
             <header className="border-b bg-background/80 backdrop-blur">
               <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
-                <div className="text-2xl font-semibold tracking-tight tangerine-bold min-w-0 sm:text-3xl md:text-4xl">
+                <a
+                  href="/"
+                  className="text-4xl font-semibold tracking-tight tangerine-bold min-w-0 sm:text-5xl md:text-6xl cursor-pointer"
+                >
                   Empatix
-                </div>
+                </a>
                 <Suspense fallback={<div className="text-xs text-muted-foreground">Загрузка…</div>}>
                   <HeaderNav />
                 </Suspense>

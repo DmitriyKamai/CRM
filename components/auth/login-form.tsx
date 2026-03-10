@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -96,6 +97,14 @@ export function LoginForm() {
             {loading ? "Входим..." : "Войти"}
           </Button>
         </form>
+        <div className="text-xs text-muted-foreground text-right">
+          <Link
+            href="/auth/forgot-password"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Забыли пароль?
+          </Link>
+        </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           <span>или</span>
@@ -148,6 +157,24 @@ export function LoginForm() {
             </span>
           </Button>
         </div>
+
+        <p className="text-center text-sm text-muted-foreground pt-2">
+          У вас нет аккаунта?
+          <br />
+          <Link
+            href="/auth/register/client"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Зарегистрироваться как клиент
+          </Link>
+          {" / "}
+          <Link
+            href="/auth/register/psychologist"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            психолог
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

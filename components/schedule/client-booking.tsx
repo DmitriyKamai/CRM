@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,10 +20,15 @@ interface Props {
 }
 
 export function ClientBooking({ psychologistId, psychologistName }: Props) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [slots, setSlots] = useState<SlotDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
+
+  const isLoggedIn = status === "authenticated" && !!session?.user;
+  const loginUrl = `/auth/login?callbackUrl=${encodeURIComponent(`/client/psychologists/${psychologistId}`)}`;
 
   async function loadSlots() {
     setLoading(true);
@@ -54,6 +61,14 @@ export function ClientBooking({ psychologistId, psychologistName }: Props) {
     loadSlots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [psychologistId]);
+
+  function handleBookClick(slotId: string) {
+    if (!isLoggedIn) {
+      router.push(loginUrl);
+      return;
+    }
+    handleBook(slotId);
+  }
 
   async function handleBook(slotId: string) {
     setBookingId(slotId);
@@ -141,7 +156,7 @@ export function ClientBooking({ psychologistId, psychologistName }: Props) {
                   <Button
                     size="sm"
                     disabled={bookingId === slot.id}
-                    onClick={() => handleBook(slot.id)}
+                    onClick={() => handleBookClick(slot.id)}
                   >
                     {bookingId === slot.id ? "Записываем..." : "Записаться"}
                   </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, CheckCircle2, Circle, AlertCircle } from "lucide-react";
@@ -14,6 +15,8 @@ type Role = "psychologist" | "client";
 
 interface RegisterFormProps {
   role: Role;
+  /** Встроенный режим: без карточки, для использования в signup-02 layout */
+  embedded?: boolean;
 }
 
 type PasswordChecks = {
@@ -43,7 +46,7 @@ function getPasswordError(password: string, checks: PasswordChecks): string | nu
   return null;
 }
 
-export function RegisterForm({ role }: RegisterFormProps) {
+export function RegisterForm({ role, embedded }: RegisterFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [firstName, setFirstName] = useState("");
@@ -158,13 +161,9 @@ export function RegisterForm({ role }: RegisterFormProps) {
   const canSubmit =
     !loading && passwordValid && passwordsMatch && firstName && lastName && email;
 
-  return (
-    <Card className="max-w-md w-full mx-auto">
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {error && (
+  const formContent = (
+    <>
+      {error && (
           <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
             {error}
           </div>
@@ -344,6 +343,30 @@ export function RegisterForm({ role }: RegisterFormProps) {
             </span>
           </Button>
         </div>
+
+        <p className="text-center text-sm text-muted-foreground pt-2">
+          Уже есть аккаунт?{" "}
+          <Link
+            href="/auth/login"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Войти
+          </Link>
+        </p>
+    </>
+  );
+
+  if (embedded) {
+    return formContent;
+  }
+
+  return (
+    <Card className="max-w-md w-full mx-auto">
+      <CardHeader>
+        <CardTitle className="text-lg">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {formContent}
       </CardContent>
     </Card>
   );
