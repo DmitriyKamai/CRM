@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 type Props = {
   profilePhotoUrl: string | null;
-  profilePhotoPublished: boolean;
+  profilePublished: boolean;
   initials: string;
   alt: string;
   onSuccess?: () => void;
@@ -19,7 +19,7 @@ type Props = {
 
 export function ProfilePhotoUploadBlock({
   profilePhotoUrl,
-  profilePhotoPublished,
+  profilePublished,
   initials,
   alt,
   onSuccess,
@@ -138,7 +138,7 @@ export function ProfilePhotoUploadBlock({
         </div>
         <Switch
           id="profile-published"
-          checked={profilePhotoPublished}
+          checked={profilePublished}
           onCheckedChange={handlePublishChange}
           disabled={publishSaving}
           className="cursor-pointer disabled:cursor-pointer"

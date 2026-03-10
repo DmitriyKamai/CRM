@@ -71,7 +71,7 @@ export async function GET() {
           specialization: p.specialization ?? null,
           bio: p.bio ?? null,
           profilePhotoUrl: p.profilePhotoUrl ?? null,
-          profilePhotoPublished: p.profilePhotoPublished ?? false,
+          profilePublished: p.profilePublished ?? false,
           contactPhone: p.contactPhone ?? null,
           contactTelegram: p.contactTelegram ?? null,
           contactViber: p.contactViber ?? null,
@@ -89,7 +89,7 @@ export async function GET() {
           specialization: null,
           bio: null,
           profilePhotoUrl: null,
-          profilePhotoPublished: false,
+          profilePublished: false,
           contactPhone: null,
           contactTelegram: null,
           contactViber: null,
@@ -160,7 +160,7 @@ export async function PATCH(request: Request) {
         maritalStatus?: string | null;
         specialization?: string | null;
         bio?: string | null;
-        profilePhotoPublished?: boolean;
+        profilePublished?: boolean;
         contactPhone?: string | null;
         contactTelegram?: string | null;
         contactViber?: string | null;
@@ -232,7 +232,7 @@ export async function PATCH(request: Request) {
           raw === null ? null : raw.trim().slice(0, MAX_CONTACT_LINK_LENGTH);
       }
       if (body.bio !== undefined) profileUpdates.bio = body.bio === null ? null : String(body.bio).slice(0, BIO_MAX_LENGTH);
-      if (typeof body.profilePhotoPublished === "boolean") profileUpdates.profilePhotoPublished = body.profilePhotoPublished;
+      if (typeof body.profilePublished === "boolean") profileUpdates.profilePublished = body.profilePublished;
       if (Object.keys(profileUpdates).length > 0) {
         const updated = await prisma.psychologistProfile.upsert({
           where: { userId },

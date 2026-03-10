@@ -93,7 +93,7 @@ type Profile = {
     specialization: string | null;
     bio: string | null;
     profilePhotoUrl: string | null;
-    profilePhotoPublished: boolean;
+    profilePublished: boolean;
     contactPhone: string | null;
     contactTelegram: string | null;
     contactViber: string | null;
@@ -207,7 +207,7 @@ export function PsychologistSettingsForm() {
   );
   const [touchedNewPassword, setTouchedNewPassword] = useState(false);
   const [savingProfessional, setSavingProfessional] = useState(false);
-  const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
+  const [profilePublished, setProfilePublished] = useState(false);
   const [savingPublish, setSavingPublish] = useState(false);
   const [unlinkAccountProvider, setUnlinkAccountProvider] = useState<"google" | "apple" | null>(null);
 
@@ -225,7 +225,7 @@ export function PsychologistSettingsForm() {
       .then((p) => {
         if (p) {
           setProfile(p);
-          setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
+          setProfilePublished(p.psychologistProfile?.profilePublished ?? false);
         }
       });
   }, []);
@@ -236,14 +236,14 @@ export function PsychologistSettingsForm() {
       const res = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profilePhotoPublished: published })
+        body: JSON.stringify({ profilePublished: published })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.message ?? "Не удалось сохранить");
         return;
       }
-      setProfilePhotoPublished(published);
+      setProfilePublished(published);
       setProfile((prev): Profile | null =>
         prev?.psychologistProfile
           ? {
@@ -251,7 +251,7 @@ export function PsychologistSettingsForm() {
               psychologistProfile: {
                 ...prev.psychologistProfile,
                 profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
-                profilePhotoPublished: published
+                profilePublished: published
               }
             }
           : prev
@@ -310,7 +310,7 @@ export function PsychologistSettingsForm() {
           setContactTelegram(p.psychologistProfile?.contactTelegram ?? "");
           setContactViber(p.psychologistProfile?.contactViber ?? "");
           setContactWhatsapp(p.psychologistProfile?.contactWhatsapp ?? "");
-          setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
+          setProfilePublished(p.psychologistProfile?.profilePublished ?? false);
           setCountryCode(
             p.psychologistProfile?.country
               ? getCountryCodeByName(p.psychologistProfile.country) ?? null
@@ -393,7 +393,7 @@ export function PsychologistSettingsForm() {
                     specialization: null,
                     bio: null,
                     profilePhotoUrl: null,
-                    profilePhotoPublished: false,
+                    profilePublished: false,
                     contactPhone: null,
                     contactTelegram: null,
                     contactViber: null,
@@ -440,7 +440,7 @@ export function PsychologistSettingsForm() {
                     bio: bio.trim() || null,
                     specialization: specialization || null,
                     profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
-                    profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished,
+                    profilePublished: prev.psychologistProfile.profilePublished,
                     contactPhone: contactPhone.trim() || null,
                     contactTelegram: contactTelegram.trim() || null,
                     contactViber: contactViber.trim() || null,
@@ -909,7 +909,7 @@ export function PsychologistSettingsForm() {
         <Section title="Профессиональный профиль">
           <ProfilePhotoUploadBlock
             profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
-            profilePhotoPublished={profilePhotoPublished}
+            profilePublished={profilePublished}
             initials={initials}
             alt={name || "Психолог"}
             onSuccess={refetchProfile}

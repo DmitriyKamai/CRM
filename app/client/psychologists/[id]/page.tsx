@@ -1,7 +1,4 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ClientBooking } from "@/components/schedule/client-booking";
 
@@ -54,18 +51,6 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
   const { id } = await params;
 
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      redirect(
-        `/auth/login?callbackUrl=/client/psychologists/${encodeURIComponent(id)}`
-      );
-    }
-
-    if ((session.user as any).role !== "CLIENT") {
-      redirect("/");
-    }
-
     const psychologist = await prisma.psychologistProfile.findUnique({
       where: { id },
       select: {
@@ -77,7 +62,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
         specialization: true,
         bio: true,
         profilePhotoUrl: true,
-        profilePhotoPublished: true,
+        profilePublished: true,
         contactPhone: true,
         contactTelegram: true,
         contactViber: true,
@@ -85,8 +70,8 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       }
     });
 
-    if (!psychologist || !psychologist.profilePhotoPublished) {
-      redirect("/client/psychologists");
+    if (!psychologist || !psychologist.profilePublished) {
+      notFound();
     }
 
     const fullName = `${psychologist.firstName} ${psychologist.lastName}`.trim();
@@ -113,7 +98,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
         {/* Верхний блок‑профиль с большим фото из профессионального профиля */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="flex flex-col gap-6 p-6 lg:flex-row">
-            <div className="mx-auto max-h-[520px] w-full shrink-0 overflow-hidden rounded-2xl bg-muted lg:mx-0 lg:w-[380px] flex items-center justify-center">
+            <div className="mx-auto max-h-[520px] max-w-full shrink-0 overflow-hidden rounded-2xl bg-muted lg:mx-0 lg:w-[380px] flex items-center justify-center">
               {psychologist.profilePhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -241,65 +226,6 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
             </div>
           </div>
         )}
-            {(phoneHref || telegramHref || whatsappHref || viberHref) && (
-              <section className="space-y-3">
-                <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                  Контакты
-                </h2>
-                <div className="space-y-2 text-sm">
-                  {phoneHref && (
-                    <a
-                      href={phoneHref}
-                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                    >
-                      <span>Телефон</span>
-                      <span className="text-xs text-muted-foreground">
-                        Набрать
-                      </span>
-                    </a>
-                  )}
-                  {telegramHref && (
-                    <a
-                      href={telegramHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                    >
-                      <span>Telegram</span>
-                      <span className="text-xs text-muted-foreground">
-                        Открыть чат
-                      </span>
-                    </a>
-                  )}
-                  {whatsappHref && (
-                    <a
-                      href={whatsappHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                    >
-                      <span>WhatsApp</span>
-                      <span className="text-xs text-muted-foreground">
-                        Открыть чат
-                      </span>
-                    </a>
-                  )}
-                  {viberHref && (
-                    <a
-                      href={viberHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
-                    >
-                      <span>Viber</span>
-                      <span className="text-xs text-muted-foreground">
-                        Открыть чат
-                      </span>
-                    </a>
-                  )}
-                </div>
-              </section>
-            )}
 
         <ClientBooking
           psychologistId={psychologist.id}

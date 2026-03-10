@@ -166,8 +166,8 @@ model PsychologistProfile {
   contactTelegram    String?
   contactViber       String?
   contactWhatsapp    String?
-  profilePhotoUrl     String?   // фото для карточки в «Запись к психологу» (отдельно от User.image — аватар)
-  profilePhotoPublished Boolean @default(false) // «Опубликовать профиль» — тогда профиль виден в «Записаться к психологу»
+  profilePhotoUrl     String?   // фото для карточки в «Записаться к психологу» (отдельно от User.image — аватар)
+  profilePublished    Boolean @default(false) @map("profilePhotoPublished") // «Опубликовать профиль» — тогда профиль и карточка видны клиентам
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

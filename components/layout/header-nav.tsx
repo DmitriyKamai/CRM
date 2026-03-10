@@ -152,6 +152,9 @@ export function HeaderNav() {
     return (
       <div className="flex items-center gap-3">
         <ThemeToggle />
+        <Button asChild className="h-9 px-4">
+          <Link href="/client/psychologists">Найти психолога</Link>
+        </Button>
         <NavLink href="/auth/login" label="Войти" />
         <NavLink href="/auth/register/psychologist" label="Я психолог" />
         <NavLink href="/auth/register/client" label="Я клиент" />
@@ -189,7 +192,7 @@ export function HeaderNav() {
       ? email.slice(0, 2).toUpperCase()
       : "?";
 
-  const mobileNavLinks =
+  const roleMobileLinks =
     role === "PSYCHOLOGIST"
       ? [
           { href: "/psychologist", label: "Кабинет", exact: true },
@@ -198,9 +201,8 @@ export function HeaderNav() {
           { href: "/psychologist/diagnostics", label: "Диагностика" },
           { href: "/psychologist/settings", label: "Настройки" }
         ]
-        : role === "CLIENT"
+      : role === "CLIENT"
         ? [
-            { href: "/client/psychologists", label: "Запись к психологу" },
             { href: "/client", label: "Кабинет клиента", exact: true },
             { href: "/client/settings", label: "Настройки" }
           ]
@@ -210,6 +212,11 @@ export function HeaderNav() {
               { href: "/admin/users", label: "Пользователи" }
             ]
           : [];
+
+  const mobileNavLinks =
+    roleMobileLinks.length > 0
+      ? [{ href: "/client/psychologists", label: "Найти психолога" }, ...roleMobileLinks]
+      : [];
 
   return (
     <div className="flex items-center gap-2 sm:gap-3">
@@ -240,6 +247,9 @@ export function HeaderNav() {
         </Sheet>
       )}
       <div className="hidden md:flex items-center gap-2">
+        <Button asChild className="h-9 px-4">
+          <Link href="/client/psychologists">Найти психолога</Link>
+        </Button>
         {role === "PSYCHOLOGIST" && (
           <>
             <NavLink href="/psychologist" label="Кабинет" exact />
@@ -250,10 +260,7 @@ export function HeaderNav() {
         )}
         {role === "CLIENT" && (
           <>
-            <NavLink
-              href="/client/psychologists"
-              label="Запись к психологу"
-            />
+            <NavLink href="/client" label="Кабинет клиента" exact />
             <NavLink href="/client" label="Кабинет клиента" exact />
             <NavLink href="/client/settings" label="Настройки" />
           </>
