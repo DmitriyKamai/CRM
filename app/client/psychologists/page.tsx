@@ -88,47 +88,48 @@ export default async function PsychologistsListPage() {
               : null;
 
             return (
-              <Card
+              <Link
                 key={p.id}
-                className="flex flex-col overflow-hidden transition-colors hover:border-primary/50"
+                href={`/client/psychologists/${p.id}`}
+                className="group block h-full"
               >
-                <CardContent className="p-0 flex flex-col">
-                  <div className="w-full aspect-square relative bg-muted overflow-hidden rounded-t-lg">
-                    <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-lg">
-                      <AvatarImage
-                        src={p.profilePhotoUrl ?? undefined}
-                        alt={`${p.firstName} ${p.lastName}`}
-                        className="rounded-none rounded-t-lg object-cover"
-                      />
-                      <AvatarFallback className="rounded-none rounded-t-lg text-4xl font-medium text-muted-foreground">
-                        {initials || "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div className="p-4 flex flex-col">
-                  <div className="w-full text-center space-y-1">
-                    <p className="font-semibold text-foreground">
-                      {p.firstName} {p.lastName}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {professionLabel}
-                    </p>
-                  </div>
-                  {bioShort && (
-                    <p className="mt-3 w-full text-sm text-muted-foreground line-clamp-4 text-left">
-                      {bioShort}
-                    </p>
-                  )}
-                  </div>
-                </CardContent>
-                <CardFooter className="mt-auto pt-4 pb-6 px-4">
-                  <Button asChild className="w-full">
-                    <Link href={`/client/psychologists/${p.id}`}>
+                <Card className="flex h-full flex-col overflow-hidden transition-colors hover:border-primary/60 cursor-pointer">
+                  <CardContent className="p-0 flex flex-col">
+                    <div className="w-full aspect-square relative bg-muted overflow-hidden rounded-t-lg">
+                      <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-lg">
+                        <AvatarImage
+                          src={p.profilePhotoUrl ?? undefined}
+                          alt={`${p.firstName} ${p.lastName}`}
+                          className="rounded-none rounded-t-lg object-cover"
+                        />
+                        <AvatarFallback className="rounded-none rounded-t-lg text-4xl font-medium text-muted-foreground">
+                          {initials || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="p-4 flex flex-col">
+                      <div className="w-full text-center space-y-1">
+                        <p className="font-semibold text-foreground">
+                          {p.firstName} {p.lastName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {professionLabel}
+                        </p>
+                      </div>
+                      {bioShort && (
+                        <p className="mt-3 w-full text-sm text-muted-foreground line-clamp-4 text-left">
+                          {bioShort}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="mt-auto pt-4 pb-6 px-4">
+                    <Button className="w-full" variant="secondary">
                       Записаться
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </Link>
             );
           })}
         </div>
