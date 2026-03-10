@@ -393,7 +393,11 @@ export function PsychologistSettingsForm() {
                     specialization: null,
                     bio: null,
                     profilePhotoUrl: null,
-                    profilePhotoPublished: false
+                    profilePhotoPublished: false,
+                    contactPhone: null,
+                    contactTelegram: null,
+                    contactViber: null,
+                    contactWhatsapp: null
                   }
             }
           : null
