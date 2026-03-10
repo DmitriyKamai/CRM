@@ -97,7 +97,7 @@ export function LoginForm() {
             {loading ? "Входим..." : "Войти"}
           </Button>
         </form>
-        <div className="text-xs text-muted-foreground text-right">
+        <div className="text-sm font-semibold text-muted-foreground">
           <Link
             href="/auth/forgot-password"
             className="text-primary underline-offset-4 hover:underline"
