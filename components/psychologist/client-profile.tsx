@@ -689,22 +689,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 <p className="text-sm text-muted-foreground">
                   {groupDescription}
                 </p>
-                <div className="flex justify-end pt-1">
-                  <Button
-                    type="button"
-                    variant={isEditingGroup ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setCustomTabsEdit((prev) => ({
-                        ...prev,
-                        [groupId]: !isEditingGroup
-                      }))
-                    }
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    {isEditingGroup ? "Завершить редактирование" : "Редактировать"}
-                  </Button>
-                </div>
               </div>
 
               {customFieldsLoading ? (
@@ -733,7 +717,11 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   }}
                   className="space-y-3"
                 >
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div
+                    className={`grid gap-3 md:grid-cols-2 ${
+                      !isEditingGroup ? "pointer-events-none" : ""
+                    }`}
+                  >
                     {defsForGroup.map((def) => {
                       const value = customFieldValues[def.id];
                       const label = def.label as string;
@@ -755,7 +743,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             <Input
                               value={typeof value === "string" ? value : ""}
                               onChange={(e) => updateValue(e.target.value)}
-                              disabled={!isEditingGroup}
                             />
                           )}
                           {type === "MULTILINE" && (
@@ -763,7 +750,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               rows={3}
                               value={typeof value === "string" ? value : ""}
                               onChange={(e) => updateValue(e.target.value)}
-                              disabled={!isEditingGroup}
                             />
                           )}
                           {type === "NUMBER" && (
@@ -781,7 +767,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                   e.target.value === "" ? null : Number(e.target.value)
                                 )
                               }
-                              disabled={!isEditingGroup}
                             />
                           )}
                           {type === "DATE" && (
@@ -797,7 +782,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                   e.target.value ? `${e.target.value}T00:00:00.000Z` : null
                                 )
                               }
-                              disabled={!isEditingGroup}
                             />
                           )}
                           {type === "BOOLEAN" && (
@@ -806,7 +790,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 type="checkbox"
                                 checked={value === true}
                                 onChange={(e) => updateValue(e.target.checked)}
-                                disabled={!isEditingGroup}
                               />
                               <span className="text-xs text-muted-foreground">
                                 Да / нет
@@ -817,7 +800,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             <Select
                               value={typeof value === "string" ? value : ""}
                               onValueChange={(v) => updateValue(v)}
-                              disabled={!isEditingGroup}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Выберите" />
@@ -860,7 +842,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                           }
                                           updateValue(Array.from(next));
                                         }}
-                                        disabled={!isEditingGroup}
                                       />
                                       <span>{opt.label}</span>
                                     </label>
@@ -874,7 +855,26 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     })}
                   </div>
 
-                  <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant={isEditingGroup ? "secondary" : "outline"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() =>
+                        setCustomTabsEdit((prev) => ({
+                          ...prev,
+                          [groupId]: !isEditingGroup
+                        }))
+                      }
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">
+                        {isEditingGroup
+                          ? "Завершить редактирование дополнительных полей"
+                          : "Редактировать дополнительные поля"}
+                      </span>
+                    </Button>
                     <Button
                       type="submit"
                       size="sm"

@@ -1077,7 +1077,7 @@ export function PsychologistSettingsForm() {
                       </p>
                     ) : (
                       <div className="rounded-lg border bg-card">
-                        <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                        <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 border-b bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
                           <span>Название</span>
                           <span>Описание</span>
                           <span className="text-right">Действия</span>
@@ -1473,7 +1473,7 @@ export function PsychologistSettingsForm() {
                   </p>
                 ) : (
                   <div className="rounded-lg border bg-card">
-                    <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                    <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
                       <span>Вкладка</span>
                       <span>Название</span>
                       <span>Тип</span>
