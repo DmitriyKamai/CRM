@@ -100,12 +100,12 @@ function SortableFieldWrap({
         <div
           {...attributes}
           {...listeners}
-          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem] flex flex-col"
+          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch flex items-stretch justify-center min-h-[2.5rem]"
           aria-label="Перетащить для смены порядка"
         >
-          <div className="flex-1 min-h-0 flex items-center justify-center">
+          <span className="inline-flex items-center self-stretch min-w-3" aria-hidden>
             <GripVertical className="h-full w-auto min-w-3 max-h-full" />
-          </div>
+          </span>
         </div>
       )}
       {children}
@@ -197,11 +197,13 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
   const [tabsScrollRight, setTabsScrollRight] = useState(false);
+  const [tabsHaveOverflow, setTabsHaveOverflow] = useState(false);
 
   const updateTabsScrollState = useCallback(() => {
     const el = tabsScrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
+    setTabsHaveOverflow(scrollWidth > clientWidth);
     setTabsScrollLeft(scrollLeft > 0);
     setTabsScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
   }, []);
@@ -447,28 +449,33 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       <Tabs
         defaultValue="profile"
         onValueChange={(v) => setDiagnosticsTabActive(v === "diagnostics")}
+        className="w-full min-w-0"
       >
-        <div className="flex items-center gap-1 min-w-0">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 rounded-md"
-            aria-label="Предыдущие вкладки"
-            disabled={!tabsScrollLeft}
-            onClick={() => {
-              tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
-            }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden w-full max-w-full">
+          {tabsHaveOverflow && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-9 shrink-0 rounded-md"
+              aria-label="Предыдущие вкладки"
+              disabled={!tabsScrollLeft}
+              onClick={() => {
+                tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
           <div
             ref={tabsScrollRef}
             className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 scrollbar-schedule"
             onScroll={updateTabsScrollState}
           >
-            <TabsList className="inline-flex w-max h-10">
-              <TabsTrigger value="profile">Личные данные</TabsTrigger>
+            <TabsList className="inline-flex w-max h-10 flex-nowrap">
+              <TabsTrigger value="profile" className="whitespace-nowrap shrink-0">
+                Личные данные
+              </TabsTrigger>
               {Array.from(
                 new Set(
                   customFieldDefs
@@ -476,29 +483,33 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     .filter((g) => g.length > 0)
                 )
               ).map((group) => (
-                <TabsTrigger key={`cf-${group}`} value={`cf-${group}`}>
+                <TabsTrigger key={`cf-${group}`} value={`cf-${group}`} className="whitespace-nowrap shrink-0">
                   {group}
                 </TabsTrigger>
               ))}
-              <TabsTrigger value="diagnostics">
+              <TabsTrigger value="diagnostics" className="whitespace-nowrap shrink-0">
                 Психологическая диагностика
               </TabsTrigger>
-              <TabsTrigger value="appointments">Записи</TabsTrigger>
+              <TabsTrigger value="appointments" className="whitespace-nowrap shrink-0">
+                Записи
+              </TabsTrigger>
             </TabsList>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 rounded-md"
-            aria-label="Следующие вкладки"
-            disabled={!tabsScrollRight}
-            onClick={() => {
-              tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
-            }}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          {tabsHaveOverflow && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-9 shrink-0 rounded-md"
+              aria-label="Следующие вкладки"
+              disabled={!tabsScrollRight}
+              onClick={() => {
+                tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         <TabsContent
@@ -997,22 +1008,24 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             </Popover>
                           )}
                           {type === "BOOLEAN" && (
-                            <div className="flex items-center gap-3">
-                              <Checkbox
-                                id={`cf-bool-${def.id}`}
-                                checked={value === true}
-                                onCheckedChange={(checked) =>
-                                  updateValue(checked === true)
-                                }
-                                className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
-                              />
-                              <Label
-                                htmlFor={`cf-bool-${def.id}`}
-                                className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
-                                  "Опция"}
-                              </Label>
+                            <div className="flex items-center justify-center min-h-[2.5rem]">
+                              <div className="flex items-center gap-3">
+                                <Checkbox
+                                  id={`cf-bool-${def.id}`}
+                                  checked={value === true}
+                                  onCheckedChange={(checked) =>
+                                    updateValue(checked === true)
+                                  }
+                                  className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
+                                />
+                                <Label
+                                  htmlFor={`cf-bool-${def.id}`}
+                                  className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
+                                    "Опция"}
+                                </Label>
+                              </div>
                             </div>
                           )}
                           {type === "SELECT" && (
@@ -1171,22 +1184,24 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 </Popover>
                               )}
                               {type === "BOOLEAN" && (
-                                <div className="flex items-center gap-3">
-                                  <Checkbox
-                                    id={`cf-bool-view-${def.id}`}
-                                    checked={value === true}
-                                    onCheckedChange={(checked) =>
-                                      updateValue(checked === true)
-                                    }
-                                    className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
-                                  />
-                                  <Label
-                                    htmlFor={`cf-bool-view-${def.id}`}
-                                    className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                  >
-                                    {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
-                                      "Опция"}
-                                  </Label>
+                                <div className="flex items-center justify-center min-h-[2.5rem]">
+                                  <div className="flex items-center gap-3">
+                                    <Checkbox
+                                      id={`cf-bool-view-${def.id}`}
+                                      checked={value === true}
+                                      onCheckedChange={(checked) =>
+                                        updateValue(checked === true)
+                                      }
+                                      className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
+                                    />
+                                    <Label
+                                      htmlFor={`cf-bool-view-${def.id}`}
+                                      className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                      {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
+                                        "Опция"}
+                                    </Label>
+                                  </div>
                                 </div>
                               )}
                               {type === "SELECT" && (
