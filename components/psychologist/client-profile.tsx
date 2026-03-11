@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -18,7 +18,7 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, GripVertical } from "lucide-react";
+import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -100,10 +100,12 @@ function SortableFieldWrap({
         <div
           {...attributes}
           {...listeners}
-          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem]"
+          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem] flex flex-col"
           aria-label="Перетащить для смены порядка"
         >
-          <GripVertical className="h-full w-auto min-w-3" />
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <GripVertical className="h-full w-auto min-w-3 max-h-full" />
+          </div>
         </div>
       )}
       {children}
@@ -192,6 +194,34 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [customTabsEdit, setCustomTabsEdit] = useState<Record<string, boolean>>({});
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
+  const [tabsScrollRight, setTabsScrollRight] = useState(false);
+
+  const updateTabsScrollState = useCallback(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setTabsScrollLeft(scrollLeft > 0);
+    setTabsScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    const t = setTimeout(() => {
+      updateTabsScrollState();
+      const el = tabsScrollRef.current;
+      if (el) {
+        const ro = new ResizeObserver(updateTabsScrollState);
+        ro.observe(el);
+        cleanup = () => ro.disconnect();
+      }
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      cleanup?.();
+    };
+  }, [updateTabsScrollState, customFieldDefs.length]);
 
   useEffect(() => {
     setCountry(props.country ?? "");
@@ -418,25 +448,57 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         defaultValue="profile"
         onValueChange={(v) => setDiagnosticsTabActive(v === "diagnostics")}
       >
-        <div className="flex items-center justify-between gap-2">
-          <TabsList>
-            <TabsTrigger value="profile">Личные данные</TabsTrigger>
-            {Array.from(
-              new Set(
-                customFieldDefs
-                  .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
-                  .filter((g) => g.length > 0)
-              )
-            ).map((group) => (
-              <TabsTrigger key={`cf-${group}`} value={`cf-${group}`}>
-                {group}
+        <div className="flex items-center gap-1 min-w-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 rounded-md"
+            aria-label="Предыдущие вкладки"
+            disabled={!tabsScrollLeft}
+            onClick={() => {
+              tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
+            }}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div
+            ref={tabsScrollRef}
+            className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 scrollbar-schedule"
+            onScroll={updateTabsScrollState}
+          >
+            <TabsList className="inline-flex w-max h-10">
+              <TabsTrigger value="profile">Личные данные</TabsTrigger>
+              {Array.from(
+                new Set(
+                  customFieldDefs
+                    .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
+                    .filter((g) => g.length > 0)
+                )
+              ).map((group) => (
+                <TabsTrigger key={`cf-${group}`} value={`cf-${group}`}>
+                  {group}
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="diagnostics">
+                Психологическая диагностика
               </TabsTrigger>
-            ))}
-            <TabsTrigger value="diagnostics">
-              Психологическая диагностика
-            </TabsTrigger>
-            <TabsTrigger value="appointments">Записи</TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="appointments">Записи</TabsTrigger>
+            </TabsList>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 rounded-md"
+            aria-label="Следующие вкладки"
+            disabled={!tabsScrollRight}
+            onClick={() => {
+              tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
+            }}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
         <TabsContent
