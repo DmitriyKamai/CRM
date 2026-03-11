@@ -680,9 +680,9 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             <TabsContent
               key={groupId}
               value={groupId}
-              className="mt-3 space-y-4 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
+              className="mt-3 flex flex-col rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-hidden"
             >
-              <div className="space-y-1">
+              <div className="flex-none space-y-1">
                 <h3 className="text-base font-semibold leading-none tracking-tight">
                   {group}
                 </h3>
@@ -692,7 +692,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </div>
 
               {customFieldsLoading ? (
-                <p className="text-sm text-muted-foreground">Загружаем поля…</p>
+                <p className="flex-1 text-sm text-muted-foreground pt-2">Загружаем поля…</p>
               ) : (
                 <form
                   onSubmit={async (e) => {
@@ -717,10 +717,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                       setCustomFieldsSaving(false);
                     }
                   }}
-                  className="grid gap-3 md:grid-cols-2"
+                  className="flex-1 min-h-0 flex flex-col gap-3"
                 >
                   <div
-                    className={`md:col-span-2 grid gap-3 md:grid-cols-2 ${
+                    className={`flex-1 min-h-0 overflow-y-auto grid gap-3 md:grid-cols-2 content-start ${
                       !isEditingGroup
                         ? "pointer-events-none [&_input]:cursor-text [&_button]:cursor-text [&_[data-radix-select-trigger]]:cursor-text"
                         : ""
@@ -860,7 +860,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     })}
                   </div>
 
-                  <div className="md:col-span-2 flex items-center justify-between gap-3">
+                  <div className="flex-none flex items-center justify-between gap-3 pt-2 border-t">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
