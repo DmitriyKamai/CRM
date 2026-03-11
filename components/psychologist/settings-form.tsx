@@ -539,6 +539,44 @@ export function PsychologistSettingsForm() {
     }
   }
 
+  const existingGroups = useMemo(
+    () => {
+      const map = new Map<string, { description: string; count: number }>();
+      for (const f of customFields) {
+        const raw =
+          f.group && typeof f.group === "string" ? String(f.group).trim() : "";
+        if (!raw) continue;
+        const entry = map.get(raw) ?? { description: "", count: 0 };
+        entry.count += 1;
+        if (!entry.description && typeof f.description === "string") {
+          const desc = f.description.trim();
+          if (desc) entry.description = desc;
+        }
+        map.set(raw, entry);
+      }
+      return Array.from(map.entries()).map(([name, meta]) => ({
+        name,
+        description: meta.description,
+        count: meta.count
+      }));
+    },
+    [customFields]
+  );
+
+  const availableTabs = useMemo(
+    () => {
+      const fromFields = existingGroups.map((g) => ({
+        name: g.name,
+        description: g.description
+      }));
+      const extras = localTabs.filter(
+        (t) => !fromFields.some((g) => g.name === t.name)
+      );
+      return [...fromFields, ...extras];
+    },
+    [existingGroups, localTabs]
+  );
+
   if (loading) {
     return (
       <div className="text-sm text-muted-foreground py-8">
@@ -608,44 +646,6 @@ export function PsychologistSettingsForm() {
     ? getPasswordError(newPassword, newPasswordChecks)
     : null;
   const newPasswordValid = !!newPassword && !newPasswordError;
-
-  const existingGroups = useMemo(
-    () => {
-      const map = new Map<string, { description: string; count: number }>();
-      for (const f of customFields) {
-        const raw =
-          f.group && typeof f.group === "string" ? String(f.group).trim() : "";
-        if (!raw) continue;
-        const entry = map.get(raw) ?? { description: "", count: 0 };
-        entry.count += 1;
-        if (!entry.description && typeof f.description === "string") {
-          const desc = f.description.trim();
-          if (desc) entry.description = desc;
-        }
-        map.set(raw, entry);
-      }
-      return Array.from(map.entries()).map(([name, meta]) => ({
-        name,
-        description: meta.description,
-        count: meta.count
-      }));
-    },
-    [customFields]
-  );
-
-  const availableTabs = useMemo(
-    () => {
-      const fromFields = existingGroups.map((g) => ({
-        name: g.name,
-        description: g.description
-      }));
-      const extras = localTabs.filter(
-        (t) => !fromFields.some((g) => g.name === t.name)
-      );
-      return [...fromFields, ...extras];
-    },
-    [existingGroups, localTabs]
-  );
 
   return (
     <SettingsFormErrorBoundary>
