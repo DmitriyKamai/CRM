@@ -345,7 +345,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       >
         <div className="flex items-center justify-between gap-2">
           <TabsList>
-            <TabsTrigger value="profile">Профиль</TabsTrigger>
+            <TabsTrigger value="profile">Личные данные</TabsTrigger>
             {Array.from(
               new Set(
                 customFieldDefs
