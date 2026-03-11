@@ -21,6 +21,7 @@ const definitionSchema = z.object({
     "BOOLEAN",
     "MULTI_SELECT"
   ]),
+  order: z.number().int().min(0).optional(),
   options: z
     .object({
       required: z.boolean().optional(),
@@ -196,7 +197,8 @@ export async function PATCH(request: Request) {
         id: true,
         group: true,
         label: true,
-        description: true
+        description: true,
+        order: true
       })
       .partial()
       .required({ id: true });
@@ -214,20 +216,23 @@ export async function PATCH(request: Request) {
       );
     }
 
+    const updateData: Record<string, unknown> = {
+      label: parsed.label ?? undefined,
+      description:
+        parsed.description !== undefined ? parsed.description ?? null : undefined,
+      group:
+        parsed.group !== undefined
+          ? parsed.group && parsed.group.trim().length > 0
+            ? parsed.group.trim()
+            : null
+          : undefined
+    };
+    if (parsed.order !== undefined) {
+      updateData.order = parsed.order;
+    }
     const updated = await prisma.customFieldDefinition.updateMany({
       where: { id: parsed.id, psychologistId: profile.id, target: "CLIENT" },
-      data: {
-        label: parsed.label ?? undefined,
-        description:
-          parsed.description !== undefined ? parsed.description ?? null : undefined,
-        group:
-          parsed.group !== undefined
-            ? parsed.group && parsed.group.trim().length > 0
-              ? parsed.group.trim()
-              : null
-            : undefined
-        // key и type намеренно не меняем, чтобы не ломать существующие данные
-      }
+      data: updateData
     });
 
     if (updated.count === 0) {
