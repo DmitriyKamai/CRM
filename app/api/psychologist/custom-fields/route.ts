@@ -105,11 +105,11 @@ export async function POST(request: Request) {
         }
       })) ?? 0;
 
-    // Prisma Json field: pass a plain JSON-serializable value (object or null)
-    const optionsJson =
+    // Prisma Json field: pass a plain JSON-serializable object or undefined (not null)
+    const optionsForDb =
       parsed.options != null
         ? (JSON.parse(JSON.stringify(parsed.options)) as Record<string, unknown>)
-        : null;
+        : undefined;
 
     const created = await prisma.customFieldDefinition.create({
       data: {
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
         type: parsed.type,
         group: parsed.group ?? null,
         order: orderBase,
-        options: optionsJson
+        options: optionsForDb
       }
     });
 
