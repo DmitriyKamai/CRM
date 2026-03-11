@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
@@ -182,6 +182,24 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("ru-RU");
   }
+
+  const groupDescriptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const def of customFieldDefs) {
+      const group =
+        def.group && typeof def.group === "string"
+          ? (def.group as string).trim()
+          : "";
+      if (!group || map.has(group)) continue;
+      if (typeof def.description === "string") {
+        const desc = (def.description as string).trim();
+        if (desc) {
+          map.set(group, desc);
+        }
+      }
+    }
+    return map;
+  }, [customFieldDefs]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -653,6 +671,9 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             (d) => (d.group && typeof d.group === "string" ? d.group.trim() : "") === group
           );
           if (defsForGroup.length === 0) return null;
+          const groupDescription =
+            groupDescriptions.get(group) ??
+            "Дополнительные данные клиента. Видны только вам.";
           return (
             <TabsContent
               key={groupId}
@@ -664,7 +685,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   {group}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Дополнительные данные клиента. Видны только вам.
+                  {groupDescription}
                 </p>
               </div>
 

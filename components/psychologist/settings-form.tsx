@@ -992,7 +992,7 @@ export function PsychologistSettingsForm() {
                   {customFieldsError}
                 </div>
               )}
-              <div className="space-y-3 rounded-md border bg-card/50 p-3">
+              <div className="space-y-3 rounded-lg border bg-card p-3">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-medium">Вкладки</p>
                   <p className="text-xs text-muted-foreground">
@@ -1000,7 +1000,7 @@ export function PsychologistSettingsForm() {
                   </p>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)]">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Создать вкладку</p>
                     <div className="space-y-2">
@@ -1056,7 +1056,7 @@ export function PsychologistSettingsForm() {
                         Пока нет ни одной вкладки. Создайте вкладку слева, затем добавьте на неё поля.
                       </p>
                     ) : (
-                      <div className="rounded-md border bg-background/40">
+                      <div className="rounded-lg border bg-card">
                         <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                           <span>Название</span>
                           <span>Описание</span>
@@ -1090,19 +1090,18 @@ export function PsychologistSettingsForm() {
                                       }
                                     />
                                   </div>
-                                  <div className="flex items-center justify-end gap-1">
+                                  <div className="flex items-center justify-end gap-2">
                                     <Button
                                       type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8"
+                                      size="sm"
+                                      variant="outline"
                                       onClick={() => {
                                         setEditingTabGroup(null);
                                         setEditingTabName("");
                                         setEditingTabDescription("");
                                       }}
                                     >
-                                      ×
+                                      Отменить
                                     </Button>
                                     <Button
                                       type="button"
@@ -1236,7 +1235,7 @@ export function PsychologistSettingsForm() {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-md border bg-card/50 p-3">
+              <div className="space-y-3 rounded-lg border bg-card p-3">
                 <p className="text-sm font-medium">Поля</p>
                 {customFieldsLoading ? (
                   <p className="text-sm text-muted-foreground">Загружаем поля…</p>
@@ -1245,7 +1244,7 @@ export function PsychologistSettingsForm() {
                     Пока нет ни одного пользовательского поля. Сначала создайте вкладку, затем добавьте на неё поля.
                   </p>
                 ) : (
-                  <div className="rounded-md border bg-card/50">
+                  <div className="rounded-lg border bg-card">
                     <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                       <span>Вкладка</span>
                       <span>Название</span>
@@ -1286,17 +1285,16 @@ export function PsychologistSettingsForm() {
                               <div className="space-y-1 text-xs text-muted-foreground">
                                 {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
                               </div>
-                              <div className="flex items-center justify-end gap-1">
+                              <div className="flex items-center justify-end gap-2">
                                 <Button
                                   type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => {
                                     setEditingFieldId(null);
                                   }}
                                 >
-                                  ×
+                                  Отменить
                                 </Button>
                                 <Button
                                   type="button"
@@ -1350,11 +1348,6 @@ export function PsychologistSettingsForm() {
                               <span>{f.group ?? "Без вкладки"}</span>
                               <div className="space-y-0.5">
                                 <span>{f.label}</span>
-                                {f.description && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {f.description}
-                                  </p>
-                                )}
                               </div>
                               <span className="text-xs text-muted-foreground">
                                 {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
