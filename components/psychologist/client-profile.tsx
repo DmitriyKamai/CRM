@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -934,16 +935,22 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             </Popover>
                           )}
                           {type === "BOOLEAN" && (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                id={`cf-bool-${def.id}`}
                                 checked={value === true}
-                                onChange={(e) => updateValue(e.target.checked)}
+                                onCheckedChange={(checked) =>
+                                  updateValue(checked === true)
+                                }
+                                className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
                               />
-                              <span className="text-xs text-muted-foreground">
+                              <Label
+                                htmlFor={`cf-bool-${def.id}`}
+                                className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
                                 {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
                                   "Опция"}
-                              </span>
+                              </Label>
                             </div>
                           )}
                           {type === "SELECT" && (
@@ -1102,16 +1109,22 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 </Popover>
                               )}
                               {type === "BOOLEAN" && (
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
+                                <div className="flex items-center gap-3">
+                                  <Checkbox
+                                    id={`cf-bool-view-${def.id}`}
                                     checked={value === true}
-                                    onChange={(e) => updateValue(e.target.checked)}
+                                    onCheckedChange={(checked) =>
+                                      updateValue(checked === true)
+                                    }
+                                    className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
                                   />
-                                  <span className="text-xs text-muted-foreground">
+                                  <Label
+                                    htmlFor={`cf-bool-view-${def.id}`}
+                                    className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                  >
                                     {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
                                       "Опция"}
-                                  </span>
+                                  </Label>
                                 </div>
                               )}
                               {type === "SELECT" && (
