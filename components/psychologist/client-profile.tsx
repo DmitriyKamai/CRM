@@ -100,12 +100,12 @@ function SortableFieldWrap({
         <div
           {...attributes}
           {...listeners}
-          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch flex items-stretch justify-center min-h-[2.5rem]"
+          className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem]"
           aria-label="Перетащить для смены порядка"
         >
-          <span className="inline-flex items-center self-stretch min-w-3" aria-hidden>
-            <GripVertical className="h-full w-auto min-w-3 max-h-full" />
-          </span>
+          <div className="absolute inset-0 flex items-stretch justify-center">
+            <GripVertical className="h-full w-auto min-w-3 [&>svg]:block [&>svg]:h-full [&>svg]:w-auto" />
+          </div>
         </div>
       )}
       {children}
@@ -210,7 +210,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
-    const t = setTimeout(() => {
+    const run = () => {
       updateTabsScrollState();
       const el = tabsScrollRef.current;
       if (el) {
@@ -218,9 +218,12 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         ro.observe(el);
         cleanup = () => ro.disconnect();
       }
-    }, 0);
+    };
+    const t1 = setTimeout(run, 0);
+    const t2 = setTimeout(run, 350);
     return () => {
-      clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
       cleanup?.();
     };
   }, [updateTabsScrollState, customFieldDefs.length]);
@@ -428,7 +431,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0 w-full overflow-hidden">
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -451,28 +454,27 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         onValueChange={(v) => setDiagnosticsTabActive(v === "diagnostics")}
         className="w-full min-w-0"
       >
-        <div className="flex items-center gap-1 min-w-0 overflow-hidden w-full max-w-full">
-          {tabsHaveOverflow && (
+        <div className="w-full min-w-0 overflow-hidden">
+          <div className="flex items-center gap-1 min-w-0">
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="h-10 w-9 shrink-0 rounded-md"
               aria-label="Предыдущие вкладки"
-              disabled={!tabsScrollLeft}
+              disabled={!tabsHaveOverflow || !tabsScrollLeft}
               onClick={() => {
                 tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
               }}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-          )}
-          <div
-            ref={tabsScrollRef}
-            className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 scrollbar-schedule"
-            onScroll={updateTabsScrollState}
-          >
-            <TabsList className="inline-flex w-max h-10 flex-nowrap">
+            <div
+              ref={tabsScrollRef}
+              className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 scrollbar-schedule basis-0"
+              onScroll={updateTabsScrollState}
+            >
+              <TabsList className="inline-flex w-max h-10 flex-nowrap">
               <TabsTrigger value="profile" className="whitespace-nowrap shrink-0">
                 Личные данные
               </TabsTrigger>
@@ -494,22 +496,21 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 Записи
               </TabsTrigger>
             </TabsList>
-          </div>
-          {tabsHaveOverflow && (
+            </div>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="h-10 w-9 shrink-0 rounded-md"
               aria-label="Следующие вкладки"
-              disabled={!tabsScrollRight}
+              disabled={!tabsHaveOverflow || !tabsScrollRight}
               onClick={() => {
                 tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
               }}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-          )}
+          </div>
         </div>
 
         <TabsContent
@@ -1008,7 +1009,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             </Popover>
                           )}
                           {type === "BOOLEAN" && (
-                            <div className="flex items-center justify-center min-h-[2.5rem]">
+                            <div className="flex items-center min-h-[2.5rem]">
                               <div className="flex items-center gap-3">
                                 <Checkbox
                                   id={`cf-bool-${def.id}`}
@@ -1184,7 +1185,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 </Popover>
                               )}
                               {type === "BOOLEAN" && (
-                                <div className="flex items-center justify-center min-h-[2.5rem]">
+                                <div className="flex items-center min-h-[2.5rem]">
                                   <div className="flex items-center gap-3">
                                     <Checkbox
                                       id={`cf-bool-view-${def.id}`}
