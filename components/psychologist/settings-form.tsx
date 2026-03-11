@@ -238,6 +238,7 @@ export function PsychologistSettingsForm() {
   const [editingTabName, setEditingTabName] = useState("");
   const [editingTabDescription, setEditingTabDescription] = useState("");
   const [localTabs, setLocalTabs] = useState<{ name: string; description: string }[]>([]);
+  const [createTabDialogOpen, setCreateTabDialogOpen] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
@@ -585,6 +586,19 @@ export function PsychologistSettingsForm() {
       return [...fromFields, ...extras];
     },
     [existingGroups, localTabs]
+  );
+
+  const allTabsForList = useMemo(
+    () =>
+      availableTabs.map((t) => {
+        const fromExisting = existingGroups.find((g) => g.name === t.name);
+        return {
+          name: t.name,
+          description: t.description,
+          count: fromExisting?.count ?? 0
+        };
+      }),
+    [availableTabs, existingGroups]
   );
 
   if (loading) {
@@ -1009,7 +1023,7 @@ export function PsychologistSettingsForm() {
                     <p className="text-xs text-muted-foreground">
                       Вкладки группируют поля в отдельные разделы карточки клиента.
                     </p>
-                    <Dialog>
+                    <Dialog open={createTabDialogOpen} onOpenChange={setCreateTabDialogOpen}>
                       <DialogTrigger asChild>
                         <Button size="sm">
                           Создать вкладку
@@ -1059,6 +1073,7 @@ export function PsychologistSettingsForm() {
                               setNewTabName("");
                               setNewTabDescription("");
                               setNewFieldGroup(name);
+                              setCreateTabDialogOpen(false);
                             }}
                           >
                             Сохранить вкладку
@@ -1072,7 +1087,7 @@ export function PsychologistSettingsForm() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Существующие вкладки</p>
-                    {existingGroups.length === 0 ? (
+                    {allTabsForList.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         Пока нет ни одной вкладки. Создайте вкладку слева, затем добавьте на неё поля.
                       </p>
@@ -1084,7 +1099,7 @@ export function PsychologistSettingsForm() {
                           <span className="text-right">Действия</span>
                         </div>
                         <div className="divide-y">
-                          {existingGroups.map((g) => (
+                          {allTabsForList.map((g) => (
                             <div
                               key={g.name}
                               className="grid grid-cols-[1.5fr,2fr,auto] items-start gap-2 px-3 py-2 text-sm"
@@ -1132,38 +1147,51 @@ export function PsychologistSettingsForm() {
                                         const nextDescription =
                                           editingTabDescription.trim();
                                         if (!nextName) return;
+                                        const defsForGroup = customFields.filter(
+                                          (f) =>
+                                            f.group &&
+                                            typeof f.group === "string" &&
+                                            f.group.trim() === g.name
+                                        );
                                         try {
-                                          const defsForGroup = customFields.filter(
-                                            (f) =>
-                                              f.group &&
-                                              typeof f.group === "string" &&
-                                              f.group.trim() === g.name
-                                          );
-                                          await Promise.all(
-                                            defsForGroup.map((f) =>
-                                              fetch(
-                                                "/api/psychologist/custom-fields",
-                                                {
-                                                  method: "PATCH",
-                                                  headers: {
-                                                    "Content-Type": "application/json"
-                                                  },
-                                                  body: JSON.stringify({
-                                                    id: f.id,
-                                                    group: nextName,
-                                                    description:
-                                                      nextDescription.length > 0
-                                                        ? nextDescription
-                                                        : null
-                                                  })
-                                                }
+                                          if (defsForGroup.length === 0) {
+                                            setLocalTabs((prev) =>
+                                              prev.map((t) =>
+                                                t.name === g.name
+                                                  ? {
+                                                      name: nextName,
+                                                      description: nextDescription
+                                                    }
+                                                  : t
                                               )
-                                            )
-                                          );
+                                            );
+                                          } else {
+                                            await Promise.all(
+                                              defsForGroup.map((f) =>
+                                                fetch(
+                                                  "/api/psychologist/custom-fields",
+                                                  {
+                                                    method: "PATCH",
+                                                    headers: {
+                                                      "Content-Type": "application/json"
+                                                    },
+                                                    body: JSON.stringify({
+                                                      id: f.id,
+                                                      group: nextName,
+                                                      description:
+                                                        nextDescription.length > 0
+                                                          ? nextDescription
+                                                          : null
+                                                    })
+                                                  }
+                                                )
+                                              )
+                                            );
+                                            refetchCustomFields();
+                                          }
                                           setEditingTabGroup(null);
                                           setEditingTabName("");
                                           setEditingTabDescription("");
-                                          refetchCustomFields();
                                         } catch (err) {
                                           console.error(err);
                                           setCustomFieldsError(
@@ -1216,24 +1244,30 @@ export function PsychologistSettingsForm() {
                                       variant="ghost"
                                       className="h-8 w-8 text-destructive"
                                       onClick={async () => {
+                                        const defsForGroup = customFields.filter(
+                                          (f) =>
+                                            f.group &&
+                                            typeof f.group === "string" &&
+                                            f.group.trim() === g.name
+                                        );
                                         try {
-                                          const defsForGroup = customFields.filter(
-                                            (f) =>
-                                              f.group &&
-                                              typeof f.group === "string" &&
-                                              f.group.trim() === g.name
-                                          );
-                                          await Promise.all(
-                                            defsForGroup.map((f) =>
-                                              fetch(
-                                                `/api/psychologist/custom-fields?id=${encodeURIComponent(
-                                                  f.id
-                                                )}`,
-                                                { method: "DELETE" }
+                                          if (defsForGroup.length === 0) {
+                                            setLocalTabs((prev) =>
+                                              prev.filter((t) => t.name !== g.name)
+                                            );
+                                          } else {
+                                            await Promise.all(
+                                              defsForGroup.map((f) =>
+                                                fetch(
+                                                  `/api/psychologist/custom-fields?id=${encodeURIComponent(
+                                                    f.id
+                                                  )}`,
+                                                  { method: "DELETE" }
+                                                )
                                               )
-                                            )
-                                          );
-                                          refetchCustomFields();
+                                            );
+                                            refetchCustomFields();
+                                          }
                                         } catch (err) {
                                           console.error(err);
                                           setCustomFieldsError(
