@@ -87,39 +87,35 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     });
     const allowedIds = new Set(defs.map((d) => d.id));
 
-    const ops = [];
     for (const [definitionId, raw] of Object.entries(parsed)) {
       if (!allowedIds.has(definitionId)) continue;
-      if (raw === null || raw === undefined || raw === "") {
-        ops.push(
-          prisma.customFieldValue.deleteMany({
-            where: { clientId: id, definitionId }
-          })
-        );
-      } else {
-        ops.push(
-          prisma.customFieldValue.upsert({
-            where: {
-              definitionId_clientId: {
-                definitionId,
-                clientId: id
-              }
-            },
-            create: {
-              definitionId,
-              clientId: id,
-              value: raw as any
-            },
-            update: {
-              value: raw as any
-            }
-          })
-        );
-      }
-    }
 
-    if (ops.length > 0) {
-      await prisma.$transaction(ops);
+      // пустое значение — просто удаляем все значения для этого поля/клиента
+      if (raw === null || raw === undefined || raw === "") {
+        await prisma.customFieldValue.deleteMany({
+          where: { clientId: id, definitionId }
+        });
+        continue;
+      }
+
+      const existing = await prisma.customFieldValue.findFirst({
+        where: { clientId: id, definitionId }
+      });
+
+      if (!existing) {
+        await prisma.customFieldValue.create({
+          data: {
+            definitionId,
+            clientId: id,
+            value: raw as any
+          }
+        });
+      } else {
+        await prisma.customFieldValue.update({
+          where: { id: existing.id },
+          data: { value: raw as any }
+        });
+      }
     }
 
     return NextResponse.json({ success: true });

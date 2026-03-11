@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, useCallback, useEffect, useState } from "react";
+import React, { Component, useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { signIn } from "next-auth/react";
 import { useSession, signOut } from "next-auth/react";
@@ -223,6 +223,12 @@ export function PsychologistSettingsForm() {
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldsError, setCustomFieldsError] = useState<string | null>(null);
+  const [newTabName, setNewTabName] = useState("");
+  const [newTabDescription, setNewTabDescription] = useState("");
+  const [editingTabGroup, setEditingTabGroup] = useState<string | null>(null);
+  const [editingTabName, setEditingTabName] = useState("");
+  const [editingTabDescription, setEditingTabDescription] = useState("");
+  const [localTabs, setLocalTabs] = useState<{ name: string; description: string }[]>([]);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
@@ -603,6 +609,44 @@ export function PsychologistSettingsForm() {
     : null;
   const newPasswordValid = !!newPassword && !newPasswordError;
 
+  const existingGroups = useMemo(
+    () => {
+      const map = new Map<string, { description: string; count: number }>();
+      for (const f of customFields) {
+        const raw =
+          f.group && typeof f.group === "string" ? String(f.group).trim() : "";
+        if (!raw) continue;
+        const entry = map.get(raw) ?? { description: "", count: 0 };
+        entry.count += 1;
+        if (!entry.description && typeof f.description === "string") {
+          const desc = f.description.trim();
+          if (desc) entry.description = desc;
+        }
+        map.set(raw, entry);
+      }
+      return Array.from(map.entries()).map(([name, meta]) => ({
+        name,
+        description: meta.description,
+        count: meta.count
+      }));
+    },
+    [customFields]
+  );
+
+  const availableTabs = useMemo(
+    () => {
+      const fromFields = existingGroups.map((g) => ({
+        name: g.name,
+        description: g.description
+      }));
+      const extras = localTabs.filter(
+        (t) => !fromFields.some((g) => g.name === t.name)
+      );
+      return [...fromFields, ...extras];
+    },
+    [existingGroups, localTabs]
+  );
+
   return (
     <SettingsFormErrorBoundary>
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
@@ -948,394 +992,625 @@ export function PsychologistSettingsForm() {
                   {customFieldsError}
                 </div>
               )}
-              {customFieldsLoading ? (
-                <p className="text-sm text-muted-foreground">Загружаем поля…</p>
-              ) : customFields.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Пока нет ни одного пользовательского поля. Добавьте первое поле ниже.
-                </p>
-              ) : (
-                <div className="rounded-md border bg-card/50">
-                  <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
-                    <span>Вкладка</span>
-                    <span>Название</span>
-                    <span>Тип</span>
-                    <span className="text-right">Действия</span>
-                  </div>
-                  <div className="divide-y">
-                    {customFields.map((f) => (
-                      <div
-                        key={f.id}
-                        className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] items-start gap-2 px-3 py-2 text-sm"
-                      >
-                        {editingFieldId === f.id ? (
-                          <>
-                            <div className="space-y-1">
-                              <Input
-                                value={editingGroup}
-                                onChange={(e) => setEditingGroup(e.target.value)}
-                                placeholder="Вкладка"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Input
-                                value={editingLabel}
-                                onChange={(e) => setEditingLabel(e.target.value)}
-                                placeholder="Название поля"
-                              />
-                              <textarea
-                                className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs text-foreground"
-                                rows={2}
-                                placeholder="Описание (опционально)"
-                                value={editingDescription}
-                                onChange={(e) =>
-                                  setEditingDescription(e.target.value)
-                                }
-                              />
-                            </div>
-                            <div className="space-y-1 text-xs text-muted-foreground">
-                              {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
-                            </div>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => {
-                                  setEditingFieldId(null);
-                                }}
-                              >
-                                ×
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={async () => {
-                                  if (!editingLabel.trim()) return;
-                                  try {
-                                    const res = await fetch(
-                                      "/api/psychologist/custom-fields",
-                                      {
-                                        method: "PATCH",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                          id: f.id,
-                                          label: editingLabel.trim(),
-                                          group:
-                                            editingGroup.trim().length > 0
-                                              ? editingGroup.trim()
-                                              : null,
-                                          description:
-                                            editingDescription.trim().length > 0
-                                              ? editingDescription.trim()
-                                              : null
-                                        })
-                                      }
-                                    );
-                                    const data = await res.json().catch(() => ({}));
-                                    if (!res.ok) {
-                                      setCustomFieldsError(
-                                        data?.message ?? "Не удалось сохранить поле"
-                                      );
-                                      return;
-                                    }
-                                    setEditingFieldId(null);
-                                    setEditingLabel("");
-                                    setEditingGroup("");
-                                    setEditingDescription("");
-                                    refetchCustomFields();
-                                  } catch (err) {
-                                    console.error(err);
-                                    setCustomFieldsError("Не удалось сохранить поле");
-                                  }
-                                }}
-                              >
-                                Сохранить
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <span>{f.group ?? "Без вкладки"}</span>
-                            <div className="space-y-0.5">
-                              <span>{f.label}</span>
-                              {f.description && (
-                                <p className="text-xs text-muted-foreground">
-                                  {f.description}
-                                </p>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
-                            </span>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => {
-                                  setEditingFieldId(f.id);
-                                  setEditingLabel(f.label ?? "");
-                                  setEditingGroup(
-                                    f.group && typeof f.group === "string"
-                                      ? f.group
-                                      : ""
-                                  );
-                                  setEditingDescription(f.description ?? "");
-                                  setCustomFieldsError(null);
-                                }}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive"
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetch(
-                                      `/api/psychologist/custom-fields?id=${encodeURIComponent(
-                                        f.id
-                                      )}`,
-                                      { method: "DELETE" }
-                                    );
-                                    const data = await res.json().catch(() => ({}));
-                                    if (!res.ok) {
-                                      setCustomFieldsError(
-                                        data?.message ?? "Не удалось удалить поле"
-                                      );
-                                      return;
-                                    }
-                                    refetchCustomFields();
-                                  } catch (err) {
-                                    console.error(err);
-                                    setCustomFieldsError("Не удалось удалить поле");
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-2 border-t">
-                <p className="text-sm font-medium">Добавить поле</p>
-                <div className="mt-2 grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="cf-group">Вкладка (группа)</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Выберите существующую вкладку или создайте новую.
-                    </p>
-                    <Select
-                      value={newFieldGroup || "__none"}
-                      onValueChange={(v) => {
-                        if (v === "__none") {
-                          setNewFieldGroup("");
-                        } else {
-                          setNewFieldGroup(v);
-                        }
-                      }}
-                    >
-                      <SelectTrigger id="cf-group">
-                        <SelectValue placeholder="Выберите вкладку" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none">Без вкладки</SelectItem>
-                        {Array.from(
-                          new Set(
-                            customFields
-                              .map((f) =>
-                                f.group && typeof f.group === "string"
-                                  ? f.group.trim()
-                                  : ""
-                              )
-                              .filter((g) => g.length > 0)
-                          )
-                        ).map((g) => (
-                          <SelectItem key={g} value={g}>
-                            {g}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="pt-2">
-                      <Input
-                        placeholder="Или введите название новой вкладки (например, Анамнез)"
-                        value={newFieldGroup}
-                        onChange={(e) => setNewFieldGroup(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="cf-label">Название поля</Label>
-                    <Input
-                      id="cf-label"
-                      placeholder="Например, Основной запрос"
-                      value={newFieldLabel}
-                      onChange={(e) => {
-                        setNewFieldLabel(e.target.value);
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="cf-type">Тип поля</Label>
-                    <Select
-                      value={newFieldType}
-                      onValueChange={(v) =>
-                        setNewFieldType(
-                          v as
-                            | "TEXT"
-                            | "MULTILINE"
-                            | "NUMBER"
-                            | "DATE"
-                            | "BOOLEAN"
-                            | "SELECT"
-                            | "MULTI_SELECT"
-                        )
-                      }
-                    >
-                      <SelectTrigger id="cf-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="TEXT">Текст (одна строка)</SelectItem>
-                        <SelectItem value="MULTILINE">Текст (несколько строк)</SelectItem>
-                        <SelectItem value="NUMBER">Число</SelectItem>
-                        <SelectItem value="DATE">Дата</SelectItem>
-                        <SelectItem value="BOOLEAN">Флажок (да/нет)</SelectItem>
-                        <SelectItem value="SELECT">Селект (один вариант)</SelectItem>
-                        <SelectItem value="MULTI_SELECT">
-                          Мультиселект (несколько вариантов)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="space-y-3 rounded-md border bg-card/50 p-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm font-medium">Вкладки</p>
+                  <p className="text-xs text-muted-foreground">
+                    Вкладки группируют поля в отдельные разделы карточки клиента.
+                  </p>
                 </div>
 
-                {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
-                  <div className="mt-3 space-y-2">
-                    <Label>Опции</Label>
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)]">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Создать вкладку</p>
                     <div className="space-y-2">
-                      {newFieldOptions.map((opt, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <Input
-                            className="w-1/3"
-                            placeholder="Значение"
-                            value={opt.value}
-                            onChange={(e) => {
-                              const next = [...newFieldOptions];
-                              next[idx] = { ...next[idx], value: e.target.value };
-                              setNewFieldOptions(next);
-                            }}
-                          />
-                          <Input
-                            className="flex-1"
-                            placeholder="Подпись"
-                            value={opt.label}
-                            onChange={(e) => {
-                              const next = [...newFieldOptions];
-                              next[idx] = { ...next[idx], label: e.target.value };
-                              setNewFieldOptions(next);
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              setNewFieldOptions((prev) => prev.filter((_, i) => i !== idx))
-                            }
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      ))}
+                      <div className="space-y-1">
+                        <Label htmlFor="new-tab-name">Название вкладки</Label>
+                        <Input
+                          id="new-tab-name"
+                          placeholder="Например, Анамнез"
+                          value={newTabName}
+                          maxLength={64}
+                          onChange={(e) => setNewTabName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="new-tab-description">Описание вкладки</Label>
+                        <Textarea
+                          id="new-tab-description"
+                          rows={3}
+                          placeholder="Кратко опишите, какие данные будут храниться на этой вкладке"
+                          value={newTabDescription}
+                          maxLength={512}
+                          onChange={(e) => setNewTabDescription(e.target.value)}
+                        />
+                      </div>
                       <Button
                         type="button"
-                        variant="outline"
                         size="sm"
-                        onClick={() =>
-                          setNewFieldOptions((prev) => [
-                            ...prev,
-                            { value: "", label: "" }
-                          ])
-                        }
+                        onClick={() => {
+                          const name = newTabName.trim();
+                          const description = newTabDescription.trim();
+                          if (!name) return;
+                          setLocalTabs((prev) => {
+                            const without = prev.filter((t) => t.name !== name);
+                            return [...without, { name, description }];
+                          });
+                          setNewTabName("");
+                          setNewTabDescription("");
+                          setNewFieldGroup(name);
+                        }}
                       >
-                        Добавить опцию
+                        Сохранить вкладку
                       </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Вкладка появится в карточке клиента, когда вы добавите на неё хотя бы одно поле.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Существующие вкладки</p>
+                    {existingGroups.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Пока нет ни одной вкладки. Создайте вкладку слева, затем добавьте на неё поля.
+                      </p>
+                    ) : (
+                      <div className="rounded-md border bg-background/40">
+                        <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                          <span>Название</span>
+                          <span>Описание</span>
+                          <span className="text-right">Действия</span>
+                        </div>
+                        <div className="divide-y">
+                          {existingGroups.map((g) => (
+                            <div
+                              key={g.name}
+                              className="grid grid-cols-[1.5fr,2fr,auto] items-start gap-2 px-3 py-2 text-sm"
+                            >
+                              {editingTabGroup === g.name ? (
+                                <>
+                                  <div className="space-y-1">
+                                    <Input
+                                      value={editingTabName}
+                                      onChange={(e) =>
+                                        setEditingTabName(e.target.value)
+                                      }
+                                      placeholder="Название вкладки"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Textarea
+                                      rows={2}
+                                      className="text-xs"
+                                      placeholder="Описание вкладки"
+                                      value={editingTabDescription}
+                                      onChange={(e) =>
+                                        setEditingTabDescription(e.target.value)
+                                      }
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => {
+                                        setEditingTabGroup(null);
+                                        setEditingTabName("");
+                                        setEditingTabDescription("");
+                                      }}
+                                    >
+                                      ×
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const nextName = editingTabName.trim();
+                                        const nextDescription =
+                                          editingTabDescription.trim();
+                                        if (!nextName) return;
+                                        try {
+                                          const defsForGroup = customFields.filter(
+                                            (f) =>
+                                              f.group &&
+                                              typeof f.group === "string" &&
+                                              f.group.trim() === g.name
+                                          );
+                                          await Promise.all(
+                                            defsForGroup.map((f) =>
+                                              fetch(
+                                                "/api/psychologist/custom-fields",
+                                                {
+                                                  method: "PATCH",
+                                                  headers: {
+                                                    "Content-Type": "application/json"
+                                                  },
+                                                  body: JSON.stringify({
+                                                    id: f.id,
+                                                    group: nextName,
+                                                    description:
+                                                      nextDescription.length > 0
+                                                        ? nextDescription
+                                                        : null
+                                                  })
+                                                }
+                                              )
+                                            )
+                                          );
+                                          setEditingTabGroup(null);
+                                          setEditingTabName("");
+                                          setEditingTabDescription("");
+                                          refetchCustomFields();
+                                        } catch (err) {
+                                          console.error(err);
+                                          setCustomFieldsError(
+                                            "Не удалось сохранить вкладку"
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      Сохранить
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="space-y-0.5">
+                                    <span>{g.name}</span>
+                                    <p className="text-xs text-muted-foreground">
+                                      Полей: {g.count}
+                                    </p>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    {g.description ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        {g.description}
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground">
+                                        Описание не задано
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => {
+                                        setEditingTabGroup(g.name);
+                                        setEditingTabName(g.name);
+                                        setEditingTabDescription(g.description ?? "");
+                                        setCustomFieldsError(null);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive"
+                                      onClick={async () => {
+                                        try {
+                                          const defsForGroup = customFields.filter(
+                                            (f) =>
+                                              f.group &&
+                                              typeof f.group === "string" &&
+                                              f.group.trim() === g.name
+                                          );
+                                          await Promise.all(
+                                            defsForGroup.map((f) =>
+                                              fetch(
+                                                `/api/psychologist/custom-fields?id=${encodeURIComponent(
+                                                  f.id
+                                                )}`,
+                                                { method: "DELETE" }
+                                              )
+                                            )
+                                          );
+                                          refetchCustomFields();
+                                        } catch (err) {
+                                          console.error(err);
+                                          setCustomFieldsError(
+                                            "Не удалось удалить вкладку"
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-md border bg-card/50 p-3">
+                <p className="text-sm font-medium">Поля</p>
+                {customFieldsLoading ? (
+                  <p className="text-sm text-muted-foreground">Загружаем поля…</p>
+                ) : customFields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Пока нет ни одного пользовательского поля. Сначала создайте вкладку, затем добавьте на неё поля.
+                  </p>
+                ) : (
+                  <div className="rounded-md border bg-card/50">
+                    <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                      <span>Вкладка</span>
+                      <span>Название</span>
+                      <span>Тип</span>
+                      <span className="text-right">Действия</span>
+                    </div>
+                    <div className="divide-y">
+                      {customFields.map((f) => (
+                        <div
+                          key={f.id}
+                          className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] items-start gap-2 px-3 py-2 text-sm"
+                        >
+                          {editingFieldId === f.id ? (
+                            <>
+                              <div className="space-y-1">
+                                <Input
+                                  value={editingGroup}
+                                  onChange={(e) => setEditingGroup(e.target.value)}
+                                  placeholder="Вкладка"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Input
+                                  value={editingLabel}
+                                  onChange={(e) => setEditingLabel(e.target.value)}
+                                  placeholder="Название поля"
+                                />
+                                <textarea
+                                  className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs text-foreground"
+                                  rows={2}
+                                  placeholder="Описание (опционально)"
+                                  value={editingDescription}
+                                  onChange={(e) =>
+                                    setEditingDescription(e.target.value)
+                                  }
+                                />
+                              </div>
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
+                              </div>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingFieldId(null);
+                                  }}
+                                >
+                                  ×
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (!editingLabel.trim()) return;
+                                    try {
+                                      const res = await fetch(
+                                        "/api/psychologist/custom-fields",
+                                        {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({
+                                            id: f.id,
+                                            label: editingLabel.trim(),
+                                            group:
+                                              editingGroup.trim().length > 0
+                                                ? editingGroup.trim()
+                                                : null,
+                                            description:
+                                              editingDescription.trim().length > 0
+                                                ? editingDescription.trim()
+                                                : null
+                                          })
+                                        }
+                                      );
+                                      const data = await res.json().catch(() => ({}));
+                                      if (!res.ok) {
+                                        setCustomFieldsError(
+                                          data?.message ?? "Не удалось сохранить поле"
+                                        );
+                                        return;
+                                      }
+                                      setEditingFieldId(null);
+                                      setEditingLabel("");
+                                      setEditingGroup("");
+                                      setEditingDescription("");
+                                      refetchCustomFields();
+                                    } catch (err) {
+                                      console.error(err);
+                                      setCustomFieldsError("Не удалось сохранить поле");
+                                    }
+                                  }}
+                                >
+                                  Сохранить
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span>{f.group ?? "Без вкладки"}</span>
+                              <div className="space-y-0.5">
+                                <span>{f.label}</span>
+                                {f.description && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {f.description}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
+                              </span>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingFieldId(f.id);
+                                    setEditingLabel(f.label ?? "");
+                                    setEditingGroup(
+                                      f.group && typeof f.group === "string"
+                                        ? f.group
+                                        : ""
+                                    );
+                                    setEditingDescription(f.description ?? "");
+                                    setCustomFieldsError(null);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch(
+                                        `/api/psychologist/custom-fields?id=${encodeURIComponent(
+                                          f.id
+                                        )}`,
+                                        { method: "DELETE" }
+                                      );
+                                      const data = await res.json().catch(() => ({}));
+                                      if (!res.ok) {
+                                        setCustomFieldsError(
+                                          data?.message ?? "Не удалось удалить поле"
+                                        );
+                                        return;
+                                      }
+                                      refetchCustomFields();
+                                    } catch (err) {
+                                      console.error(err);
+                                      setCustomFieldsError("Не удалось удалить поле");
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                <div className="mt-4">
-                  <Button
-                    type="button"
-                      onClick={async () => {
-                      setCustomFieldsError(null);
-                      if (!newFieldLabel.trim() || !newFieldGroup.trim()) return;
-                      const existingKeys = new Set(
-                        customFields.map((f) => String(f.key ?? "")).filter(Boolean)
-                      );
-                      let baseKey = newFieldLabel
-                        .trim()
-                        .toLowerCase()
-                        .replace(/\s+/g, "_");
-                      if (!baseKey) {
-                        baseKey = `field_${customFields.length + 1}`;
-                      }
-                      let key = baseKey;
-                      let counter = 2;
-                      while (existingKeys.has(key)) {
-                        key = `${baseKey}_${counter++}`;
-                      }
-                      try {
-                        const res = await fetch("/api/psychologist/custom-fields", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            group: newFieldGroup.trim() || null,
-                            key,
-                            label: newFieldLabel.trim(),
-                            type: newFieldType,
-                            options:
-                              newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
-                                ? {
-                                    selectOptions: newFieldOptions.filter(
-                                      (o) => o.value.trim() && o.label.trim()
-                                    )
-                                  }
-                                : null
-                          })
-                        });
-                        const data = await res.json().catch(() => ({}));
-                        if (!res.ok) {
-                          setCustomFieldsError(
-                            data?.message ?? "Не удалось добавить поле"
-                          );
-                          return;
+                <div className="pt-3 border-t mt-3">
+                  <p className="text-sm font-medium">Добавить поле</p>
+                  <div className="mt-2 grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="cf-group">Вкладка</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Сначала создайте вкладку выше, затем выберите её здесь.
+                      </p>
+                      <Select
+                        value={newFieldGroup}
+                        onValueChange={(v) => setNewFieldGroup(v)}
+                      >
+                        <SelectTrigger id="cf-group">
+                          <SelectValue placeholder="Выберите вкладку" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTabs.map((t) => (
+                            <SelectItem key={t.name} value={t.name}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="cf-label">Название поля</Label>
+                      <Input
+                        id="cf-label"
+                        placeholder="Например, Основной запрос"
+                        value={newFieldLabel}
+                        onChange={(e) => {
+                          setNewFieldLabel(e.target.value);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="cf-type">Тип поля</Label>
+                      <Select
+                        value={newFieldType}
+                        onValueChange={(v) =>
+                          setNewFieldType(
+                            v as
+                              | "TEXT"
+                              | "MULTILINE"
+                              | "NUMBER"
+                              | "DATE"
+                              | "BOOLEAN"
+                              | "SELECT"
+                              | "MULTI_SELECT"
+                          )
                         }
-                        setNewFieldGroup("");
-                        setNewFieldLabel("");
-                        setNewFieldType("TEXT");
-                        setNewFieldOptions([]);
-                        refetchCustomFields();
-                      } catch (err) {
-                        console.error(err);
-                        setCustomFieldsError("Не удалось добавить поле");
-                      }
-                    }}
-                  >
-                    Сохранить поле
-                  </Button>
+                      >
+                        <SelectTrigger id="cf-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="TEXT">
+                            Текст (одна строка)
+                          </SelectItem>
+                          <SelectItem value="MULTILINE">
+                            Текст (несколько строк)
+                          </SelectItem>
+                          <SelectItem value="NUMBER">Число</SelectItem>
+                          <SelectItem value="DATE">Дата</SelectItem>
+                          <SelectItem value="BOOLEAN">Флажок (да/нет)</SelectItem>
+                          <SelectItem value="SELECT">
+                            Выбор из списка (один вариант)
+                          </SelectItem>
+                          <SelectItem value="MULTI_SELECT">
+                            Выбор из списка (несколько вариантов)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
+                    <div className="mt-3 space-y-2">
+                      <Label>Опции</Label>
+                      <div className="space-y-2">
+                        {newFieldOptions.map((opt, idx) => (
+                          <div key={idx} className="flex gap-2">
+                            <Input
+                              className="w-1/3"
+                              placeholder="Значение"
+                              value={opt.value}
+                              onChange={(e) => {
+                                const next = [...newFieldOptions];
+                                next[idx] = { ...next[idx], value: e.target.value };
+                                setNewFieldOptions(next);
+                              }}
+                            />
+                            <Input
+                              className="flex-1"
+                              placeholder="Подпись"
+                              value={opt.label}
+                              onChange={(e) => {
+                                const next = [...newFieldOptions];
+                                next[idx] = { ...next[idx], label: e.target.value };
+                                setNewFieldOptions(next);
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setNewFieldOptions((prev) =>
+                                  prev.filter((_, i) => i !== idx)
+                                )
+                              }
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setNewFieldOptions((prev) => [
+                              ...prev,
+                              { value: "", label: "" }
+                            ])
+                          }
+                        >
+                          Добавить опцию
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        setCustomFieldsError(null);
+                        if (!newFieldLabel.trim() || !newFieldGroup.trim()) return;
+                        const existingKeys = new Set(
+                          customFields.map((f) => String(f.key ?? "")).filter(Boolean)
+                        );
+                        let baseKey = newFieldLabel
+                          .trim()
+                          .toLowerCase()
+                          .replace(/\s+/g, "_");
+                        if (!baseKey) {
+                          baseKey = `field_${customFields.length + 1}`;
+                        }
+                        let key = baseKey;
+                        let counter = 2;
+                        while (existingKeys.has(key)) {
+                          key = `${baseKey}_${counter++}`;
+                        }
+                        try {
+                          const res = await fetch("/api/psychologist/custom-fields", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              group: newFieldGroup.trim() || null,
+                              key,
+                              label: newFieldLabel.trim(),
+                              type: newFieldType,
+                              options:
+                                newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
+                                  ? {
+                                      selectOptions: newFieldOptions.filter(
+                                        (o) => o.value.trim() && o.label.trim()
+                                      )
+                                    }
+                                  : null
+                            })
+                          });
+                          const data = await res.json().catch(() => ({}));
+                          if (!res.ok) {
+                            setCustomFieldsError(
+                              data?.message ?? "Не удалось добавить поле"
+                            );
+                            return;
+                          }
+                          setNewFieldGroup("");
+                          setNewFieldLabel("");
+                          setNewFieldType("TEXT");
+                          setNewFieldOptions([]);
+                          refetchCustomFields();
+                        } catch (err) {
+                          console.error(err);
+                          setCustomFieldsError("Не удалось добавить поле");
+                        }
+                      }}
+                    >
+                      Сохранить поле
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
