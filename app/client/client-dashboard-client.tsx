@@ -277,7 +277,7 @@ export function ClientDashboardClient() {
                             {apt.psychologistName}
                           </span>
                           {apt.status === "PENDING_CONFIRMATION" && (
-                            <span className="rounded bg-amber-900/60 px-2 py-0.5 text-[11px] text-amber-200">
+                            <span className="rounded bg-amber-900/60 px-2 py-0.5 text-sm text-amber-200">
                               Ожидает подтверждения
                             </span>
                           )}
@@ -291,7 +291,7 @@ export function ClientDashboardClient() {
                           apt.proposedByPsychologist && (
                             <Button
                               size="sm"
-                              className="h-8 text-[11px]"
+                              className="h-8 text-sm"
                               disabled={updatingAppointmentId === apt.id}
                               onClick={() => updateAppointment(apt.id, "SCHEDULED")}
                             >
@@ -303,7 +303,7 @@ export function ClientDashboardClient() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 text-[11px]"
+                            className="h-8 text-sm"
                             disabled={updatingAppointmentId === apt.id}
                             onClick={() => updateAppointment(apt.id, "CANCELED")}
                           >

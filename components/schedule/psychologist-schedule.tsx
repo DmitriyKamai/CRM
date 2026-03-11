@@ -766,7 +766,7 @@ export function PsychologistSchedule() {
                           })}
                         </div>
                         {holiday ? (
-                          <div className="text-[11px] text-red-500">{holiday}</div>
+                          <div className="text-sm text-red-500">{holiday}</div>
                         ) : null}
                       </div>
                     );
@@ -780,7 +780,7 @@ export function PsychologistSchedule() {
                       const isLastRow = index === HOURS.length - 1;
                       return (
                         <div key={hour} className="contents">
-                          <div className="border-r border-border pr-2 text-right align-top text-[11px] text-muted-foreground">
+                          <div className="border-r border-border pr-2 text-right align-top text-sm text-muted-foreground">
                             {hourLabel}
                           </div>
 
@@ -901,10 +901,10 @@ export function PsychologistSchedule() {
                                               event.stopPropagation();
                                             }}
                                           >
-                                            <div className="text-[11px] font-medium">
+                                            <div className="text-sm font-medium">
                                               {label}
                                             </div>
-                                            <div className="mt-0.5 text-[11px] text-muted-foreground">
+                                            <div className="mt-0.5 text-sm text-muted-foreground">
                                               {statusText}
                                             </div>
                                           </div>
@@ -916,10 +916,10 @@ export function PsychologistSchedule() {
                                         >
                                           <div className="flex items-start justify-between gap-2">
                                             <div>
-                                              <div className="text-[11px] font-medium">
+                                              <div className="text-sm font-medium">
                                                 {label}
                                               </div>
-                                              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                                              <div className="mt-0.5 text-sm text-muted-foreground">
                                                 {popupStatusText}
                                               </div>
                                             </div>
@@ -955,7 +955,7 @@ export function PsychologistSchedule() {
                                               }}
                                             >
                                               <div className="space-y-1">
-                                                <Label className="text-[11px]">Время</Label>
+                                                <Label className="text-sm">Время</Label>
                                                 <Select defaultValue={initialTime} name="time">
                                                   <SelectTrigger className="h-8 text-xs">
                                                     <SelectValue />
@@ -973,7 +973,7 @@ export function PsychologistSchedule() {
                                                 </Select>
                                               </div>
                                               <div className="space-y-1">
-                                                <Label className="text-[11px]">
+                                                <Label className="text-sm">
                                                   Длительность, минут
                                                 </Label>
                                                 <Select
@@ -996,7 +996,7 @@ export function PsychologistSchedule() {
                                                   type="button"
                                                   size="sm"
                                                   variant="destructive"
-                                                  className="h-7 px-2 text-[11px]"
+                                                  className="h-7 px-2 text-sm"
                                                   disabled={updatingId === slot.id}
                                                   onClick={() => void handleDeleteSlot(slot.id)}
                                                 >
@@ -1005,7 +1005,7 @@ export function PsychologistSchedule() {
                                                 <Button
                                                   type="submit"
                                                   size="sm"
-                                                  className="h-7 px-2 text-[11px]"
+                                                  className="h-7 px-2 text-sm"
                                                   disabled={updatingId === slot.id}
                                                 >
                                                   Сохранить
@@ -1019,7 +1019,7 @@ export function PsychologistSchedule() {
                                               {slot.appointmentStatus === "PENDING_CONFIRMATION" && (
                                                 <Button
                                                   size="sm"
-                                                  className="h-8 min-h-8 px-3 text-[11px]"
+                                                  className="h-8 min-h-8 px-3 text-sm"
                                                   disabled={updatingId === slot.id}
                                                   onClick={() => void handleConfirmAppointment(slot)}
                                                 >
@@ -1029,7 +1029,7 @@ export function PsychologistSchedule() {
                                               <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-8 min-h-8 px-3 text-[11px]"
+                                                className="h-8 min-h-8 px-3 text-sm"
                                                 disabled={updatingId === slot.id}
                                                 onClick={() => void handleCancelAppointment(slot)}
                                               >

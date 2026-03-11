@@ -195,7 +195,7 @@ export function ClientAppointments({ clientId }: Props) {
         className="flex flex-col gap-3 rounded-md border bg-background/40 p-3 text-xs md:flex-row md:items-end"
       >
         <div className="space-y-1 flex-1">
-          <Label className="text-[11px]">Дата</Label>
+          <Label className="text-sm">Дата</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -231,7 +231,7 @@ export function ClientAppointments({ clientId }: Props) {
           </Popover>
         </div>
         <div className="space-y-1 w-full md:w-32">
-          <Label className="text-[11px]">Время</Label>
+          <Label className="text-sm">Время</Label>
           <Select
             value={createTime}
             onValueChange={value => setCreateTime(value)}
@@ -271,7 +271,7 @@ export function ClientAppointments({ clientId }: Props) {
           </Select>
         </div>
         <div className="space-y-1 w-full md:w-32">
-          <Label className="text-[11px]">Длительность, минут</Label>
+          <Label className="text-sm">Длительность, минут</Label>
           <Select
             value={String(duration)}
             onValueChange={value => setDuration(Number(value))}
@@ -298,7 +298,7 @@ export function ClientAppointments({ clientId }: Props) {
       </form>
 
       {error && (
-        <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-[11px] text-destructive-foreground">
+        <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
           {error}
         </div>
       )}
@@ -324,7 +324,7 @@ export function ClientAppointments({ clientId }: Props) {
                   <div className="font-medium">
                     {formatDateRange(item.start, item.end)}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     {statusLabel(item)}
                   </div>
                 </div>
@@ -334,7 +334,7 @@ export function ClientAppointments({ clientId }: Props) {
                       {!item.proposedByPsychologist && (
                         <Button
                           size="sm"
-                          className="text-[11px]"
+                          className="text-sm"
                           variant="default"
                           onClick={() => handleStatusChange(item.id, "SCHEDULED")}
                         >
@@ -343,7 +343,7 @@ export function ClientAppointments({ clientId }: Props) {
                       )}
                       <Button
                         size="sm"
-                        className="text-[11px]"
+                        className="text-sm"
                         variant="outline"
                         onClick={() => handleStatusChange(item.id, "CANCELED")}
                       >
@@ -354,7 +354,7 @@ export function ClientAppointments({ clientId }: Props) {
                   {item.status === "SCHEDULED" && isFuture && (
                     <Button
                       size="sm"
-                      className="text-[11px]"
+                      className="text-sm"
                       variant="outline"
                       onClick={() => handleStatusChange(item.id, "CANCELED")}
                     >

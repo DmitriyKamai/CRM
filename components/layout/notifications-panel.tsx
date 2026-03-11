@@ -103,7 +103,7 @@ export function NotificationsPanel() {
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-sm font-medium text-primary-foreground">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -116,7 +116,7 @@ export function NotificationsPanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+              className="h-6 px-2 text-sm text-muted-foreground hover:text-foreground"
               onClick={clearAll}
             >
               Очистить все

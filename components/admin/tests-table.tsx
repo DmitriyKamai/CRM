@@ -101,7 +101,7 @@ export function TestsTable() {
             >
               <div>
                 <div className="font-medium text-slate-50">{test.title}</div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-sm text-slate-400">
                   Тип: {test.type} · создан{" "}
                   {new Date(test.createdAt).toLocaleString("ru-RU", {
                     dateStyle: "short",
@@ -111,7 +111,7 @@ export function TestsTable() {
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-[11px] ${
+                  className={`text-sm ${
                     test.isActive ? "text-emerald-400" : "text-slate-500"
                   }`}
                 >
