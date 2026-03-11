@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, GripVertical } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -114,6 +114,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
   const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
+  const [draggedDefId, setDraggedDefId] = useState<string | null>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
@@ -139,8 +140,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     setMaritalStatus(props.maritalStatus ?? "");
   }, [props.country, props.city, props.gender, props.maritalStatus]);
 
-  useEffect(() => {
-    // загружаем кастомные поля и файлы только один раз
+  const refetchCustomFieldDefs = useCallback(() => {
     setCustomFieldsLoading(true);
     fetch(`/api/psychologist/clients/${props.id}/custom-fields`)
       .then((r) => (r?.ok ? r.json() : null))
@@ -150,6 +150,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       })
       .catch(() => {})
       .finally(() => setCustomFieldsLoading(false));
+  }, [props.id]);
+
+  useEffect(() => {
+    refetchCustomFieldDefs();
 
     setFilesLoading(true);
     setFilesError(null);
@@ -163,7 +167,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         setFilesError("Не удалось загрузить файлы клиента");
       })
       .finally(() => setFilesLoading(false));
-  }, [props.id]);
+  }, [props.id, refetchCustomFieldDefs]);
 
   useEffect(() => {
     if (!diagnosticsTabActive || !props.id) return;
@@ -741,7 +745,79 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                       }
 
                       return (
-                        <div key={def.id} className="space-y-1">
+                        <div
+                          key={def.id}
+                          data-field-id={def.id}
+                          data-field-group={group}
+                          className={`flex gap-2 items-start ${
+                            draggedDefId === def.id ? "opacity-50 bg-muted/30 rounded-md" : ""
+                          }`}
+                          onDragOver={
+                            isEditingGroup
+                              ? (e) => {
+                                  e.preventDefault();
+                                  if (draggedDefId) e.dataTransfer.dropEffect = "move";
+                                }
+                              : undefined
+                          }
+                          onDrop={
+                            isEditingGroup
+                              ? async (e) => {
+                                  e.preventDefault();
+                                  setDraggedDefId(null);
+                                  const raw = e.dataTransfer.getData("application/json");
+                                  if (!raw) return;
+                                  let dragData: { id: string };
+                                  try {
+                                    dragData = JSON.parse(raw);
+                                  } catch {
+                                    return;
+                                  }
+                                  const targetId = e.currentTarget.dataset.fieldId;
+                                  if (!targetId || dragData.id === targetId) return;
+                                  const dragIdx = defsForGroup.findIndex((d) => d.id === dragData.id);
+                                  const targetIdx = defsForGroup.findIndex((d) => d.id === targetId);
+                                  if (dragIdx === -1 || targetIdx === -1) return;
+                                  const reordered = [...defsForGroup];
+                                  const [removed] = reordered.splice(dragIdx, 1);
+                                  reordered.splice(targetIdx, 0, removed);
+                                  try {
+                                    const results = await Promise.all(
+                                      reordered.map((field, order) =>
+                                        fetch("/api/psychologist/custom-fields", {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ id: field.id, order })
+                                        })
+                                      )
+                                    );
+                                    if (results.every((r) => r.ok)) refetchCustomFieldDefs();
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }
+                              : undefined
+                          }
+                        >
+                          {isEditingGroup && (
+                            <div
+                              className="mt-1.5 flex shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+                              draggable
+                              onDragStart={(e) => {
+                                setDraggedDefId(def.id);
+                                e.dataTransfer.effectAllowed = "move";
+                                e.dataTransfer.setData(
+                                  "application/json",
+                                  JSON.stringify({ id: def.id })
+                                );
+                              }}
+                              onDragEnd={() => setDraggedDefId(null)}
+                              aria-label="Перетащить для смены порядка"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </div>
+                          )}
+                          <div className="space-y-1 flex-1 min-w-0">
                           <Label className="text-xs">{label}</Label>
                           {type === "TEXT" && (
                             <Input
@@ -855,6 +931,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               )}
                             </div>
                           )}
+                          </div>
                         </div>
                       );
                     })}

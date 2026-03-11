@@ -12,7 +12,7 @@ import {
   DEFAULT_COUNTRY_CODE,
   getCountryCodeByName
 } from "@/lib/data/countries-ru";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -247,7 +247,6 @@ export function PsychologistSettingsForm() {
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
 
   const refetchAccounts = useCallback(() => {
     fetch("/api/user/accounts")
@@ -1481,8 +1480,7 @@ export function PsychologistSettingsForm() {
                   </p>
                 ) : (
                   <div className="rounded-lg border bg-card">
-                    <div className="grid grid-cols-[auto,1.2fr,1.5fr,1.5fr,auto] gap-2 border-b bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
-                      <span className="w-6" aria-hidden />
+                    <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
                       <span>Вкладка</span>
                       <span>Название</span>
                       <span>Тип</span>
@@ -1492,77 +1490,8 @@ export function PsychologistSettingsForm() {
                       {customFields.map((f) => (
                         <div
                           key={f.id}
-                          data-field-id={f.id}
-                          data-field-group={f.group ?? ""}
-                          className={`grid grid-cols-[auto,1.2fr,1.5fr,1.5fr,auto] items-start gap-2 px-3 py-2 text-sm ${
-                            draggedFieldId === f.id ? "opacity-50 bg-muted/50" : ""
-                          }`}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            if (draggedFieldId) e.dataTransfer.dropEffect = "move";
-                          }}
-                          onDrop={async (e) => {
-                            e.preventDefault();
-                            setDraggedFieldId(null);
-                            const raw = e.dataTransfer.getData("application/json");
-                            if (!raw) return;
-                            let dragData: { id: string; group: string };
-                            try {
-                              dragData = JSON.parse(raw);
-                            } catch {
-                              return;
-                            }
-                            const targetId = e.currentTarget.dataset.fieldId;
-                            const targetGroup = e.currentTarget.dataset.fieldGroup ?? "";
-                            if (!targetId || dragData.id === targetId) return;
-                            if ((dragData.group ?? "") !== targetGroup) return;
-                            const groupFields = customFields.filter(
-                              (x) => (x.group ?? "") === targetGroup
-                            );
-                            const dragIdx = groupFields.findIndex((x) => x.id === dragData.id);
-                            const targetIdx = groupFields.findIndex((x) => x.id === targetId);
-                            if (dragIdx === -1 || targetIdx === -1) return;
-                            const reordered = [...groupFields];
-                            const [removed] = reordered.splice(dragIdx, 1);
-                            reordered.splice(targetIdx, 0, removed);
-                            setCustomFieldsError(null);
-                            try {
-                              const results = await Promise.all(
-                                reordered.map((field, order) =>
-                                  fetch("/api/psychologist/custom-fields", {
-                                    method: "PATCH",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ id: field.id, order })
-                                  })
-                                )
-                              );
-                              if (results.some((r) => !r.ok)) {
-                                setCustomFieldsError("Не удалось изменить порядок полей");
-                                return;
-                              }
-                              refetchCustomFields();
-                            } catch (err) {
-                              console.error(err);
-                              setCustomFieldsError("Не удалось изменить порядок полей");
-                            }
-                          }}
+                          className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] items-start gap-2 px-3 py-2 text-sm"
                         >
-                          <div
-                            className="flex cursor-grab active:cursor-grabbing touch-none items-center self-center text-muted-foreground hover:text-foreground"
-                            draggable
-                            onDragStart={(e) => {
-                              setDraggedFieldId(f.id);
-                              e.dataTransfer.effectAllowed = "move";
-                              e.dataTransfer.setData(
-                                "application/json",
-                                JSON.stringify({ id: f.id, group: f.group ?? "" })
-                              );
-                            }}
-                            onDragEnd={() => setDraggedFieldId(null)}
-                            aria-label="Перетащить для смены порядка"
-                          >
-                            <GripVertical className="h-4 w-4" />
-                          </div>
                           {editingFieldId === f.id ? (
                             <>
                               <div className="space-y-1">
