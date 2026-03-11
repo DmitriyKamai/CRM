@@ -18,7 +18,7 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, ChevronLeft, ChevronRight } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -100,12 +100,12 @@ function SortableFieldWrap({
         <div
           {...attributes}
           {...listeners}
-          className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem]"
+          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem] flex flex-col items-center justify-between py-2"
           aria-label="Перетащить для смены порядка"
         >
-          <div className="absolute inset-0 flex items-stretch justify-center">
-            <GripVertical className="h-full w-auto min-w-3 [&>svg]:block [&>svg]:h-full [&>svg]:w-auto" />
-          </div>
+          <span className="h-1.5 w-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden />
+          <span className="h-1.5 w-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden />
+          <span className="h-1.5 w-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden />
         </div>
       )}
       {children}
@@ -471,7 +471,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             </Button>
             <div
               ref={tabsScrollRef}
-              className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 scrollbar-schedule basis-0"
+              className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 basis-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               onScroll={updateTabsScrollState}
             >
               <TabsList className="inline-flex w-max h-10 flex-nowrap">
