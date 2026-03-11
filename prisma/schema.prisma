@@ -395,6 +395,7 @@ model CustomFieldDefinition {
   target         CustomFieldTarget
   key            String
   label          String
+  description    String?  @db.Text
   type           CustomFieldType
   group          String?
   order          Int               @default(0)

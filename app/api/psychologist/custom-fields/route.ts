@@ -10,7 +10,16 @@ const definitionSchema = z.object({
   group: z.string().trim().max(64).nullable().optional(),
   key: z.string().trim().min(1).max(64),
   label: z.string().trim().min(1).max(128),
-  type: z.enum(["TEXT", "NUMBER", "DATE", "SELECT", "MULTILINE", "BOOLEAN", "MULTI_SELECT"]),
+  description: z.string().trim().max(512).nullable().optional(),
+  type: z.enum([
+    "TEXT",
+    "NUMBER",
+    "DATE",
+    "SELECT",
+    "MULTILINE",
+    "BOOLEAN",
+    "MULTI_SELECT"
+  ]),
   options: z
     .object({
       required: z.boolean().optional(),
@@ -91,6 +100,7 @@ export async function POST(request: Request) {
         target: "CLIENT",
         key: parsed.key,
         label: parsed.label,
+        description: parsed.description ?? null,
         type: parsed.type,
         group: parsed.group ?? null,
         order: orderBase,
@@ -146,6 +156,76 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[DELETE /api/psychologist/custom-fields]", error);
+    return NextResponse.json(
+      { message: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const partialSchema = definitionSchema
+      .pick({
+        id: true,
+        group: true,
+        label: true,
+        description: true
+      })
+      .partial()
+      .required({ id: true });
+    const parsed = partialSchema.parse(body);
+
+    const userId = (session.user as any).id as string;
+    const profile = await prisma.psychologistProfile.findUnique({
+      where: { userId },
+      select: { id: true }
+    });
+    if (!profile) {
+      return NextResponse.json(
+        { message: "Профиль психолога не найден" },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.customFieldDefinition.updateMany({
+      where: { id: parsed.id, psychologistId: profile.id, target: "CLIENT" },
+      data: {
+        label: parsed.label ?? undefined,
+        description:
+          parsed.description !== undefined ? parsed.description ?? null : undefined,
+        group:
+          parsed.group !== undefined
+            ? parsed.group && parsed.group.trim().length > 0
+              ? parsed.group.trim()
+              : null
+            : undefined
+        // key и type намеренно не меняем, чтобы не ломать существующие данные
+      }
+    });
+
+    if (updated.count === 0) {
+      return NextResponse.json(
+        { message: "Поле не найдено или доступ запрещён" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { message: "Ошибка валидации", issues: error.issues },
+        { status: 400 }
+      );
+    }
+    console.error("[PATCH /api/psychologist/custom-fields]", error);
     return NextResponse.json(
       { message: "Внутренняя ошибка сервера" },
       { status: 500 }

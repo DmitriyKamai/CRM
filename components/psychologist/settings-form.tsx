@@ -12,7 +12,7 @@ import {
   DEFAULT_COUNTRY_CODE,
   getCountryCodeByName
 } from "@/lib/data/countries-ru";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -227,6 +227,10 @@ export function PsychologistSettingsForm() {
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
   const [newFieldOptions, setNewFieldOptions] = useState<{ value: string; label: string }[]>([]);
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState("");
+  const [editingGroup, setEditingGroup] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
 
   const refetchAccounts = useCallback(() => {
     fetch("/api/user/accounts")
@@ -952,19 +956,171 @@ export function PsychologistSettingsForm() {
                 </p>
               ) : (
                 <div className="rounded-md border bg-card/50">
-                  <div className="grid grid-cols-3 gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                     <span>Вкладка</span>
                     <span>Название</span>
                     <span>Тип</span>
+                    <span className="text-right">Действия</span>
                   </div>
                   <div className="divide-y">
                     {customFields.map((f) => (
-                      <div key={f.id} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
-                        <span>{f.group ?? "Без вкладки"}</span>
-                        <span>{f.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
-                        </span>
+                      <div
+                        key={f.id}
+                        className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] items-start gap-2 px-3 py-2 text-sm"
+                      >
+                        {editingFieldId === f.id ? (
+                          <>
+                            <div className="space-y-1">
+                              <Input
+                                value={editingGroup}
+                                onChange={(e) => setEditingGroup(e.target.value)}
+                                placeholder="Вкладка"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Input
+                                value={editingLabel}
+                                onChange={(e) => setEditingLabel(e.target.value)}
+                                placeholder="Название поля"
+                              />
+                              <textarea
+                                className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs text-foreground"
+                                rows={2}
+                                placeholder="Описание (опционально)"
+                                value={editingDescription}
+                                onChange={(e) =>
+                                  setEditingDescription(e.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1 text-xs text-muted-foreground">
+                              {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
+                            </div>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingFieldId(null);
+                                }}
+                              >
+                                ×
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={async () => {
+                                  if (!editingLabel.trim()) return;
+                                  try {
+                                    const res = await fetch(
+                                      "/api/psychologist/custom-fields",
+                                      {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                          id: f.id,
+                                          label: editingLabel.trim(),
+                                          group:
+                                            editingGroup.trim().length > 0
+                                              ? editingGroup.trim()
+                                              : null,
+                                          description:
+                                            editingDescription.trim().length > 0
+                                              ? editingDescription.trim()
+                                              : null
+                                        })
+                                      }
+                                    );
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!res.ok) {
+                                      setCustomFieldsError(
+                                        data?.message ?? "Не удалось сохранить поле"
+                                      );
+                                      return;
+                                    }
+                                    setEditingFieldId(null);
+                                    setEditingLabel("");
+                                    setEditingGroup("");
+                                    setEditingDescription("");
+                                    refetchCustomFields();
+                                  } catch (err) {
+                                    console.error(err);
+                                    setCustomFieldsError("Не удалось сохранить поле");
+                                  }
+                                }}
+                              >
+                                Сохранить
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span>{f.group ?? "Без вкладки"}</span>
+                            <div className="space-y-0.5">
+                              <span>{f.label}</span>
+                              {f.description && (
+                                <p className="text-xs text-muted-foreground">
+                                  {f.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
+                            </span>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingFieldId(f.id);
+                                  setEditingLabel(f.label ?? "");
+                                  setEditingGroup(
+                                    f.group && typeof f.group === "string"
+                                      ? f.group
+                                      : ""
+                                  );
+                                  setEditingDescription(f.description ?? "");
+                                  setCustomFieldsError(null);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-destructive"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(
+                                      `/api/psychologist/custom-fields?id=${encodeURIComponent(
+                                        f.id
+                                      )}`,
+                                      { method: "DELETE" }
+                                    );
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!res.ok) {
+                                      setCustomFieldsError(
+                                        data?.message ?? "Не удалось удалить поле"
+                                      );
+                                      return;
+                                    }
+                                    refetchCustomFields();
+                                  } catch (err) {
+                                    console.error(err);
+                                    setCustomFieldsError("Не удалось удалить поле");
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1125,7 +1281,7 @@ export function PsychologistSettingsForm() {
                     type="button"
                       onClick={async () => {
                       setCustomFieldsError(null);
-                      if (!newFieldLabel.trim()) return;
+                      if (!newFieldLabel.trim() || !newFieldGroup.trim()) return;
                       const existingKeys = new Set(
                         customFields.map((f) => String(f.key ?? "")).filter(Boolean)
                       );
