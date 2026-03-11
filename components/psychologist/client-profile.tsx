@@ -100,12 +100,27 @@ function SortableFieldWrap({
         <div
           {...attributes}
           {...listeners}
-          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem] flex flex-col items-center justify-between py-2"
+          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem] flex items-center justify-center"
           aria-label="Перетащить для смены порядка"
         >
-          <span className="h-1.5 w-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden />
-          <span className="h-1.5 w-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden />
-          <span className="h-1.5 w-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-full w-auto min-w-3"
+            aria-hidden
+          >
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="9" cy="5" r="1" />
+            <circle cx="9" cy="19" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <circle cx="15" cy="5" r="1" />
+            <circle cx="15" cy="19" r="1" />
+          </svg>
         </div>
       )}
       {children}
