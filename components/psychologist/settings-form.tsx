@@ -110,6 +110,16 @@ type PasswordChecks = {
   special: boolean;
 };
 
+const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
+  TEXT: "Текст (одна строка)",
+  MULTILINE: "Текст (несколько строк)",
+  NUMBER: "Число",
+  DATE: "Дата",
+  BOOLEAN: "Флажок (да/нет)",
+  SELECT: "Выбор из списка (один вариант)",
+  MULTI_SELECT: "Выбор из списка (несколько вариантов)"
+};
+
 function evaluatePassword(password: string): PasswordChecks {
   return {
     length: password.length >= 8,
@@ -214,7 +224,6 @@ export function PsychologistSettingsForm() {
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldsError, setCustomFieldsError] = useState<string | null>(null);
   const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldKey, setNewFieldKey] = useState("");
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
   const [newFieldOptions, setNewFieldOptions] = useState<{ value: string; label: string }[]>([]);
@@ -943,19 +952,19 @@ export function PsychologistSettingsForm() {
                 </p>
               ) : (
                 <div className="rounded-md border bg-card/50">
-                  <div className="grid grid-cols-4 gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-3 gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                     <span>Вкладка</span>
                     <span>Название</span>
-                    <span>Ключ</span>
                     <span>Тип</span>
                   </div>
                   <div className="divide-y">
                     {customFields.map((f) => (
-                      <div key={f.id} className="grid grid-cols-4 gap-2 px-3 py-2 text-sm">
+                      <div key={f.id} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
                         <span>{f.group ?? "Без вкладки"}</span>
                         <span>{f.label}</span>
-                        <span className="text-xs text-muted-foreground break-all">{f.key}</span>
-                        <span className="text-xs text-muted-foreground">{f.type}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -967,15 +976,48 @@ export function PsychologistSettingsForm() {
                 <div className="mt-2 grid gap-3 md:grid-cols-2">
                   <div className="space-y-1">
                     <Label htmlFor="cf-group">Вкладка (группа)</Label>
-                    <Input
-                      id="cf-group"
-                      placeholder="Например, Анамнез"
-                      value={newFieldGroup}
-                      onChange={(e) => setNewFieldGroup(e.target.value)}
-                    />
                     <p className="text-xs text-muted-foreground">
-                      Вкладка с таким названием появится в карточке клиента.
+                      Выберите существующую вкладку или создайте новую.
                     </p>
+                    <Select
+                      value={newFieldGroup || "__none"}
+                      onValueChange={(v) => {
+                        if (v === "__none") {
+                          setNewFieldGroup("");
+                        } else {
+                          setNewFieldGroup(v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="cf-group">
+                        <SelectValue placeholder="Выберите вкладку" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Без вкладки</SelectItem>
+                        {Array.from(
+                          new Set(
+                            customFields
+                              .map((f) =>
+                                f.group && typeof f.group === "string"
+                                  ? f.group.trim()
+                                  : ""
+                              )
+                              .filter((g) => g.length > 0)
+                          )
+                        ).map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="pt-2">
+                      <Input
+                        placeholder="Или введите название новой вкладки (например, Анамнез)"
+                        value={newFieldGroup}
+                        onChange={(e) => setNewFieldGroup(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="cf-label">Название поля</Label>
@@ -985,29 +1027,8 @@ export function PsychologistSettingsForm() {
                       value={newFieldLabel}
                       onChange={(e) => {
                         setNewFieldLabel(e.target.value);
-                        if (!newFieldKey) {
-                          setNewFieldKey(
-                            e.target.value
-                              .toLowerCase()
-                              .trim()
-                              .replace(/[^a-z0-9_]+/gi, "_")
-                              .replace(/^_+|_+$/g, "")
-                          );
-                        }
                       }}
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="cf-key">Ключ (технический)</Label>
-                    <Input
-                      id="cf-key"
-                      placeholder="Например, main_request"
-                      value={newFieldKey}
-                      onChange={(e) => setNewFieldKey(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Латиница/цифры/подчёркивание. Используется только внутри системы.
-                    </p>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="cf-type">Тип поля</Label>
@@ -1102,16 +1123,31 @@ export function PsychologistSettingsForm() {
                 <div className="mt-4">
                   <Button
                     type="button"
-                    onClick={async () => {
+                      onClick={async () => {
                       setCustomFieldsError(null);
-                      if (!newFieldLabel.trim() || !newFieldKey.trim()) return;
+                      if (!newFieldLabel.trim()) return;
+                      const existingKeys = new Set(
+                        customFields.map((f) => String(f.key ?? "")).filter(Boolean)
+                      );
+                      let baseKey = newFieldLabel
+                        .trim()
+                        .toLowerCase()
+                        .replace(/\s+/g, "_");
+                      if (!baseKey) {
+                        baseKey = `field_${customFields.length + 1}`;
+                      }
+                      let key = baseKey;
+                      let counter = 2;
+                      while (existingKeys.has(key)) {
+                        key = `${baseKey}_${counter++}`;
+                      }
                       try {
                         const res = await fetch("/api/psychologist/custom-fields", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
                             group: newFieldGroup.trim() || null,
-                            key: newFieldKey.trim(),
+                            key,
                             label: newFieldLabel.trim(),
                             type: newFieldType,
                             options:
@@ -1133,7 +1169,6 @@ export function PsychologistSettingsForm() {
                         }
                         setNewFieldGroup("");
                         setNewFieldLabel("");
-                        setNewFieldKey("");
                         setNewFieldType("TEXT");
                         setNewFieldOptions([]);
                         refetchCustomFields();
