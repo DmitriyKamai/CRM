@@ -93,16 +93,16 @@ function SortableFieldWrap({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex gap-2 items-start ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
+      className={`flex gap-2 items-stretch ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
     >
       {isEditing && (
         <div
           {...attributes}
           {...listeners}
-          className="mt-1.5 flex shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded p-0.5"
+          className="flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem]"
           aria-label="Перетащить для смены порядка"
         >
-          <GripVertical className="h-4 w-4" />
+          <GripVertical className="h-full w-auto min-w-3" />
         </div>
       )}
       {children}
@@ -811,6 +811,13 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           const newIndex = ids.indexOf(over.id as string);
                           if (oldIndex === -1 || newIndex === -1) return;
                           const reordered = arrayMove(defsForGroup, oldIndex, newIndex);
+                          const reorderedWithOrder = reordered.map((d, i) => ({ ...d, order: i }));
+                          const groupStart = customFieldDefs.findIndex((d) => (d.group ?? "") === group);
+                          if (groupStart !== -1) {
+                            const newDefs = [...customFieldDefs];
+                            newDefs.splice(groupStart, defsForGroup.length, ...reorderedWithOrder);
+                            setCustomFieldDefs(newDefs);
+                          }
                           try {
                             const results = await Promise.all(
                               reordered.map((field, order) =>
@@ -821,9 +828,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 })
                               )
                             );
-                            if (results.every((r) => r.ok)) refetchCustomFieldDefs();
+                            if (!results.every((r) => r.ok)) refetchCustomFieldDefs();
                           } catch (err) {
                             console.error(err);
+                            refetchCustomFieldDefs();
                           }
                         }}
                       >
@@ -880,19 +888,50 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             />
                           )}
                           {type === "DATE" && (
-                            <Input
-                              type="date"
-                              value={
-                                typeof value === "string" && value
-                                  ? value.slice(0, 10)
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                updateValue(
-                                  e.target.value ? `${e.target.value}T00:00:00.000Z` : null
-                                )
-                              }
-                            />
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  type="button"
+                                  className="w-full justify-start text-left font-normal bg-[hsl(var(--input-bg))] border-input text-sm hover:bg-[hsl(var(--input-bg))]/90"
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                                  {value && typeof value === "string" ? (
+                                    new Date(value).toLocaleDateString("ru-RU")
+                                  ) : (
+                                    <span className="text-muted-foreground">дд.мм.гггг</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto border-none bg-transparent p-0 shadow-none"
+                                align="start"
+                              >
+                                <Calendar
+                                  mode="single"
+                                  selected={
+                                    value && typeof value === "string"
+                                      ? new Date(value)
+                                      : undefined
+                                  }
+                                  onSelect={(date) =>
+                                    updateValue(date ? date.toISOString() : null)
+                                  }
+                                  locale={ru}
+                                  initialFocus
+                                  defaultMonth={
+                                    value && typeof value === "string"
+                                      ? new Date(value)
+                                      : new Date()
+                                  }
+                                  captionLayout="dropdown"
+                                  startMonth={new Date(1920, 0)}
+                                  endMonth={new Date()}
+                                  reverseYears
+                                  hideNavigation
+                                />
+                              </PopoverContent>
+                            </Popover>
                           )}
                           {type === "BOOLEAN" && (
                             <div className="flex items-center gap-2">
@@ -1017,19 +1056,50 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 />
                               )}
                               {type === "DATE" && (
-                                <Input
-                                  type="date"
-                                  value={
-                                    typeof value === "string" && value
-                                      ? value.slice(0, 10)
-                                      : ""
-                                  }
-                                  onChange={(e) =>
-                                    updateValue(
-                                      e.target.value ? `${e.target.value}T00:00:00.000Z` : null
-                                    )
-                                  }
-                                />
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      type="button"
+                                      className="w-full justify-start text-left font-normal bg-[hsl(var(--input-bg))] border-input text-sm hover:bg-[hsl(var(--input-bg))]/90"
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                                      {value && typeof value === "string" ? (
+                                        new Date(value).toLocaleDateString("ru-RU")
+                                      ) : (
+                                        <span className="text-muted-foreground">дд.мм.гггг</span>
+                                      )}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto border-none bg-transparent p-0 shadow-none"
+                                    align="start"
+                                  >
+                                    <Calendar
+                                      mode="single"
+                                      selected={
+                                        value && typeof value === "string"
+                                          ? new Date(value)
+                                          : undefined
+                                      }
+                                      onSelect={(date) =>
+                                        updateValue(date ? date.toISOString() : null)
+                                      }
+                                      locale={ru}
+                                      initialFocus
+                                      defaultMonth={
+                                        value && typeof value === "string"
+                                          ? new Date(value)
+                                          : new Date()
+                                      }
+                                      captionLayout="dropdown"
+                                      startMonth={new Date(1920, 0)}
+                                      endMonth={new Date()}
+                                      reverseYears
+                                      hideNavigation
+                                    />
+                                  </PopoverContent>
+                                </Popover>
                               )}
                               {type === "BOOLEAN" && (
                                 <div className="flex items-center gap-2">
