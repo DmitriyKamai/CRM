@@ -680,7 +680,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             <TabsContent
               key={groupId}
               value={groupId}
-              className="mt-3 space-y-4 rounded-lg border bg-card p-4 min-h-[320px] max-h-[70vh] overflow-y-auto"
+              className="mt-3 space-y-4 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
             >
               <div className="space-y-1">
                 <h3 className="text-base font-semibold leading-none tracking-tight">
@@ -719,7 +719,9 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 >
                   <div
                     className={`grid gap-3 md:grid-cols-2 ${
-                      !isEditingGroup ? "pointer-events-none" : ""
+                      !isEditingGroup
+                        ? "pointer-events-none [&_input]:cursor-text [&_button]:cursor-text [&_[data-radix-select-trigger]]:cursor-text"
+                        : ""
                     }`}
                   >
                     {defsForGroup.map((def) => {
@@ -857,32 +859,44 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   </div>
 
                   <div className="flex items-center justify-between gap-3">
-                    <Button
-                      type="button"
-                      variant={isEditingGroup ? "secondary" : "outline"}
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() =>
-                        setCustomTabsEdit((prev) => ({
-                          ...prev,
-                          [groupId]: !isEditingGroup
-                        }))
-                      }
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">
-                        {isEditingGroup
-                          ? "Завершить редактирование дополнительных полей"
-                          : "Редактировать дополнительные поля"}
-                      </span>
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={customFieldsSaving || !isEditingGroup}
-                    >
-                      {customFieldsSaving ? "Сохраняем…" : "Сохранить дополнительные поля"}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant={isEditingGroup ? "secondary" : "outline"}
+                            size="icon"
+                            disabled={customFieldsSaving}
+                            onClick={() =>
+                              setCustomTabsEdit((prev) => ({
+                                ...prev,
+                                [groupId]: !isEditingGroup
+                              }))
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">
+                              {isEditingGroup
+                                ? "Завершить редактирование"
+                                : "Редактировать"}
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isEditingGroup
+                            ? "Завершить редактирование дополнительных полей"
+                            : "Редактировать дополнительные поля"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {isEditingGroup && (
+                      <Button
+                        type="submit"
+                        disabled={customFieldsSaving}
+                      >
+                        {customFieldsSaving ? "Сохраняем…" : "Сохранить изменения"}
+                      </Button>
+                    )}
                   </div>
                 </form>
               )}

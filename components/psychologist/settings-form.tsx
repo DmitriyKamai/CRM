@@ -241,7 +241,7 @@ export function PsychologistSettingsForm() {
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
-  const [newFieldOptions, setNewFieldOptions] = useState<{ value: string; label: string }[]>([]);
+  const [newFieldOptionLabels, setNewFieldOptionLabels] = useState<string[]>([]);
   const [newFieldBooleanLabel, setNewFieldBooleanLabel] = useState("Опция");
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
@@ -1356,28 +1356,18 @@ export function PsychologistSettingsForm() {
                         )}
                         {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
                           <div className="mt-2 space-y-2">
-                            <Label>Опции</Label>
+                            <Label>Варианты выбора</Label>
                             <div className="space-y-2">
-                              {newFieldOptions.map((opt, idx) => (
+                              {newFieldOptionLabels.map((label, idx) => (
                                 <div key={idx} className="flex gap-2">
                                   <Input
-                                    className="w-1/3"
-                                    placeholder="Значение"
-                                    value={opt.value}
-                                    onChange={(e) => {
-                                      const next = [...newFieldOptions];
-                                      next[idx] = { ...next[idx], value: e.target.value };
-                                      setNewFieldOptions(next);
-                                    }}
-                                  />
-                                  <Input
                                     className="flex-1"
-                                    placeholder="Подпись"
-                                    value={opt.label}
+                                    placeholder="Текст варианта"
+                                    value={label}
                                     onChange={(e) => {
-                                      const next = [...newFieldOptions];
-                                      next[idx] = { ...next[idx], label: e.target.value };
-                                      setNewFieldOptions(next);
+                                      const next = [...newFieldOptionLabels];
+                                      next[idx] = e.target.value;
+                                      setNewFieldOptionLabels(next);
                                     }}
                                   />
                                   <Button
@@ -1385,7 +1375,7 @@ export function PsychologistSettingsForm() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() =>
-                                      setNewFieldOptions((prev) =>
+                                      setNewFieldOptionLabels((prev) =>
                                         prev.filter((_, i) => i !== idx)
                                       )
                                     }
@@ -1399,13 +1389,10 @@ export function PsychologistSettingsForm() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
-                                  setNewFieldOptions((prev) => [
-                                    ...prev,
-                                    { value: "", label: "" }
-                                  ])
+                                  setNewFieldOptionLabels((prev) => [...prev, ""])
                                 }
                               >
-                                Добавить опцию
+                                Добавить вариант
                               </Button>
                             </div>
                           </div>
@@ -1444,9 +1431,12 @@ export function PsychologistSettingsForm() {
                                   options:
                                     newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
                                       ? {
-                                          selectOptions: newFieldOptions.filter(
-                                            (o) => o.value.trim() && o.label.trim()
-                                          )
+                                          selectOptions: newFieldOptionLabels
+                                            .map((label, i) => ({
+                                              value: String(i),
+                                              label: label.trim()
+                                            }))
+                                            .filter((o) => o.label.length > 0)
                                         }
                                       : newFieldType === "BOOLEAN"
                                         ? {
@@ -1466,7 +1456,7 @@ export function PsychologistSettingsForm() {
                               setNewFieldGroup("");
                               setNewFieldLabel("");
                               setNewFieldType("TEXT");
-                              setNewFieldOptions([]);
+                              setNewFieldOptionLabels([]);
                               setNewFieldBooleanLabel("Опция");
                               refetchCustomFields();
                             } catch (err) {
