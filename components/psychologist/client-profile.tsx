@@ -367,7 +367,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
         <TabsContent
           value="profile"
-          className="mt-3 space-y-4 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
+          className="mt-3 space-y-4 rounded-lg border bg-card p-4 max-h-[70vh] overflow-y-auto"
         >
           <div className="space-y-1">
             <div className="flex items-center gap-2">
