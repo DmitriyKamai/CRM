@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -241,10 +241,7 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
               </button>
             </div>
             {passwordError && (
-              <p className="text-xs text-destructive flex items-center gap-1.5">
-                <AlertCircle className="h-3 w-3 shrink-0" />
-                <span>{passwordError}</span>
-              </p>
+              <p className="text-xs text-destructive">{passwordError}</p>
             )}
           </div>
 

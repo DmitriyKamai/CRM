@@ -12,7 +12,7 @@ import {
   DEFAULT_COUNTRY_CODE,
   getCountryCodeByName
 } from "@/lib/data/countries-ru";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -210,6 +210,14 @@ export function PsychologistSettingsForm() {
   const [profilePublished, setProfilePublished] = useState(false);
   const [savingPublish, setSavingPublish] = useState(false);
   const [unlinkAccountProvider, setUnlinkAccountProvider] = useState<"google" | "apple" | null>(null);
+  const [customFields, setCustomFields] = useState<any[]>([]);
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
+  const [customFieldsError, setCustomFieldsError] = useState<string | null>(null);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldKey, setNewFieldKey] = useState("");
+  const [newFieldGroup, setNewFieldGroup] = useState("");
+  const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
+  const [newFieldOptions, setNewFieldOptions] = useState<{ value: string; label: string }[]>([]);
 
   const refetchAccounts = useCallback(() => {
     fetch("/api/user/accounts")
@@ -217,6 +225,21 @@ export function PsychologistSettingsForm() {
       .then((a) => {
         if (a?.accounts) setAccounts(a.accounts);
       });
+  }, []);
+
+  const refetchCustomFields = useCallback(() => {
+    setCustomFieldsLoading(true);
+    setCustomFieldsError(null);
+    fetch("/api/psychologist/custom-fields")
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.items) setCustomFields(data.items);
+      })
+      .catch((err) => {
+        console.error(err);
+        setCustomFieldsError("Не удалось загрузить пользовательские поля");
+      })
+      .finally(() => setCustomFieldsLoading(false));
   }, []);
 
   const refetchProfile = useCallback(() => {
@@ -331,6 +354,12 @@ export function PsychologistSettingsForm() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "customFields") {
+      refetchCustomFields();
+    }
+  }, [activeTab, refetchCustomFields]);
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -585,6 +614,10 @@ export function PsychologistSettingsForm() {
           <CalendarDays className="h-4 w-4" />
           Календарь
         </TabsTrigger>
+        <TabsTrigger value="customFields" className="flex items-center gap-2 shrink-0">
+          <ListChecks className="h-4 w-4" />
+          Поля клиента
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="profile" className="mt-4">
@@ -784,10 +817,7 @@ export function PsychologistSettingsForm() {
                 }
               />
               {newPasswordError && (
-                <p className="text-xs text-destructive flex items-center gap-1.5">
-                  <AlertCircle className="h-3 w-3 shrink-0" />
-                  <span>{newPasswordError}</span>
-                </p>
+                <p className="text-xs text-destructive">{newPasswordError}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -893,6 +923,232 @@ export function PsychologistSettingsForm() {
             </div>
           </div>
         </Section>
+        )}
+      </TabsContent>
+
+      <TabsContent value="customFields" className="mt-4">
+        {activeTab === "customFields" && (
+          <Section title="Пользовательские поля клиента">
+            <div className="space-y-4">
+              {customFieldsError && (
+                <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
+                  {customFieldsError}
+                </div>
+              )}
+              {customFieldsLoading ? (
+                <p className="text-sm text-muted-foreground">Загружаем поля…</p>
+              ) : customFields.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Пока нет ни одного пользовательского поля. Добавьте первое поле ниже.
+                </p>
+              ) : (
+                <div className="rounded-md border bg-card/50">
+                  <div className="grid grid-cols-4 gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
+                    <span>Вкладка</span>
+                    <span>Название</span>
+                    <span>Ключ</span>
+                    <span>Тип</span>
+                  </div>
+                  <div className="divide-y">
+                    {customFields.map((f) => (
+                      <div key={f.id} className="grid grid-cols-4 gap-2 px-3 py-2 text-sm">
+                        <span>{f.group ?? "Без вкладки"}</span>
+                        <span>{f.label}</span>
+                        <span className="text-xs text-muted-foreground break-all">{f.key}</span>
+                        <span className="text-xs text-muted-foreground">{f.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 border-t">
+                <p className="text-sm font-medium">Добавить поле</p>
+                <div className="mt-2 grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="cf-group">Вкладка (группа)</Label>
+                    <Input
+                      id="cf-group"
+                      placeholder="Например, Анамнез"
+                      value={newFieldGroup}
+                      onChange={(e) => setNewFieldGroup(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Вкладка с таким названием появится в карточке клиента.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="cf-label">Название поля</Label>
+                    <Input
+                      id="cf-label"
+                      placeholder="Например, Основной запрос"
+                      value={newFieldLabel}
+                      onChange={(e) => {
+                        setNewFieldLabel(e.target.value);
+                        if (!newFieldKey) {
+                          setNewFieldKey(
+                            e.target.value
+                              .toLowerCase()
+                              .trim()
+                              .replace(/[^a-z0-9_]+/gi, "_")
+                              .replace(/^_+|_+$/g, "")
+                          );
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="cf-key">Ключ (технический)</Label>
+                    <Input
+                      id="cf-key"
+                      placeholder="Например, main_request"
+                      value={newFieldKey}
+                      onChange={(e) => setNewFieldKey(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Латиница/цифры/подчёркивание. Используется только внутри системы.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="cf-type">Тип поля</Label>
+                    <Select
+                      value={newFieldType}
+                      onValueChange={(v) =>
+                        setNewFieldType(
+                          v as
+                            | "TEXT"
+                            | "MULTILINE"
+                            | "NUMBER"
+                            | "DATE"
+                            | "BOOLEAN"
+                            | "SELECT"
+                            | "MULTI_SELECT"
+                        )
+                      }
+                    >
+                      <SelectTrigger id="cf-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TEXT">Текст (одна строка)</SelectItem>
+                        <SelectItem value="MULTILINE">Текст (несколько строк)</SelectItem>
+                        <SelectItem value="NUMBER">Число</SelectItem>
+                        <SelectItem value="DATE">Дата</SelectItem>
+                        <SelectItem value="BOOLEAN">Флажок (да/нет)</SelectItem>
+                        <SelectItem value="SELECT">Селект (один вариант)</SelectItem>
+                        <SelectItem value="MULTI_SELECT">
+                          Мультиселект (несколько вариантов)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
+                  <div className="mt-3 space-y-2">
+                    <Label>Опции</Label>
+                    <div className="space-y-2">
+                      {newFieldOptions.map((opt, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <Input
+                            className="w-1/3"
+                            placeholder="Значение"
+                            value={opt.value}
+                            onChange={(e) => {
+                              const next = [...newFieldOptions];
+                              next[idx] = { ...next[idx], value: e.target.value };
+                              setNewFieldOptions(next);
+                            }}
+                          />
+                          <Input
+                            className="flex-1"
+                            placeholder="Подпись"
+                            value={opt.label}
+                            onChange={(e) => {
+                              const next = [...newFieldOptions];
+                              next[idx] = { ...next[idx], label: e.target.value };
+                              setNewFieldOptions(next);
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setNewFieldOptions((prev) => prev.filter((_, i) => i !== idx))
+                            }
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setNewFieldOptions((prev) => [
+                            ...prev,
+                            { value: "", label: "" }
+                          ])
+                        }
+                      >
+                        Добавить опцию
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      setCustomFieldsError(null);
+                      if (!newFieldLabel.trim() || !newFieldKey.trim()) return;
+                      try {
+                        const res = await fetch("/api/psychologist/custom-fields", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            group: newFieldGroup.trim() || null,
+                            key: newFieldKey.trim(),
+                            label: newFieldLabel.trim(),
+                            type: newFieldType,
+                            options:
+                              newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
+                                ? {
+                                    selectOptions: newFieldOptions.filter(
+                                      (o) => o.value.trim() && o.label.trim()
+                                    )
+                                  }
+                                : null
+                          })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                          setCustomFieldsError(
+                            data?.message ?? "Не удалось добавить поле"
+                          );
+                          return;
+                        }
+                        setNewFieldGroup("");
+                        setNewFieldLabel("");
+                        setNewFieldKey("");
+                        setNewFieldType("TEXT");
+                        setNewFieldOptions([]);
+                        refetchCustomFields();
+                      } catch (err) {
+                        console.error(err);
+                        setCustomFieldsError("Не удалось добавить поле");
+                      }
+                    }}
+                  >
+                    Сохранить поле
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Section>
         )}
       </TabsContent>
 

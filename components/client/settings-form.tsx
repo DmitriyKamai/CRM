@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, User, Lock, Link2, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
@@ -576,10 +576,7 @@ export function ClientSettingsForm() {
                     }
                   />
                   {newPasswordError && (
-                    <p className="text-xs text-destructive flex items-center gap-1.5">
-                      <AlertCircle className="h-3 w-3 shrink-0" />
-                      <span>{newPasswordError}</span>
-                    </p>
+                    <p className="text-xs text-destructive">{newPasswordError}</p>
                   )}
                 </div>
                 <div className="space-y-2">

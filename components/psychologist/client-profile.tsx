@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck } from "lucide-react";
+import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -110,6 +110,13 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
   );
   const hasAccount = props.hasAccount ?? false;
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
+  const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
+  const [files, setFiles] = useState<any[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [filesError, setFilesError] = useState<string | null>(null);
 
   type DiagnosticItem = {
     id: string;
@@ -130,6 +137,32 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     setGender(props.gender ?? "");
     setMaritalStatus(props.maritalStatus ?? "");
   }, [props.country, props.city, props.gender, props.maritalStatus]);
+
+  useEffect(() => {
+    // загружаем кастомные поля и файлы только один раз
+    setCustomFieldsLoading(true);
+    fetch(`/api/psychologist/clients/${props.id}/custom-fields`)
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.definitions) setCustomFieldDefs(data.definitions);
+        if (data?.values) setCustomFieldValues(data.values);
+      })
+      .catch(() => {})
+      .finally(() => setCustomFieldsLoading(false));
+
+    setFilesLoading(true);
+    setFilesError(null);
+    fetch(`/api/psychologist/clients/${props.id}/files`)
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.files)) setFiles(data.files);
+      })
+      .catch((err) => {
+        console.error(err);
+        setFilesError("Не удалось загрузить файлы клиента");
+      })
+      .finally(() => setFilesLoading(false));
+  }, [props.id]);
 
   useEffect(() => {
     if (!diagnosticsTabActive || !props.id) return;
@@ -295,6 +328,17 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         <div className="flex items-center justify-between gap-2">
           <TabsList>
             <TabsTrigger value="profile">Профиль</TabsTrigger>
+            {Array.from(
+              new Set(
+                customFieldDefs
+                  .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
+                  .filter((g) => g.length > 0)
+              )
+            ).map((group) => (
+              <TabsTrigger key={`cf-${group}`} value={`cf-${group}`}>
+                {group}
+              </TabsTrigger>
+            ))}
             <TabsTrigger value="diagnostics">
               Психологическая диагностика
             </TabsTrigger>
@@ -596,6 +640,340 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             </div>
           </form>
         </TabsContent>
+
+        {Array.from(
+          new Set(
+            customFieldDefs
+              .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
+              .filter((g) => g.length > 0)
+          )
+        ).map((group) => {
+          const groupId = `cf-${group}`;
+          const defsForGroup = customFieldDefs.filter(
+            (d) => (d.group && typeof d.group === "string" ? d.group.trim() : "") === group
+          );
+          if (defsForGroup.length === 0) return null;
+          return (
+            <TabsContent
+              key={groupId}
+              value={groupId}
+              className="mt-3 space-y-4 rounded-lg border bg-card p-4 min-h-[320px] max-h-[70vh] overflow-y-auto"
+            >
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold leading-none tracking-tight">
+                  {group}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Дополнительные данные клиента. Видны только вам.
+                </p>
+              </div>
+
+              {customFieldsLoading ? (
+                <p className="text-sm text-muted-foreground">Загружаем поля…</p>
+              ) : (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setCustomFieldsSaving(true);
+                    try {
+                      const res = await fetch(
+                        `/api/psychologist/clients/${props.id}/custom-fields`,
+                        {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ values: customFieldValues })
+                        }
+                      );
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) {
+                        console.error(data);
+                      }
+                    } finally {
+                      setCustomFieldsSaving(false);
+                    }
+                  }}
+                  className="space-y-3"
+                >
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {defsForGroup.map((def) => {
+                      const value = customFieldValues[def.id];
+                      const label = def.label as string;
+                      const type = def.type as string;
+                      const selectOptions: { value: string; label: string }[] =
+                        def.options?.selectOptions ?? [];
+
+                      function updateValue(next: any) {
+                        setCustomFieldValues((prev) => ({
+                          ...prev,
+                          [def.id]: next
+                        }));
+                      }
+
+                      return (
+                        <div key={def.id} className="space-y-1">
+                          <Label className="text-xs">{label}</Label>
+                          {type === "TEXT" && (
+                            <Input
+                              value={typeof value === "string" ? value : ""}
+                              onChange={(e) => updateValue(e.target.value)}
+                            />
+                          )}
+                          {type === "MULTILINE" && (
+                            <Textarea
+                              rows={3}
+                              value={typeof value === "string" ? value : ""}
+                              onChange={(e) => updateValue(e.target.value)}
+                            />
+                          )}
+                          {type === "NUMBER" && (
+                            <Input
+                              type="number"
+                              value={
+                                typeof value === "number"
+                                  ? String(value)
+                                  : typeof value === "string"
+                                  ? value
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                updateValue(
+                                  e.target.value === "" ? null : Number(e.target.value)
+                                )
+                              }
+                            />
+                          )}
+                          {type === "DATE" && (
+                            <Input
+                              type="date"
+                              value={
+                                typeof value === "string" && value
+                                  ? value.slice(0, 10)
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                updateValue(
+                                  e.target.value ? `${e.target.value}T00:00:00.000Z` : null
+                                )
+                              }
+                            />
+                          )}
+                          {type === "BOOLEAN" && (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={value === true}
+                                onChange={(e) => updateValue(e.target.checked)}
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                Да / нет
+                              </span>
+                            </div>
+                          )}
+                          {type === "SELECT" && (
+                            <Select
+                              value={typeof value === "string" ? value : ""}
+                              onValueChange={(v) => updateValue(v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Выберите" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {selectOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {type === "MULTI_SELECT" && (
+                            <div className="space-y-1 rounded-md border bg-background px-2 py-2">
+                              {selectOptions.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">
+                                  Опции не настроены.
+                                </p>
+                              ) : (
+                                selectOptions.map((opt) => {
+                                  const current: string[] = Array.isArray(value)
+                                    ? value
+                                    : [];
+                                  const checked = current.includes(opt.value);
+                                  return (
+                                    <label
+                                      key={opt.value}
+                                      className="flex items-center gap-2 text-xs"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(e) => {
+                                          const next = new Set(current);
+                                          if (e.target.checked) {
+                                            next.add(opt.value);
+                                          } else {
+                                            next.delete(opt.value);
+                                          }
+                                          updateValue(Array.from(next));
+                                        }}
+                                      />
+                                      <span>{opt.label}</span>
+                                    </label>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <Button type="submit" size="sm" disabled={customFieldsSaving}>
+                      {customFieldsSaving ? "Сохраняем…" : "Сохранить дополнительные поля"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {group.toLowerCase() === "файлы" && (
+                <div className="pt-4 border-t mt-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Файлы в профиле</p>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const input = e.currentTarget.elements
+                          .namedItem("file") as HTMLInputElement | null;
+                        if (!input?.files || !input.files[0]) return;
+                        const file = input.files[0];
+                        const form = new FormData();
+                        form.append("file", file);
+                        setFilesLoading(true);
+                        setFilesError(null);
+                        try {
+                          const res = await fetch(
+                            `/api/psychologist/clients/${props.id}/files`,
+                            {
+                              method: "POST",
+                              body: form
+                            }
+                          );
+                          const data = await res.json().catch(() => ({}));
+                          if (!res.ok) {
+                            setFilesError(
+                              data?.message ?? "Не удалось загрузить файл"
+                            );
+                          } else {
+                            setFiles((prev) => [data, ...prev]);
+                            if (input) input.value = "";
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          setFilesError("Не удалось загрузить файл");
+                        } finally {
+                          setFilesLoading(false);
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <input
+                        type="file"
+                        name="file"
+                        className="hidden"
+                        id={`client-file-${props.id}`}
+                      />
+                      <label htmlFor={`client-file-${props.id}`}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            <Paperclip className="h-4 w-4" />
+                            Прикрепить файл
+                          </span>
+                        </Button>
+                      </label>
+                    </form>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    До 10 файлов, не более 5 МБ каждый. Форматы: изображения, PDF, DOC/DOCX.
+                  </p>
+
+                  {filesError && (
+                    <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+                      {filesError}
+                    </div>
+                  )}
+
+                  {filesLoading ? (
+                    <p className="text-sm text-muted-foreground">
+                      Загружаем список файлов…
+                    </p>
+                  ) : files.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Пока нет прикреплённых файлов.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {files.map((f) => (
+                        <div
+                          key={f.id}
+                          className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{f.filename}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(f.size / 1024).toFixed(1)} КБ ·{" "}
+                              {new Date(f.createdAt).toLocaleDateString("ru-RU")}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              asChild
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                            >
+                              <a href={f.url} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(
+                                    `/api/psychologist/clients/${props.id}/files/${f.id}`,
+                                    { method: "DELETE" }
+                                  );
+                                  if (res.ok) {
+                                    setFiles((prev) =>
+                                      prev.filter((file) => file.id !== f.id)
+                                    );
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          );
+        })}
 
         <TabsContent
           value="diagnostics"

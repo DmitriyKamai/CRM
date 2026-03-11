@@ -43,6 +43,7 @@ enum CustomFieldType {
   SELECT
   MULTILINE
   BOOLEAN
+  MULTI_SELECT
 }
 
 enum TestType {
@@ -191,6 +192,7 @@ model PsychologistProfile {
   user User @relation(fields: [userId], references: [id])
 
   clients                 ClientProfile[]       @relation("PsychologistClients")
+  clientFiles             ClientFile[]
   scheduleSlots           ScheduleSlot[]
   customFieldDefinitions  CustomFieldDefinition[]
   testResults             TestResult[]
@@ -219,6 +221,7 @@ model ClientProfile {
 
   user         User?                @relation(fields: [userId], references: [id])
   psychologist PsychologistProfile? @relation("PsychologistClients", fields: [psychologistId], references: [id])
+  files        ClientFile[]
 
   @@unique([psychologistId, email])
   @@index([userId])
@@ -393,6 +396,8 @@ model CustomFieldDefinition {
   key            String
   label          String
   type           CustomFieldType
+  group          String?
+  order          Int               @default(0)
   options        Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
@@ -418,6 +423,23 @@ model CustomFieldValue {
 
   @@index([clientId])
   @@index([appointmentId])
+}
+
+/// Файлы, прикреплённые к профилю клиента конкретного психолога.
+model ClientFile {
+  id             String   @id @default(cuid())
+  psychologistId String
+  clientId       String
+  url            String
+  filename       String
+  mimeType       String
+  size           Int
+  createdAt      DateTime @default(now())
+
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+  client       ClientProfile       @relation(fields: [clientId], references: [id])
+
+  @@index([psychologistId, clientId])
 }
 
 // --- Domain: recommendations ---
