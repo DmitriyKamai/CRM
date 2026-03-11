@@ -237,8 +237,6 @@ export function PsychologistSettingsForm() {
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  const [tabsEditMode, setTabsEditMode] = useState(false);
-  const [fieldsEditMode, setFieldsEditMode] = useState(false);
 
   const refetchAccounts = useCallback(() => {
     fetch("/api/user/accounts")
@@ -1070,7 +1068,7 @@ export function PsychologistSettingsForm() {
                               key={g.name}
                               className="grid grid-cols-[1.5fr,2fr,auto] items-start gap-2 px-3 py-2 text-sm"
                             >
-                              {tabsEditMode && editingTabGroup === g.name ? (
+                              {editingTabGroup === g.name ? (
                                 <>
                                   <div className="space-y-1">
                                     <Input
@@ -1177,58 +1175,54 @@ export function PsychologistSettingsForm() {
                                     )}
                                   </div>
                                   <div className="flex items-center justify-end gap-1">
-                                    {tabsEditMode && (
-                                      <>
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-8 w-8"
-                                          onClick={() => {
-                                            setEditingTabGroup(g.name);
-                                            setEditingTabName(g.name);
-                                            setEditingTabDescription(g.description ?? "");
-                                            setCustomFieldsError(null);
-                                          }}
-                                        >
-                                          <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-8 w-8 text-destructive"
-                                          onClick={async () => {
-                                            try {
-                                              const defsForGroup = customFields.filter(
-                                                (f) =>
-                                                  f.group &&
-                                                  typeof f.group === "string" &&
-                                                  f.group.trim() === g.name
-                                              );
-                                              await Promise.all(
-                                                defsForGroup.map((f) =>
-                                                  fetch(
-                                                    `/api/psychologist/custom-fields?id=${encodeURIComponent(
-                                                      f.id
-                                                    )}`,
-                                                    { method: "DELETE" }
-                                                  )
-                                                )
-                                              );
-                                              refetchCustomFields();
-                                            } catch (err) {
-                                              console.error(err);
-                                              setCustomFieldsError(
-                                                "Не удалось удалить вкладку"
-                                              );
-                                            }
-                                          }}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </>
-                                    )}
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => {
+                                        setEditingTabGroup(g.name);
+                                        setEditingTabName(g.name);
+                                        setEditingTabDescription(g.description ?? "");
+                                        setCustomFieldsError(null);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive"
+                                      onClick={async () => {
+                                        try {
+                                          const defsForGroup = customFields.filter(
+                                            (f) =>
+                                              f.group &&
+                                              typeof f.group === "string" &&
+                                              f.group.trim() === g.name
+                                          );
+                                          await Promise.all(
+                                            defsForGroup.map((f) =>
+                                              fetch(
+                                                `/api/psychologist/custom-fields?id=${encodeURIComponent(
+                                                  f.id
+                                                )}`,
+                                                { method: "DELETE" }
+                                              )
+                                            )
+                                          );
+                                          refetchCustomFields();
+                                        } catch (err) {
+                                          console.error(err);
+                                          setCustomFieldsError(
+                                            "Не удалось удалить вкладку"
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   </div>
                                 </>
                               )}
@@ -1238,20 +1232,6 @@ export function PsychologistSettingsForm() {
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant={tabsEditMode ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setEditingTabGroup(null);
-                      setTabsEditMode((prev) => !prev);
-                    }}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    {tabsEditMode ? "Завершить редактирование вкладок" : "Редактировать вкладки"}
-                  </Button>
                 </div>
               </div>
 
@@ -1277,7 +1257,7 @@ export function PsychologistSettingsForm() {
                           key={f.id}
                           className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] items-start gap-2 px-3 py-2 text-sm"
                         >
-                          {fieldsEditMode && editingFieldId === f.id ? (
+                          {editingFieldId === f.id ? (
                             <>
                               <div className="space-y-1">
                                 <Select
@@ -1375,58 +1355,54 @@ export function PsychologistSettingsForm() {
                                 {CUSTOM_FIELD_TYPE_LABELS[f.type as string] ?? f.type}
                               </span>
                               <div className="flex items-center justify-end gap-1">
-                                {fieldsEditMode && (
-                                  <>
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8"
-                                      onClick={() => {
-                                        setEditingFieldId(f.id);
-                                        setEditingLabel(f.label ?? "");
-                                        setEditingGroup(
-                                          f.group && typeof f.group === "string"
-                                            ? f.group
-                                            : ""
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingFieldId(f.id);
+                                    setEditingLabel(f.label ?? "");
+                                    setEditingGroup(
+                                      f.group && typeof f.group === "string"
+                                        ? f.group
+                                        : ""
+                                    );
+                                    setEditingDescription(f.description ?? "");
+                                    setCustomFieldsError(null);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch(
+                                        `/api/psychologist/custom-fields?id=${encodeURIComponent(
+                                          f.id
+                                        )}`,
+                                        { method: "DELETE" }
+                                      );
+                                      const data = await res.json().catch(() => ({}));
+                                      if (!res.ok) {
+                                        setCustomFieldsError(
+                                          data?.message ?? "Не удалось удалить поле"
                                         );
-                                        setEditingDescription(f.description ?? "");
-                                        setCustomFieldsError(null);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8 text-destructive"
-                                      onClick={async () => {
-                                        try {
-                                          const res = await fetch(
-                                            `/api/psychologist/custom-fields?id=${encodeURIComponent(
-                                              f.id
-                                            )}`,
-                                            { method: "DELETE" }
-                                          );
-                                          const data = await res.json().catch(() => ({}));
-                                          if (!res.ok) {
-                                            setCustomFieldsError(
-                                              data?.message ?? "Не удалось удалить поле"
-                                            );
-                                            return;
-                                          }
-                                          refetchCustomFields();
-                                        } catch (err) {
-                                          console.error(err);
-                                          setCustomFieldsError("Не удалось удалить поле");
-                                        }
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
+                                        return;
+                                      }
+                                      refetchCustomFields();
+                                    } catch (err) {
+                                      console.error(err);
+                                      setCustomFieldsError("Не удалось удалить поле");
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </>
                           )}
@@ -1447,7 +1423,6 @@ export function PsychologistSettingsForm() {
                       <Select
                         value={newFieldGroup}
                         onValueChange={(v) => setNewFieldGroup(v)}
-                        disabled={!fieldsEditMode}
                       >
                         <SelectTrigger id="cf-group">
                           <SelectValue placeholder="Выберите вкладку" />
@@ -1470,7 +1445,6 @@ export function PsychologistSettingsForm() {
                         onChange={(e) => {
                           setNewFieldLabel(e.target.value);
                         }}
-                        disabled={!fieldsEditMode}
                       />
                     </div>
                     <div className="space-y-1">
@@ -1489,7 +1463,6 @@ export function PsychologistSettingsForm() {
                               | "MULTI_SELECT"
                           )
                         }
-                        disabled={!fieldsEditMode}
                       >
                         <SelectTrigger id="cf-type">
                           <SelectValue />
@@ -1530,7 +1503,6 @@ export function PsychologistSettingsForm() {
                                 next[idx] = { ...next[idx], value: e.target.value };
                                 setNewFieldOptions(next);
                               }}
-                              disabled={!fieldsEditMode}
                             />
                             <Input
                               className="flex-1"
@@ -1541,7 +1513,6 @@ export function PsychologistSettingsForm() {
                                 next[idx] = { ...next[idx], label: e.target.value };
                                 setNewFieldOptions(next);
                               }}
-                              disabled={!fieldsEditMode}
                             />
                             <Button
                               type="button"
@@ -1552,7 +1523,6 @@ export function PsychologistSettingsForm() {
                                   prev.filter((_, i) => i !== idx)
                                 )
                               }
-                              disabled={!fieldsEditMode}
                             >
                               ×
                             </Button>
@@ -1568,7 +1538,6 @@ export function PsychologistSettingsForm() {
                               { value: "", label: "" }
                             ])
                           }
-                          disabled={!fieldsEditMode}
                         >
                           Добавить опцию
                         </Button>
@@ -1633,25 +1602,10 @@ export function PsychologistSettingsForm() {
                           setCustomFieldsError("Не удалось добавить поле");
                         }
                       }}
-                      disabled={!fieldsEditMode}
                     >
                       Сохранить поле
                     </Button>
                   </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant={fieldsEditMode ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setEditingFieldId(null);
-                      setFieldsEditMode((prev) => !prev);
-                    }}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    {fieldsEditMode ? "Завершить редактирование полей" : "Редактировать поля"}
-                  </Button>
                 </div>
               </div>
             </div>
