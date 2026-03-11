@@ -38,6 +38,15 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
 const CountryAutocomplete = dynamic(
   () => import("@/components/ui/location-autocomplete").then((m) => ({ default: m.CountryAutocomplete })),
   { ssr: false }
@@ -995,60 +1004,71 @@ export function PsychologistSettingsForm() {
               <div className="space-y-3 rounded-lg border bg-background p-3">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-medium">Вкладки</p>
-                  <p className="text-xs text-muted-foreground">
-                    Вкладки группируют поля в отдельные разделы карточки клиента.
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Вкладки группируют поля в отдельные разделы карточки клиента.
+                    </p>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline">
+                          Создать вкладку
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Создать вкладку</DialogTitle>
+                          <DialogDescription>
+                            Укажите название и, при необходимости, описание вкладки для дополнительных данных клиента.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="new-tab-name-dialog">Название вкладки</Label>
+                            <Input
+                              id="new-tab-name-dialog"
+                              placeholder="Например, Анамнез"
+                              value={newTabName}
+                              maxLength={64}
+                              onChange={(e) => setNewTabName(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="new-tab-description-dialog">Описание вкладки</Label>
+                            <Textarea
+                              id="new-tab-description-dialog"
+                              rows={3}
+                              placeholder="Кратко опишите, какие данные будут храниться на этой вкладке"
+                              value={newTabDescription}
+                              maxLength={512}
+                              onChange={(e) => setNewTabDescription(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              const name = newTabName.trim();
+                              const description = newTabDescription.trim();
+                              if (!name) return;
+                              setLocalTabs((prev) => {
+                                const without = prev.filter((t) => t.name !== name);
+                                return [...without, { name, description }];
+                              });
+                              setNewTabName("");
+                              setNewTabDescription("");
+                              setNewFieldGroup(name);
+                            }}
+                          >
+                            Сохранить вкладку
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Создать вкладку</p>
-                    <div className="space-y-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="new-tab-name">Название вкладки</Label>
-                        <Input
-                          id="new-tab-name"
-                          placeholder="Например, Анамнез"
-                          value={newTabName}
-                          maxLength={64}
-                          onChange={(e) => setNewTabName(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="new-tab-description">Описание вкладки</Label>
-                        <Textarea
-                          id="new-tab-description"
-                          rows={3}
-                          placeholder="Кратко опишите, какие данные будут храниться на этой вкладке"
-                          value={newTabDescription}
-                          maxLength={512}
-                          onChange={(e) => setNewTabDescription(e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          const name = newTabName.trim();
-                          const description = newTabDescription.trim();
-                          if (!name) return;
-                          setLocalTabs((prev) => {
-                            const without = prev.filter((t) => t.name !== name);
-                            return [...without, { name, description }];
-                          });
-                          setNewTabName("");
-                          setNewTabDescription("");
-                          setNewFieldGroup(name);
-                        }}
-                      >
-                        Сохранить вкладку
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        Вкладка появится в карточке клиента, когда вы добавите на неё хотя бы одно поле.
-                      </p>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Существующие вкладки</p>
                     {existingGroups.length === 0 ? (
@@ -1236,7 +1256,215 @@ export function PsychologistSettingsForm() {
               </div>
 
               <div className="space-y-3 rounded-lg border bg-background p-3">
-                <p className="text-sm font-medium">Поля</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">Поля</p>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        Создать поле
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Создать поле</DialogTitle>
+                        <DialogDescription>
+                          Укажите вкладку, название, тип поля и при необходимости опции.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="mt-2 space-y-3">
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="cf-group-dialog">Вкладка</Label>
+                            <Select
+                              value={newFieldGroup}
+                              onValueChange={(v) => setNewFieldGroup(v)}
+                            >
+                              <SelectTrigger id="cf-group-dialog">
+                                <SelectValue placeholder="Выберите вкладку" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableTabs.map((t) => (
+                                  <SelectItem key={t.name} value={t.name}>
+                                    {t.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="cf-label-dialog">Название поля</Label>
+                            <Input
+                              id="cf-label-dialog"
+                              placeholder="Например, Основной запрос"
+                              value={newFieldLabel}
+                              onChange={(e) => {
+                                setNewFieldLabel(e.target.value);
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="cf-type-dialog">Тип поля</Label>
+                            <Select
+                              value={newFieldType}
+                              onValueChange={(v) =>
+                                setNewFieldType(
+                                  v as
+                                    | "TEXT"
+                                    | "MULTILINE"
+                                    | "NUMBER"
+                                    | "DATE"
+                                    | "BOOLEAN"
+                                    | "SELECT"
+                                    | "MULTI_SELECT"
+                                )
+                              }
+                            >
+                              <SelectTrigger id="cf-type-dialog">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="TEXT">
+                                  Текст (одна строка)
+                                </SelectItem>
+                                <SelectItem value="MULTILINE">
+                                  Текст (несколько строк)
+                                </SelectItem>
+                                <SelectItem value="NUMBER">Число</SelectItem>
+                                <SelectItem value="DATE">Дата</SelectItem>
+                                <SelectItem value="BOOLEAN">Флажок (да/нет)</SelectItem>
+                                <SelectItem value="SELECT">
+                                  Выбор из списка (один вариант)
+                                </SelectItem>
+                                <SelectItem value="MULTI_SELECT">
+                                  Выбор из списка (несколько вариантов)
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
+                          <div className="mt-2 space-y-2">
+                            <Label>Опции</Label>
+                            <div className="space-y-2">
+                              {newFieldOptions.map((opt, idx) => (
+                                <div key={idx} className="flex gap-2">
+                                  <Input
+                                    className="w-1/3"
+                                    placeholder="Значение"
+                                    value={opt.value}
+                                    onChange={(e) => {
+                                      const next = [...newFieldOptions];
+                                      next[idx] = { ...next[idx], value: e.target.value };
+                                      setNewFieldOptions(next);
+                                    }}
+                                  />
+                                  <Input
+                                    className="flex-1"
+                                    placeholder="Подпись"
+                                    value={opt.label}
+                                    onChange={(e) => {
+                                      const next = [...newFieldOptions];
+                                      next[idx] = { ...next[idx], label: e.target.value };
+                                      setNewFieldOptions(next);
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      setNewFieldOptions((prev) =>
+                                        prev.filter((_, i) => i !== idx)
+                                      )
+                                    }
+                                  >
+                                    ×
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setNewFieldOptions((prev) => [
+                                    ...prev,
+                                    { value: "", label: "" }
+                                  ])
+                                }
+                              >
+                                Добавить опцию
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            setCustomFieldsError(null);
+                            if (!newFieldLabel.trim() || !newFieldGroup.trim()) return;
+                            const existingKeys = new Set(
+                              customFields.map((f) => String(f.key ?? "")).filter(Boolean)
+                            );
+                            let baseKey = newFieldLabel
+                              .trim()
+                              .toLowerCase()
+                              .replace(/\s+/g, "_");
+                            if (!baseKey) {
+                              baseKey = `field_${customFields.length + 1}`;
+                            }
+                            let key = baseKey;
+                            let counter = 2;
+                            while (existingKeys.has(key)) {
+                              key = `${baseKey}_${counter++}`;
+                            }
+                            try {
+                              const res = await fetch("/api/psychologist/custom-fields", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  group: newFieldGroup.trim() || null,
+                                  key,
+                                  label: newFieldLabel.trim(),
+                                  type: newFieldType,
+                                  options:
+                                    newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
+                                      ? {
+                                          selectOptions: newFieldOptions.filter(
+                                            (o) => o.value.trim() && o.label.trim()
+                                          )
+                                        }
+                                      : null
+                                })
+                              });
+                              const data = await res.json().catch(() => ({}));
+                              if (!res.ok) {
+                                setCustomFieldsError(
+                                  data?.message ?? "Не удалось добавить поле"
+                                );
+                                return;
+                              }
+                              setNewFieldGroup("");
+                              setNewFieldLabel("");
+                              setNewFieldType("TEXT");
+                              setNewFieldOptions([]);
+                              refetchCustomFields();
+                            } catch (err) {
+                              console.error(err);
+                              setCustomFieldsError("Не удалось добавить поле");
+                            }
+                          }}
+                        >
+                          Сохранить поле
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 {customFieldsLoading ? (
                   <p className="text-sm text-muted-foreground">Загружаем поля…</p>
                 ) : customFields.length === 0 ? (
@@ -1412,201 +1640,6 @@ export function PsychologistSettingsForm() {
                   </div>
                 )}
 
-                <div className="pt-3 border-t mt-3">
-                  <p className="text-sm font-medium">Добавить поле</p>
-                  <div className="mt-2 grid gap-3 md:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="cf-group">Вкладка</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Сначала создайте вкладку выше, затем выберите её здесь.
-                      </p>
-                      <Select
-                        value={newFieldGroup}
-                        onValueChange={(v) => setNewFieldGroup(v)}
-                      >
-                        <SelectTrigger id="cf-group">
-                          <SelectValue placeholder="Выберите вкладку" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableTabs.map((t) => (
-                            <SelectItem key={t.name} value={t.name}>
-                              {t.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="cf-label">Название поля</Label>
-                      <Input
-                        id="cf-label"
-                        placeholder="Например, Основной запрос"
-                        value={newFieldLabel}
-                        onChange={(e) => {
-                          setNewFieldLabel(e.target.value);
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="cf-type">Тип поля</Label>
-                      <Select
-                        value={newFieldType}
-                        onValueChange={(v) =>
-                          setNewFieldType(
-                            v as
-                              | "TEXT"
-                              | "MULTILINE"
-                              | "NUMBER"
-                              | "DATE"
-                              | "BOOLEAN"
-                              | "SELECT"
-                              | "MULTI_SELECT"
-                          )
-                        }
-                      >
-                        <SelectTrigger id="cf-type">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="TEXT">
-                            Текст (одна строка)
-                          </SelectItem>
-                          <SelectItem value="MULTILINE">
-                            Текст (несколько строк)
-                          </SelectItem>
-                          <SelectItem value="NUMBER">Число</SelectItem>
-                          <SelectItem value="DATE">Дата</SelectItem>
-                          <SelectItem value="BOOLEAN">Флажок (да/нет)</SelectItem>
-                          <SelectItem value="SELECT">
-                            Выбор из списка (один вариант)
-                          </SelectItem>
-                          <SelectItem value="MULTI_SELECT">
-                            Выбор из списка (несколько вариантов)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
-                    <div className="mt-3 space-y-2">
-                      <Label>Опции</Label>
-                      <div className="space-y-2">
-                        {newFieldOptions.map((opt, idx) => (
-                          <div key={idx} className="flex gap-2">
-                            <Input
-                              className="w-1/3"
-                              placeholder="Значение"
-                              value={opt.value}
-                              onChange={(e) => {
-                                const next = [...newFieldOptions];
-                                next[idx] = { ...next[idx], value: e.target.value };
-                                setNewFieldOptions(next);
-                              }}
-                            />
-                            <Input
-                              className="flex-1"
-                              placeholder="Подпись"
-                              value={opt.label}
-                              onChange={(e) => {
-                                const next = [...newFieldOptions];
-                                next[idx] = { ...next[idx], label: e.target.value };
-                                setNewFieldOptions(next);
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                setNewFieldOptions((prev) =>
-                                  prev.filter((_, i) => i !== idx)
-                                )
-                              }
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setNewFieldOptions((prev) => [
-                              ...prev,
-                              { value: "", label: "" }
-                            ])
-                          }
-                        >
-                          Добавить опцию
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-4">
-                    <Button
-                      type="button"
-                      onClick={async () => {
-                        setCustomFieldsError(null);
-                        if (!newFieldLabel.trim() || !newFieldGroup.trim()) return;
-                        const existingKeys = new Set(
-                          customFields.map((f) => String(f.key ?? "")).filter(Boolean)
-                        );
-                        let baseKey = newFieldLabel
-                          .trim()
-                          .toLowerCase()
-                          .replace(/\s+/g, "_");
-                        if (!baseKey) {
-                          baseKey = `field_${customFields.length + 1}`;
-                        }
-                        let key = baseKey;
-                        let counter = 2;
-                        while (existingKeys.has(key)) {
-                          key = `${baseKey}_${counter++}`;
-                        }
-                        try {
-                          const res = await fetch("/api/psychologist/custom-fields", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              group: newFieldGroup.trim() || null,
-                              key,
-                              label: newFieldLabel.trim(),
-                              type: newFieldType,
-                              options:
-                                newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
-                                  ? {
-                                      selectOptions: newFieldOptions.filter(
-                                        (o) => o.value.trim() && o.label.trim()
-                                      )
-                                    }
-                                  : null
-                            })
-                          });
-                          const data = await res.json().catch(() => ({}));
-                          if (!res.ok) {
-                            setCustomFieldsError(
-                              data?.message ?? "Не удалось добавить поле"
-                            );
-                            return;
-                          }
-                          setNewFieldGroup("");
-                          setNewFieldLabel("");
-                          setNewFieldType("TEXT");
-                          setNewFieldOptions([]);
-                          refetchCustomFields();
-                        } catch (err) {
-                          console.error(err);
-                          setCustomFieldsError("Не удалось добавить поле");
-                        }
-                      }}
-                    >
-                      Сохранить поле
-                    </Button>
-                  </div>
-                </div>
               </div>
             </div>
           </Section>
