@@ -1,6 +1,23 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, GripVertical } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
@@ -48,6 +65,50 @@ const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "widowed", label: "Вдовец / Вдова" },
   { value: "unspecified", label: "Не указано" }
 ];
+
+function SortableFieldWrap({
+  id,
+  isEditing,
+  children
+}: {
+  id: string;
+  isEditing: boolean;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex gap-2 items-start ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
+    >
+      {isEditing && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="mt-1.5 flex shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded p-0.5"
+          aria-label="Перетащить для смены порядка"
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
 
 type ClientProfileProps = {
   id: string;
@@ -114,7 +175,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
   const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
-  const [draggedDefId, setDraggedDefId] = useState<string | null>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
@@ -151,6 +211,15 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       .catch(() => {})
       .finally(() => setCustomFieldsLoading(false));
   }, [props.id]);
+
+  const sortableSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  );
 
   useEffect(() => {
     refetchCustomFieldDefs();
@@ -730,95 +799,56 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                         : ""
                     }`}
                   >
-                    {defsForGroup.map((def) => {
-                      const value = customFieldValues[def.id];
-                      const label = def.label as string;
-                      const type = def.type as string;
-                      const selectOptions: { value: string; label: string }[] =
-                        def.options?.selectOptions ?? [];
-
-                      function updateValue(next: any) {
-                        setCustomFieldValues((prev) => ({
-                          ...prev,
-                          [def.id]: next
-                        }));
-                      }
-
-                      return (
-                        <div
-                          key={def.id}
-                          data-field-id={def.id}
-                          data-field-group={group}
-                          className={`flex gap-2 items-start ${
-                            draggedDefId === def.id ? "opacity-50 bg-muted/30 rounded-md" : ""
-                          }`}
-                          onDragOver={
-                            isEditingGroup
-                              ? (e) => {
-                                  e.preventDefault();
-                                  if (draggedDefId) e.dataTransfer.dropEffect = "move";
-                                }
-                              : undefined
+                    {isEditingGroup ? (
+                      <DndContext
+                        sensors={sortableSensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={async (event: DragEndEvent) => {
+                          const { active, over } = event;
+                          if (!over || active.id === over.id) return;
+                          const ids = defsForGroup.map((d) => d.id);
+                          const oldIndex = ids.indexOf(active.id as string);
+                          const newIndex = ids.indexOf(over.id as string);
+                          if (oldIndex === -1 || newIndex === -1) return;
+                          const reordered = arrayMove(defsForGroup, oldIndex, newIndex);
+                          try {
+                            const results = await Promise.all(
+                              reordered.map((field, order) =>
+                                fetch("/api/psychologist/custom-fields", {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ id: field.id, order })
+                                })
+                              )
+                            );
+                            if (results.every((r) => r.ok)) refetchCustomFieldDefs();
+                          } catch (err) {
+                            console.error(err);
                           }
-                          onDrop={
-                            isEditingGroup
-                              ? async (e) => {
-                                  e.preventDefault();
-                                  setDraggedDefId(null);
-                                  const raw = e.dataTransfer.getData("application/json");
-                                  if (!raw) return;
-                                  let dragData: { id: string };
-                                  try {
-                                    dragData = JSON.parse(raw);
-                                  } catch {
-                                    return;
-                                  }
-                                  const targetId = e.currentTarget.dataset.fieldId;
-                                  if (!targetId || dragData.id === targetId) return;
-                                  const dragIdx = defsForGroup.findIndex((d) => d.id === dragData.id);
-                                  const targetIdx = defsForGroup.findIndex((d) => d.id === targetId);
-                                  if (dragIdx === -1 || targetIdx === -1) return;
-                                  const reordered = [...defsForGroup];
-                                  const [removed] = reordered.splice(dragIdx, 1);
-                                  reordered.splice(targetIdx, 0, removed);
-                                  try {
-                                    const results = await Promise.all(
-                                      reordered.map((field, order) =>
-                                        fetch("/api/psychologist/custom-fields", {
-                                          method: "PATCH",
-                                          headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({ id: field.id, order })
-                                        })
-                                      )
-                                    );
-                                    if (results.every((r) => r.ok)) refetchCustomFieldDefs();
-                                  } catch (err) {
-                                    console.error(err);
-                                  }
-                                }
-                              : undefined
-                          }
+                        }}
+                      >
+                        <SortableContext
+                          items={defsForGroup.map((d) => d.id)}
+                          strategy={rectSortingStrategy}
                         >
-                          {isEditingGroup && (
-                            <div
-                              className="mt-1.5 flex shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
-                              draggable
-                              onDragStart={(e) => {
-                                setDraggedDefId(def.id);
-                                e.dataTransfer.effectAllowed = "move";
-                                e.dataTransfer.setData(
-                                  "application/json",
-                                  JSON.stringify({ id: def.id })
-                                );
-                              }}
-                              onDragEnd={() => setDraggedDefId(null)}
-                              aria-label="Перетащить для смены порядка"
-                            >
-                              <GripVertical className="h-4 w-4" />
-                            </div>
-                          )}
-                          <div className="space-y-1 flex-1 min-w-0">
-                          <Label className="text-xs">{label}</Label>
+                          {defsForGroup.map((def) => {
+                            const value = customFieldValues[def.id];
+                            const label = def.label as string;
+                            const type = def.type as string;
+                            const selectOptions: { value: string; label: string }[] =
+                              def.options?.selectOptions ?? [];
+
+                            function updateValue(next: any) {
+                              setCustomFieldValues((prev) => ({
+                                ...prev,
+                                [def.id]: next
+                              }));
+                            }
+
+                            return (
+                              <SortableFieldWrap key={def.id} id={def.id} isEditing={true}>
+                                <div className="space-y-1 flex-1 min-w-0">
+                                  <Label className="text-xs">{label}</Label>
                           {type === "TEXT" && (
                             <Input
                               value={typeof value === "string" ? value : ""}
@@ -931,10 +961,148 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               )}
                             </div>
                           )}
+                                </div>
+                              </SortableFieldWrap>
+                            );
+                          })}
+                        </SortableContext>
+                      </DndContext>
+                    ) : (
+                      defsForGroup.map((def) => {
+                        const value = customFieldValues[def.id];
+                        const label = def.label as string;
+                        const type = def.type as string;
+                        const selectOptions: { value: string; label: string }[] =
+                          def.options?.selectOptions ?? [];
+
+                        function updateValue(next: any) {
+                          setCustomFieldValues((prev) => ({
+                            ...prev,
+                            [def.id]: next
+                          }));
+                        }
+
+                        return (
+                          <div key={def.id} className="flex gap-2 items-start">
+                            <div className="space-y-1 flex-1 min-w-0">
+                              <Label className="text-xs">{label}</Label>
+                              {type === "TEXT" && (
+                                <Input
+                                  value={typeof value === "string" ? value : ""}
+                                  onChange={(e) => updateValue(e.target.value)}
+                                />
+                              )}
+                              {type === "MULTILINE" && (
+                                <Textarea
+                                  rows={3}
+                                  value={typeof value === "string" ? value : ""}
+                                  onChange={(e) => updateValue(e.target.value)}
+                                />
+                              )}
+                              {type === "NUMBER" && (
+                                <Input
+                                  type="number"
+                                  value={
+                                    typeof value === "number"
+                                      ? String(value)
+                                      : typeof value === "string"
+                                        ? value
+                                        : ""
+                                  }
+                                  onChange={(e) =>
+                                    updateValue(
+                                      e.target.value === "" ? null : Number(e.target.value)
+                                    )
+                                  }
+                                />
+                              )}
+                              {type === "DATE" && (
+                                <Input
+                                  type="date"
+                                  value={
+                                    typeof value === "string" && value
+                                      ? value.slice(0, 10)
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    updateValue(
+                                      e.target.value ? `${e.target.value}T00:00:00.000Z` : null
+                                    )
+                                  }
+                                />
+                              )}
+                              {type === "BOOLEAN" && (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={value === true}
+                                    onChange={(e) => updateValue(e.target.checked)}
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
+                                      "Опция"}
+                                  </span>
+                                </div>
+                              )}
+                              {type === "SELECT" && (
+                                <Select
+                                  value={typeof value === "string" ? value : ""}
+                                  onValueChange={(v) => updateValue(v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Выберите" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {selectOptions.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              {type === "MULTI_SELECT" && (
+                                <div className="space-y-1 rounded-md border bg-background px-2 py-2">
+                                  {selectOptions.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      Опции не настроены.
+                                    </p>
+                                  ) : (
+                                    selectOptions.map((opt) => {
+                                      const current: string[] = Array.isArray(value)
+                                        ? value
+                                        : [];
+                                      const checked = current.includes(opt.value);
+                                      return (
+                                        <label
+                                          key={opt.value}
+                                          className="flex items-center gap-2 text-xs"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={(e) => {
+                                              const next = new Set(current);
+                                              if (e.target.checked) {
+                                                next.add(opt.value);
+                                              } else {
+                                                next.delete(opt.value);
+                                              }
+                                              updateValue(Array.from(next));
+                                            }}
+                                          />
+                                          <span>{opt.label}</span>
+                                        </label>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
 
                   <div className="flex-none flex items-center justify-between gap-3 pt-2 border-t">
