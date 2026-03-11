@@ -710,15 +710,17 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                       const data = await res.json().catch(() => ({}));
                       if (!res.ok) {
                         console.error(data);
+                        return;
                       }
+                      setCustomTabsEdit((prev) => ({ ...prev, [groupId]: false }));
                     } finally {
                       setCustomFieldsSaving(false);
                     }
                   }}
-                  className="space-y-3"
+                  className="grid gap-3 md:grid-cols-2"
                 >
                   <div
-                    className={`grid gap-3 md:grid-cols-2 ${
+                    className={`md:col-span-2 grid gap-3 md:grid-cols-2 ${
                       !isEditingGroup
                         ? "pointer-events-none [&_input]:cursor-text [&_button]:cursor-text [&_[data-radix-select-trigger]]:cursor-text"
                         : ""
@@ -858,7 +860,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     })}
                   </div>
 
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="md:col-span-2 flex items-center justify-between gap-3">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
