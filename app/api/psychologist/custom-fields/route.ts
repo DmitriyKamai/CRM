@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
         type: parsed.type,
         group: parsed.group ?? null,
         order: orderBase,
-        options: optionsForDb
+        options: optionsForDb as Prisma.InputJsonValue | undefined
       }
     });
 
