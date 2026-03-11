@@ -423,6 +423,7 @@ model CustomFieldValue {
 
   @@index([clientId])
   @@index([appointmentId])
+  @@unique([definitionId, clientId])
 }
 
 /// Файлы, прикреплённые к профилю клиента конкретного психолога.

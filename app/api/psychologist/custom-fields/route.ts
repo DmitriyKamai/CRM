@@ -94,7 +94,7 @@ export async function POST(request: Request) {
         type: parsed.type,
         group: parsed.group ?? null,
         order: orderBase,
-        options: parsed.options ?? null
+        options: parsed.options ?? undefined
       }
     });
 
