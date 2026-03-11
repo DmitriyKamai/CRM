@@ -1001,7 +1001,7 @@ export function PsychologistSettingsForm() {
                   {customFieldsError}
                 </div>
               )}
-              <div className="space-y-3 rounded-lg border bg-background p-3">
+              <div className="space-y-3 rounded-lg border bg-card p-3">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-medium">Вкладки</p>
                   <div className="flex items-center gap-2">
@@ -1010,7 +1010,7 @@ export function PsychologistSettingsForm() {
                     </p>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm">
                           Создать вкладку
                         </Button>
                       </DialogTrigger>
@@ -1076,7 +1076,7 @@ export function PsychologistSettingsForm() {
                         Пока нет ни одной вкладки. Создайте вкладку слева, затем добавьте на неё поля.
                       </p>
                     ) : (
-                      <div className="rounded-lg border bg-background">
+                      <div className="rounded-lg border bg-card">
                         <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                           <span>Название</span>
                           <span>Описание</span>
@@ -1255,12 +1255,12 @@ export function PsychologistSettingsForm() {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-lg border bg-background p-3">
+              <div className="space-y-3 rounded-lg border bg-card p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">Поля</p>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm">
                         Создать поле
                       </Button>
                     </DialogTrigger>
@@ -1472,7 +1472,7 @@ export function PsychologistSettingsForm() {
                     Пока нет ни одного пользовательского поля. Сначала создайте вкладку, затем добавьте на неё поля.
                   </p>
                 ) : (
-                  <div className="rounded-lg border bg-background">
+                  <div className="rounded-lg border bg-card">
                     <div className="grid grid-cols-[1.2fr,1.5fr,1.5fr,auto] gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                       <span>Вкладка</span>
                       <span>Название</span>
