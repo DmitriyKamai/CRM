@@ -792,7 +792,8 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 onChange={(e) => updateValue(e.target.checked)}
                               />
                               <span className="text-xs text-muted-foreground">
-                                Да / нет
+                                {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
+                                  "Опция"}
                               </span>
                             </div>
                           )}

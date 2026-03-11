@@ -124,7 +124,7 @@ const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
   MULTILINE: "Текст (несколько строк)",
   NUMBER: "Число",
   DATE: "Дата",
-  BOOLEAN: "Флажок (да/нет)",
+  BOOLEAN: "Флажок",
   SELECT: "Выбор из списка (один вариант)",
   MULTI_SELECT: "Выбор из списка (несколько вариантов)"
 };
@@ -242,6 +242,7 @@ export function PsychologistSettingsForm() {
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
   const [newFieldOptions, setNewFieldOptions] = useState<{ value: string; label: string }[]>([]);
+  const [newFieldBooleanLabel, setNewFieldBooleanLabel] = useState("Опция");
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
@@ -1331,7 +1332,7 @@ export function PsychologistSettingsForm() {
                                 </SelectItem>
                                 <SelectItem value="NUMBER">Число</SelectItem>
                                 <SelectItem value="DATE">Дата</SelectItem>
-                                <SelectItem value="BOOLEAN">Флажок (да/нет)</SelectItem>
+                                <SelectItem value="BOOLEAN">Флажок</SelectItem>
                                 <SelectItem value="SELECT">
                                   Выбор из списка (один вариант)
                                 </SelectItem>
@@ -1343,6 +1344,16 @@ export function PsychologistSettingsForm() {
                           </div>
                         </div>
 
+                        {newFieldType === "BOOLEAN" && (
+                          <div className="mt-2 space-y-2">
+                            <Label>Подпись флажка</Label>
+                            <Input
+                              placeholder="Опция"
+                              value={newFieldBooleanLabel}
+                              onChange={(e) => setNewFieldBooleanLabel(e.target.value)}
+                            />
+                          </div>
+                        )}
                         {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
                           <div className="mt-2 space-y-2">
                             <Label>Опции</Label>
@@ -1437,7 +1448,12 @@ export function PsychologistSettingsForm() {
                                             (o) => o.value.trim() && o.label.trim()
                                           )
                                         }
-                                      : null
+                                      : newFieldType === "BOOLEAN"
+                                        ? {
+                                            booleanLabel:
+                                              newFieldBooleanLabel.trim() || "Опция"
+                                          }
+                                        : null
                                 })
                               });
                               const data = await res.json().catch(() => ({}));
@@ -1451,6 +1467,7 @@ export function PsychologistSettingsForm() {
                               setNewFieldLabel("");
                               setNewFieldType("TEXT");
                               setNewFieldOptions([]);
+                              setNewFieldBooleanLabel("Опция");
                               refetchCustomFields();
                             } catch (err) {
                               console.error(err);

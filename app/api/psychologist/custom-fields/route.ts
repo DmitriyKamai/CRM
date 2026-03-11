@@ -23,6 +23,7 @@ const definitionSchema = z.object({
   options: z
     .object({
       required: z.boolean().optional(),
+      booleanLabel: z.string().trim().max(128).optional(),
       selectOptions: z
         .array(
           z.object({
@@ -85,6 +86,16 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const parsed = definitionSchema.parse(body);
 
+    if (
+      (parsed.type === "SELECT" || parsed.type === "MULTI_SELECT") &&
+      (!parsed.options?.selectOptions || parsed.options.selectOptions.length === 0)
+    ) {
+      return NextResponse.json(
+        { message: "Для поля «выбор из списка» укажите хотя бы один вариант" },
+        { status: 400 }
+      );
+    }
+
     const orderBase =
       (await prisma.customFieldDefinition.count({
         where: {
@@ -93,6 +104,12 @@ export async function POST(request: Request) {
           group: parsed.group ?? null
         }
       })) ?? 0;
+
+    // Prisma Json field: pass a plain JSON-serializable value (object or null)
+    const optionsJson =
+      parsed.options != null
+        ? (JSON.parse(JSON.stringify(parsed.options)) as Record<string, unknown>)
+        : null;
 
     const created = await prisma.customFieldDefinition.create({
       data: {
@@ -104,7 +121,7 @@ export async function POST(request: Request) {
         type: parsed.type,
         group: parsed.group ?? null,
         order: orderBase,
-        options: parsed.options ?? undefined
+        options: optionsJson
       }
     });
 
@@ -116,7 +133,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    console.error("[POST /api/psychologist/custom-fields]", error);
+    const errMessage = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    console.error("[POST /api/psychologist/custom-fields]", errMessage, errStack);
     return NextResponse.json(
       { message: "Внутренняя ошибка сервера" },
       { status: 500 }
