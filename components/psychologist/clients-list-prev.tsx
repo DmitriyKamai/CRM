@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Calendar as CalendarIcon, UserCheck, Users, Plus, Trash2, X, Search } from "lucide-react";
@@ -125,14 +125,14 @@ export function PsychologistClientsList() {
       const res = await fetch("/api/psychologist/clients");
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "Не удалось загрузить клиентов");
+        throw new Error(data?.message ?? "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨╖╨░╨│╤А╤Г╨╖╨╕╤В╤М ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓");
       }
       const data = (await res.json()) as { clients: ClientDto[] };
       setClients(data.clients);
       setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось загрузить клиентов");
+      setError(err instanceof Error ? err.message : "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨╖╨░╨│╤А╤Г╨╖╨╕╤В╤М ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓");
     } finally {
       setLoading(false);
     }
@@ -158,7 +158,7 @@ export function PsychologistClientsList() {
         body: JSON.stringify(body)
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message ?? "Не удалось создать клиента");
+      if (!res.ok) throw new Error(data?.message ?? "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Б╨╛╨╖╨┤╨░╤В╤М ╨║╨╗╨╕╨╡╨╜╤В╨░");
 
       await loadClients();
       setForm({ email: "", firstName: "", lastName: "", phone: "", notes: "" });
@@ -166,7 +166,7 @@ export function PsychologistClientsList() {
       setAddOpen(false);
     } catch (err) {
       console.error(err);
-      setFormError(err instanceof Error ? err.message : "Не удалось создать клиента");
+      setFormError(err instanceof Error ? err.message : "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Б╨╛╨╖╨┤╨░╤В╤М ╨║╨╗╨╕╨╡╨╜╤В╨░");
     } finally {
       setCreating(false);
     }
@@ -192,14 +192,14 @@ export function PsychologistClientsList() {
         body: JSON.stringify({ ids: Array.from(selectedIds) })
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message ?? "Не удалось удалить выбранных клиентов");
+      if (!res.ok) throw new Error(data?.message ?? "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Г╨┤╨░╨╗╨╕╤В╤М ╨▓╤Л╨▒╤А╨░╨╜╨╜╤Л╤Е ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓");
       if (selectedClient && selectedIds.has(selectedClient.id)) setSelectedClient(null);
       setSelectedIds(new Set());
       setMultiSelectMode(false);
       await loadClients();
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
+      setError(err instanceof Error ? err.message : "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╤Г╨┤╨░╨╗╨╕╤В╤М ╨▓╤Л╨▒╤А╨░╨╜╨╜╤Л╤Е ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓");
     } finally {
       setBulkDeleting(false);
     }
@@ -215,92 +215,13 @@ export function PsychologistClientsList() {
     );
   });
 
-  // Если выбран клиент — показываем только профиль, который «закрывает» собой список
-  if (selectedClient) {
-    return (
-      <div className="h-[calc(100vh-0px)] overflow-y-auto flex justify-center">
-        <div className="w-full max-w-5xl px-6 py-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-2 px-2"
-              onClick={() => setSelectedClient(null)}
-            >
-              <span className="text-lg leading-none">←</span>
-              <span className="text-sm">Вернуться назад</span>
-            </Button>
-          </div>
-          <PsychologistClientProfile
-            key={selectedClient.id}
-            id={selectedClient.id}
-            email={selectedClient.email ?? null}
-            hasAccount={selectedClient.hasAccount}
-            firstName={selectedClient.firstName}
-            lastName={selectedClient.lastName}
-            dateOfBirth={selectedClient.dateOfBirth ?? null}
-            phone={selectedClient.phone ?? null}
-            country={selectedClient.country ?? null}
-            city={selectedClient.city ?? null}
-            gender={selectedClient.gender ?? null}
-            maritalStatus={selectedClient.maritalStatus ?? null}
-            notes={selectedClient.notes ?? null}
-            createdAt={selectedClient.createdAt}
-            onDeleted={async () => {
-              setSelectedClient(null);
-              await loadClients();
-            }}
-            onUpdated={next => {
-              setClients(prev =>
-                prev.map(c =>
-                  c.id === selectedClient.id
-                    ? {
-                        ...c,
-                        firstName: next.firstName,
-                        lastName: next.lastName,
-                        email: next.email ?? null,
-                        phone: next.phone ?? null,
-                        country: next.country ?? null,
-                        city: next.city ?? null,
-                        gender: next.gender ?? null,
-                        maritalStatus: next.maritalStatus ?? null,
-                        notes: next.notes ?? null,
-                        dateOfBirth: next.dateOfBirth ?? null
-                      }
-                    : c
-                )
-              );
-              setSelectedClient(prev =>
-                prev
-                  ? {
-                      ...prev,
-                      firstName: next.firstName,
-                      lastName: next.lastName,
-                      email: next.email ?? null,
-                      phone: next.phone ?? null,
-                      country: next.country ?? null,
-                      city: next.city ?? null,
-                      gender: next.gender ?? null,
-                      maritalStatus: next.maritalStatus ?? null,
-                      notes: next.notes ?? null,
-                      dateOfBirth: next.dateOfBirth ?? null
-                    }
-                  : prev
-              );
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-[calc(100vh-0px)] overflow-y-auto flex justify-center">
-      <div className="flex flex-col w-full max-w-5xl border bg-background overflow-hidden rounded-lg">
+    <div className="flex h-[calc(100vh-0px)] overflow-hidden">
+      {/* тФАтФА Left panel: client list тФАтФА */}
+      <div className="flex flex-col w-[300px] shrink-0 border-r bg-background overflow-hidden">
         {/* Panel header */}
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b shrink-0">
-          <h2 className="text-sm font-semibold">Клиенты</h2>
+          <h2 className="text-sm font-semibold">╨Ъ╨╗╨╕╨╡╨╜╤В╤Л</h2>
           <div className="flex items-center gap-1">
             {multiSelectMode ? (
               <>
@@ -310,7 +231,7 @@ export function PsychologistClientsList() {
                     variant="ghost"
                     className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                     disabled={bulkDeleting}
-                    title={`Удалить выбранных (${selectedIds.size})`}
+                    title={`╨г╨┤╨░╨╗╨╕╤В╤М ╨▓╤Л╨▒╤А╨░╨╜╨╜╤Л╤Е (${selectedIds.size})`}
                     onClick={() => setBulkDeleteDialogOpen(true)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -320,7 +241,7 @@ export function PsychologistClientsList() {
                   size="icon"
                   variant="ghost"
                   className="h-7 w-7 text-muted-foreground"
-                  title="Отменить выделение"
+                  title="╨Ю╤В╨╝╨╡╨╜╨╕╤В╤М ╨▓╤Л╨┤╨╡╨╗╨╡╨╜╨╕╨╡"
                   onClick={() => { setSelectedIds(new Set()); setMultiSelectMode(false); }}
                 >
                   <X className="h-4 w-4" />
@@ -332,7 +253,7 @@ export function PsychologistClientsList() {
                   size="icon"
                   variant="ghost"
                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  title="Выбрать несколько"
+                  title="╨Т╤Л╨▒╤А╨░╤В╤М ╨╜╨╡╤Б╨║╨╛╨╗╤М╨║╨╛"
                   onClick={() => setMultiSelectMode(true)}
                 >
                   <input type="checkbox" className="h-3.5 w-3.5 pointer-events-none" readOnly />
@@ -343,7 +264,7 @@ export function PsychologistClientsList() {
                   onClick={() => setAddOpen(true)}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Добавить
+                  ╨Ф╨╛╨▒╨░╨▓╨╕╤В╤М
                 </Button>
               </>
             )}
@@ -357,7 +278,7 @@ export function PsychologistClientsList() {
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Поиск..."
+              placeholder="╨Я╨╛╨╕╤Б╨║..."
               className="h-8 pl-8 text-sm"
             />
           </div>
@@ -392,92 +313,74 @@ export function PsychologistClientsList() {
                 <Users className="h-6 w-6 text-muted-foreground" />
               </div>
               {search ? (
-                <p className="text-sm text-muted-foreground">Ничего не найдено</p>
+                <p className="text-sm text-muted-foreground">╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨╜╨░╨╣╨┤╨╡╨╜╨╛</p>
               ) : (
                 <>
-                  <p className="text-sm font-medium">Нет клиентов</p>
-                  <p className="text-xs text-muted-foreground">Добавьте первого клиента, чтобы начать работу</p>
+                  <p className="text-sm font-medium">╨Э╨╡╤В ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓</p>
+                  <p className="text-xs text-muted-foreground">╨Ф╨╛╨▒╨░╨▓╤М╤В╨╡ ╨┐╨╡╤А╨▓╨╛╨│╨╛ ╨║╨╗╨╕╨╡╨╜╤В╨░, ╤З╤В╨╛╨▒╤Л ╨╜╨░╤З╨░╤В╤М ╤А╨░╨▒╨╛╤В╤Г</p>
                   <Button size="sm" onClick={() => setAddOpen(true)}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
-                    Добавить клиента
+                    ╨Ф╨╛╨▒╨░╨▓╨╕╤В╤М ╨║╨╗╨╕╨╡╨╜╤В╨░
                   </Button>
                 </>
               )}
             </div>
           ) : (
-            <div className="p-2">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-muted-foreground">
-                      {multiSelectMode && <th className="w-8 px-2 py-2 text-left" />}
-                      <th className="w-10 px-2 py-2 text-left" />
-                      <th className="px-2 py-2 text-left">Клиент</th>
-                      <th className="px-2 py-2 text-left">Контакты</th>
-                      <th className="px-2 py-2 text-left whitespace-nowrap">Создан</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map(client => {
-                      const isChecked = selectedIds.has(client.id);
-                      return (
-                        <tr
-                          key={client.id}
-                          className={cn(
-                            "border-b last:border-0 hover:bg-muted cursor-pointer",
-                            isChecked && multiSelectMode && "bg-primary/5"
-                          )}
-                          onClick={() => {
-                            if (multiSelectMode) {
-                              toggleOne(client.id);
-                            } else {
-                              setSelectedClient(client);
-                            }
-                          }}
-                        >
-                          {multiSelectMode && (
-                            <td className="px-2 py-2 align-middle">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleOne(client.id)}
-                                onClick={e => e.stopPropagation()}
-                                className="h-3.5 w-3.5"
-                              />
-                            </td>
-                          )}
-                          <td className="px-2 py-2 align-middle">
-                            <ClientAvatar client={client} />
-                          </td>
-                          <td className="px-2 py-2 align-middle">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="font-medium truncate leading-tight">
-                                {client.lastName} {client.firstName}
-                              </span>
-                              {client.hasAccount && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <UserCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>Клиент зарегистрирован</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 align-middle text-xs text-muted-foreground">
-                            {client.email ?? formatPhoneDisplay(client.phone) ?? "—"}
-                          </td>
-                          <td className="px-2 py-2 align-middle text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(client.createdAt).toLocaleDateString("ru-RU")}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            <div className="p-1.5 space-y-0.5">
+              {filtered.map(client => {
+                const isSelected = selectedClient?.id === client.id;
+                const isChecked = selectedIds.has(client.id);
+                return (
+                  <button
+                    key={client.id}
+                    type="button"
+                    onClick={() => {
+                      if (multiSelectMode) {
+                        toggleOne(client.id);
+                      } else {
+                        setSelectedClient(client);
+                      }
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-2 py-2.5 rounded-lg text-left transition-colors",
+                      isSelected && !multiSelectMode
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-muted text-foreground"
+                    )}
+                  >
+                    {multiSelectMode && (
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleOne(client.id)}
+                        onClick={e => e.stopPropagation()}
+                        className="h-3.5 w-3.5 shrink-0"
+                      />
+                    )}
+                    <ClientAvatar client={client} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm font-medium truncate leading-tight">
+                          {client.lastName} {client.firstName}
+                        </span>
+                        {client.hasAccount && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <UserCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>╨Ъ╨╗╨╕╨╡╨╜╤В ╨╖╨░╤А╨╡╨│╨╕╤Б╤В╤А╨╕╤А╨╛╨▓╨░╨╜</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">
+                        {client.email ?? formatPhoneDisplay(client.phone) ?? "тАФ"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -485,7 +388,80 @@ export function PsychologistClientsList() {
         {/* Multi-select summary */}
         {multiSelectMode && selectedIds.size > 0 && (
           <div className="border-t px-4 py-2 text-xs text-muted-foreground shrink-0">
-            Выбрано: {selectedIds.size}
+            ╨Т╤Л╨▒╤А╨░╨╜╨╛: {selectedIds.size}
+          </div>
+        )}
+      </div>
+
+      {/* тФАтФА Right panel: profile or placeholder тФАтФА */}
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        {selectedClient ? (
+          <div className="p-6">
+            <PsychologistClientProfile
+              key={selectedClient.id}
+              id={selectedClient.id}
+              email={selectedClient.email ?? null}
+              hasAccount={selectedClient.hasAccount}
+              firstName={selectedClient.firstName}
+              lastName={selectedClient.lastName}
+              dateOfBirth={selectedClient.dateOfBirth ?? null}
+              phone={selectedClient.phone ?? null}
+              country={selectedClient.country ?? null}
+              city={selectedClient.city ?? null}
+              gender={selectedClient.gender ?? null}
+              maritalStatus={selectedClient.maritalStatus ?? null}
+              notes={selectedClient.notes ?? null}
+              createdAt={selectedClient.createdAt}
+              onDeleted={async () => {
+                setSelectedClient(null);
+                await loadClients();
+              }}
+              onUpdated={next => {
+                setClients(prev =>
+                  prev.map(c =>
+                    c.id === selectedClient.id
+                      ? {
+                          ...c,
+                          firstName: next.firstName,
+                          lastName: next.lastName,
+                          email: next.email ?? null,
+                          phone: next.phone ?? null,
+                          country: next.country ?? null,
+                          city: next.city ?? null,
+                          gender: next.gender ?? null,
+                          maritalStatus: next.maritalStatus ?? null,
+                          notes: next.notes ?? null,
+                          dateOfBirth: next.dateOfBirth ?? null
+                        }
+                      : c
+                  )
+                );
+                setSelectedClient(prev =>
+                  prev
+                    ? {
+                        ...prev,
+                        firstName: next.firstName,
+                        lastName: next.lastName,
+                        email: next.email ?? null,
+                        phone: next.phone ?? null,
+                        country: next.country ?? null,
+                        city: next.city ?? null,
+                        gender: next.gender ?? null,
+                        maritalStatus: next.maritalStatus ?? null,
+                        notes: next.notes ?? null,
+                        dateOfBirth: next.dateOfBirth ?? null
+                      }
+                    : prev
+                );
+              }}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+            <div className="rounded-full bg-muted p-4">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">╨Т╤Л╨▒╨╡╤А╨╕╤В╨╡ ╨║╨╗╨╕╨╡╨╜╤В╨░ ╨╕╨╖ ╤Б╨┐╨╕╤Б╨║╨░</p>
           </div>
         )}
       </div>
@@ -494,20 +470,20 @@ export function PsychologistClientsList() {
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить выбранных клиентов?</AlertDialogTitle>
+            <AlertDialogTitle>╨г╨┤╨░╨╗╨╕╤В╤М ╨▓╤Л╨▒╤А╨░╨╜╨╜╤Л╤Е ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓?</AlertDialogTitle>
             <AlertDialogDescription>
-              Удалить {selectedIds.size}{" "}
-              {selectedIds.size === 1 ? "выбранного клиента" : "выбранных клиентов"}{" "}
-              из вашего списка? Их записи и тесты в системе сохранятся.
+              ╨г╨┤╨░╨╗╨╕╤В╤М {selectedIds.size}{" "}
+              {selectedIds.size === 1 ? "╨▓╤Л╨▒╤А╨░╨╜╨╜╨╛╨│╨╛ ╨║╨╗╨╕╨╡╨╜╤В╨░" : "╨▓╤Л╨▒╤А╨░╨╜╨╜╤Л╤Е ╨║╨╗╨╕╨╡╨╜╤В╨╛╨▓"}{" "}
+              ╨╕╨╖ ╨▓╨░╤И╨╡╨│╨╛ ╤Б╨┐╨╕╤Б╨║╨░? ╨Ш╤Е ╨╖╨░╨┐╨╕╤Б╨╕ ╨╕ ╤В╨╡╤Б╤В╤Л ╨▓ ╤Б╨╕╤Б╤В╨╡╨╝╨╡ ╤Б╨╛╤Е╤А╨░╨╜╤П╤В╤Б╤П.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel>╨Ю╤В╨╝╨╡╨╜╨░</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Удалить
+              ╨г╨┤╨░╨╗╨╕╤В╤М
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -517,26 +493,26 @@ export function PsychologistClientsList() {
       <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Новый клиент</DialogTitle>
+            <DialogTitle>╨Э╨╛╨▓╤Л╨╣ ╨║╨╗╨╕╨╡╨╜╤В</DialogTitle>
             <DialogDescription>
-              Укажите основные данные. Email необязателен; если указан и клиент позже
-              зарегистрируется с этим email — профиль автоматически свяжется с аккаунтом.
+              ╨г╨║╨░╨╢╨╕╤В╨╡ ╨╛╤Б╨╜╨╛╨▓╨╜╤Л╨╡ ╨┤╨░╨╜╨╜╤Л╨╡. Email ╨╜╨╡╨╛╨▒╤П╨╖╨░╤В╨╡╨╗╨╡╨╜; ╨╡╤Б╨╗╨╕ ╤Г╨║╨░╨╖╨░╨╜ ╨╕ ╨║╨╗╨╕╨╡╨╜╤В ╨┐╨╛╨╖╨╢╨╡
+              ╨╖╨░╤А╨╡╨│╨╕╤Б╤В╤А╨╕╤А╤Г╨╡╤В╤Б╤П ╤Б ╤Н╤В╨╕╨╝ email тАФ ╨┐╤А╨╛╤Д╨╕╨╗╤М ╨░╨▓╤В╨╛╨╝╨░╤В╨╕╤З╨╡╤Б╨║╨╕ ╤Б╨▓╤П╨╢╨╡╤В╤Б╤П ╤Б ╨░╨║╨║╨░╤Г╨╜╤В╨╛╨╝.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="add-email">Email (необязательно)</Label>
+              <Label htmlFor="add-email">Email (╨╜╨╡╨╛╨▒╤П╨╖╨░╤В╨╡╨╗╤М╨╜╨╛)</Label>
               <Input
                 id="add-email"
                 type="email"
-                placeholder="Для связки при регистрации клиента"
+                placeholder="╨Ф╨╗╤П ╤Б╨▓╤П╨╖╨║╨╕ ╨┐╤А╨╕ ╤А╨╡╨│╨╕╤Б╤В╤А╨░╤Ж╨╕╨╕ ╨║╨╗╨╕╨╡╨╜╤В╨░"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="add-firstName">Имя</Label>
+              <Label htmlFor="add-firstName">╨Ш╨╝╤П</Label>
               <Input
                 id="add-firstName"
                 required
@@ -545,7 +521,7 @@ export function PsychologistClientsList() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="add-lastName">Фамилия</Label>
+              <Label htmlFor="add-lastName">╨д╨░╨╝╨╕╨╗╨╕╤П</Label>
               <Input
                 id="add-lastName"
                 required
@@ -554,7 +530,7 @@ export function PsychologistClientsList() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Дата рождения</Label>
+              <Label>╨Ф╨░╤В╨░ ╤А╨╛╨╢╨┤╨╡╨╜╨╕╤П</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -563,7 +539,7 @@ export function PsychologistClientsList() {
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dob ? dob.toLocaleDateString("ru-RU") : <span className="text-muted-foreground">дд.мм.гггг</span>}
+                    {dob ? dob.toLocaleDateString("ru-RU") : <span className="text-muted-foreground">╨┤╨┤.╨╝╨╝.╨│╨│╨│╨│</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start">
@@ -572,7 +548,7 @@ export function PsychologistClientsList() {
               </Popover>
             </div>
             <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="add-phone">Телефон</Label>
+              <Label htmlFor="add-phone">╨в╨╡╨╗╨╡╤Д╨╛╨╜</Label>
               <PhoneInput
                 id="add-phone"
                 value={form.phone}
@@ -580,7 +556,7 @@ export function PsychologistClientsList() {
               />
             </div>
             <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="add-notes">Заметки</Label>
+              <Label htmlFor="add-notes">╨Ч╨░╨╝╨╡╤В╨║╨╕</Label>
               <Textarea
                 id="add-notes"
                 rows={3}
@@ -597,10 +573,10 @@ export function PsychologistClientsList() {
 
             <DialogFooter className="md:col-span-2">
               <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
-                Отмена
+                ╨Ю╤В╨╝╨╡╨╜╨░
               </Button>
               <Button type="submit" disabled={creating}>
-                {creating ? "Сохраняем..." : "Добавить клиента"}
+                {creating ? "╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝..." : "╨Ф╨╛╨▒╨░╨▓╨╕╤В╤М ╨║╨╗╨╕╨╡╨╜╤В╨░"}
               </Button>
             </DialogFooter>
           </form>
