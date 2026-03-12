@@ -639,6 +639,21 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               <span className="text-base font-semibold leading-none tracking-tight">
                 {props.lastName} {props.firstName}
               </span>
+              {hasAccount && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
+                        <UserCheck className="h-4 w-4" aria-hidden />
+                        <span className="sr-only">Зарегистрирован</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Клиент зарегистрирован
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <Select
                 value={statusId ?? "__none__"}
                 onValueChange={val => {
@@ -669,21 +684,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {hasAccount && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
-                        <UserCheck className="h-4 w-4" aria-hidden />
-                        <span className="sr-only">Зарегистрирован</span>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Клиент зарегистрирован
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
             <div className="text-sm text-muted-foreground">
               {props.email ?? "Email ещё не указан"} · Создан{" "}

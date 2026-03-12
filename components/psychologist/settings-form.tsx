@@ -249,7 +249,7 @@ export function PsychologistSettingsForm() {
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  type ClientStatusItem = { id: string; label: string; color: string; order: number };
+  type ClientStatusItem = { id: string; key?: string; label: string; color: string; order: number };
   const STATUS_COLOR_PRESETS: { value: string }[] = [
     { value: "hsl(217 91% 60%)" }, // синий
     { value: "hsl(142 76% 36%)" }, // зелёный
@@ -1914,13 +1914,10 @@ export function PsychologistSettingsForm() {
                         ) : (
                           <>
                             <span className="text-sm">{s.label}</span>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="inline-block h-6 w-6 rounded border shrink-0"
-                                style={{ backgroundColor: s.color }}
-                              />
-                              <span className="text-xs text-muted-foreground truncate">{s.color}</span>
-                            </div>
+                            <span
+                              className="inline-block h-6 w-6 rounded border shrink-0"
+                              style={{ backgroundColor: s.color }}
+                            />
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 type="button"
@@ -1935,33 +1932,35 @@ export function PsychologistSettingsForm() {
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive"
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetch("/api/psychologist/client-statuses", {
-                                      method: "DELETE",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ id: s.id })
-                                    });
-                                    if (!res.ok) {
-                                      const data = await res.json().catch(() => ({}));
-                                      toast.error(data.message ?? "Не удалось удалить");
-                                      return;
+                              {s.key !== "NEW" && (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch("/api/psychologist/client-statuses", {
+                                        method: "DELETE",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ id: s.id })
+                                      });
+                                      if (!res.ok) {
+                                        const data = await res.json().catch(() => ({}));
+                                        toast.error(data.message ?? "Не удалось удалить");
+                                        return;
+                                      }
+                                      refetchClientStatuses();
+                                      toast.success("Статус удалён");
+                                    } catch (err) {
+                                      console.error(err);
+                                      toast.error("Не удалось удалить");
                                     }
-                                    refetchClientStatuses();
-                                    toast.success("Статус удалён");
-                                  } catch (err) {
-                                    console.error(err);
-                                    toast.error("Не удалось удалить");
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </>
                         )}

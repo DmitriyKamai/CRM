@@ -196,6 +196,20 @@ export async function DELETE(request: Request) {
     const json = await request.json().catch(() => null);
     const id = z.string().parse(json?.id);
 
+    const statusToDelete = await db.clientStatus.findFirst({
+      where: { id, psychologistId: profile.id },
+      select: { key: true }
+    });
+    if (!statusToDelete) {
+      return NextResponse.json({ message: "Статус не найден" }, { status: 404 });
+    }
+    if (statusToDelete.key === "NEW") {
+      return NextResponse.json(
+        { message: "Статус «Новый» нельзя удалить" },
+        { status: 400 }
+      );
+    }
+
     // Обнуляем статус у клиентов, где он используется
     await db.clientProfile.updateMany({
       where: { psychologistId: profile.id, statusId: id },

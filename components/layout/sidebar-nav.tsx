@@ -2,17 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CalendarDays,
   Users,
   BarChart2,
   Settings,
-  LogOut,
-  Sun,
-  Moon,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -20,7 +16,6 @@ import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { NotificationsPanel } from "@/components/layout/notifications-panel";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -54,26 +49,21 @@ const SETTINGS_HREF: Record<string, string> = {
   ADMIN: "/admin",
 };
 
-function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      title={isDark ? "Светлая тема" : "Тёмная тема"}
-    >
-      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </Button>
-  );
-}
+type SidebarNavContentProps = {
+  role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN";
+  onNavigate?: () => void;
+  collapsed?: boolean;
+  onCollapsedChange?: (v: boolean) => void;
+};
 
-export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN" }) {
+export function SidebarNavContent({
+  role,
+  onNavigate,
+  collapsed = false,
+  onCollapsedChange
+}: SidebarNavContentProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [collapsed, setCollapsed] = useState(false);
 
   const navItems =
     role === "PSYCHOLOGIST" ? PSYCHOLOGIST_NAV :
@@ -89,30 +79,25 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
     ? name.split(/\s+/).map((s: string) => s[0]).join("").toUpperCase().slice(0, 2)
     : email.slice(0, 2).toUpperCase();
 
+  const linkProps = onNavigate ? { onClick: onNavigate } : {};
+
   return (
-    <aside
-      className={cn(
-        "relative flex flex-col border-r transition-[width] duration-200 ease-in-out shrink-0",
-        "bg-[hsl(var(--sidebar-bg))] border-[hsl(var(--sidebar-border))]",
-        "h-screen sticky top-0 overflow-hidden",
-        collapsed ? "w-[60px]" : "w-[220px]"
-      )}
-    >
-      {/* Logo */}
-      <div className={cn(
-        "flex items-center border-b border-[hsl(var(--sidebar-border))] shrink-0",
-        collapsed ? "h-14 justify-center px-0" : "h-14 px-5"
-      )}>
+    <>
+      <div
+        className={cn(
+          "flex items-center border-b border-[hsl(var(--sidebar-border))] shrink-0",
+          collapsed ? "h-14 justify-center px-0" : "h-14 px-5"
+        )}
+      >
         {collapsed ? (
           <span className="tangerine-bold text-3xl leading-none text-foreground">E</span>
         ) : (
-          <Link href="/" className="tangerine-bold text-4xl leading-none text-foreground">
+          <Link href="/" className="tangerine-bold text-4xl leading-none text-foreground" {...linkProps}>
             Empatix
           </Link>
         )}
       </div>
 
-      {/* Nav items */}
       <nav className="flex-1 flex flex-col gap-0.5 px-2 py-3 overflow-y-auto min-h-0">
         {navItems.map((item) => {
           const active = item.exact
@@ -130,6 +115,7 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
+              {...linkProps}
             >
               <span className="shrink-0">{item.icon}</span>
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -138,7 +124,6 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
         })}
       </nav>
 
-      {/* Settings */}
       <div className="px-2 pb-2 shrink-0">
         <Link
           href={settingsHref}
@@ -150,20 +135,21 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
               ? "bg-primary/10 text-primary font-medium"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
+          {...linkProps}
         >
           <Settings className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="truncate">Настройки</span>}
         </Link>
       </div>
 
-      {/* Divider */}
       <div className="border-t border-[hsl(var(--sidebar-border))] shrink-0" />
 
-      {/* User block */}
-      <div className={cn(
-        "flex items-center gap-2 p-3 shrink-0",
-        collapsed && "justify-center"
-      )}>
+      <div
+        className={cn(
+          "flex items-center gap-2 p-3 shrink-0",
+          collapsed && "justify-center"
+        )}
+      >
         <Avatar className="h-8 w-8 shrink-0">
           <AvatarImage src={user?.image ?? undefined} alt={name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
@@ -178,37 +164,47 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
         )}
       </div>
 
-      {/* Bottom actions */}
-      <div className={cn(
-        "flex items-center border-t border-[hsl(var(--sidebar-border))] px-2 py-2 shrink-0",
-        collapsed ? "flex-col gap-1" : "gap-1"
-      )}>
-        <ThemeToggle />
-        <NotificationsPanel />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-          title="Выйти"
-          onClick={() => signOut({ callbackUrl: "/" })}
+      {onCollapsedChange && (
+        <div
+          className={cn(
+            "flex items-center border-t border-[hsl(var(--sidebar-border))] px-2 py-2 shrink-0",
+            collapsed ? "flex-col gap-1" : "gap-1"
+          )}
         >
-          <LogOut className="h-4 w-4" />
-        </Button>
-        <div className={cn("ml-auto", collapsed && "ml-0")}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-            title={collapsed ? "Развернуть" : "Свернуть"}
-            onClick={() => setCollapsed((v) => !v)}
-          >
-            {collapsed
-              ? <ChevronRight className="h-4 w-4" />
-              : <ChevronLeft className="h-4 w-4" />
-            }
-          </Button>
+          <div className={cn("ml-auto", collapsed && "ml-0")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              title={collapsed ? "Развернуть" : "Свернуть"}
+              onClick={() => onCollapsedChange(!collapsed)}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
+    </>
+  );
+}
+
+export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN" }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <aside
+      className={cn(
+        "relative flex flex-col border-r transition-[width] duration-200 ease-in-out shrink-0",
+        "bg-[hsl(var(--sidebar-bg))] border-[hsl(var(--sidebar-border))]",
+        "h-full sticky top-0 overflow-hidden",
+        collapsed ? "w-[60px]" : "w-[220px]"
+      )}
+    >
+      <SidebarNavContent
+        role={role}
+        collapsed={collapsed}
+        onCollapsedChange={setCollapsed}
+      />
     </aside>
   );
 }
