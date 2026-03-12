@@ -53,7 +53,7 @@ export async function GET() {
         createdAt: true,
         userId: true,
         email: true,
-        user: { select: { email: true } }
+        user: { select: { email: true, image: true } }
       } as const;
 
       type ClientRow = {
@@ -66,7 +66,7 @@ export async function GET() {
         createdAt: Date;
         userId: string | null;
         email: string | null;
-        user: { email: string } | null;
+        user: { email: string; image: string | null } | null;
         country?: string | null;
         city?: string | null;
         gender?: string | null;
@@ -116,7 +116,8 @@ export async function GET() {
           notes: c.notes,
           createdAt: c.createdAt,
           email: c.user?.email ?? c.email ?? null,
-          hasAccount: !!c.userId
+          hasAccount: !!c.userId,
+          avatarUrl: c.user?.image ?? null
         }))
       });
     });

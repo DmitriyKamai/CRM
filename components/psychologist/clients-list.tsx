@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
 import { PhoneInput, formatPhoneDisplay } from "@/components/ui/phone-input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +61,7 @@ type ClientDto = {
   notes?: string | null;
   createdAt: string;
   hasAccount?: boolean;
+  avatarUrl?: string | null;
 };
 
 const AVATAR_COLORS = [
@@ -85,13 +87,26 @@ function ClientAvatar({ client, size = "md" }: { client: ClientDto; size?: "sm" 
   const initials = `${client.firstName[0] ?? ""}${client.lastName[0] ?? ""}`.toUpperCase();
   const color = getClientColor(client.id);
   return (
-    <div className={cn(
-      "rounded-full flex items-center justify-center font-semibold shrink-0",
-      color,
-      size === "sm" ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm"
-    )}>
-      {initials}
-    </div>
+    <Avatar
+      className={cn(
+        "shrink-0 border border-border",
+        size === "sm" ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm"
+      )}
+    >
+      <AvatarImage
+        src={client.avatarUrl ?? undefined}
+        alt={`${client.firstName} ${client.lastName}`}
+        className="object-cover"
+      />
+      <AvatarFallback
+        className={cn(
+          "flex items-center justify-center font-semibold",
+          color
+        )}
+      >
+        {initials || "?"}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 
@@ -267,14 +282,6 @@ export function PsychologistClientsList() {
         enableSorting: false,
         enableHiding: false
       },
-      // аватар
-      {
-        id: "avatar",
-        header: () => null,
-        cell: ({ row }) => <ClientAvatar client={row.original} size="sm" />,
-        enableSorting: false,
-        enableHiding: false
-      },
       // скрытая колонка для полнотекстового поиска
       {
         id: "search",
@@ -300,24 +307,29 @@ export function PsychologistClientsList() {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="font-medium inline-flex items-center gap-1.5">
-            {row.original.lastName} {row.original.firstName}
-            {row.original.hasAccount === true && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
-                      <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
-                      <span className="sr-only">Зарегистрирован</span>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Клиент зарегистрирован
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </span>
+          <div className="flex items-center gap-2">
+            <ClientAvatar client={row.original} size="sm" />
+            <span className="font-medium inline-flex items-center gap-1.5 truncate">
+              <span className="truncate">
+                {row.original.lastName} {row.original.firstName}
+              </span>
+              {row.original.hasAccount === true && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
+                        <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="sr-only">Зарегистрирован</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Клиент зарегистрирован
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </span>
+          </div>
         )
       },
       {

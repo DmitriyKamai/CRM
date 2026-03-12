@@ -124,8 +124,8 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                "min-w-0",
+                "flex items-center gap-3 rounded-md py-2 text-sm transition-colors min-w-0",
+                collapsed ? "justify-center px-0" : "px-3",
                 active
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -144,7 +144,8 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
           href={settingsHref}
           title={collapsed ? "Настройки" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
+            collapsed ? "justify-center px-0" : "px-3",
             pathname.startsWith(settingsHref)
               ? "bg-primary/10 text-primary font-medium"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
