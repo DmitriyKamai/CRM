@@ -225,12 +225,11 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     createdAt: string;
     interpretation: string | null;
   };
-  const [diagnosticsList, setDiagnosticsList] = useState<DiagnosticItem[]>(
-    props.diagnostics ?? []
-  );
+  const [diagnosticsList, setDiagnosticsList] = useState<DiagnosticItem[]>(props.diagnostics ?? []);
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [customTabsEdit, setCustomTabsEdit] = useState<Record<string, boolean>>({});
+  const [editingCustomFields, setEditingCustomFields] = useState<Record<string, boolean>>({});
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
   const [tabsScrollRight, setTabsScrollRight] = useState(false);
@@ -905,13 +904,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   }}
                   className="flex-1 min-h-0 flex flex-col gap-3"
                 >
-                  <div
-                    className={`flex-1 min-h-0 overflow-y-auto grid gap-3 md:grid-cols-2 content-start ${
-                      !isEditingGroup
-                        ? "pointer-events-none [&_input]:cursor-text [&_button]:cursor-text [&_[data-radix-select-trigger]]:cursor-text"
-                        : ""
-                    }`}
-                  >
+                  <div className="flex-1 min-h-0 overflow-y-auto grid gap-3 md:grid-cols-2 content-start">
                     {isEditingGroup ? (
                       <DndContext
                         sensors={sortableSensors}
