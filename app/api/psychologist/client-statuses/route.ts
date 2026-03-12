@@ -3,7 +3,10 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
+
+// Обёртка для обхода отставания типов Prisma (новая модель ClientStatus ещё не сгенерирована)
+const db = prisma as any;
 
 const StatusSchema = z.object({
   id: z.string().optional(),
@@ -20,7 +23,7 @@ export async function GET() {
     }
 
     const userId = (session.user as any).id as string;
-    const profile = await prisma.psychologistProfile.findUnique({
+    const profile = await db.psychologistProfile.findUnique({
       where: { userId },
       select: { id: true }
     });
@@ -29,7 +32,7 @@ export async function GET() {
       return NextResponse.json({ items: [] });
     }
 
-    const existing = await prisma.clientStatus.findMany({
+    const existing = await db.clientStatus.findMany({
       where: { psychologistId: profile.id },
       orderBy: [{ order: "asc" }, { createdAt: "asc" }]
     });
@@ -43,9 +46,9 @@ export async function GET() {
         { key: "ARCHIVED", label: "Архив", color: "hsl(215 16% 47%)" } // серый
       ];
 
-      const created = await prisma.$transaction(
+      const created = await db.$transaction(
         defaults.map((s, index) =>
-          prisma.clientStatus.create({
+          db.clientStatus.create({
             data: {
               psychologistId: profile.id,
               key: s.key,
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
     }
 
     const userId = (session.user as any).id as string;
-    const profile = await prisma.psychologistProfile.findUnique({
+    const profile = await db.psychologistProfile.findUnique({
       where: { userId },
       select: { id: true }
     });
@@ -93,12 +96,12 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsed = StatusSchema.omit({ id: true }).parse(json);
 
-    const maxOrder = await prisma.clientStatus.aggregate({
+    const maxOrder = await db.clientStatus.aggregate({
       where: { psychologistId: profile.id },
       _max: { order: true }
     });
 
-    const created = await prisma.clientStatus.create({
+    const created = await db.clientStatus.create({
       data: {
         psychologistId: profile.id,
         key: parsed.label.toUpperCase().trim().replace(/\s+/g, "_"),
@@ -126,7 +129,7 @@ export async function PATCH(request: Request) {
     }
 
     const userId = (session.user as any).id as string;
-    const profile = await prisma.psychologistProfile.findUnique({
+    const profile = await db.psychologistProfile.findUnique({
       where: { userId },
       select: { id: true }
     });
@@ -143,7 +146,7 @@ export async function PATCH(request: Request) {
       id: z.string()
     }).parse(json);
 
-    const updated = await prisma.clientStatus.updateMany({
+    const updated = await db.clientStatus.updateMany({
       where: { id: body.id, psychologistId: profile.id },
       data: {
         label: body.label,
@@ -159,7 +162,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const status = await prisma.clientStatus.findUnique({ where: { id: body.id } });
+    const status = await db.clientStatus.findUnique({ where: { id: body.id } });
     return NextResponse.json(status);
   } catch (err) {
     console.error("[PATCH /api/psychologist/client-statuses]", err);
@@ -178,7 +181,7 @@ export async function DELETE(request: Request) {
     }
 
     const userId = (session.user as any).id as string;
-    const profile = await prisma.psychologistProfile.findUnique({
+    const profile = await db.psychologistProfile.findUnique({
       where: { userId },
       select: { id: true }
     });
@@ -194,12 +197,12 @@ export async function DELETE(request: Request) {
     const id = z.string().parse(json?.id);
 
     // Обнуляем статус у клиентов, где он используется
-    await prisma.clientProfile.updateMany({
+    await db.clientProfile.updateMany({
       where: { psychologistId: profile.id, statusId: id },
       data: { statusId: null }
     });
 
-    await prisma.clientStatus.deleteMany({
+    await db.clientStatus.deleteMany({
       where: { id, psychologistId: profile.id }
     });
 

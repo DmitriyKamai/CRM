@@ -11,6 +11,8 @@ datasource db {
   url       = env("DATABASE_URL")
   // Прямое подключение к БД (без пулера) для миграций.
   directUrl = env("DIRECT_DATABASE_URL")
+  // Теневая база для migrate diff / baseline
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 enum Role {

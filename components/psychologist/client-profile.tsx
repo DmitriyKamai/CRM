@@ -151,6 +151,9 @@ type ClientProfileProps = {
   maritalStatus: string | null;
   notes: string | null;
   createdAt: string;
+  statusId?: string | null;
+  statusLabel?: string | null;
+  statusColor?: string | null;
   onDeleted?: () => void;
   onUpdated?: (next: {
     firstName: string;
@@ -163,6 +166,9 @@ type ClientProfileProps = {
     maritalStatus: string | null;
     notes: string | null;
     dateOfBirth: string | null;
+    statusId?: string | null;
+    statusLabel?: string | null;
+    statusColor?: string | null;
   }) => void;
   diagnostics?: {
     id: string;
@@ -197,6 +203,11 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [dob, setDob] = useState<Date | undefined>(
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
   );
+  const [statusId, setStatusId] = useState<string | null>(props.statusId ?? null);
+  const [statusLabel, setStatusLabel] = useState<string | null>(props.statusLabel ?? null);
+  const [statusColor, setStatusColor] = useState<string | null>(props.statusColor ?? null);
+  type StatusItem = { id: string; label: string; color: string };
+  const [statuses, setStatuses] = useState<StatusItem[]>([]);
 
   const isDirty =
     firstName !== props.firstName ||
@@ -208,6 +219,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     gender !== (props.gender ?? "") ||
     maritalStatus !== (props.maritalStatus ?? "") ||
     notes !== (props.notes ?? "") ||
+    statusId !== (props.statusId ?? null) ||
     (dob?.toISOString().slice(0, 10) ?? "") !== (props.dateOfBirth ? new Date(props.dateOfBirth).toISOString().slice(0, 10) : "");
 
   const hasAccount = props.hasAccount ?? false;
@@ -229,12 +241,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [customTabsEdit, setCustomTabsEdit] = useState<Record<string, boolean>>({});
-  const [statusId, setStatusId] = useState<string | null>((props as any).statusId ?? null);
-  const [statusLabel, setStatusLabel] = useState<string | null>((props as any).statusLabel ?? null);
-  const [statusColor, setStatusColor] = useState<string | null>((props as any).statusColor ?? null);
-  const [statusId, setStatusId] = useState<string | null>((props as any).statusId ?? null);
-  const [statusLabel, setStatusLabel] = useState<string | null>((props as any).statusLabel ?? null);
-  const [statusColor, setStatusColor] = useState<string | null>((props as any).statusColor ?? null);
   const [editingCustomFields, setEditingCustomFields] = useState<Record<string, boolean>>({});
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
@@ -328,6 +334,15 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       .finally(() => setDiagnosticsLoading(false));
   }, [diagnosticsTabActive, props.id]);
 
+  useEffect(() => {
+    fetch("/api/psychologist/client-statuses")
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((data: { items?: StatusItem[] } | null) => {
+        if (Array.isArray(data?.items)) setStatuses(data.items);
+      })
+      .catch(() => {});
+  }, []);
+
   function formatDate(value?: string | null) {
     if (!value) return "—";
     const d = new Date(value);
@@ -399,7 +414,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           gender: gender || null,
           maritalStatus: maritalStatus || null,
           notes: notes || null,
-          dateOfBirth: dob ? dob.toISOString() : null
+          dateOfBirth: dob ? dob.toISOString() : null,
+          statusId: statusId ?? null,
+          statusLabel: statusLabel ?? null,
+          statusColor: statusColor ?? null
         });
       }
     } catch (err) {
@@ -565,6 +583,51 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               <span className="text-base font-semibold leading-none tracking-tight">
                 {props.lastName} {props.firstName}
               </span>
+              {!isEditing && statusLabel && (
+                <span
+                  className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-white"
+                  style={{ backgroundColor: statusColor ?? undefined }}
+                >
+                  {statusLabel}
+                </span>
+              )}
+              {isEditing && (
+                <Select
+                  value={statusId ?? "__none__"}
+                  onValueChange={(val) => {
+                    if (val === "__none__") {
+                      setStatusId(null);
+                      setStatusLabel(null);
+                      setStatusColor(null);
+                      return;
+                    }
+                    const s = statuses.find((x) => x.id === val);
+                    if (s) {
+                      setStatusId(s.id);
+                      setStatusLabel(s.label);
+                      setStatusColor(s.color);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue placeholder="Статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Без статуса</SelectItem>
+                    {statuses.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-2 rounded-full shrink-0"
+                            style={{ backgroundColor: s.color }}
+                          />
+                          {s.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {hasAccount && (
                 <TooltipProvider>
                   <Tooltip>
@@ -1547,6 +1610,9 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 setMaritalStatus(props.maritalStatus ?? "");
                 setNotes(props.notes ?? "");
                 setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
+                setStatusId(props.statusId ?? null);
+                setStatusLabel(props.statusLabel ?? null);
+                setStatusColor(props.statusColor ?? null);
               }}
             >
               Отменить

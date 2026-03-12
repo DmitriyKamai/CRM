@@ -12,7 +12,7 @@ import {
   DEFAULT_COUNTRY_CODE,
   getCountryCodeByName
 } from "@/lib/data/countries-ru";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, Pencil, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -248,6 +248,15 @@ export function PsychologistSettingsForm() {
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
+  type ClientStatusItem = { id: string; label: string; color: string; order: number };
+  const [clientStatuses, setClientStatuses] = useState<ClientStatusItem[]>([]);
+  const [clientStatusesLoading, setClientStatusesLoading] = useState(false);
+  const [newStatusLabel, setNewStatusLabel] = useState("");
+  const [newStatusColor, setNewStatusColor] = useState("#3b82f6");
+  const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
+  const [editingStatusLabel, setEditingStatusLabel] = useState("");
+  const [editingStatusColor, setEditingStatusColor] = useState("");
 
   const refetchAccounts = useCallback(() => {
     fetch("/api/user/accounts")
@@ -270,6 +279,17 @@ export function PsychologistSettingsForm() {
         setCustomFieldsError("Не удалось загрузить пользовательские поля");
       })
       .finally(() => setCustomFieldsLoading(false));
+  }, []);
+
+  const refetchClientStatuses = useCallback(() => {
+    setClientStatusesLoading(true);
+    fetch("/api/psychologist/client-statuses")
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((data: { items?: ClientStatusItem[] } | null) => {
+        if (Array.isArray(data?.items)) setClientStatuses(data.items);
+      })
+      .catch(() => {})
+      .finally(() => setClientStatusesLoading(false));
   }, []);
 
   const refetchProfile = useCallback(() => {
@@ -389,7 +409,10 @@ export function PsychologistSettingsForm() {
     if (activeTab === "customFields") {
       refetchCustomFields();
     }
-  }, [activeTab, refetchCustomFields]);
+    if (activeTab === "statuses") {
+      refetchClientStatuses();
+    }
+  }, [activeTab, refetchCustomFields, refetchClientStatuses]);
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -698,6 +721,10 @@ export function PsychologistSettingsForm() {
         <TabsTrigger value="customFields" className="flex items-center gap-2 shrink-0">
           <ListChecks className="h-4 w-4" />
           Поля клиента
+        </TabsTrigger>
+        <TabsTrigger value="statuses" className="flex items-center gap-2 shrink-0">
+          <ListFilter className="h-4 w-4" />
+          Статусы клиентов
         </TabsTrigger>
       </TabsList>
 
@@ -1683,6 +1710,234 @@ export function PsychologistSettingsForm() {
 
               </div>
             </div>
+          </Section>
+        )}
+      </TabsContent>
+
+      <TabsContent value="statuses" className="mt-4">
+        {activeTab === "statuses" && (
+          <Section title="Статусы клиентов">
+            <p className="text-sm text-muted-foreground mb-4">
+              Настраиваемые статусы для карточек клиентов (Новый, Активный, Пауза, Архив и др.). Отображаются в списке и в профиле клиента.
+            </p>
+            {clientStatusesLoading ? (
+              <p className="text-sm text-muted-foreground">Загрузка...</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">Список статусов</p>
+                  <Dialog open={addStatusDialogOpen} onOpenChange={setAddStatusDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">Добавить статус</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Новый статус</DialogTitle>
+                        <DialogDescription>Укажите название и цвет статуса.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="new-status-label">Название</Label>
+                          <Input
+                            id="new-status-label"
+                            placeholder="Например, Активный"
+                            value={newStatusLabel}
+                            maxLength={64}
+                            onChange={(e) => setNewStatusLabel(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="new-status-color">Цвет</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              id="new-status-color"
+                              type="color"
+                              value={newStatusColor}
+                              onChange={(e) => setNewStatusColor(e.target.value)}
+                              className="h-10 w-14 rounded border cursor-pointer"
+                            />
+                            <Input
+                              value={newStatusColor}
+                              onChange={(e) => setNewStatusColor(e.target.value)}
+                              className="flex-1 font-mono text-sm"
+                              placeholder="#3b82f6 или hsl(...)"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            const label = newStatusLabel.trim();
+                            if (!label) return;
+                            try {
+                              const res = await fetch("/api/psychologist/client-statuses", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ label, color: newStatusColor || "#3b82f6" })
+                              });
+                              const data = await res.json().catch(() => ({}));
+                              if (!res.ok) {
+                                toast.error(data.message ?? "Не удалось добавить статус");
+                                return;
+                              }
+                              setNewStatusLabel("");
+                              setNewStatusColor("#3b82f6");
+                              setAddStatusDialogOpen(false);
+                              refetchClientStatuses();
+                              toast.success("Статус добавлен");
+                            } catch (err) {
+                              console.error(err);
+                              toast.error("Не удалось добавить статус");
+                            }
+                          }}
+                        >
+                          Добавить
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                {clientStatuses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Нет статусов. Добавьте первый или используйте стандартные (появятся при открытии списка клиентов).</p>
+                ) : (
+                  <div className="rounded-lg border divide-y">
+                    <div className="grid grid-cols-[1fr,120px,auto] gap-2 border-b bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
+                      <span>Название</span>
+                      <span>Цвет</span>
+                      <span className="text-right">Действия</span>
+                    </div>
+                    {clientStatuses.map((s) => (
+                      <div key={s.id} className="grid grid-cols-[1fr,120px,auto] gap-2 items-center px-3 py-2">
+                        {editingStatusId === s.id ? (
+                          <>
+                            <Input
+                              value={editingStatusLabel}
+                              onChange={(e) => setEditingStatusLabel(e.target.value)}
+                              className="h-8"
+                              maxLength={64}
+                            />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="color"
+                                value={editingStatusColor.startsWith("#") ? editingStatusColor : "#6b7280"}
+                                onChange={(e) => setEditingStatusColor(e.target.value)}
+                                className="h-8 w-10 rounded border cursor-pointer"
+                              />
+                              <Input
+                                value={editingStatusColor}
+                                onChange={(e) => setEditingStatusColor(e.target.value)}
+                                className="h-8 flex-1 min-w-0 text-xs font-mono"
+                              />
+                            </div>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingStatusId(null);
+                                  setEditingStatusLabel("");
+                                  setEditingStatusColor("");
+                                }}
+                              >
+                                Отмена
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch("/api/psychologist/client-statuses", {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        id: s.id,
+                                        label: editingStatusLabel.trim() || s.label,
+                                        color: editingStatusColor.trim() || s.color
+                                      })
+                                    });
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!res.ok) {
+                                      toast.error(data.message ?? "Не удалось сохранить");
+                                      return;
+                                    }
+                                    setEditingStatusId(null);
+                                    setEditingStatusLabel("");
+                                    setEditingStatusColor("");
+                                    refetchClientStatuses();
+                                    toast.success("Статус сохранён");
+                                  } catch (err) {
+                                    console.error(err);
+                                    toast.error("Не удалось сохранить");
+                                  }
+                                }}
+                              >
+                                Сохранить
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm">{s.label}</span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="inline-block h-6 w-6 rounded border shrink-0"
+                                style={{ backgroundColor: s.color }}
+                              />
+                              <span className="text-xs text-muted-foreground truncate">{s.color}</span>
+                            </div>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingStatusId(s.id);
+                                  setEditingStatusLabel(s.label);
+                                  setEditingStatusColor(s.color);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-destructive"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch("/api/psychologist/client-statuses", {
+                                      method: "DELETE",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ id: s.id })
+                                    });
+                                    if (!res.ok) {
+                                      const data = await res.json().catch(() => ({}));
+                                      toast.error(data.message ?? "Не удалось удалить");
+                                      return;
+                                    }
+                                    refetchClientStatuses();
+                                    toast.success("Статус удалён");
+                                  } catch (err) {
+                                    console.error(err);
+                                    toast.error("Не удалось удалить");
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </Section>
         )}
       </TabsContent>

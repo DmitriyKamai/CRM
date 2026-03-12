@@ -51,7 +51,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     );
   }
 
-    const client = await prisma.clientProfile.findFirst({
+  const client = await prisma.clientProfile.findFirst({
     where: {
       id,
       psychologistId: psych.id
@@ -62,7 +62,9 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
           email: true
         }
       },
-      status: true
+      status: {
+        select: { id: true, label: true, color: true }
+      }
     }
   });
 
@@ -84,7 +86,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     createdAt: client.createdAt,
     email: client.user?.email ?? client.email ?? null,
     hasAccount: !!client.userId,
-    statusId: client.statusId,
+    statusId: client.status?.id ?? null,
     statusLabel: client.status?.label ?? null,
     statusColor: client.status?.color ?? null
   });

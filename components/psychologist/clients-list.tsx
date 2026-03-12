@@ -458,6 +458,9 @@ export function PsychologistClientsList() {
             maritalStatus={profileClient.maritalStatus ?? null}
             notes={profileClient.notes ?? null}
             createdAt={profileClient.createdAt}
+            statusId={profileClient.statusId ?? null}
+            statusLabel={profileClient.statusLabel ?? null}
+            statusColor={profileClient.statusColor ?? null}
             onDeleted={async () => {
               setProfileClient(null);
               await loadClients();
@@ -477,7 +480,10 @@ export function PsychologistClientsList() {
                         gender: next.gender ?? null,
                         maritalStatus: next.maritalStatus ?? null,
                         notes: next.notes ?? null,
-                        dateOfBirth: next.dateOfBirth ?? null
+                        dateOfBirth: next.dateOfBirth ?? null,
+                        statusId: next.statusId ?? null,
+                        statusLabel: next.statusLabel ?? null,
+                        statusColor: next.statusColor ?? null
                       }
                     : c
                 )
@@ -495,7 +501,10 @@ export function PsychologistClientsList() {
                       gender: next.gender ?? null,
                       maritalStatus: next.maritalStatus ?? null,
                       notes: next.notes ?? null,
-                      dateOfBirth: next.dateOfBirth ?? null
+                      dateOfBirth: next.dateOfBirth ?? null,
+                      statusId: next.statusId ?? null,
+                      statusLabel: next.statusLabel ?? null,
+                      statusColor: next.statusColor ?? null
                     }
                   : prev
               );

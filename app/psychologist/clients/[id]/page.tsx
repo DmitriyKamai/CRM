@@ -53,7 +53,8 @@ export default async function PsychologistClientProfilePage({
       createdAt: true,
       userId: true,
       email: true,
-      user: { select: { email: true } }
+      user: { select: { email: true } },
+      status: { select: { id: true, label: true, color: true } }
     }
   });
 
@@ -134,6 +135,9 @@ export default async function PsychologistClientProfilePage({
         maritalStatus={maritalStatus}
         notes={client.notes ?? null}
         createdAt={client.createdAt.toISOString()}
+        statusId={client.status?.id ?? null}
+        statusLabel={client.status?.label ?? null}
+        statusColor={client.status?.color ?? null}
         diagnostics={testResults.map(r => ({
           id: r.id,
           testTitle: r.test?.title ?? "Диагностика",
