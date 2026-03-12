@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
@@ -61,11 +61,11 @@ import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
-  { value: "single", label: "РќРµ РІ Р±СЂР°РєРµ" },
-  { value: "married", label: "Р’ Р±СЂР°РєРµ" },
-  { value: "divorced", label: "Р’ СЂР°Р·РІРѕРґРµ" },
-  { value: "widowed", label: "Р’РґРѕРІРµС† / Р’РґРѕРІР°" },
-  { value: "unspecified", label: "РќРµ СѓРєР°Р·Р°РЅРѕ" }
+  { value: "single", label: "Не в браке" },
+  { value: "married", label: "В браке" },
+  { value: "divorced", label: "В разводе" },
+  { value: "widowed", label: "Вдовец / Вдова" },
+  { value: "unspecified", label: "Не указано" }
 ];
 
 function SortableFieldWrap({
@@ -102,7 +102,7 @@ function SortableFieldWrap({
           {...attributes}
           {...listeners}
           className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground rounded self-stretch min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="РџРµСЂРµС‚Р°С‰РёС‚СЊ РґР»СЏ СЃРјРµРЅС‹ РїРѕСЂСЏРґРєР°"
+          aria-label="Перетащить для смены порядка"
         >
           <div className="absolute inset-0 flex items-stretch justify-center">
             <svg
@@ -197,18 +197,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [dob, setDob] = useState<Date | undefined>(
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
   );
-
-  const isDirty =
-    firstName !== props.firstName ||
-    lastName !== props.lastName ||
-    email !== (props.email ?? "") ||
-    phone !== (props.phone ?? "") ||
-    country !== (props.country ?? "") ||
-    city !== (props.city ?? "") ||
-    gender !== (props.gender ?? "") ||
-    maritalStatus !== (props.maritalStatus ?? "") ||
-    notes !== (props.notes ?? "") ||
-    (dob?.toISOString().slice(0, 10) ?? "") !== ((props.dateOfBirth ? new Date(props.dateOfBirth).toISOString().slice(0, 10) : "") ?? "");
   const hasAccount = props.hasAccount ?? false;
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
@@ -305,7 +293,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       })
       .catch((err) => {
         console.error(err);
-        setFilesError("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С„Р°Р№Р»С‹ РєР»РёРµРЅС‚Р°");
+        setFilesError("Не удалось загрузить файлы клиента");
       })
       .finally(() => setFilesLoading(false));
   }, [props.id, refetchCustomFieldDefs]);
@@ -323,9 +311,9 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   }, [diagnosticsTabActive, props.id]);
 
   function formatDate(value?: string | null) {
-    if (!value) return "вЂ”";
+    if (!value) return "—";
     const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "вЂ”";
+    if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("ru-RU");
   }
 
@@ -377,7 +365,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(data?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ");
+        throw new Error(data?.message ?? "Не удалось сохранить профиль");
       }
       setIsEditing(false);
 
@@ -398,7 +386,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error ? err.message : "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ"
+        err instanceof Error ? err.message : "Не удалось сохранить профиль"
       );
     } finally {
       setSaving(false);
@@ -422,14 +410,14 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       if (!res.ok) {
         setError(
           data?.message ??
-            "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РїСЂРёРіР»Р°С€РµРЅРёРµ. РџСЂРѕРІРµСЂСЊС‚Рµ РЅР°СЃС‚СЂРѕР№РєРё РїРѕС‡С‚С‹ РЅР° СЃРµСЂРІРµСЂРµ."
+            "Не удалось отправить приглашение. Проверьте настройки почты на сервере."
         );
         return;
       }
       setError(null);
     } catch (err) {
       console.error(err);
-      setError("РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РїСЂРёРіР»Р°С€РµРЅРёРµ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕР·Р¶Рµ.");
+      setError("Не удалось отправить приглашение. Попробуйте позже.");
     }
   }
 
@@ -448,7 +436,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(data?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РєР»РёРµРЅС‚Р°");
+        throw new Error(data?.message ?? "Не удалось удалить клиента");
       }
 
       if (props.onDeleted) {
@@ -459,7 +447,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error ? err.message : "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РєР»РёРµРЅС‚Р°"
+        err instanceof Error ? err.message : "Не удалось удалить клиента"
       );
     } finally {
       setDeleting(false);
@@ -467,19 +455,19 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   }
 
   return (
-    <div className="space-y-4 min-w-0 w-full">
+    <div className="space-y-4 min-w-0 w-full overflow-hidden">
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>РЈРґР°Р»РёС‚СЊ РєР»РёРµРЅС‚Р° РёР· СЃРїРёСЃРєР°?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить клиента из списка?</AlertDialogTitle>
             <AlertDialogDescription>
-              РЈРґР°Р»РёС‚СЊ СЌС‚РѕРіРѕ РєР»РёРµРЅС‚Р° РёР· РІР°С€РµРіРѕ СЃРїРёСЃРєР°? Р•РіРѕ Р·Р°РїРёСЃРё Рё С‚РµСЃС‚С‹ РІ СЃРёСЃС‚РµРјРµ СЃРѕС…СЂР°РЅРµРЅС‹.
+              Удалить этого клиента из вашего списка? Его записи и тесты в системе сохранены.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>РћС‚РјРµРЅР°</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              РЈРґР°Р»РёС‚СЊ
+              Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -497,7 +485,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               variant="ghost"
               size="icon"
               className="h-10 w-9 shrink-0 rounded-md"
-              aria-label="РџСЂРµРґС‹РґСѓС‰РёРµ РІРєР»Р°РґРєРё"
+              aria-label="Предыдущие вкладки"
               disabled={!tabsHaveOverflow || !tabsScrollLeft}
               onClick={() => {
                 tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
@@ -512,7 +500,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             >
               <TabsList className="inline-flex w-max h-10 flex-nowrap">
               <TabsTrigger value="profile" className="whitespace-nowrap shrink-0">
-                Р›РёС‡РЅС‹Рµ РґР°РЅРЅС‹Рµ
+                Личные данные
               </TabsTrigger>
               {Array.from(
                 new Set(
@@ -526,10 +514,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 </TabsTrigger>
               ))}
               <TabsTrigger value="diagnostics" className="whitespace-nowrap shrink-0">
-                РџСЃРёС…РѕР»РѕРіРёС‡РµСЃРєР°СЏ РґРёР°РіРЅРѕСЃС‚РёРєР°
+                Психологическая диагностика
               </TabsTrigger>
               <TabsTrigger value="appointments" className="whitespace-nowrap shrink-0">
-                Р—Р°РїРёСЃРё
+                Записи
               </TabsTrigger>
             </TabsList>
             </div>
@@ -538,7 +526,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               variant="ghost"
               size="icon"
               className="h-10 w-9 shrink-0 rounded-md"
-              aria-label="РЎР»РµРґСѓСЋС‰РёРµ РІРєР»Р°РґРєРё"
+              aria-label="Следующие вкладки"
               disabled={!tabsHaveOverflow || !tabsScrollRight}
               onClick={() => {
                 tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
@@ -564,30 +552,29 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     <TooltipTrigger asChild>
                       <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
                         <UserCheck className="h-4 w-4" aria-hidden />
-                        <span className="sr-only">Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ</span>
+                        <span className="sr-only">Зарегистрирован</span>
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      РљР»РёРµРЅС‚ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ
+                      Клиент зарегистрирован
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
             </div>
             <div className="text-sm text-muted-foreground">
-              {props.email ?? "Email РµС‰С‘ РЅРµ СѓРєР°Р·Р°РЅ"} В· РЎРѕР·РґР°РЅ{" "}
+              {props.email ?? "Email ещё не указан"} · Создан{" "}
               {formatDate(props.createdAt)}
             </div>
           </div>
 
           <form
-            id="profile-form"
             onSubmit={handleSave}
             className="grid gap-3 md:grid-cols-2"
           >
             <div className="space-y-1">
-              <Label htmlFor="firstName" className="field-label">
-                РРјСЏ
+              <Label htmlFor="firstName" className="text-xs">
+                Имя
               </Label>
               <Input
                 id="firstName"
@@ -599,8 +586,8 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="lastName" className="field-label">
-                Р¤Р°РјРёР»РёСЏ
+              <Label htmlFor="lastName" className="text-xs">
+                Фамилия
               </Label>
               <Input
                 id="lastName"
@@ -612,11 +599,11 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="profile-email" className="field-label">
+              <Label htmlFor="profile-email" className="text-xs">
                 Email
                 {hasAccount && (
                   <span className="ml-1 font-normal text-muted-foreground">
-                    (РёР· Р°РєРєР°СѓРЅС‚Р°, РёР·РјРµРЅРёС‚СЊ РЅРµР»СЊР·СЏ)
+                    (из аккаунта, изменить нельзя)
                   </span>
                 )}
               </Label>
@@ -627,7 +614,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   disabled={!isEditing || hasAccount}
-                  placeholder={hasAccount ? undefined : "Р”Р»СЏ СЃРІСЏР·РєРё РїСЂРё СЂРµРіРёСЃС‚СЂР°С†РёРё"}
+                  placeholder={hasAccount ? undefined : "Для связки при регистрации"}
                   style={!isEditing || hasAccount ? { cursor: "text" } : undefined}
                   className="pr-8"
                 />
@@ -639,13 +626,13 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           type="button"
                           onClick={handleSendRegistrationInvite}
                           className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
-                          aria-label="РћС‚РїСЂР°РІРёС‚СЊ РїСЂРёРіР»Р°С€РµРЅРёРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ"
+                          aria-label="Отправить приглашение зарегистрироваться"
                         >
                           <Mail className="h-4 w-4" aria-hidden />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        РћС‚РїСЂР°РІРёС‚СЊ РїСЂРёРіР»Р°С€РµРЅРёРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ
+                        Отправить приглашение зарегистрироваться
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -653,7 +640,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="field-label">Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</Label>
+              <Label className="text-xs">Дата рождения</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -667,7 +654,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     {dob ? (
                       dob.toLocaleDateString("ru-RU")
                     ) : (
-                      <span className="text-muted-foreground">РґРґ.РјРј.РіРіРіРі</span>
+                      <span className="text-muted-foreground">дд.мм.гггг</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -692,8 +679,8 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </Popover>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="phone" className="field-label">
-                РўРµР»РµС„РѕРЅ
+              <Label htmlFor="phone" className="text-xs">
+                Телефон
               </Label>
               <PhoneInput
                 id="phone"
@@ -704,8 +691,8 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="client-country" className="field-label">
-                РЎС‚СЂР°РЅР°
+              <Label htmlFor="client-country" className="text-xs">
+                Страна
               </Label>
               <CountryAutocomplete
                 id="client-country"
@@ -715,25 +702,25 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   setCountryCode(code || null);
                   if (!name) setCity("");
                 }}
-                placeholder="РќР°С‡РЅРёС‚Рµ РІРІРѕРґРёС‚СЊ СЃС‚СЂР°РЅСѓ"
+                placeholder="Начните вводить страну"
                 disabled={!isEditing}
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="client-city" className="field-label">
-                Р“РѕСЂРѕРґ
+              <Label htmlFor="client-city" className="text-xs">
+                Город
               </Label>
               <CityAutocomplete
                 id="client-city"
                 value={city}
                 onChange={setCity}
                 countryCode={countryCode}
-                placeholder="РќР°С‡РЅРёС‚Рµ РІРІРѕРґРёС‚СЊ РіРѕСЂРѕРґ"
+                placeholder="Начните вводить город"
                 disabled={!isEditing}
               />
             </div>
             <div className="space-y-1">
-              <Label className="field-label">РџРѕР»</Label>
+              <Label className="text-xs">Пол</Label>
               <RadioGroup
                 value={gender}
                 onValueChange={setGender}
@@ -743,20 +730,20 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="male" id="client-gender-male" />
                   <Label htmlFor="client-gender-male" className="font-normal cursor-pointer text-xs">
-                    РњСѓР¶СЃРєРѕР№
+                    Мужской
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="female" id="client-gender-female" />
                   <Label htmlFor="client-gender-female" className="font-normal cursor-pointer text-xs">
-                    Р–РµРЅСЃРєРёР№
+                    Женский
                   </Label>
                 </div>
               </RadioGroup>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="client-marital" className="field-label">
-                РЎРµРјРµР№РЅРѕРµ РїРѕР»РѕР¶РµРЅРёРµ
+              <Label htmlFor="client-marital" className="text-xs">
+                Семейное положение
               </Label>
               <Select
                 value={maritalStatus || "unspecified"}
@@ -764,7 +751,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                 disabled={!isEditing}
               >
                 <SelectTrigger id="client-marital">
-                  <SelectValue placeholder="Р’С‹Р±РµСЂРёС‚Рµ" />
+                  <SelectValue placeholder="Выберите" />
                 </SelectTrigger>
                 <SelectContent>
                   {MARITAL_OPTIONS.map((opt) => (
@@ -776,8 +763,8 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </Select>
             </div>
             <div className="space-y-1 md:col-span-2">
-              <Label htmlFor="notes" className="field-label">
-                Р—Р°РјРµС‚РєРё
+              <Label htmlFor="notes" className="text-xs">
+                Заметки
               </Label>
               <Textarea
                 id="notes"
@@ -808,10 +795,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                         onClick={openDeleteDialog}
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">РЈРґР°Р»РёС‚СЊ РєР»РёРµРЅС‚Р°</span>
+                        <span className="sr-only">Удалить клиента</span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>РЈРґР°Р»РёС‚СЊ РєР»РёРµРЅС‚Р°</TooltipContent>
+                    <TooltipContent>Удалить клиента</TooltipContent>
                   </Tooltip>
 
                   <Tooltip>
@@ -825,17 +812,22 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                       >
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">
-                          {isEditing ? "Р—Р°РІРµСЂС€РёС‚СЊ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ" : "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ"}
+                          {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
                         </span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {isEditing ? "Р—Р°РІРµСЂС€РёС‚СЊ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ" : "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ"}
+                      {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
                     </TooltipContent>
                   </Tooltip>
                 </div>
               </TooltipProvider>
 
+              {isEditing && (
+                <Button type="submit" disabled={saving || deleting}>
+                  {saving ? "Сохраняем..." : "Сохранить изменения"}
+                </Button>
+              )}
             </div>
           </form>
         </TabsContent>
@@ -854,7 +846,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           if (defsForGroup.length === 0) return null;
           const groupDescription =
             groupDescriptions.get(group) ??
-            "Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ РєР»РёРµРЅС‚Р°. Р’РёРґРЅС‹ С‚РѕР»СЊРєРѕ РІР°Рј.";
+            "Дополнительные данные клиента. Видны только вам.";
           const isEditingGroup = customTabsEdit[groupId] ?? false;
           return (
             <TabsContent
@@ -872,7 +864,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </div>
 
               {customFieldsLoading ? (
-                <p className="flex-1 text-sm text-muted-foreground pt-2">Р—Р°РіСЂСѓР¶Р°РµРј РїРѕР»СЏвЂ¦</p>
+                <p className="flex-1 text-sm text-muted-foreground pt-2">Загружаем поля…</p>
               ) : (
                 <form
                   onSubmit={async (e) => {
@@ -965,7 +957,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               <div key={def.id} className={isWide ? "md:col-span-2" : ""}>
                               <SortableFieldWrap id={def.id} isEditing={true}>
                                 <div className="space-y-1 flex-1 min-w-0">
-                                  <Label className="field-label">{label}</Label>
+                                  <Label className="text-xs">{label}</Label>
                           {type === "TEXT" && (
                             <Input
                               value={typeof value === "string" ? value : ""}
@@ -1008,7 +1000,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                   {value && typeof value === "string" ? (
                                     new Date(value).toLocaleDateString("ru-RU")
                                   ) : (
-                                    <span className="text-muted-foreground">РґРґ.РјРј.РіРіРіРі</span>
+                                    <span className="text-muted-foreground">дд.мм.гггг</span>
                                   )}
                                 </Button>
                               </PopoverTrigger>
@@ -1055,7 +1047,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                   className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                 >
                                   {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
-                                    "РћРїС†РёСЏ"}
+                                    "Опция"}
                                 </Label>
                               </div>
                             </div>
@@ -1066,7 +1058,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               onValueChange={(v) => updateValue(v)}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Р’С‹Р±РµСЂРёС‚Рµ" />
+                                <SelectValue placeholder="Выберите" />
                               </SelectTrigger>
                               <SelectContent>
                                 {selectOptions.map((opt) => (
@@ -1081,7 +1073,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             <div className="space-y-1 rounded-md border bg-background px-2 py-2">
                               {selectOptions.length === 0 ? (
                                 <p className="text-xs text-muted-foreground">
-                                  РћРїС†РёРё РЅРµ РЅР°СЃС‚СЂРѕРµРЅС‹.
+                                  Опции не настроены.
                                 </p>
                               ) : (
                                 selectOptions.map((opt) => {
@@ -1141,7 +1133,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           <div key={def.id} className={isWide ? "md:col-span-2" : ""}>
                           <div className="flex gap-2 items-start">
                             <div className="space-y-1 flex-1 min-w-0">
-                              <Label className="field-label">{label}</Label>
+                              <Label className="text-xs">{label}</Label>
                               {type === "TEXT" && (
                                 <Input
                                   value={typeof value === "string" ? value : ""}
@@ -1184,7 +1176,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                       {value && typeof value === "string" ? (
                                         new Date(value).toLocaleDateString("ru-RU")
                                       ) : (
-                                        <span className="text-muted-foreground">РґРґ.РјРј.РіРіРіРі</span>
+                                        <span className="text-muted-foreground">дд.мм.гггг</span>
                                       )}
                                     </Button>
                                   </PopoverTrigger>
@@ -1231,7 +1223,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                       className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                     >
                                       {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
-                                        "РћРїС†РёСЏ"}
+                                        "Опция"}
                                     </Label>
                                   </div>
                                 </div>
@@ -1242,7 +1234,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                   onValueChange={(v) => updateValue(v)}
                                 >
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Р’С‹Р±РµСЂРёС‚Рµ" />
+                                    <SelectValue placeholder="Выберите" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {selectOptions.map((opt) => (
@@ -1257,7 +1249,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 <div className="space-y-1 rounded-md border bg-background px-2 py-2">
                                   {selectOptions.length === 0 ? (
                                     <p className="text-xs text-muted-foreground">
-                                      РћРїС†РёРё РЅРµ РЅР°СЃС‚СЂРѕРµРЅС‹.
+                                      Опции не настроены.
                                     </p>
                                   ) : (
                                     selectOptions.map((opt) => {
@@ -1317,15 +1309,15 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                             <Pencil className="h-4 w-4" />
                             <span className="sr-only">
                               {isEditingGroup
-                                ? "Р—Р°РІРµСЂС€РёС‚СЊ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ"
-                                : "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ"}
+                                ? "Завершить редактирование"
+                                : "Редактировать"}
                             </span>
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           {isEditingGroup
-                            ? "Р—Р°РІРµСЂС€РёС‚СЊ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹С… РїРѕР»РµР№"
-                            : "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ"}
+                            ? "Завершить редактирование дополнительных полей"
+                            : "Редактировать дополнительные поля"}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -1334,17 +1326,17 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                         type="submit"
                         disabled={customFieldsSaving}
                       >
-                        {customFieldsSaving ? "РЎРѕС…СЂР°РЅСЏРµРјвЂ¦" : "РЎРѕС…СЂР°РЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ"}
+                        {customFieldsSaving ? "Сохраняем…" : "Сохранить изменения"}
                       </Button>
                     )}
                   </div>
                 </form>
               )}
 
-              {group.toLowerCase() === "С„Р°Р№Р»С‹" && (
+              {group.toLowerCase() === "файлы" && (
                 <div className="pt-4 border-t mt-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Р¤Р°Р№Р»С‹ РІ РїСЂРѕС„РёР»Рµ</p>
+                    <p className="text-sm font-medium">Файлы в профиле</p>
                     <form
                       onSubmit={async (e) => {
                         e.preventDefault();
@@ -1367,7 +1359,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           const data = await res.json().catch(() => ({}));
                           if (!res.ok) {
                             setFilesError(
-                              data?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С„Р°Р№Р»"
+                              data?.message ?? "Не удалось загрузить файл"
                             );
                           } else {
                             setFiles((prev) => [data, ...prev]);
@@ -1375,7 +1367,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           }
                         } catch (err) {
                           console.error(err);
-                          setFilesError("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С„Р°Р№Р»");
+                          setFilesError("Не удалось загрузить файл");
                         } finally {
                           setFilesLoading(false);
                         }
@@ -1397,14 +1389,14 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                         >
                           <span className="inline-flex items-center gap-1">
                             <Paperclip className="h-4 w-4" />
-                            РџСЂРёРєСЂРµРїРёС‚СЊ С„Р°Р№Р»
+                            Прикрепить файл
                           </span>
                         </Button>
                       </label>
                     </form>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Р”Рѕ 10 С„Р°Р№Р»РѕРІ, РЅРµ Р±РѕР»РµРµ 5 РњР‘ РєР°Р¶РґС‹Р№. Р¤РѕСЂРјР°С‚С‹: РёР·РѕР±СЂР°Р¶РµРЅРёСЏ, PDF, DOC/DOCX.
+                    До 10 файлов, не более 5 МБ каждый. Форматы: изображения, PDF, DOC/DOCX.
                   </p>
 
                   {filesError && (
@@ -1415,11 +1407,11 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
                   {filesLoading ? (
                     <p className="text-sm text-muted-foreground">
-                      Р—Р°РіСЂСѓР¶Р°РµРј СЃРїРёСЃРѕРє С„Р°Р№Р»РѕРІвЂ¦
+                      Загружаем список файлов…
                     </p>
                   ) : files.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      РџРѕРєР° РЅРµС‚ РїСЂРёРєСЂРµРїР»С‘РЅРЅС‹С… С„Р°Р№Р»РѕРІ.
+                      Пока нет прикреплённых файлов.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -1431,7 +1423,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           <div className="min-w-0">
                             <p className="truncate font-medium">{f.filename}</p>
                             <p className="text-xs text-muted-foreground">
-                              {(f.size / 1024).toFixed(1)} РљР‘ В·{" "}
+                              {(f.size / 1024).toFixed(1)} КБ ·{" "}
                               {new Date(f.createdAt).toLocaleDateString("ru-RU")}
                             </p>
                           </div>
@@ -1485,7 +1477,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           className="mt-3 space-y-3 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
         >
           {diagnosticsLoading ? (
-            <p className="text-sm text-muted-foreground">Р—Р°РіСЂСѓР·РєР° СЂРµР·СѓР»СЊС‚Р°С‚РѕРІвЂ¦</p>
+            <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
           ) : diagnosticsList.length > 0 ? (
             <ul className="space-y-2">
               {diagnosticsList.map((result) => (
@@ -1509,7 +1501,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Р РµР·СѓР»СЊС‚Р°С‚С‹ РїСЃРёС…РѕР»РѕРіРёС‡РµСЃРєРѕР№ РґРёР°РіРЅРѕСЃС‚РёРєРё РґР»СЏ СЌС‚РѕРіРѕ РєР»РёРµРЅС‚Р° РїРѕРєР° РЅРµ СЃРѕС…СЂР°РЅРµРЅС‹.
+              Результаты психологической диагностики для этого клиента пока не сохранены.
             </p>
           )}
         </TabsContent>
@@ -1521,43 +1513,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           <ClientAppointments clientId={props.id} />
         </TabsContent>
       </Tabs>
-
-      {/* Floating save bar */}
-      {isEditing && isDirty && (
-        <div className="sticky bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 rounded-lg border bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
-          <p className="text-sm text-muted-foreground">Р•СЃС‚СЊ РЅРµСЃРѕС…СЂР°РЅС‘РЅРЅС‹Рµ РёР·РјРµРЅРµРЅРёСЏ</p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFirstName(props.firstName);
-                setLastName(props.lastName);
-                setEmail(props.email ?? "");
-                setPhone(props.phone ?? "");
-                setCountry(props.country ?? "");
-                setCity(props.city ?? "");
-                setGender(props.gender ?? "");
-                setMaritalStatus(props.maritalStatus ?? "");
-                setNotes(props.notes ?? "");
-                setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
-                setIsEditing(false);
-              }}
-            >
-              РћС‚РјРµРЅРёС‚СЊ
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              form="profile-form"
-              disabled={saving || deleting}
-            >
-              {saving ? "РЎРѕС…СЂР°РЅСЏРµРј..." : "РЎРѕС…СЂР°РЅРёС‚СЊ"}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
