@@ -106,12 +106,19 @@ function SortableFieldWrap({
           <div className="absolute inset-0 flex items-stretch justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 16 16"
+              viewBox="0 0 8 16"
               fill="currentColor"
               className="block h-full w-auto min-w-3 shrink-0 text-muted-foreground"
               aria-hidden
             >
-              <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+              <circle cx="2" cy="3" r="0.6" />
+              <circle cx="2" cy="6" r="0.6" />
+              <circle cx="2" cy="9" r="0.6" />
+              <circle cx="2" cy="13" r="0.6" />
+              <circle cx="6" cy="3" r="0.6" />
+              <circle cx="6" cy="6" r="0.6" />
+              <circle cx="6" cy="9" r="0.6" />
+              <circle cx="6" cy="13" r="0.6" />
             </svg>
           </div>
         </div>
