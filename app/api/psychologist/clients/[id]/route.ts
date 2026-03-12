@@ -25,6 +25,7 @@ const updateClientSchema = z.object({
   gender: z.string().optional().nullable(),
   maritalStatus: z.string().optional().nullable(),
   notes: z.string().optional(),
+  statusId: z.string().nullable().optional(),
   email: z.string().email("Некорректный email").optional().or(z.literal(""))
 });
 
@@ -50,7 +51,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     );
   }
 
-  const client = await prisma.clientProfile.findFirst({
+    const client = await prisma.clientProfile.findFirst({
     where: {
       id,
       psychologistId: psych.id
@@ -60,7 +61,8 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
         select: {
           email: true
         }
-      }
+      },
+      status: true
     }
   });
 
@@ -81,7 +83,10 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     notes: client.notes,
     createdAt: client.createdAt,
     email: client.user?.email ?? client.email ?? null,
-    hasAccount: !!client.userId
+    hasAccount: !!client.userId,
+    statusId: client.statusId,
+    statusLabel: client.status?.label ?? null,
+    statusColor: client.status?.color ?? null
   });
 }
 
@@ -137,6 +142,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       maritalStatus?: string | null;
       notes?: string | null;
       email?: string | null;
+      statusId?: string | null;
     } = {
       firstName: data.firstName ?? existing.firstName,
       lastName: data.lastName ?? existing.lastName,
@@ -171,6 +177,10 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       } else {
         updateData.email = null;
       }
+    }
+
+    if (data.statusId !== undefined) {
+      updateData.statusId = data.statusId;
     }
 
     const updated = await prisma.clientProfile.update({

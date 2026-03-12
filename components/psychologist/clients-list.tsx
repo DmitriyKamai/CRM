@@ -35,6 +35,7 @@ import {
   PopoverContent
 } from "@/components/ui/popover";
 import { DataTable } from "@/components/ui/data-table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -62,6 +63,9 @@ type ClientDto = {
   createdAt: string;
   hasAccount?: boolean;
   avatarUrl?: string | null;
+  statusId?: string | null;
+  statusLabel?: string | null;
+  statusColor?: string | null;
 };
 
 const AVATAR_COLORS = [
@@ -133,6 +137,9 @@ export function PsychologistClientsList() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [statuses, setStatuses] = useState<Array<{ id: string; label: string; color: string }>>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [initialStatusId, setInitialStatusId] = useState<string | null>(null);
 
   async function loadClients() {
     setLoading(true);
@@ -145,6 +152,9 @@ export function PsychologistClientsList() {
       }
       const data = (await res.json()) as { clients: ClientDto[] };
       setClients(data.clients);
+      if (!initialStatusId && data.clients.length > 0) {
+        setInitialStatusId(data.clients[0].statusId ?? null);
+      }
       setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
@@ -156,6 +166,20 @@ export function PsychologistClientsList() {
 
   useEffect(() => {
     void loadClients();
+  }, []);
+
+  useEffect(() => {
+    async function loadStatuses() {
+      try {
+        const res = await fetch("/api/psychologist/client-statuses");
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        setStatuses(data?.items ?? []);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void loadStatuses();
   }, []);
 
   async function handleCreate(e: React.FormEvent) {
@@ -296,41 +320,60 @@ export function PsychologistClientsList() {
         id: "name",
         accessorFn: row => `${row.lastName} ${row.firstName}`,
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Имя
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <ClientAvatar client={row.original} size="sm" />
-            <span className="font-medium inline-flex items-center gap-1.5 truncate">
-              <span className="truncate">
-                {row.original.lastName} {row.original.firstName}
-              </span>
-              {row.original.hasAccount === true && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
-                        <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
-                        <span className="sr-only">Зарегистрирован</span>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Клиент зарегистрирован
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </span>
+          <div className="flex items-center">
+            {/* Отступ под аватар */}
+            <span className="inline-block w-8" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-1 h-8 px-0 text-xs font-medium text-muted-foreground"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            >
+              Имя
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
           </div>
-        )
+        ),
+        cell: ({ row }) => {
+          const c = row.original;
+          const statusLabel = c.statusLabel;
+          const statusColor = c.statusColor;
+          return (
+            <div className="flex items-center gap-2 min-w-0">
+              <ClientAvatar client={c} size="sm" />
+              <div className="flex items-center gap-2 min-w-0">
+                {statusLabel && (
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white shrink-0"
+                    style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
+                  >
+                    {statusLabel}
+                  </span>
+                )}
+                <span className="font-medium inline-flex items-center gap-1.5 truncate">
+                  <span className="truncate">
+                    {c.lastName} {c.firstName}
+                  </span>
+                  {c.hasAccount === true && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
+                            <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
+                            <span className="sr-only">Зарегистрирован</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Клиент зарегистрирован
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        }
       },
       {
         accessorKey: "email",
@@ -466,6 +509,32 @@ export function PsychologistClientsList() {
   return (
     <div className="h-[calc(100vh-0px)] overflow-y-auto px-6 py-4">
       <div className="w-full space-y-4">
+        {/* Фильтр по статусу */}
+        {statuses.length > 0 && (
+          <Tabs
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            className="w-full"
+          >
+            <TabsList className="inline-flex h-9 rounded-full bg-muted px-1 py-0.5">
+              <TabsTrigger
+                value="ALL"
+                className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
+              >
+                Все
+              </TabsTrigger>
+              {statuses.map((st) => (
+                <TabsTrigger
+                  key={st.id}
+                  value={st.id}
+                  className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
+                >
+                  {st.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col gap-1">
@@ -561,7 +630,11 @@ export function PsychologistClientsList() {
         ) : (
           <DataTable
             columns={columns}
-            data={clients}
+            data={
+              statusFilter === "ALL"
+                ? clients
+                : clients.filter((c) => c.statusId === statusFilter)
+            }
             filterColumnId="search"
             filterPlaceholder="Поиск по имени, email или телефону..."
             columnLabels={{

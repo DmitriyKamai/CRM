@@ -229,6 +229,12 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [customTabsEdit, setCustomTabsEdit] = useState<Record<string, boolean>>({});
+  const [statusId, setStatusId] = useState<string | null>((props as any).statusId ?? null);
+  const [statusLabel, setStatusLabel] = useState<string | null>((props as any).statusLabel ?? null);
+  const [statusColor, setStatusColor] = useState<string | null>((props as any).statusColor ?? null);
+  const [statusId, setStatusId] = useState<string | null>((props as any).statusId ?? null);
+  const [statusLabel, setStatusLabel] = useState<string | null>((props as any).statusLabel ?? null);
+  const [statusColor, setStatusColor] = useState<string | null>((props as any).statusColor ?? null);
   const [editingCustomFields, setEditingCustomFields] = useState<Record<string, boolean>>({});
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
@@ -366,6 +372,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       if (!hasAccount) {
         body.email = email.trim() || "";
       }
+      body.statusId = statusId;
 
       const res = await fetch(`/api/psychologist/clients/${props.id}`, {
         method: "PATCH",
@@ -554,7 +561,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           className="mt-3 space-y-4 rounded-lg border bg-card p-4 max-h-[70vh] overflow-y-auto"
         >
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-semibold leading-none tracking-tight">
                 {props.lastName} {props.firstName}
               </span>

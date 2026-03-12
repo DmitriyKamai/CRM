@@ -202,6 +202,7 @@ model PsychologistProfile {
   diagnosticLinks         DiagnosticLink[]
   appointments            Appointment[]
   clientRegistrationInvites ClientRegistrationInvite[]
+  clientStatuses            ClientStatus[]
 }
 
 model ClientProfile {
@@ -220,15 +221,18 @@ model ClientProfile {
   notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  statusId       String?
 
   user         User?                @relation(fields: [userId], references: [id])
   psychologist PsychologistProfile? @relation("PsychologistClients", fields: [psychologistId], references: [id])
+  status       ClientStatus?        @relation(fields: [statusId], references: [id])
   files        ClientFile[]
 
   @@unique([psychologistId, email])
   @@index([userId])
   @@index([psychologistId])
   @@index([email])
+  @@index([statusId])
 
   testResults         TestResult[]
   appointments        Appointment[]      @relation("ClientAppointments")
@@ -236,6 +240,23 @@ model ClientProfile {
   recommendationsReceived Recommendation[]
   diagnosticLinks         DiagnosticLink[]
   clientRegistrationInvites ClientRegistrationInvite[]
+}
+
+model ClientStatus {
+  id             String   @id @default(cuid())
+  psychologistId String
+  key            String
+  label          String
+  color          String   // например, hsl(...) или tailwind-класс, но мы будем хранить hex/hsl
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])
+  clients      ClientProfile[]
+
+  @@unique([psychologistId, key])
+  @@index([psychologistId, order])
 }
 
 // --- Domain: diagnostics (tests, questions, results) ---
