@@ -249,10 +249,24 @@ export function PsychologistSettingsForm() {
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
   type ClientStatusItem = { id: string; label: string; color: string; order: number };
+  const STATUS_COLOR_PRESETS: { value: string; label: string }[] = [
+    { value: "hsl(217 91% 60%)", label: "Синий" },
+    { value: "hsl(142 76% 36%)", label: "Зелёный" },
+    { value: "hsl(43 96% 56%)", label: "Жёлтый" },
+    { value: "hsl(0 84% 60%)", label: "Красный" },
+    { value: "hsl(280 65% 60%)", label: "Фиолетовый" },
+    { value: "hsl(192 91% 50%)", label: "Бирюзовый" },
+    { value: "hsl(24 95% 53%)", label: "Оранжевый" },
+    { value: "hsl(326 78% 60%)", label: "Розовый" },
+    { value: "hsl(145 63% 42%)", label: "Лаймовый" },
+    { value: "hsl(199 89% 48%)", label: "Голубой" },
+    { value: "hsl(215 16% 47%)", label: "Серый" },
+    { value: "hsl(220 39% 23%)", label: "Тёмный" }
+  ];
   const [clientStatuses, setClientStatuses] = useState<ClientStatusItem[]>([]);
   const [clientStatusesLoading, setClientStatusesLoading] = useState(false);
   const [newStatusLabel, setNewStatusLabel] = useState("");
-  const [newStatusColor, setNewStatusColor] = useState("#3b82f6");
+  const [newStatusColor, setNewStatusColor] = useState(STATUS_COLOR_PRESETS[0]?.value ?? "hsl(217 91% 60%)");
   const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
   const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [editingStatusLabel, setEditingStatusLabel] = useState("");
@@ -1747,21 +1761,33 @@ export function PsychologistSettingsForm() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label htmlFor="new-status-color">Цвет</Label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              id="new-status-color"
-                              type="color"
-                              value={newStatusColor}
-                              onChange={(e) => setNewStatusColor(e.target.value)}
-                              className="h-10 w-14 rounded border cursor-pointer"
-                            />
-                            <Input
-                              value={newStatusColor}
-                              onChange={(e) => setNewStatusColor(e.target.value)}
-                              className="flex-1 font-mono text-sm"
-                              placeholder="#3b82f6 или hsl(...)"
-                            />
+                          <Label>Цвет</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Выберите один из предустановленных контрастных цветов.
+                          </p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {STATUS_COLOR_PRESETS.map((c) => {
+                              const selected = newStatusColor === c.value;
+                              return (
+                                <button
+                                  key={c.value}
+                                  type="button"
+                                  onClick={() => setNewStatusColor(c.value)}
+                                  className={cn(
+                                    "flex flex-col items-center gap-1 rounded-md border px-2 py-2 text-xs",
+                                    selected
+                                      ? "ring-2 ring-primary border-primary"
+                                      : "border-border bg-background hover:bg-muted/60"
+                                  )}
+                                >
+                                  <span
+                                    className="mb-0.5 inline-block h-6 w-10 rounded"
+                                    style={{ backgroundColor: c.value }}
+                                  />
+                                  <span className="truncate">{c.label}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -1775,7 +1801,7 @@ export function PsychologistSettingsForm() {
                               const res = await fetch("/api/psychologist/client-statuses", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ label, color: newStatusColor || "#3b82f6" })
+                                body: JSON.stringify({ label, color: newStatusColor || STATUS_COLOR_PRESETS[0]?.value || "hsl(217 91% 60%)" })
                               });
                               const data = await res.json().catch(() => ({}));
                               if (!res.ok) {
@@ -1783,7 +1809,7 @@ export function PsychologistSettingsForm() {
                                 return;
                               }
                               setNewStatusLabel("");
-                              setNewStatusColor("#3b82f6");
+                              setNewStatusColor(STATUS_COLOR_PRESETS[0]?.value ?? "hsl(217 91% 60%)");
                               setAddStatusDialogOpen(false);
                               refetchClientStatuses();
                               toast.success("Статус добавлен");
@@ -1818,18 +1844,29 @@ export function PsychologistSettingsForm() {
                               className="h-8"
                               maxLength={64}
                             />
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="color"
-                                value={editingStatusColor.startsWith("#") ? editingStatusColor : "#6b7280"}
-                                onChange={(e) => setEditingStatusColor(e.target.value)}
-                                className="h-8 w-10 rounded border cursor-pointer"
-                              />
-                              <Input
-                                value={editingStatusColor}
-                                onChange={(e) => setEditingStatusColor(e.target.value)}
-                                className="h-8 flex-1 min-w-0 text-xs font-mono"
-                              />
+                            <div className="grid grid-cols-3 gap-1">
+                              {STATUS_COLOR_PRESETS.map((c) => {
+                                const selected = (editingStatusColor || s.color) === c.value;
+                                return (
+                                  <button
+                                    key={c.value}
+                                    type="button"
+                                    onClick={() => setEditingStatusColor(c.value)}
+                                    className={cn(
+                                      "flex flex-col items-center gap-0.5 rounded-md border px-1.5 py-1 text-[10px]",
+                                      selected
+                                        ? "ring-2 ring-primary border-primary"
+                                        : "border-border bg-background hover:bg-muted/60"
+                                    )}
+                                  >
+                                    <span
+                                      className="inline-block h-4 w-8 rounded"
+                                      style={{ backgroundColor: c.value }}
+                                    />
+                                    <span className="truncate">{c.label}</span>
+                                  </button>
+                                );
+                              })}
                             </div>
                             <div className="flex items-center justify-end gap-1">
                               <Button

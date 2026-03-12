@@ -320,58 +320,62 @@ export function PsychologistClientsList() {
         id: "name",
         accessorFn: row => `${row.lastName} ${row.firstName}`,
         header: ({ column }) => (
-          <div className="flex items-center">
-            {/* Отступ под аватар */}
-            <span className="inline-block w-8" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-ml-1 h-8 px-0 text-xs font-medium text-muted-foreground"
-              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            >
-              Имя
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 pl-10 pr-0 text-xs font-medium text-muted-foreground justify-start"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Имя
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
         ),
         cell: ({ row }) => {
           const c = row.original;
-          const statusLabel = c.statusLabel;
-          const statusColor = c.statusColor;
           return (
             <div className="flex items-center gap-2 min-w-0">
               <ClientAvatar client={c} size="sm" />
-              <div className="flex items-center gap-2 min-w-0">
-                {statusLabel && (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white shrink-0"
-                    style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
-                  >
-                    {statusLabel}
-                  </span>
-                )}
-                <span className="font-medium inline-flex items-center gap-1.5 truncate">
-                  <span className="truncate">
-                    {c.lastName} {c.firstName}
-                  </span>
-                  {c.hasAccount === true && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
-                            <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="sr-only">Зарегистрирован</span>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Клиент зарегистрирован
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+              <span className="font-medium inline-flex items-center gap-1.5 truncate">
+                <span className="truncate">
+                  {c.lastName} {c.firstName}
                 </span>
-              </div>
+                {c.hasAccount === true && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
+                          <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="sr-only">Зарегистрирован</span>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Клиент зарегистрирован
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </span>
             </div>
+          );
+        }
+      },
+      {
+        id: "status",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Статус</span>
+        ),
+        cell: ({ row }) => {
+          const { statusLabel, statusColor } = row.original;
+          if (!statusLabel) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+              style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
+            >
+              {statusLabel}
+            </span>
           );
         }
       },
@@ -381,7 +385,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
+            className="h-8 px-0 text-xs font-medium text-muted-foreground justify-start"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Email
@@ -410,7 +414,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
+            className="h-8 px-0 text-xs font-medium text-muted-foreground justify-start"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Создан
