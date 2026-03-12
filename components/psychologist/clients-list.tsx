@@ -372,11 +372,11 @@ export function PsychologistClientsList() {
     [clients, selectedIds, multiSelectMode]
   );
 
-  // Профиль клиента поверх списка (как сейчас)
+  // Профиль клиента поверх списка (на всю основную ширину)
   if (profileClient) {
     return (
-      <div className="h-[calc(100vh-0px)] overflow-y-auto flex justify-center">
-        <div className="w-full max-w-5xl px-6 py-4 space-y-4">
+      <div className="h-[calc(100vh-0px)] overflow-y-auto px-6 py-4">
+        <div className="w-full space-y-4">
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -453,7 +453,7 @@ export function PsychologistClientsList() {
 
   return (
     <div className="h-[calc(100vh-0px)] overflow-y-auto px-6 py-4">
-      <div className="max-w-6xl mx-auto space-y-4">
+      <div className="w-full space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col gap-1">
