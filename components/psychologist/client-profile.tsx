@@ -197,6 +197,19 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [dob, setDob] = useState<Date | undefined>(
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
   );
+
+  const isDirty =
+    firstName !== props.firstName ||
+    lastName !== props.lastName ||
+    email !== (props.email ?? "") ||
+    phone !== (props.phone ?? "") ||
+    country !== (props.country ?? "") ||
+    city !== (props.city ?? "") ||
+    gender !== (props.gender ?? "") ||
+    maritalStatus !== (props.maritalStatus ?? "") ||
+    notes !== (props.notes ?? "") ||
+    (dob?.toISOString().slice(0, 10) ?? "") !== (props.dateOfBirth ? new Date(props.dateOfBirth).toISOString().slice(0, 10) : "");
+
   const hasAccount = props.hasAccount ?? false;
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
@@ -455,7 +468,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   }
 
   return (
-    <div className="space-y-4 min-w-0 w-full overflow-hidden">
+    <div className="space-y-4 min-w-0 w-full">
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -569,11 +582,12 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           </div>
 
           <form
+            id="profile-form"
             onSubmit={handleSave}
             className="grid gap-3 md:grid-cols-2"
           >
             <div className="space-y-1">
-              <Label htmlFor="firstName" className="text-xs">
+              <Label htmlFor="firstName" className="field-label">
                 Имя
               </Label>
               <Input
@@ -586,7 +600,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="lastName" className="text-xs">
+              <Label htmlFor="lastName" className="field-label">
                 Фамилия
               </Label>
               <Input
@@ -599,7 +613,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="profile-email" className="text-xs">
+              <Label htmlFor="profile-email" className="field-label">
                 Email
                 {hasAccount && (
                   <span className="ml-1 font-normal text-muted-foreground">
@@ -640,7 +654,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Дата рождения</Label>
+              <Label className="field-label">Дата рождения</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -679,7 +693,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </Popover>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="phone" className="text-xs">
+              <Label htmlFor="phone" className="field-label">
                 Телефон
               </Label>
               <PhoneInput
@@ -691,7 +705,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="client-country" className="text-xs">
+              <Label htmlFor="client-country" className="field-label">
                 Страна
               </Label>
               <CountryAutocomplete
@@ -707,7 +721,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="client-city" className="text-xs">
+              <Label htmlFor="client-city" className="field-label">
                 Город
               </Label>
               <CityAutocomplete
@@ -720,7 +734,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Пол</Label>
+              <Label className="field-label">Пол</Label>
               <RadioGroup
                 value={gender}
                 onValueChange={setGender}
@@ -742,7 +756,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </RadioGroup>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="client-marital" className="text-xs">
+              <Label htmlFor="client-marital" className="field-label">
                 Семейное положение
               </Label>
               <Select
@@ -763,7 +777,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </Select>
             </div>
             <div className="space-y-1 md:col-span-2">
-              <Label htmlFor="notes" className="text-xs">
+              <Label htmlFor="notes" className="field-label">
                 Заметки
               </Label>
               <Textarea
@@ -957,7 +971,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               <div key={def.id} className={isWide ? "md:col-span-2" : ""}>
                               <SortableFieldWrap id={def.id} isEditing={true}>
                                 <div className="space-y-1 flex-1 min-w-0">
-                                  <Label className="text-xs">{label}</Label>
+                                  <Label className="field-label">{label}</Label>
                           {type === "TEXT" && (
                             <Input
                               value={typeof value === "string" ? value : ""}
@@ -1133,7 +1147,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           <div key={def.id} className={isWide ? "md:col-span-2" : ""}>
                           <div className="flex gap-2 items-start">
                             <div className="space-y-1 flex-1 min-w-0">
-                              <Label className="text-xs">{label}</Label>
+                              <Label className="field-label">{label}</Label>
                               {type === "TEXT" && (
                                 <Input
                                   value={typeof value === "string" ? value : ""}
@@ -1513,6 +1527,36 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           <ClientAppointments clientId={props.id} />
         </TabsContent>
       </Tabs>
+
+      {isEditing && isDirty && (
+        <div className="sticky bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 rounded-lg border bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
+          <p className="text-sm text-muted-foreground">Есть несохранённые изменения</p>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFirstName(props.firstName);
+                setLastName(props.lastName);
+                setEmail(props.email ?? "");
+                setPhone(props.phone ?? "");
+                setCountry(props.country ?? "");
+                setCity(props.city ?? "");
+                setGender(props.gender ?? "");
+                setMaritalStatus(props.maritalStatus ?? "");
+                setNotes(props.notes ?? "");
+                setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
+              }}
+            >
+              Отменить
+            </Button>
+            <Button type="submit" size="sm" form="profile-form" disabled={saving || deleting}>
+              {saving ? "Сохраняем..." : "Сохранить"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
