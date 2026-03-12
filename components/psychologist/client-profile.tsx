@@ -106,27 +106,27 @@ function SortableFieldWrap({
           <div className="absolute inset-0 flex items-stretch justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 6 16"
+              viewBox="0 0 5 16"
               fill="currentColor"
               className="block h-full w-auto min-w-3 shrink-0 text-muted-foreground"
               aria-hidden
             >
-              <circle cx="1.5" cy="2" r="0.6" />
-              <circle cx="1.5" cy="3.86" r="0.6" />
-              <circle cx="1.5" cy="5.71" r="0.6" />
-              <circle cx="1.5" cy="7.57" r="0.6" />
-              <circle cx="1.5" cy="9.43" r="0.6" />
-              <circle cx="1.5" cy="11.29" r="0.6" />
-              <circle cx="1.5" cy="13.14" r="0.6" />
-              <circle cx="1.5" cy="15" r="0.6" />
-              <circle cx="4.5" cy="2" r="0.6" />
-              <circle cx="4.5" cy="3.86" r="0.6" />
-              <circle cx="4.5" cy="5.71" r="0.6" />
-              <circle cx="4.5" cy="7.57" r="0.6" />
-              <circle cx="4.5" cy="9.43" r="0.6" />
-              <circle cx="4.5" cy="11.29" r="0.6" />
-              <circle cx="4.5" cy="13.14" r="0.6" />
-              <circle cx="4.5" cy="15" r="0.6" />
+              <circle cx="1.57" cy="2" r="0.3" />
+              <circle cx="1.57" cy="3.86" r="0.3" />
+              <circle cx="1.57" cy="5.71" r="0.3" />
+              <circle cx="1.57" cy="7.57" r="0.3" />
+              <circle cx="1.57" cy="9.43" r="0.3" />
+              <circle cx="1.57" cy="11.29" r="0.3" />
+              <circle cx="1.57" cy="13.14" r="0.3" />
+              <circle cx="1.57" cy="15" r="0.3" />
+              <circle cx="3.43" cy="2" r="0.3" />
+              <circle cx="3.43" cy="3.86" r="0.3" />
+              <circle cx="3.43" cy="5.71" r="0.3" />
+              <circle cx="3.43" cy="7.57" r="0.3" />
+              <circle cx="3.43" cy="9.43" r="0.3" />
+              <circle cx="3.43" cy="11.29" r="0.3" />
+              <circle cx="3.43" cy="13.14" r="0.3" />
+              <circle cx="3.43" cy="15" r="0.3" />
             </svg>
           </div>
         </div>
