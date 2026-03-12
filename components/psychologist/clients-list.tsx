@@ -216,9 +216,9 @@ export function PsychologistClientsList() {
   });
 
   return (
-    <div className="flex h-[calc(100vh-0px)] overflow-hidden">
-      {/* ── Left panel: client list ── */}
-      <div className="flex flex-col w-[300px] shrink-0 border-r bg-background overflow-hidden">
+    <div className="flex h-[calc(100vh-0px)] overflow-hidden justify-center">
+      {/* Список клиентов как одиночная колонка */}
+      <div className="flex flex-col w-full max-w-3xl border bg-background overflow-hidden rounded-lg">
         {/* Panel header */}
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b shrink-0">
           <h2 className="text-sm font-semibold">Клиенты</h2>
@@ -393,79 +393,6 @@ export function PsychologistClientsList() {
         )}
       </div>
 
-      {/* ── Right panel: profile or placeholder ── */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
-        {selectedClient ? (
-          <div className="p-6">
-            <PsychologistClientProfile
-              key={selectedClient.id}
-              id={selectedClient.id}
-              email={selectedClient.email ?? null}
-              hasAccount={selectedClient.hasAccount}
-              firstName={selectedClient.firstName}
-              lastName={selectedClient.lastName}
-              dateOfBirth={selectedClient.dateOfBirth ?? null}
-              phone={selectedClient.phone ?? null}
-              country={selectedClient.country ?? null}
-              city={selectedClient.city ?? null}
-              gender={selectedClient.gender ?? null}
-              maritalStatus={selectedClient.maritalStatus ?? null}
-              notes={selectedClient.notes ?? null}
-              createdAt={selectedClient.createdAt}
-              onDeleted={async () => {
-                setSelectedClient(null);
-                await loadClients();
-              }}
-              onUpdated={next => {
-                setClients(prev =>
-                  prev.map(c =>
-                    c.id === selectedClient.id
-                      ? {
-                          ...c,
-                          firstName: next.firstName,
-                          lastName: next.lastName,
-                          email: next.email ?? null,
-                          phone: next.phone ?? null,
-                          country: next.country ?? null,
-                          city: next.city ?? null,
-                          gender: next.gender ?? null,
-                          maritalStatus: next.maritalStatus ?? null,
-                          notes: next.notes ?? null,
-                          dateOfBirth: next.dateOfBirth ?? null
-                        }
-                      : c
-                  )
-                );
-                setSelectedClient(prev =>
-                  prev
-                    ? {
-                        ...prev,
-                        firstName: next.firstName,
-                        lastName: next.lastName,
-                        email: next.email ?? null,
-                        phone: next.phone ?? null,
-                        country: next.country ?? null,
-                        city: next.city ?? null,
-                        gender: next.gender ?? null,
-                        maritalStatus: next.maritalStatus ?? null,
-                        notes: next.notes ?? null,
-                        dateOfBirth: next.dateOfBirth ?? null
-                      }
-                    : prev
-                );
-              }}
-            />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
-            <div className="rounded-full bg-muted p-4">
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">Выберите клиента из списка</p>
-          </div>
-        )}
-      </div>
-
       {/* Bulk delete confirmation */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
@@ -489,7 +416,7 @@ export function PsychologistClientsList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add client dialog */}
+      {/* Диалог добавления клиента */}
       <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -581,6 +508,93 @@ export function PsychologistClientsList() {
             </DialogFooter>
           </form>
         </DialogContent>
+      </Dialog>
+
+      {/* Диалог профиля клиента */}
+      <Dialog
+        open={!!selectedClient}
+        onOpenChange={open => {
+          if (!open) setSelectedClient(null);
+        }}
+      >
+        {selectedClient && (
+          <DialogContent className="max-w-5xl w-full p-0">
+            <div className="flex flex-col h-[80vh]">
+              <div className="flex items-center gap-2 border-b px-4 py-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 px-2"
+                  onClick={() => setSelectedClient(null)}
+                >
+                  <span className="text-lg leading-none">←</span>
+                  <span className="text-sm">Вернуться назад</span>
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-3">
+                <PsychologistClientProfile
+                  key={selectedClient.id}
+                  id={selectedClient.id}
+                  email={selectedClient.email ?? null}
+                  hasAccount={selectedClient.hasAccount}
+                  firstName={selectedClient.firstName}
+                  lastName={selectedClient.lastName}
+                  dateOfBirth={selectedClient.dateOfBirth ?? null}
+                  phone={selectedClient.phone ?? null}
+                  country={selectedClient.country ?? null}
+                  city={selectedClient.city ?? null}
+                  gender={selectedClient.gender ?? null}
+                  maritalStatus={selectedClient.maritalStatus ?? null}
+                  notes={selectedClient.notes ?? null}
+                  createdAt={selectedClient.createdAt}
+                  onDeleted={async () => {
+                    setSelectedClient(null);
+                    await loadClients();
+                  }}
+                  onUpdated={next => {
+                    setClients(prev =>
+                      prev.map(c =>
+                        c.id === selectedClient.id
+                          ? {
+                              ...c,
+                              firstName: next.firstName,
+                              lastName: next.lastName,
+                              email: next.email ?? null,
+                              phone: next.phone ?? null,
+                              country: next.country ?? null,
+                              city: next.city ?? null,
+                              gender: next.gender ?? null,
+                              maritalStatus: next.maritalStatus ?? null,
+                              notes: next.notes ?? null,
+                              dateOfBirth: next.dateOfBirth ?? null
+                            }
+                          : c
+                      )
+                    );
+                    setSelectedClient(prev =>
+                      prev
+                        ? {
+                            ...prev,
+                            firstName: next.firstName,
+                            lastName: next.lastName,
+                            email: next.email ?? null,
+                            phone: next.phone ?? null,
+                            country: next.country ?? null,
+                            city: next.city ?? null,
+                            gender: next.gender ?? null,
+                            maritalStatus: next.maritalStatus ?? null,
+                            notes: next.notes ?? null,
+                            dateOfBirth: next.dateOfBirth ?? null
+                          }
+                        : prev
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          </DialogContent>
+        )}
       </Dialog>
     </div>
   );
