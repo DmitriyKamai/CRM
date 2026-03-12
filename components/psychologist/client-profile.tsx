@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,13 +95,13 @@ function SortableFieldWrap({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex gap-2 items-stretch ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
+      className={`group flex gap-2 items-stretch ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
     >
       {isEditing && (
         <div
           {...attributes}
           {...listeners}
-          className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground rounded self-stretch min-h-[2.5rem]"
+          className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground rounded self-stretch min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"
           aria-label="Перетащить для смены порядка"
         >
           <div className="absolute inset-0 flex items-stretch justify-center">
@@ -951,8 +952,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               }));
                             }
 
+                            const isWide = type === "TEXT" || type === "MULTILINE";
                             return (
-                              <SortableFieldWrap key={def.id} id={def.id} isEditing={true}>
+                              <div key={def.id} className={isWide ? "md:col-span-2" : ""}>
+                              <SortableFieldWrap id={def.id} isEditing={true}>
                                 <div className="space-y-1 flex-1 min-w-0">
                                   <Label className="text-xs">{label}</Label>
                           {type === "TEXT" && (
@@ -1034,13 +1037,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           {type === "BOOLEAN" && (
                             <div className="flex items-center min-h-[2.5rem]">
                               <div className="flex items-center gap-3">
-                                <Checkbox
+                                <Switch
                                   id={`cf-bool-${def.id}`}
                                   checked={value === true}
-                                  onCheckedChange={(checked) =>
-                                    updateValue(checked === true)
-                                  }
-                                  className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
+                                  onCheckedChange={(checked) => updateValue(checked)}
                                 />
                                 <Label
                                   htmlFor={`cf-bool-${def.id}`}
@@ -1108,6 +1108,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           )}
                                 </div>
                               </SortableFieldWrap>
+                              </div>
                             );
                           })}
                         </SortableContext>
@@ -1127,8 +1128,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                           }));
                         }
 
+                        const isWide = type === "TEXT" || type === "MULTILINE";
                         return (
-                          <div key={def.id} className="flex gap-2 items-start">
+                          <div key={def.id} className={isWide ? "md:col-span-2" : ""}>
+                          <div className="flex gap-2 items-start">
                             <div className="space-y-1 flex-1 min-w-0">
                               <Label className="text-xs">{label}</Label>
                               {type === "TEXT" && (
@@ -1210,13 +1213,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                               {type === "BOOLEAN" && (
                                 <div className="flex items-center min-h-[2.5rem]">
                                   <div className="flex items-center gap-3">
-                                    <Checkbox
+                                    <Switch
                                       id={`cf-bool-view-${def.id}`}
                                       checked={value === true}
-                                      onCheckedChange={(checked) =>
-                                        updateValue(checked === true)
-                                      }
-                                      className="h-5 w-5 [&_svg]:h-3.5 [&_svg]:w-3.5"
+                                      onCheckedChange={(checked) => updateValue(checked)}
                                     />
                                     <Label
                                       htmlFor={`cf-bool-view-${def.id}`}
@@ -1283,6 +1283,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                                 </div>
                               )}
                             </div>
+                          </div>
                           </div>
                         );
                       })

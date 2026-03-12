@@ -30,6 +30,12 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Popover,
   PopoverTrigger,
   PopoverContent
@@ -555,19 +561,22 @@ export function PsychologistClientsList() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: профиль клиента */}
-      <Dialog
+      {/* Sheet: профиль клиента */}
+      <Sheet
         open={!!profileClient}
         onOpenChange={open => { if (!open) setProfileClient(null); }}
       >
-        <DialogContent className="max-w-3xl">
+        <SheetContent
+          side="right"
+          className="w-full sm:w-1/2 sm:max-w-none overflow-y-auto p-6"
+        >
           {profileClient && (
             <>
-              <DialogHeader>
-                <DialogTitle className="sr-only">
+              <SheetHeader className="sr-only">
+                <SheetTitle>
                   Профиль клиента {profileClient.lastName} {profileClient.firstName}
-                </DialogTitle>
-              </DialogHeader>
+                </SheetTitle>
+              </SheetHeader>
               <PsychologistClientProfile
                 id={profileClient.id}
                 email={profileClient.email ?? null}
@@ -627,8 +636,8 @@ export function PsychologistClientsList() {
               />
             </>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
