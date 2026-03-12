@@ -15,17 +15,6 @@ export default async function PsychologistClientsPage() {
     redirect("/");
   }
 
-  return (
-    <div className="space-y-6">
-      <section className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">Клиенты</h1>
-        <p className="text-sm text-muted-foreground">
-          Список ваших клиентов и форма для добавления новых.
-        </p>
-      </section>
-
-      <PsychologistClientsList />
-    </div>
-  );
+  return <PsychologistClientsList />;
 }
 

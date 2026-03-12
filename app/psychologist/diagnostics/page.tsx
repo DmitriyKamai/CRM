@@ -17,6 +17,6 @@ export default async function PsychologistDiagnosticsPage() {
     redirect("/");
   }
 
-  return <PsychologistDiagnosticsClient />;
+  return <div className="p-6"><PsychologistDiagnosticsClient /></div>;
 }
 

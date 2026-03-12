@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import { HeaderNav } from "@/components/layout/header-nav";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
@@ -30,22 +28,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem storageKey="empatix-theme">
           <AuthProvider>
-            <header className="border-b bg-background/80 backdrop-blur">
-              <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
-                <a
-                  href="/"
-                  className="text-4xl font-semibold tracking-tight tangerine-bold min-w-0 sm:text-5xl md:text-6xl cursor-pointer"
-                >
-                  Empatix
-                </a>
-                <Suspense fallback={<div className="text-xs text-muted-foreground">Загрузка…</div>}>
-                  <HeaderNav />
-                </Suspense>
-              </div>
-            </header>
-            <main className="mx-auto flex min-h-[calc(100vh-3.25rem)] max-w-6xl flex-col px-3 py-4 sm:px-4 sm:py-6">
-              {children}
-            </main>
+            {children}
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

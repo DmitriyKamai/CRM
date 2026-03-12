@@ -13,28 +13,46 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8">
-      <section className="text-center space-y-4 max-w-2xl">
-        <h1 className="text-6xl md:text-7xl font-semibold text-slate-50 tangerine-bold">
-          Empatix
-        </h1>
-        <p className="text-slate-300">
-          Регистрация психологов и клиентов, опросник Шмишека, расписание приёмов
-          и безопасное хранение персональных данных.
-        </p>
-      </section>
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="border-b bg-background/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <Link href="/" className="tangerine-bold text-5xl text-foreground leading-none">
+            Empatix
+          </Link>
+          <nav className="flex items-center gap-2">
+            <Button variant="ghost" asChild size="sm">
+              <Link href="/auth/login">Войти</Link>
+            </Button>
+            <Button variant="outline" asChild size="sm">
+              <Link href="/auth/register/psychologist">Я психолог</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/auth/register/client">Я клиент</Link>
+            </Button>
+          </nav>
+        </div>
+      </header>
 
-      <section className="flex flex-wrap items-center justify-center gap-4">
-        <Button asChild>
-          <Link href="/auth/login">Войти</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/auth/register/psychologist">Я психолог</Link>
-        </Button>
-        <Button variant="ghost" asChild>
-          <Link href="/auth/register/client">Я клиент</Link>
-        </Button>
-      </section>
+      <main className="flex-1 flex flex-col items-center justify-center gap-10 px-4 py-16">
+        <section className="text-center space-y-5 max-w-2xl">
+          <h1 className="text-7xl md:text-8xl font-semibold tangerine-bold leading-none">
+            Empatix
+          </h1>
+          <p className="text-base text-muted-foreground max-w-md mx-auto">
+            CRM для психологов: клиенты, расписание, диагностика
+            и безопасное хранение персональных данных.
+          </p>
+        </section>
+
+        <section className="flex flex-wrap items-center justify-center gap-3">
+          <Button size="lg" asChild>
+            <Link href="/auth/register/psychologist">Начать как психолог</Link>
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link href="/auth/login">Войти в аккаунт</Link>
+          </Button>
+        </section>
+      </main>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
     ]);
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <h1 className="text-xl font-semibold text-slate-50">Админ-панель</h1>
       <p className="text-sm text-slate-300">
         Базовый обзор ключевых сущностей CRM. Разделы пользователей и

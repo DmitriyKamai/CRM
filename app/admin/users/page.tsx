@@ -16,7 +16,7 @@ export default async function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-6 space-y-4">
       <h1 className="text-xl font-semibold text-slate-50">
         Пользователи и роли
       </h1>

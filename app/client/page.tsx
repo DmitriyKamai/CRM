@@ -21,5 +21,5 @@ export default async function ClientDashboardPage() {
     redirect("/");
   }
 
-  return <ClientDashboardClient />;
+  return <div className="p-6"><ClientDashboardClient /></div>;
 }

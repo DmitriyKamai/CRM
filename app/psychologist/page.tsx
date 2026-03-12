@@ -64,7 +64,7 @@ export default function PsychologistDashboardPage() {
   const name = session.user.email ?? "Психолог";
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <section className="space-y-2">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight">

@@ -14,7 +14,7 @@ export default async function ClientSettingsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-6 space-y-4">
       <h1 className="text-xl font-semibold text-foreground">Настройки профиля</h1>
       <p className="text-sm text-muted-foreground">
         Личные данные, безопасность и привязка аккаунтов — по вкладкам.
