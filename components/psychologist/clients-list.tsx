@@ -317,6 +317,26 @@ export function PsychologistClientsList() {
         enableSorting: false
       },
       {
+        id: "status",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Статус</span>
+        ),
+        cell: ({ row }) => {
+          const { statusLabel, statusColor } = row.original;
+          if (!statusLabel) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+              style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
+            >
+              {statusLabel}
+            </span>
+          );
+        }
+      },
+      {
         id: "name",
         accessorFn: row => `${row.lastName} ${row.firstName}`,
         header: ({ column }) => (
@@ -356,26 +376,6 @@ export function PsychologistClientsList() {
                 )}
               </span>
             </div>
-          );
-        }
-      },
-      {
-        id: "status",
-        header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Статус</span>
-        ),
-        cell: ({ row }) => {
-          const { statusLabel, statusColor } = row.original;
-          if (!statusLabel) {
-            return <span className="text-xs text-muted-foreground">—</span>;
-          }
-          return (
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
-              style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
-            >
-              {statusLabel}
-            </span>
           );
         }
       },

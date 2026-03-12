@@ -156,6 +156,45 @@ export async function POST(request: Request) {
       );
     }
 
+    async function getDefaultStatusId(psychologistId: string): Promise<string | null> {
+      // Пытаемся найти статус с ключом NEW
+      const existingNew = await prisma.clientStatus.findFirst({
+        where: { psychologistId, key: "NEW" }
+      });
+      if (existingNew) return existingNew.id;
+
+      // Если уже есть какие-то статусы — берём первый по порядку
+      const anyExisting = await prisma.clientStatus.findFirst({
+        where: { psychologistId },
+        orderBy: { order: "asc" }
+      });
+      if (anyExisting) return anyExisting.id;
+
+      // Иначе создаём дефолтный набор статусов, такой же, как при первом GET /client-statuses
+      const defaults = [
+        { key: "NEW", label: "Новый", color: "hsl(217 91% 60%)" },
+        { key: "ACTIVE", label: "Активный", color: "hsl(142 76% 36%)" },
+        { key: "PAUSED", label: "Пауза", color: "hsl(43 96% 56%)" },
+        { key: "ARCHIVED", label: "Архив", color: "hsl(215 16% 47%)" }
+      ];
+
+      const created = await prisma.$transaction(
+        defaults.map((s, index) =>
+          prisma.clientStatus.create({
+            data: {
+              psychologistId,
+              key: s.key,
+              label: s.label,
+              color: s.color,
+              order: index
+            }
+          })
+        )
+      );
+      const createdNew = created.find((s) => s.key === "NEW");
+      return createdNew?.id ?? created[0]?.id ?? null;
+    }
+
     const json = await request.json();
     const parsed = createClientSchema.parse(json);
     const emailRaw = typeof parsed.email === "string" ? parsed.email.trim() : "";
@@ -165,6 +204,8 @@ export async function POST(request: Request) {
       parsed.dateOfBirth && parsed.dateOfBirth.trim().length > 0
         ? new Date(parsed.dateOfBirth)
         : null;
+
+    const defaultStatusId = await getDefaultStatusId(psych.id);
 
     if (email) {
       const user = await prisma.user.findUnique({
@@ -197,7 +238,8 @@ export async function POST(request: Request) {
             lastName: parsed.lastName,
             dateOfBirth: dob ?? undefined,
             phone: parsed.phone,
-            notes: parsed.notes
+            notes: parsed.notes,
+            statusId: defaultStatusId ?? undefined
           }
         });
         return NextResponse.json(clientProfile, { status: 201 });
@@ -223,7 +265,8 @@ export async function POST(request: Request) {
           lastName: parsed.lastName,
           dateOfBirth: dob ?? undefined,
           phone: parsed.phone,
-          notes: parsed.notes
+          notes: parsed.notes,
+          statusId: defaultStatusId ?? undefined
         }
       });
       return NextResponse.json(clientProfile, { status: 201 });
@@ -237,7 +280,8 @@ export async function POST(request: Request) {
         lastName: parsed.lastName,
         dateOfBirth: dob ?? undefined,
         phone: parsed.phone,
-        notes: parsed.notes
+        notes: parsed.notes,
+        statusId: defaultStatusId ?? undefined
       }
     });
     return NextResponse.json(clientProfile, { status: 201 });

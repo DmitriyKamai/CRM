@@ -250,19 +250,16 @@ export function PsychologistSettingsForm() {
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
   type ClientStatusItem = { id: string; label: string; color: string; order: number };
-  const STATUS_COLOR_PRESETS: { value: string; label: string }[] = [
-    { value: "hsl(217 91% 60%)", label: "Синий" },
-    { value: "hsl(142 76% 36%)", label: "Зелёный" },
-    { value: "hsl(43 96% 56%)", label: "Жёлтый" },
-    { value: "hsl(0 84% 60%)", label: "Красный" },
-    { value: "hsl(280 65% 60%)", label: "Фиолетовый" },
-    { value: "hsl(192 91% 50%)", label: "Бирюзовый" },
-    { value: "hsl(24 95% 53%)", label: "Оранжевый" },
-    { value: "hsl(326 78% 60%)", label: "Розовый" },
-    { value: "hsl(145 63% 42%)", label: "Лаймовый" },
-    { value: "hsl(199 89% 48%)", label: "Голубой" },
-    { value: "hsl(215 16% 47%)", label: "Серый" },
-    { value: "hsl(220 39% 23%)", label: "Тёмный" }
+  const STATUS_COLOR_PRESETS: { value: string }[] = [
+    { value: "hsl(217 91% 60%)" }, // синий
+    { value: "hsl(142 76% 36%)" }, // зелёный
+    { value: "hsl(43 96% 56%)" }, // жёлтый
+    { value: "hsl(0 84% 60%)" }, // красный
+    { value: "hsl(280 65% 60%)" }, // фиолетовый
+    { value: "hsl(24 95% 53%)" }, // оранжевый
+    { value: "hsl(326 78% 60%)" }, // розовый
+    { value: "hsl(199 89% 48%)" }, // голубой
+    { value: "hsl(215 16% 47%)" } // серый
   ];
   const [clientStatuses, setClientStatuses] = useState<ClientStatusItem[]>([]);
   const [clientStatusesLoading, setClientStatusesLoading] = useState(false);
@@ -1782,10 +1779,9 @@ export function PsychologistSettingsForm() {
                                   )}
                                 >
                                   <span
-                                    className="mb-0.5 inline-block h-6 w-10 rounded"
+                                    className="inline-block h-6 w-10 rounded"
                                     style={{ backgroundColor: c.value }}
                                   />
-                                  <span className="truncate">{c.label}</span>
                                 </button>
                               );
                             })}
@@ -1854,7 +1850,7 @@ export function PsychologistSettingsForm() {
                                     type="button"
                                     onClick={() => setEditingStatusColor(c.value)}
                                     className={cn(
-                                      "flex flex-col items-center gap-0.5 rounded-md border px-1.5 py-1 text-[10px]",
+                                      "flex flex-col items-center gap-0.5 rounded-md border px-1.5 py-1",
                                       selected
                                         ? "ring-2 ring-primary border-primary"
                                         : "border-border bg-background hover:bg-muted/60"
@@ -1864,7 +1860,6 @@ export function PsychologistSettingsForm() {
                                       className="inline-block h-4 w-8 rounded"
                                       style={{ backgroundColor: c.value }}
                                     />
-                                    <span className="truncate">{c.label}</span>
                                   </button>
                                 );
                               })}

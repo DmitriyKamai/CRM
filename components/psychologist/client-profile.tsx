@@ -219,7 +219,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     gender !== (props.gender ?? "") ||
     maritalStatus !== (props.maritalStatus ?? "") ||
     notes !== (props.notes ?? "") ||
-    statusId !== (props.statusId ?? null) ||
     (dob?.toISOString().slice(0, 10) ?? "") !== (props.dateOfBirth ? new Date(props.dateOfBirth).toISOString().slice(0, 10) : "");
 
   const hasAccount = props.hasAccount ?? false;
@@ -282,7 +281,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     setCountryCode(props.country ? getCountryCodeByName(props.country) : null);
     setGender(props.gender ?? "");
     setMaritalStatus(props.maritalStatus ?? "");
-  }, [props.country, props.city, props.gender, props.maritalStatus]);
+    setStatusId(props.statusId ?? null);
+    setStatusLabel(props.statusLabel ?? null);
+    setStatusColor(props.statusColor ?? null);
+  }, [props.country, props.city, props.gender, props.maritalStatus, props.statusId, props.statusLabel, props.statusColor]);
 
   const refetchCustomFieldDefs = useCallback(() => {
     setCustomFieldsLoading(true);
@@ -342,6 +344,60 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       })
       .catch(() => {});
   }, []);
+
+  const [statusSaving, setStatusSaving] = useState(false);
+
+  async function handleStatusChange(next: string) {
+    const nextId = next === "__none__" ? null : next;
+    const nextStatus =
+      nextId != null ? statuses.find((s) => s.id === nextId) ?? null : null;
+    setStatusSaving(true);
+    setError(null);
+    try {
+      const body: { statusId: string | null } = { statusId: nextId };
+      const res = await fetch(`/api/psychologist/clients/${props.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось обновить статус");
+      }
+      const appliedId = nextId;
+      const appliedLabel = nextStatus?.label ?? null;
+      const appliedColor = nextStatus?.color ?? null;
+      setStatusId(appliedId);
+      setStatusLabel(appliedLabel);
+      setStatusColor(appliedColor);
+      if (props.onUpdated) {
+        props.onUpdated({
+          firstName,
+          lastName,
+          email: email.trim() || null,
+          phone: phone || null,
+          country: country.trim() || null,
+          city: city.trim() || null,
+          gender: gender || null,
+          maritalStatus: maritalStatus || null,
+          notes: notes || null,
+          dateOfBirth: dob ? dob.toISOString() : null,
+          statusId: appliedId,
+          statusLabel: appliedLabel,
+          statusColor: appliedColor
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "Не удалось обновить статус"
+      );
+    } finally {
+      setStatusSaving(false);
+    }
+  }
 
   function formatDate(value?: string | null) {
     if (!value) return "—";
@@ -583,51 +639,36 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               <span className="text-base font-semibold leading-none tracking-tight">
                 {props.lastName} {props.firstName}
               </span>
-              {!isEditing && statusLabel && (
-                <span
-                  className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-white"
-                  style={{ backgroundColor: statusColor ?? undefined }}
-                >
-                  {statusLabel}
-                </span>
-              )}
-              {isEditing && (
-                <Select
-                  value={statusId ?? "__none__"}
-                  onValueChange={(val) => {
-                    if (val === "__none__") {
-                      setStatusId(null);
-                      setStatusLabel(null);
-                      setStatusColor(null);
-                      return;
-                    }
-                    const s = statuses.find((x) => x.id === val);
-                    if (s) {
-                      setStatusId(s.id);
-                      setStatusLabel(s.label);
-                      setStatusColor(s.color);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
-                    <SelectValue placeholder="Статус" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Без статуса</SelectItem>
-                    {statuses.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="size-2 rounded-full shrink-0"
-                            style={{ backgroundColor: s.color }}
-                          />
-                          {s.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={statusId ?? "__none__"}
+                onValueChange={val => {
+                  void handleStatusChange(val);
+                }}
+                disabled={statusSaving}
+              >
+                <SelectTrigger className="w-[150px] h-8 text-xs">
+                  <SelectValue placeholder="Статус" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    <span className="flex items-center gap-2">
+                      <span className="size-2 rounded-full shrink-0 bg-muted" />
+                      Без статуса
+                    </span>
+                  </SelectItem>
+                  {statuses.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="size-2 rounded-full shrink-0"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {hasAccount && (
                 <TooltipProvider>
                   <Tooltip>
