@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Calendar as CalendarIcon, UserCheck, Users, Plus, Trash2, X, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, X, Search } from "lucide-react";
 import { ru } from "date-fns/locale";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
   PopoverTrigger,
   PopoverContent
 } from "@/components/ui/popover";
+import { DataTable } from "@/components/ui/data-table";
 import {
   Tooltip,
   TooltipContent,
@@ -99,7 +101,7 @@ export function PsychologistClientsList() {
   const [error, setError] = useState<string | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<ClientDto | null>(null);
+  const [profileClient, setProfileClient] = useState<ClientDto | null>(null);
 
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -112,7 +114,6 @@ export function PsychologistClientsList() {
     notes: ""
   });
 
-  const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -181,6 +182,19 @@ export function PsychologistClientsList() {
     });
   }
 
+  function toggleAll(checked: boolean) {
+    if (!checked) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(clients.map(c => c.id)));
+  }
+
+  function openBulkDeleteDialog() {
+    if (selectedIds.size === 0) return;
+    setBulkDeleteDialogOpen(true);
+  }
+
   async function confirmBulkDelete() {
     setBulkDeleteDialogOpen(false);
     setBulkDeleting(true);
@@ -192,31 +206,174 @@ export function PsychologistClientsList() {
         body: JSON.stringify({ ids: Array.from(selectedIds) })
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message ?? "Не удалось удалить выбранных клиентов");
-      if (selectedClient && selectedIds.has(selectedClient.id)) setSelectedClient(null);
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось удалить выбранных клиентов");
+      }
       setSelectedIds(new Set());
       setMultiSelectMode(false);
       await loadClients();
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Не удалось удалить выбранных клиентов"
+      );
     } finally {
       setBulkDeleting(false);
     }
   }
 
-  const filtered = clients.filter(c => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
-      (c.email ?? "").toLowerCase().includes(q) ||
-      (c.phone ?? "").includes(q)
-    );
-  });
+  // Переиспользуем старую таблицу (DataTable) с управлением, но профиль открываем полноэкранно
+  const columns: ColumnDef<ClientDto>[] = useMemo(
+    () => [
+      {
+        id: "select",
+        header: () => {
+          if (!multiSelectMode) return null;
 
-  // Если выбран клиент — показываем только профиль, который «закрывает» собой список
-  if (selectedClient) {
+          const allSelected =
+            clients.length > 0 && selectedIds.size === clients.length;
+          const someSelected =
+            selectedIds.size > 0 && selectedIds.size < clients.length;
+
+          return (
+            <input
+              type="checkbox"
+              aria-label="Выбрать всех клиентов"
+              checked={allSelected}
+              ref={el => {
+                if (el) {
+                  el.indeterminate = someSelected;
+                }
+              }}
+              onChange={e => toggleAll(e.target.checked)}
+            />
+          );
+        },
+        cell: ({ row }) =>
+          multiSelectMode ? (
+            <input
+              type="checkbox"
+              aria-label="Выбрать клиента"
+              checked={selectedIds.has(row.original.id)}
+              onChange={e => {
+                e.stopPropagation();
+                toggleOne(row.original.id);
+              }}
+              onClick={e => e.stopPropagation()}
+            />
+          ) : null,
+        enableSorting: false,
+        enableHiding: false
+      },
+      // аватар
+      {
+        id: "avatar",
+        header: () => null,
+        cell: ({ row }) => <ClientAvatar client={row.original} size="sm" />,
+        enableSorting: false,
+        enableHiding: false
+      },
+      // скрытая колонка для полнотекстового поиска
+      {
+        id: "search",
+        accessorFn: row =>
+          `${row.lastName ?? ""} ${row.firstName ?? ""} ${row.email ?? ""} ${row.phone ?? ""}`,
+        header: () => null,
+        cell: () => null,
+        enableHiding: false,
+        enableSorting: false
+      },
+      {
+        id: "name",
+        accessorFn: row => `${row.lastName} ${row.firstName}`,
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Имя
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium inline-flex items-center gap-1.5">
+            {row.original.lastName} {row.original.firstName}
+            {row.original.hasAccount === true && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
+                      <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="sr-only">Зарегистрирован</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Клиент зарегистрирован
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </span>
+        )
+      },
+      {
+        accessorKey: "email",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Email
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.email ?? "—"}</span>
+        )
+      },
+      {
+        accessorKey: "phone",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Телефон</span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {formatPhoneDisplay(row.original.phone)}
+          </span>
+        )
+      },
+      {
+        id: "createdAt",
+        accessorFn: row => row.createdAt,
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8 px-0 text-xs font-medium text-muted-foreground"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Создан
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {new Date(row.original.createdAt).toLocaleDateString("ru-RU")}
+          </span>
+        )
+      }
+    ],
+    [clients, selectedIds, multiSelectMode]
+  );
+
+  // Профиль клиента поверх списка (как сейчас)
+  if (profileClient) {
     return (
       <div className="h-[calc(100vh-0px)] overflow-y-auto flex justify-center">
         <div className="w-full max-w-5xl px-6 py-4 space-y-4">
@@ -226,35 +383,34 @@ export function PsychologistClientsList() {
               variant="ghost"
               size="sm"
               className="gap-2 px-2"
-              onClick={() => setSelectedClient(null)}
+              onClick={() => setProfileClient(null)}
             >
               <span className="text-lg leading-none">←</span>
               <span className="text-sm">Вернуться назад</span>
             </Button>
           </div>
           <PsychologistClientProfile
-            key={selectedClient.id}
-            id={selectedClient.id}
-            email={selectedClient.email ?? null}
-            hasAccount={selectedClient.hasAccount}
-            firstName={selectedClient.firstName}
-            lastName={selectedClient.lastName}
-            dateOfBirth={selectedClient.dateOfBirth ?? null}
-            phone={selectedClient.phone ?? null}
-            country={selectedClient.country ?? null}
-            city={selectedClient.city ?? null}
-            gender={selectedClient.gender ?? null}
-            maritalStatus={selectedClient.maritalStatus ?? null}
-            notes={selectedClient.notes ?? null}
-            createdAt={selectedClient.createdAt}
+            id={profileClient.id}
+            email={profileClient.email ?? null}
+            hasAccount={profileClient.hasAccount}
+            firstName={profileClient.firstName}
+            lastName={profileClient.lastName}
+            dateOfBirth={profileClient.dateOfBirth ?? null}
+            phone={profileClient.phone ?? null}
+            country={profileClient.country ?? null}
+            city={profileClient.city ?? null}
+            gender={profileClient.gender ?? null}
+            maritalStatus={profileClient.maritalStatus ?? null}
+            notes={profileClient.notes ?? null}
+            createdAt={profileClient.createdAt}
             onDeleted={async () => {
-              setSelectedClient(null);
+              setProfileClient(null);
               await loadClients();
             }}
             onUpdated={next => {
               setClients(prev =>
                 prev.map(c =>
-                  c.id === selectedClient.id
+                  c.id === profileClient.id
                     ? {
                         ...c,
                         firstName: next.firstName,
@@ -271,7 +427,7 @@ export function PsychologistClientsList() {
                     : c
                 )
               );
-              setSelectedClient(prev =>
+              setProfileClient(prev =>
                 prev
                   ? {
                       ...prev,
@@ -296,316 +452,223 @@ export function PsychologistClientsList() {
   }
 
   return (
-    <div className="h-[calc(100vh-0px)] overflow-y-auto flex justify-center">
-      <div className="flex flex-col w-full max-w-5xl border bg-background overflow-hidden rounded-lg">
-        {/* Panel header */}
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b shrink-0">
-          <h2 className="text-sm font-semibold">Клиенты</h2>
-          <div className="flex items-center gap-1">
+    <div className="h-[calc(100vh-0px)] overflow-y-auto px-6 py-4">
+      <div className="max-w-6xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-muted-foreground">
+              Нажмите на строку, чтобы открыть профиль клиента.
+            </p>
+            {multiSelectMode && selectedIds.size > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Выбрано клиентов: {selectedIds.size}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             {multiSelectMode ? (
               <>
-                {selectedIds.size > 0 && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    disabled={bulkDeleting}
-                    title={`Удалить выбранных (${selectedIds.size})`}
-                    onClick={() => setBulkDeleteDialogOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
                 <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 text-muted-foreground"
-                  title="Отменить выделение"
-                  onClick={() => { setSelectedIds(new Set()); setMultiSelectMode(false); }}
+                  size="sm"
+                  variant="destructive"
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                  onClick={openBulkDeleteDialog}
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  title="Выбрать несколько"
-                  onClick={() => setMultiSelectMode(true)}
-                >
-                  <input type="checkbox" className="h-3.5 w-3.5 pointer-events-none" readOnly />
+                  {bulkDeleting
+                    ? "Удаляем..."
+                    : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
                 </Button>
                 <Button
                   size="sm"
-                  className="h-7 gap-1 px-2 text-xs"
-                  onClick={() => setAddOpen(true)}
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedIds(new Set());
+                    setMultiSelectMode(false);
+                  }}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  Добавить
+                  Отменить выделение
                 </Button>
               </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSelectedIds(new Set());
+                  setMultiSelectMode(true);
+                }}
+              >
+                Выбрать несколько
+              </Button>
             )}
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              Добавить клиента
+            </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="px-3 py-2 border-b shrink-0">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Поиск..."
-              className="h-8 pl-8 text-sm"
-            />
-          </div>
-        </div>
+        {/* Подтверждение массового удаления */}
+        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Удалить выбранных клиентов?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Удалить {selectedIds.size}{" "}
+                {selectedIds.size === 1 ? "выбранного клиента" : "выбранных клиентов"}{" "}
+                из вашего списка? Их записи и тесты в системе сохранятся.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Удалить
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Error */}
         {error && (
-          <div className="px-3 pt-2 shrink-0">
-            <Alert variant="destructive">
-              <AlertDescription className="text-xs">{error}</AlertDescription>
-            </Alert>
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        {/* List */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="space-y-1 p-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-2 py-2.5">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-3.5 w-3/4 rounded" />
-                    <Skeleton className="h-3 w-1/2 rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 px-4 text-center">
-              <div className="rounded-full bg-muted p-3">
-                <Users className="h-6 w-6 text-muted-foreground" />
-              </div>
-              {search ? (
-                <p className="text-sm text-muted-foreground">Ничего не найдено</p>
-              ) : (
-                <>
-                  <p className="text-sm font-medium">Нет клиентов</p>
-                  <p className="text-xs text-muted-foreground">Добавьте первого клиента, чтобы начать работу</p>
-                  <Button size="sm" onClick={() => setAddOpen(true)}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Добавить клиента
-                  </Button>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="p-2">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-muted-foreground">
-                      {multiSelectMode && <th className="w-8 px-2 py-2 text-left" />}
-                      <th className="w-10 px-2 py-2 text-left" />
-                      <th className="px-2 py-2 text-left">Клиент</th>
-                      <th className="px-2 py-2 text-left">Контакты</th>
-                      <th className="px-2 py-2 text-left whitespace-nowrap">Создан</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map(client => {
-                      const isChecked = selectedIds.has(client.id);
-                      return (
-                        <tr
-                          key={client.id}
-                          className={cn(
-                            "border-b last:border-0 hover:bg-muted cursor-pointer",
-                            isChecked && multiSelectMode && "bg-primary/5"
-                          )}
-                          onClick={() => {
-                            if (multiSelectMode) {
-                              toggleOne(client.id);
-                            } else {
-                              setSelectedClient(client);
-                            }
-                          }}
-                        >
-                          {multiSelectMode && (
-                            <td className="px-2 py-2 align-middle">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleOne(client.id)}
-                                onClick={e => e.stopPropagation()}
-                                className="h-3.5 w-3.5"
-                              />
-                            </td>
-                          )}
-                          <td className="px-2 py-2 align-middle">
-                            <ClientAvatar client={client} />
-                          </td>
-                          <td className="px-2 py-2 align-middle">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="font-medium truncate leading-tight">
-                                {client.lastName} {client.firstName}
-                              </span>
-                              {client.hasAccount && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <UserCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>Клиент зарегистрирован</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 align-middle text-xs text-muted-foreground">
-                            {client.email ?? formatPhoneDisplay(client.phone) ?? "—"}
-                          </td>
-                          <td className="px-2 py-2 align-middle text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(client.createdAt).toLocaleDateString("ru-RU")}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Multi-select summary */}
-        {multiSelectMode && selectedIds.size > 0 && (
-          <div className="border-t px-4 py-2 text-xs text-muted-foreground shrink-0">
-            Выбрано: {selectedIds.size}
+        {/* Loading / table / empty state */}
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded-md" />
+            ))}
           </div>
+        ) : clients.length === 0 ? (
+          <div className="flex h-24 items-center justify-center rounded-md border bg-card/70 text-sm text-muted-foreground">
+            Клиентов пока нет. Нажмите «Добавить клиента», чтобы создать первого.
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={clients}
+            filterColumnId="search"
+            filterPlaceholder="Поиск по имени, email или телефону..."
+            columnLabels={{
+              name: "Имя",
+              email: "Email",
+              phone: "Телефон",
+              createdAt: "Создан"
+            }}
+            onRowClick={client => setProfileClient(client)}
+          />
         )}
-      </div>
 
-      {/* Bulk delete confirmation */}
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить выбранных клиентов?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Удалить {selectedIds.size}{" "}
-              {selectedIds.size === 1 ? "выбранного клиента" : "выбранных клиентов"}{" "}
-              из вашего списка? Их записи и тесты в системе сохранятся.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmBulkDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Удалить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Диалог добавления клиента */}
+        <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Новый клиент</DialogTitle>
+              <DialogDescription>
+                Укажите основные данные. Email необязателен; если указан и клиент позже
+                зарегистрируется с этим email — профиль автоматически свяжется с аккаунтом.
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Add client dialog */}
-      <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Новый клиент</DialogTitle>
-            <DialogDescription>
-              Укажите основные данные. Email необязателен; если указан и клиент позже
-              зарегистрируется с этим email — профиль автоматически свяжется с аккаунтом.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="add-email">Email (необязательно)</Label>
-              <Input
-                id="add-email"
-                type="email"
-                placeholder="Для связки при регистрации клиента"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="add-firstName">Имя</Label>
-              <Input
-                id="add-firstName"
-                required
-                value={form.firstName}
-                onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="add-lastName">Фамилия</Label>
-              <Input
-                id="add-lastName"
-                required
-                value={form.lastName}
-                onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Дата рождения</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    className="w-full justify-start text-left font-normal"
+            <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-email">Email (необязательно)</Label>
+                <Input
+                  id="add-email"
+                  type="email"
+                  placeholder="Для связки при регистрации клиента"
+                  value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-firstName">Имя</Label>
+                <Input
+                  id="add-firstName"
+                  required
+                  value={form.firstName}
+                  onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-lastName">Фамилия</Label>
+                <Input
+                  id="add-lastName"
+                  required
+                  value={form.lastName}
+                  onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Дата рождения</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className="w-full justify-start text-left font-normal bg-card border-input hover:bg-card/90"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dob ? (
+                        dob.toLocaleDateString("ru-RU")
+                      ) : (
+                        <span className="text-muted-foreground">дд.мм.гггг</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto border-none bg-transparent p-0 shadow-none"
+                    align="start"
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dob ? dob.toLocaleDateString("ru-RU") : <span className="text-muted-foreground">дд.мм.гггг</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start">
-                  <Calendar mode="single" selected={dob} onSelect={setDob} locale={ru} initialFocus />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="add-phone">Телефон</Label>
-              <PhoneInput
-                id="add-phone"
-                value={form.phone}
-                onChange={value => setForm(f => ({ ...f, phone: value }))}
-              />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="add-notes">Заметки</Label>
-              <Textarea
-                id="add-notes"
-                rows={3}
-                value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              />
-            </div>
+                    <Calendar
+                      mode="single"
+                      selected={dob}
+                      onSelect={setDob}
+                      locale={ru}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="add-phone">Телефон</Label>
+                <PhoneInput
+                  id="add-phone"
+                  value={form.phone}
+                  onChange={value => setForm(f => ({ ...f, phone: value }))}
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="add-notes">Заметки</Label>
+                <Textarea
+                  id="add-notes"
+                  rows={3}
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                />
+              </div>
 
-            {formError && (
-              <Alert variant="destructive" className="md:col-span-2">
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            )}
+              {formError && (
+                <Alert variant="destructive" className="md:col-span-2">
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
 
-            <DialogFooter className="md:col-span-2">
-              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
-                Отмена
-              </Button>
-              <Button type="submit" disabled={creating}>
-                {creating ? "Сохраняем..." : "Добавить клиента"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter className="md:col-span-2">
+                <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+                  Отмена
+                </Button>
+                <Button type="submit" disabled={creating}>
+                  {creating ? "Сохраняем..." : "Добавить клиента"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
