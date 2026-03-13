@@ -859,16 +859,16 @@ export function PsychologistSchedule() {
                                     let slotBgClass = "";
                                     let slotBorderClass = "";
                                     if (!hasAppointment) {
-                                      slotBgClass = "bg-[hsl(var(--status-free)/0.12)]";
-                                      slotBorderClass = "border-[hsl(var(--status-free)/0.5)]";
+                                      slotBgClass = "bg-[hsl(var(--status-free))]";
+                                      slotBorderClass = "border-[hsl(var(--status-free))]";
                                     } else if (
                                       slot.appointmentStatus === "PENDING_CONFIRMATION"
                                     ) {
-                                      slotBgClass = "bg-[hsl(var(--status-warning)/0.12)]";
-                                      slotBorderClass = "border-[hsl(var(--status-warning)/0.5)]";
+                                      slotBgClass = "bg-[hsl(var(--status-warning))]";
+                                      slotBorderClass = "border-[hsl(var(--status-warning))]";
                                     } else {
-                                      slotBgClass = "bg-[hsl(var(--status-success)/0.12)]";
-                                      slotBorderClass = "border-[hsl(var(--status-success)/0.5)]";
+                                      slotBgClass = "bg-[hsl(var(--status-success))]";
+                                      slotBorderClass = "border-[hsl(var(--status-success))]";
                                     }
 
                                     const initialTime = startDate
