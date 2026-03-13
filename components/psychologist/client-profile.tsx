@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
 import {
   DndContext,
   closestCenter,
@@ -157,6 +157,9 @@ type ClientProfileProps = {
   statusLabel?: string | null;
   statusColor?: string | null;
   avatarUrl?: string | null;
+  /** Когда задано — режим редактирования управляется снаружи (кнопка в шапке страницы). Иначе кнопка внутри профиля. */
+  isEditing?: boolean;
+  onEditingChange?: (value: boolean) => void;
   onDeleted?: () => void;
   onUpdated?: (next: {
     firstName: string;
@@ -181,7 +184,14 @@ type ClientProfileProps = {
   }[];
 };
 
-export function PsychologistClientProfile(props: ClientProfileProps) {
+export type PsychologistClientProfileHandle = {
+  saveAll: () => Promise<void>;
+};
+
+export const PsychologistClientProfile = forwardRef<
+  PsychologistClientProfileHandle,
+  ClientProfileProps
+>(function PsychologistClientProfile(props, ref) {
   const router = useRouter();
 
   const [saving, setSaving] = useState(false);
@@ -189,7 +199,16 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingState, setIsEditingState] = useState(false);
+  const isEditing =
+    props.onEditingChange !== undefined ? (props.isEditing ?? false) : isEditingState;
+  const setEditing = useCallback(
+    (value: boolean) => {
+      if (props.onEditingChange) props.onEditingChange(value);
+      else setIsEditingState(value);
+    },
+    [props.onEditingChange]
+  );
 
   const [firstName, setFirstName] = useState(props.firstName);
   const [lastName, setLastName] = useState(props.lastName);
@@ -435,8 +454,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
     return map;
   }, [customFieldDefs]);
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveMainProfile(): Promise<void> {
     setSaving(true);
     setError(null);
     try {
@@ -468,7 +486,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       if (!res.ok) {
         throw new Error(data?.message ?? "Не удалось сохранить профиль");
       }
-      setIsEditing(false);
 
       if (props.onUpdated) {
         props.onUpdated({
@@ -492,9 +509,51 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       setError(
         err instanceof Error ? err.message : "Не удалось сохранить профиль"
       );
+      throw err;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveCustomFields(): Promise<void> {
+    setCustomFieldsSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/psychologist/clients/${props.id}/custom-fields`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ values: customFieldValues })
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.message ?? "Не удалось сохранить пользовательские поля";
+        setError(msg);
+        throw new Error(msg);
+      }
+      setCustomTabsEdit(() => ({}));
+    } finally {
+      setCustomFieldsSaving(false);
+    }
+  }
+
+  async function saveAll() {
+    try {
+      await saveMainProfile();
+      await saveCustomFields();
+      setEditing(false);
+    } catch {
+      // ошибка уже в setError / отображена
+    }
+  }
+
+  useImperativeHandle(ref, () => ({ saveAll }));
+
+  function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    saveMainProfile().then(() => setEditing(false));
   }
 
   async function handleSendRegistrationInvite() {
@@ -577,6 +636,34 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Кнопка редактирования когда управление снаружи не передано (страница по прямой ссылке) */}
+      {props.onEditingChange == null && (
+        <div className="flex justify-end">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant={isEditing ? "secondary" : "outline"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setEditing(!isEditing)}
+                  disabled={saving || deleting}
+                >
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">
+                    {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
+
       {/* Аватар, имя, значок зарегистрирован, статус — над вкладками */}
       <div className="flex flex-wrap items-center gap-3">
         {(() => {
@@ -635,32 +722,27 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           disabled={statusSaving}
         >
           <SelectTrigger
-            className="w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold text-white shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring data-[placeholder]:text-white justify-center"
-            style={{ backgroundColor: currentStatus?.color ?? "hsl(350 84% 47%)" }}
+            className={cn(
+              "w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring",
+              currentStatus
+                ? "text-white data-[placeholder]:text-white justify-between"
+                : "text-foreground bg-[hsl(var(--input-bg))] data-[placeholder]:text-muted-foreground justify-between"
+            )}
+            style={currentStatus ? { backgroundColor: currentStatus.color } : undefined}
           >
-            <SelectValue placeholder="Статус" />
+            <SelectValue placeholder="Статус" className="w-full text-center" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem
-              value="__none__"
-              className="data-[state=checked]:bg-transparent data-[state=checked]:text-foreground"
-            >
-              <span className="flex items-center gap-2">
-                <span className="size-2 rounded-full shrink-0 bg-muted" />
-                Без статуса
-              </span>
+            <SelectItem value="__none__">
+              <span className="text-sm">Без статуса</span>
             </SelectItem>
             {statuses.map(s => (
-              <SelectItem
-                key={s.id}
-                value={s.id}
-                className="data-[state=checked]:bg-transparent data-[state=checked]:text-foreground"
-              >
-                <span className="flex items-center gap-2">
-                  <span
-                    className="size-2 rounded-full shrink-0"
-                    style={{ backgroundColor: s.color }}
-                  />
+              <SelectItem key={s.id} value={s.id}>
+                <span
+                  className="inline-flex min-w-[140px] items-center gap-2 rounded-full px-2 py-1 text-xs font-medium text-white"
+                  style={{ backgroundColor: s.color }}
+                >
+                  <span className="size-2 rounded-full shrink-0 bg-white/80" />
                   {s.label}
                 </span>
               </SelectItem>
@@ -961,37 +1043,42 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </div>
             )}
 
-            <div className="md:col-span-2 flex items-center justify-between gap-3">
-              <TooltipProvider>
-                <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant={isEditing ? "secondary" : "outline"}
-                        size="icon"
-                        onClick={() => setIsEditing(prev => !prev)}
-                        disabled={saving || deleting}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">
-                          {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </TooltipProvider>
-              {isEditing && (
-                <Button type="submit" disabled={saving || deleting}>
-                  {saving ? "Сохраняем..." : "Сохранить изменения"}
+            {isEditing && (
+              <div className="md:col-span-2 flex flex-wrap items-center justify-end gap-2 pt-2 border-t mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFirstName(props.firstName);
+                    setLastName(props.lastName);
+                    setEmail(props.email ?? "");
+                    setPhone(props.phone ?? "");
+                    setCountry(props.country ?? "");
+                    setCity(props.city ?? "");
+                    setGender(props.gender ?? "");
+                    setMaritalStatus(props.maritalStatus ?? "");
+                    setNotes(props.notes ?? "");
+                    setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
+                    setStatusId(props.statusId ?? null);
+                    setStatusLabel(props.statusLabel ?? null);
+                    setStatusColor(props.statusColor ?? null);
+                    setEditing(false);
+                  }}
+                >
+                  Отменить
                 </Button>
-              )}
-            </div>
-          </form>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={saving || deleting}
+                  onClick={() => saveMainProfile().then(() => setEditing(false))}
+                >
+                  {saving ? "Сохраняем…" : "Сохранить"}
+                </Button>
+              </div>
+            )}
+            </form>
         </TabsContent>
 
         {Array.from(
@@ -1009,7 +1096,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           const groupDescription =
             groupDescriptions.get(group) ??
             "Дополнительные данные клиента. Видны только вам.";
-          const isEditingGroup = customTabsEdit[groupId] ?? false;
+          const isEditingGroup = isEditing || (customTabsEdit[groupId] ?? false);
           return (
             <TabsContent
               key={groupId}
@@ -1480,9 +1567,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                     {isEditingGroup && (
                       <Button
                         type="submit"
+                        size="sm"
                         disabled={customFieldsSaving}
                       >
-                        {customFieldsSaving ? "Сохраняем…" : "Сохранить изменения"}
+                        {customFieldsSaving ? "Сохраняем…" : "Сохранить"}
                       </Button>
                     )}
                   </div>
@@ -1669,40 +1757,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           <ClientAppointments clientId={props.id} />
         </TabsContent>
       </Tabs>
-
-      {isEditing && isDirty && (
-        <div className="sticky bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 rounded-lg border bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
-          <p className="text-sm text-muted-foreground">Есть несохранённые изменения</p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFirstName(props.firstName);
-                setLastName(props.lastName);
-                setEmail(props.email ?? "");
-                setPhone(props.phone ?? "");
-                setCountry(props.country ?? "");
-                setCity(props.city ?? "");
-                setGender(props.gender ?? "");
-                setMaritalStatus(props.maritalStatus ?? "");
-                setNotes(props.notes ?? "");
-                setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
-                setStatusId(props.statusId ?? null);
-                setStatusLabel(props.statusLabel ?? null);
-                setStatusColor(props.statusColor ?? null);
-              }}
-            >
-              Отменить
-            </Button>
-            <Button type="submit" size="sm" form="profile-form" disabled={saving || deleting}>
-              {saving ? "Сохраняем..." : "Сохранить"}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
-}
+});
 

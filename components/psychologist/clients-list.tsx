@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, X, Search } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -149,6 +149,7 @@ export function PsychologistClientsList() {
   const [listInnerHeight, setListInnerHeight] = useState(0);
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   const [singleDeleting, setSingleDeleting] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
 
   useEffect(() => {
     const el = listContainerRef.current;
@@ -212,6 +213,10 @@ export function PsychologistClientsList() {
     }
     void loadStatuses();
   }, []);
+
+  useEffect(() => {
+    setProfileEditing(false);
+  }, [profileClient?.id]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -503,19 +508,41 @@ export function PsychologistClientsList() {
               <span className="text-lg leading-none">←</span>
               <span className="text-sm">Вернуться назад</span>
             </Button>
-            <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/10"
-                  disabled={singleDeleting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Удалить клиента</span>
-                </Button>
-              </AlertDialogTrigger>
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={profileEditing ? "secondary" : "outline"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setProfileEditing(prev => !prev)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">
+                        {profileEditing ? "Завершить редактирование" : "Редактировать профиль"}
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {profileEditing ? "Завершить редактирование" : "Редактировать профиль"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/10"
+                    disabled={singleDeleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Удалить клиента</span>
+                  </Button>
+                </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Удалить клиента из списка?</AlertDialogTitle>
@@ -533,7 +560,8 @@ export function PsychologistClientsList() {
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
+              </AlertDialog>
+            </div>
           </div>
           <PsychologistClientProfile
             id={profileClient.id}
@@ -553,7 +581,10 @@ export function PsychologistClientsList() {
             statusLabel={profileClient.statusLabel ?? null}
             statusColor={profileClient.statusColor ?? null}
             avatarUrl={profileClient.avatarUrl ?? null}
+            isEditing={profileEditing}
+            onEditingChange={setProfileEditing}
             onDeleted={async () => {
+              setProfileEditing(false);
               setProfileClient(null);
               await loadClients();
             }}
