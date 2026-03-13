@@ -262,7 +262,6 @@ export const PsychologistClientProfile = forwardRef<
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
-  const [isEditingCustomFields, setIsEditingCustomFields] = useState(false);
   const [editingCustomFields, setEditingCustomFields] = useState<Record<string, boolean>>({});
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
@@ -552,9 +551,27 @@ export const PsychologistClientProfile = forwardRef<
 
   useImperativeHandle(ref, () => ({ saveAll }));
 
+  function cancelAll() {
+    setFirstName(props.firstName);
+    setLastName(props.lastName);
+    setEmail(props.email ?? "");
+    setPhone(props.phone ?? "");
+    setCountry(props.country ?? "");
+    setCity(props.city ?? "");
+    setGender(props.gender ?? "");
+    setMaritalStatus(props.maritalStatus ?? "");
+    setNotes(props.notes ?? "");
+    setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
+    setStatusId(props.statusId ?? null);
+    setStatusLabel(props.statusLabel ?? null);
+    setStatusColor(props.statusColor ?? null);
+    refetchCustomFieldDefs();
+    setEditing(false);
+  }
+
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    saveMainProfile().then(() => setEditing(false));
+    void saveAll();
   }
 
   async function handleSendRegistrationInvite() {
@@ -637,7 +654,7 @@ export const PsychologistClientProfile = forwardRef<
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Кнопка редактирования когда управление снаружи не передано (страница по прямой ссылке) */}
+      {/* Кнопка редактирования (личные данные + пользовательские поля) когда управление снаружи не передано */}
       {props.onEditingChange == null && (activeTab === "profile" || activeTab.startsWith("cf-")) && (
         <div className="flex justify-end">
           <TooltipProvider>
@@ -645,41 +662,20 @@ export const PsychologistClientProfile = forwardRef<
               <TooltipTrigger asChild>
                 <Button
                   type="button"
-                  variant={
-                    activeTab === "profile"
-                      ? (isEditing ? "secondary" : "outline")
-                      : isEditingCustomFields
-                        ? "secondary"
-                        : "outline"
-                  }
+                  variant={isEditing ? "secondary" : "outline"}
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => {
-                    if (activeTab === "profile") setEditing(!isEditing);
-                    else if (activeTab.startsWith("cf-")) setIsEditingCustomFields((v) => !v);
-                  }}
-                  disabled={
-                    activeTab === "profile"
-                      ? saving || deleting
-                      : customFieldsSaving
-                  }
+                  onClick={() => setEditing(!isEditing)}
+                  disabled={saving || deleting || customFieldsSaving}
                 >
                   <Pencil className="h-4 w-4" />
                   <span className="sr-only">
-                    {activeTab === "profile"
-                      ? (isEditing ? "Завершить редактирование" : "Редактировать профиль")
-                      : isEditingCustomFields
-                        ? "Завершить редактирование"
-                        : "Редактировать дополнительные поля"}
+                    {isEditing ? "Завершить редактирование" : "Редактировать"}
                   </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {activeTab === "profile"
-                  ? (isEditing ? "Завершить редактирование" : "Редактировать профиль")
-                  : isEditingCustomFields
-                    ? "Завершить редактирование"
-                    : "Редактировать дополнительные поля"}
+                {isEditing ? "Завершить редактирование" : "Редактировать личные данные и дополнительные поля"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -1073,32 +1069,17 @@ export const PsychologistClientProfile = forwardRef<
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setFirstName(props.firstName);
-                    setLastName(props.lastName);
-                    setEmail(props.email ?? "");
-                    setPhone(props.phone ?? "");
-                    setCountry(props.country ?? "");
-                    setCity(props.city ?? "");
-                    setGender(props.gender ?? "");
-                    setMaritalStatus(props.maritalStatus ?? "");
-                    setNotes(props.notes ?? "");
-                    setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
-                    setStatusId(props.statusId ?? null);
-                    setStatusLabel(props.statusLabel ?? null);
-                    setStatusColor(props.statusColor ?? null);
-                    setEditing(false);
-                  }}
+                  onClick={cancelAll}
                 >
                   Отменить
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  disabled={saving || deleting}
-                  onClick={() => saveMainProfile().then(() => setEditing(false))}
+                  disabled={saving || deleting || customFieldsSaving}
+                  onClick={() => void saveAll()}
                 >
-                  {saving ? "Сохраняем…" : "Сохранить"}
+                  {saving || customFieldsSaving ? "Сохраняем…" : "Сохранить"}
                 </Button>
               </div>
             )}
@@ -1120,7 +1101,7 @@ export const PsychologistClientProfile = forwardRef<
           const groupDescription =
             groupDescriptions.get(group) ??
             "Дополнительные данные клиента. Видны только вам.";
-          const isEditingGroup = isEditingCustomFields;
+          const isEditingGroup = isEditing;
           return (
             <TabsContent
               key={groupId}
@@ -1157,7 +1138,7 @@ export const PsychologistClientProfile = forwardRef<
                         console.error(data);
                         return;
                       }
-                      setIsEditingCustomFields(false);
+                      setEditing(false);
                     } finally {
                       setCustomFieldsSaving(false);
                     }
@@ -1567,26 +1548,24 @@ export const PsychologistClientProfile = forwardRef<
                     )}
                   </div>
 
-                  {isEditingCustomFields && (
+                  {isEditing && (
                     <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t mt-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          refetchCustomFieldDefs();
-                          setIsEditingCustomFields(false);
-                        }}
-                        disabled={customFieldsSaving}
+                        onClick={cancelAll}
+                        disabled={saving || customFieldsSaving}
                       >
                         Отменить
                       </Button>
                       <Button
-                        type="submit"
+                        type="button"
                         size="sm"
-                        disabled={customFieldsSaving}
+                        disabled={saving || deleting || customFieldsSaving}
+                        onClick={() => void saveAll()}
                       >
-                        {customFieldsSaving ? "Сохраняем…" : "Сохранить"}
+                        {saving || customFieldsSaving ? "Сохраняем…" : "Сохранить"}
                       </Button>
                     </div>
                   )}
