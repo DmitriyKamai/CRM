@@ -6,6 +6,7 @@
     "dev:no": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" next dev --webpack",
     "dev:turbopack": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" next dev",
     "dev": "next build && next start",
+    "dev:stable": "next build && next start",
     "dev:debug": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --unhandled-rejections=strict\" next dev --webpack",
     "build": "prisma generate && node scripts/migrate-deploy.js && next build",
     "start": "next start",

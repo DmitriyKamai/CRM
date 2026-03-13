@@ -180,10 +180,22 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
           select: { name: true, email: true, image: true, role: true }
         });
         if (user) {
+          const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+          const isInitialAdmin =
+            initialAdminEmail &&
+            user.email.toLowerCase() === initialAdminEmail;
+          let effectiveRole = user.role;
+          if (isInitialAdmin && user.role !== "ADMIN") {
+            await prisma.user.update({
+              where: { id: userId },
+              data: { role: "ADMIN" }
+            });
+            effectiveRole = "ADMIN";
+          }
           session.user.email = user.email;
           session.user.image = user.image ?? undefined;
-          (session.user as any).role = user.role;
-          if (user.role === "PSYCHOLOGIST") {
+          (session.user as any).role = effectiveRole;
+          if (effectiveRole === "PSYCHOLOGIST") {
             const profile = await prisma.psychologistProfile.findUnique({
               where: { userId },
               select: { firstName: true, lastName: true }

@@ -4,6 +4,7 @@ import crypto from "crypto";
 
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 const forgotSchema = z.object({
   email: z
@@ -20,13 +21,13 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown";
 
-    const allowed = checkRateLimit({
-      key: `forgot-password:${ip}`,
+    const allowedByIp = checkRateLimit({
+      key: `forgot-password:ip:${ip}`,
       windowMs: 10 * 60 * 1000,
       max: 20
     });
 
-    if (!allowed) {
+    if (!allowedByIp) {
       return NextResponse.json(
         {
           message: "Слишком много попыток. Попробуйте позже."
@@ -38,6 +39,21 @@ export async function POST(request: Request) {
     const json = await request.json().catch(() => ({}));
     const data = forgotSchema.parse(json);
     const email = data.email.trim().toLowerCase();
+
+    const allowedByEmail = checkRateLimit({
+      key: `forgot-password:email:${email}`,
+      windowMs: 60 * 60 * 1000,
+      max: 3
+    });
+
+    if (!allowedByEmail) {
+      return NextResponse.json(
+        {
+          message: "Слишком много попыток для этого email. Попробуйте через час."
+        },
+        { status: 429 }
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -75,12 +91,13 @@ export async function POST(request: Request) {
       token
     )}`;
 
-    // TODO: Отправить email с resetUrl.
-    // Пока что просто логируем ссылку на сервере (для разработки).
-    console.log("[forgot-password] reset link:", resetUrl);
+    await sendPasswordResetEmail({ to: email, resetUrl });
 
-    // Для удобства разработки возвращаем ссылку в ответе.
-    return NextResponse.json({ ok: true, resetUrl });
+    const isDev = process.env.NODE_ENV !== "production";
+    return NextResponse.json({
+      ok: true,
+      ...(isDev && { resetUrl })
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

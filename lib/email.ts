@@ -72,3 +72,39 @@ export async function sendRegistrationInviteEmail({
   });
 }
 
+type PasswordResetEmailParams = {
+  to: string;
+  resetUrl: string;
+};
+
+export async function sendPasswordResetEmail({
+  to,
+  resetUrl
+}: PasswordResetEmailParams): Promise<void> {
+  if (!transporter) {
+    console.warn(
+      "[email] SMTP не настроен, письмо сброса пароля не отправлено. Проверьте SMTP_HOST, SMTP_USER, SMTP_PASS."
+    );
+    console.info("[email] Имитация письма сброса пароля:", { from: defaultFrom, to, resetUrl });
+    return;
+  }
+
+  const subject = "Сброс пароля — Psychologist CRM";
+
+  const text = [
+    "Здравствуйте!",
+    "",
+    "Вы запросили сброс пароля. Перейдите по ссылке, чтобы задать новый пароль:",
+    resetUrl,
+    "",
+    "Ссылка действительна 1 час. Если вы не запрашивали сброс, проигнорируйте это письмо."
+  ].join("\n");
+
+  await transporter.sendMail({
+    from: defaultFrom,
+    to,
+    subject,
+    text
+  });
+}
+
