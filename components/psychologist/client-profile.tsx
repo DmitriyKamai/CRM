@@ -533,7 +533,6 @@ export const PsychologistClientProfile = forwardRef<
         setError(msg);
         throw new Error(msg);
       }
-      setCustomTabsEdit(() => ({}));
     } finally {
       setCustomFieldsSaving(false);
     }
