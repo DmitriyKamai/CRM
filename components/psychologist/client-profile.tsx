@@ -62,10 +62,11 @@ import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
 import { cn } from "@/lib/utils";
 
-const FIELD_ROW_CLASS = "flex items-center gap-4 py-3 border-b border-border";
-const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-[200px]";
+const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
+const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-full md:w-[200px]";
+const FIELD_VALUE_CLASS = "min-w-0 w-full md:min-w-[14rem] md:w-fit";
 const PLAIN_INPUT_CLASS =
-  "border-0 bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-0 min-h-0";
+  "border-0 bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-0 min-h-0 w-full min-w-0 md:w-auto md:min-w-[14rem]";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -640,7 +641,7 @@ export const PsychologistClientProfile = forwardRef<
   }
 
   return (
-    <div className="space-y-4 min-w-0 w-full">
+    <div className="space-y-4 min-w-0 w-full overflow-x-auto">
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -785,7 +786,38 @@ export const PsychologistClientProfile = forwardRef<
         }}
         className="w-full min-w-0"
       >
-        <div className="w-full min-w-0 overflow-hidden">
+        {/* Узкие экраны: выбор вкладки из селекта */}
+        <div className="md:hidden w-full">
+          <Select
+            value={activeTab}
+            onValueChange={(v) => {
+              setActiveTab(v);
+              setDiagnosticsTabActive(v === "diagnostics");
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Выберите вкладку" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="profile">Личные данные</SelectItem>
+              {Array.from(
+                new Set(
+                  customFieldDefs
+                    .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
+                    .filter((g) => g.length > 0)
+                )
+              ).map((group) => (
+                <SelectItem key={`cf-${group}`} value={`cf-${group}`}>
+                  {group}
+                </SelectItem>
+              ))}
+              <SelectItem value="diagnostics">Психологическая диагностика</SelectItem>
+              <SelectItem value="appointments">Записи</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Широкие экраны: вкладки со стрелками */}
+        <div className="hidden md:block w-full min-w-0 overflow-hidden">
           <div className="flex items-center gap-1 min-w-0">
             {tabsHaveOverflow && (
               <Button
@@ -850,7 +882,7 @@ export const PsychologistClientProfile = forwardRef<
 
         <TabsContent
           value="profile"
-          className="mt-3 rounded-lg border bg-card p-4"
+          className="mt-3 min-w-0 rounded-lg border bg-card p-4"
         >
           <div className="text-sm text-muted-foreground pb-2">
             {props.email ?? "Email ещё не указан"} · Создан{" "}
@@ -860,33 +892,37 @@ export const PsychologistClientProfile = forwardRef<
           <form
             id="profile-form"
             onSubmit={handleSave}
-            className="flex flex-col"
+            className="flex min-w-0 flex-col"
           >
             <div className={FIELD_ROW_CLASS}>
               <Label htmlFor="firstName" className={FIELD_LABEL_CLASS}>
                 Имя
               </Label>
-              <Input
-                id="firstName"
-                required
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                disabled={!isEditing}
-                className={cn(PLAIN_INPUT_CLASS, "flex-1 min-w-0", !isEditing && "cursor-default")}
-              />
+              <div className={FIELD_VALUE_CLASS}>
+                <Input
+                  id="firstName"
+                  required
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  disabled={!isEditing}
+                  className={cn(PLAIN_INPUT_CLASS, !isEditing && "cursor-default")}
+                />
+              </div>
             </div>
             <div className={FIELD_ROW_CLASS}>
               <Label htmlFor="lastName" className={FIELD_LABEL_CLASS}>
                 Фамилия
               </Label>
-              <Input
-                id="lastName"
-                required
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                disabled={!isEditing}
-                className={cn(PLAIN_INPUT_CLASS, "flex-1 min-w-0", !isEditing && "cursor-default")}
-              />
+              <div className={FIELD_VALUE_CLASS}>
+                <Input
+                  id="lastName"
+                  required
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  disabled={!isEditing}
+                  className={cn(PLAIN_INPUT_CLASS, !isEditing && "cursor-default")}
+                />
+              </div>
             </div>
             <div className={FIELD_ROW_CLASS}>
               <Label htmlFor="profile-email" className={FIELD_LABEL_CLASS}>
@@ -897,7 +933,7 @@ export const PsychologistClientProfile = forwardRef<
                   </span>
                 )}
               </Label>
-              <div className="relative flex-1 min-w-0 flex items-center">
+              <div className={cn(FIELD_VALUE_CLASS, "relative flex items-center")}>
                 <Input
                   id="profile-email"
                   type="email"
@@ -905,7 +941,7 @@ export const PsychologistClientProfile = forwardRef<
                   onChange={e => setEmail(e.target.value)}
                   disabled={!isEditing || hasAccount}
                   placeholder={hasAccount ? undefined : "Для связки при регистрации"}
-                  className={cn(PLAIN_INPUT_CLASS, "flex-1 min-w-0 pr-8", (!isEditing || hasAccount) && "cursor-default")}
+                  className={cn(PLAIN_INPUT_CLASS, "pr-8", (!isEditing || hasAccount) && "cursor-default")}
                 />
                 {!hasAccount && email.trim() && (
                   <TooltipProvider>
@@ -930,14 +966,14 @@ export const PsychologistClientProfile = forwardRef<
             </div>
             <div className={FIELD_ROW_CLASS}>
               <Label className={FIELD_LABEL_CLASS}>Дата рождения</Label>
-              <div className="flex-1 min-w-0">
+              <div className={FIELD_VALUE_CLASS}>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       type="button"
                       className={cn(
-                        "w-full justify-start text-left font-normal h-auto py-0 min-h-0 text-foreground hover:bg-transparent",
+                        "w-auto justify-start text-left font-normal h-auto py-0 min-h-0 text-foreground hover:bg-transparent",
                         !isEditing && "cursor-default"
                       )}
                       disabled={!isEditing}
@@ -974,7 +1010,7 @@ export const PsychologistClientProfile = forwardRef<
               <Label htmlFor="phone" className={FIELD_LABEL_CLASS}>
                 Телефон
               </Label>
-              <div className="flex-1 min-w-0">
+              <div className={FIELD_VALUE_CLASS}>
                 <PhoneInput
                   id="phone"
                   value={phone}
@@ -988,7 +1024,7 @@ export const PsychologistClientProfile = forwardRef<
               <Label htmlFor="client-country" className={FIELD_LABEL_CLASS}>
                 Страна
               </Label>
-              <div className="flex-1 min-w-0">
+              <div className={FIELD_VALUE_CLASS}>
                 <CountryAutocomplete
                   id="client-country"
                   value={country}
@@ -1007,7 +1043,7 @@ export const PsychologistClientProfile = forwardRef<
               <Label htmlFor="client-city" className={FIELD_LABEL_CLASS}>
                 Город
               </Label>
-              <div className="flex-1 min-w-0">
+              <div className={FIELD_VALUE_CLASS}>
                 <CityAutocomplete
                   id="client-city"
                   value={city}
@@ -1024,7 +1060,7 @@ export const PsychologistClientProfile = forwardRef<
               <RadioGroup
                 value={gender}
                 onValueChange={setGender}
-                className="flex flex-wrap gap-4 flex-1"
+                className={cn("flex flex-wrap gap-4", FIELD_VALUE_CLASS)}
                 disabled={!isEditing}
               >
                 <div className="flex items-center gap-2">
@@ -1045,13 +1081,13 @@ export const PsychologistClientProfile = forwardRef<
               <Label htmlFor="client-marital" className={FIELD_LABEL_CLASS}>
                 Семейное положение
               </Label>
-              <div className="flex-1 min-w-0">
+              <div className={FIELD_VALUE_CLASS}>
                 <Select
                   value={maritalStatus || "unspecified"}
                   onValueChange={setMaritalStatus}
                   disabled={!isEditing}
                 >
-                  <SelectTrigger id="client-marital" className={cn("border-0 bg-transparent shadow-none h-auto py-0 min-h-0", !isEditing && "cursor-default")}>
+                  <SelectTrigger id="client-marital" className={cn("border-0 bg-transparent shadow-none h-auto py-0 min-h-0 w-auto", !isEditing && "cursor-default")}>
                     <SelectValue placeholder="Выберите" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1068,14 +1104,16 @@ export const PsychologistClientProfile = forwardRef<
               <Label htmlFor="notes" className={FIELD_LABEL_CLASS}>
                 Заметки
               </Label>
-              <Textarea
-                id="notes"
-                rows={3}
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                disabled={!isEditing}
-                className={cn(PLAIN_INPUT_CLASS, "flex-1 min-w-0 resize-none", !isEditing && "cursor-default")}
-              />
+              <div className={FIELD_VALUE_CLASS}>
+                <Textarea
+                  id="notes"
+                  rows={3}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  disabled={!isEditing}
+                  className={cn(PLAIN_INPUT_CLASS, "resize-none", !isEditing && "cursor-default")}
+                />
+              </div>
             </div>
 
             {error && (
@@ -1127,7 +1165,7 @@ export const PsychologistClientProfile = forwardRef<
             <TabsContent
               key={groupId}
               value={groupId}
-              className="mt-3 flex flex-col rounded-lg border bg-card p-4"
+              className="mt-3 min-w-0 flex flex-col rounded-lg border bg-card p-4"
             >
               <div className="flex-none space-y-1">
                 <h3 className="text-base font-semibold leading-none tracking-tight">
@@ -1164,9 +1202,9 @@ export const PsychologistClientProfile = forwardRef<
                       setCustomFieldsSaving(false);
                     }
                   }}
-                  className="flex flex-col"
+                  className="flex min-w-0 flex-col"
                 >
-                  <div className="flex flex-col">
+                  <div className="flex min-w-0 flex-col [&>*:last-child>*:last-child]:border-b-0">
                     {isEditingGroup ? (
                       <DndContext
                         sensors={sortableSensors}
@@ -1225,7 +1263,7 @@ export const PsychologistClientProfile = forwardRef<
                               <SortableFieldWrap key={def.id} id={def.id} isEditing={true}>
                                 <div className={cn(FIELD_ROW_CLASS, "flex-1 min-w-0")}>
                                   <Label className={FIELD_LABEL_CLASS}>{label}</Label>
-                                  <div className="flex-1 min-w-0">
+                                  <div className={FIELD_VALUE_CLASS}>
                           {type === "TEXT" && (
                             <Input
                               value={typeof value === "string" ? value : ""}
@@ -1265,7 +1303,7 @@ export const PsychologistClientProfile = forwardRef<
                                 <Button
                                   variant="ghost"
                                   type="button"
-                                  className="h-auto py-0 min-h-0 text-foreground hover:bg-transparent font-normal w-full justify-start text-left"
+                                  className="h-auto py-0 min-h-0 text-foreground hover:bg-transparent font-normal w-auto justify-start text-left"
                                 >
                                   {value && typeof value === "string" ? (
                                     new Date(value).toLocaleDateString("ru-RU")
@@ -1325,7 +1363,7 @@ export const PsychologistClientProfile = forwardRef<
                               value={typeof value === "string" ? value : ""}
                               onValueChange={(v) => updateValue(v)}
                             >
-                              <SelectTrigger className="border-0 bg-transparent shadow-none h-auto py-0 min-h-0">
+                              <SelectTrigger className="border-0 bg-transparent shadow-none h-auto py-0 min-h-0 w-auto">
                                 <SelectValue placeholder="Выберите" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1399,7 +1437,7 @@ export const PsychologistClientProfile = forwardRef<
                         return (
                           <div key={def.id} className={FIELD_ROW_CLASS}>
                             <Label className={FIELD_LABEL_CLASS}>{label}</Label>
-                            <div className="flex-1 min-w-0">
+                            <div className={FIELD_VALUE_CLASS}>
                               {type === "TEXT" && (
                                 <Input
                                   value={typeof value === "string" ? value : ""}
@@ -1443,7 +1481,7 @@ export const PsychologistClientProfile = forwardRef<
                                       variant="ghost"
                                       type="button"
                                       disabled
-                                      className="h-auto py-0 min-h-0 text-foreground font-normal w-full justify-start text-left cursor-default hover:bg-transparent"
+                                      className="h-auto py-0 min-h-0 text-foreground font-normal w-auto justify-start text-left cursor-default hover:bg-transparent"
                                     >
                                       {value && typeof value === "string" ? (
                                         new Date(value).toLocaleDateString("ru-RU")
@@ -1505,7 +1543,7 @@ export const PsychologistClientProfile = forwardRef<
                                   onValueChange={(v) => updateValue(v)}
                                   disabled
                                 >
-                                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto py-0 min-h-0 cursor-default">
+                                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto py-0 min-h-0 w-auto cursor-default">
                                     <SelectValue placeholder="Выберите" />
                                   </SelectTrigger>
                                   <SelectContent>

@@ -111,8 +111,8 @@ export default async function PsychologistClientProfilePage({
   });
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-1">
+    <div className="space-y-6 min-w-0 max-w-full">
+      <section className="space-y-1 min-w-0">
         <h1 className="text-xl font-semibold tracking-tight">
           Профиль клиента
         </h1>
