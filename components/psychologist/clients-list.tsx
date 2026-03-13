@@ -507,9 +507,9 @@ export function PsychologistClientsList() {
               <AlertDialogTrigger asChild>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/10"
                   disabled={singleDeleting}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -552,6 +552,7 @@ export function PsychologistClientsList() {
             statusId={profileClient.statusId ?? null}
             statusLabel={profileClient.statusLabel ?? null}
             statusColor={profileClient.statusColor ?? null}
+            avatarUrl={profileClient.avatarUrl ?? null}
             onDeleted={async () => {
               setProfileClient(null);
               await loadClients();

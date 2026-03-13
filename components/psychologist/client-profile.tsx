@@ -56,9 +56,11 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CountryAutocomplete, CityAutocomplete } from "@/components/ui/location-autocomplete";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
+import { cn } from "@/lib/utils";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -154,6 +156,7 @@ type ClientProfileProps = {
   statusId?: string | null;
   statusLabel?: string | null;
   statusColor?: string | null;
+  avatarUrl?: string | null;
   onDeleted?: () => void;
   onUpdated?: (next: {
     firstName: string;
@@ -574,8 +577,38 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Имя, значок зарегистрирован, статус — над вкладками, шрифт в 1.5 раза больше */}
+      {/* Аватар, имя, значок зарегистрирован, статус — над вкладками */}
       <div className="flex flex-wrap items-center gap-3">
+        {(() => {
+          const AVATAR_COLORS = [
+            "bg-rose-200 text-rose-800",
+            "bg-violet-200 text-violet-800",
+            "bg-sky-200 text-sky-800",
+            "bg-emerald-200 text-emerald-800",
+            "bg-amber-200 text-amber-800",
+            "bg-pink-200 text-pink-800",
+            "bg-teal-200 text-teal-800",
+            "bg-indigo-200 text-indigo-800",
+          ];
+          let hash = 0;
+          for (let i = 0; i < props.id.length; i++) {
+            hash = (hash * 31 + props.id.charCodeAt(i)) >>> 0;
+          }
+          const avatarColor = AVATAR_COLORS[hash % AVATAR_COLORS.length];
+          const initials = `${props.firstName[0] ?? ""}${props.lastName[0] ?? ""}`.toUpperCase();
+          return (
+            <Avatar className="h-12 w-12 shrink-0 border border-border">
+              <AvatarImage
+                src={props.avatarUrl ?? undefined}
+                alt={`${props.lastName} ${props.firstName}`}
+                className="object-cover"
+              />
+              <AvatarFallback className={cn("font-semibold text-sm", avatarColor)}>
+                {initials || "?"}
+              </AvatarFallback>
+            </Avatar>
+          );
+        })()}
         <span className="text-2xl font-semibold leading-tight tracking-tight">
           {props.lastName} {props.firstName}
         </span>
@@ -602,20 +635,27 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           disabled={statusSaving}
         >
           <SelectTrigger
-            className="w-auto min-w-[180px] h-8 rounded-full border-0 px-3 text-xs font-semibold text-white shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring data-[placeholder]:text-white"
+            className="w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold text-white shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring data-[placeholder]:text-white justify-center"
             style={{ backgroundColor: currentStatus?.color ?? "hsl(350 84% 47%)" }}
           >
             <SelectValue placeholder="Статус" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__">
+            <SelectItem
+              value="__none__"
+              className="data-[state=checked]:bg-transparent data-[state=checked]:text-foreground"
+            >
               <span className="flex items-center gap-2">
                 <span className="size-2 rounded-full shrink-0 bg-muted" />
                 Без статуса
               </span>
             </SelectItem>
             {statuses.map(s => (
-              <SelectItem key={s.id} value={s.id}>
+              <SelectItem
+                key={s.id}
+                value={s.id}
+                className="data-[state=checked]:bg-transparent data-[state=checked]:text-foreground"
+              >
                 <span className="flex items-center gap-2">
                   <span
                     className="size-2 rounded-full shrink-0"
