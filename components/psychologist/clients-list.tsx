@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, X, Search } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -140,6 +140,34 @@ export function PsychologistClientsList() {
   const [statuses, setStatuses] = useState<Array<{ id: string; label: string; color: string }>>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [initialStatusId, setInitialStatusId] = useState<string | null>(null);
+
+  const MIN_LIST_WIDTH = 720;
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const listInnerRef = useRef<HTMLDivElement | null>(null);
+  const [listScale, setListScale] = useState(1);
+  const [listInnerHeight, setListInnerHeight] = useState(0);
+
+  useEffect(() => {
+    const el = listContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      setListScale(w >= MIN_LIST_WIDTH ? 1 : Math.max(0.3, w / MIN_LIST_WIDTH));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (listScale >= 1) return;
+    const el = listInnerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setListInnerHeight(el.offsetHeight);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [listScale, loading, clients.length, statusFilter]);
 
   async function loadClients() {
     setLoading(true);
@@ -519,146 +547,168 @@ export function PsychologistClientsList() {
     );
   }
 
+  const listScaled = listScale < 1;
+
   return (
     <div className="px-6 py-4">
-      <div className="w-full space-y-4">
-        {/* Фильтр по статусу */}
-        {statuses.length > 0 && (
-          <Tabs
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-            className="w-full"
+      <div ref={listContainerRef} className="w-full min-w-0 space-y-4">
+        <div
+          style={{
+            overflow: listScaled ? "hidden" : undefined,
+            width: listScaled ? MIN_LIST_WIDTH * listScale : undefined,
+            height: listScaled && listInnerHeight > 0 ? listInnerHeight * listScale : undefined,
+            maxWidth: "100%",
+            margin: listScaled ? "0 auto" : undefined
+          }}
+        >
+          <div
+            ref={listInnerRef}
+            className="space-y-4"
+            style={{
+              width: listScaled ? MIN_LIST_WIDTH : undefined,
+              transform: listScaled ? `scale(${listScale})` : undefined,
+              transformOrigin: "0 0"
+            }}
           >
-            <TabsList className="inline-flex h-9 rounded-full bg-muted px-1 py-0.5">
-              <TabsTrigger
-                value="ALL"
-                className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
+            {/* Фильтр по статусу */}
+            {statuses.length > 0 && (
+              <Tabs
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+                className="w-full"
               >
-                Все
-              </TabsTrigger>
-              {statuses.map((st) => (
-                <TabsTrigger
-                  key={st.id}
-                  value={st.id}
-                  className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
-                >
-                  {st.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        )}
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">
-              Нажмите на строку, чтобы открыть профиль клиента.
-            </p>
-            {multiSelectMode && selectedIds.size > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Выбрано клиентов: {selectedIds.size}
-              </p>
+                <TabsList className="inline-flex h-9 rounded-full bg-muted px-1 py-0.5">
+                  <TabsTrigger
+                    value="ALL"
+                    className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
+                  >
+                    Все
+                  </TabsTrigger>
+                  {statuses.map((st) => (
+                    <TabsTrigger
+                      key={st.id}
+                      value={st.id}
+                      className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
+                    >
+                      {st.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
             )}
-          </div>
-          <div className="flex items-center gap-2">
-            {multiSelectMode ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={selectedIds.size === 0 || bulkDeleting}
-                  onClick={openBulkDeleteDialog}
-                >
-                  {bulkDeleting
-                    ? "Удаляем..."
-                    : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+            {/* Header */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-muted-foreground">
+                  Нажмите на строку, чтобы открыть профиль клиента.
+                </p>
+                {multiSelectMode && selectedIds.size > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Выбрано клиентов: {selectedIds.size}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {multiSelectMode ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={selectedIds.size === 0 || bulkDeleting}
+                      onClick={openBulkDeleteDialog}
+                    >
+                      {bulkDeleting
+                        ? "Удаляем..."
+                        : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedIds(new Set());
+                        setMultiSelectMode(false);
+                      }}
+                    >
+                      Отменить выделение
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedIds(new Set());
+                      setMultiSelectMode(true);
+                    }}
+                  >
+                    Выбрать несколько
+                  </Button>
+                )}
+                <Button size="sm" onClick={() => setAddOpen(true)}>
+                  Добавить клиента
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedIds(new Set());
-                    setMultiSelectMode(false);
-                  }}
-                >
-                  Отменить выделение
-                </Button>
-              </>
+              </div>
+            </div>
+
+            {/* Подтверждение массового удаления */}
+            <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить выбранных клиентов?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Удалить {selectedIds.size}{" "}
+                    {selectedIds.size === 1 ? "выбранного клиента" : "выбранных клиентов"}{" "}
+                    из вашего списка? Их записи и тесты в системе сохранятся.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Удалить
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Error */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Loading / table / empty state */}
+            {loading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
+                ))}
+              </div>
+            ) : clients.length === 0 ? (
+              <div className="flex h-24 items-center justify-center rounded-md border bg-card/70 text-sm text-muted-foreground">
+                Клиентов пока нет. Нажмите «Добавить клиента», чтобы создать первого.
+              </div>
             ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setSelectedIds(new Set());
-                  setMultiSelectMode(true);
+              <DataTable
+                columns={columns}
+                data={
+                  statusFilter === "ALL"
+                    ? clients
+                    : clients.filter((c) => c.statusId === statusFilter)
+                }
+                filterColumnId="search"
+                filterPlaceholder="Поиск по имени, email или телефону..."
+                columnLabels={{
+                  name: "Имя",
+                  email: "Email",
+                  phone: "Телефон",
+                  createdAt: "Создан"
                 }}
-              >
-                Выбрать несколько
-              </Button>
+                onRowClick={client => setProfileClient(client)}
+              />
             )}
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              Добавить клиента
-            </Button>
           </div>
         </div>
-
-        {/* Подтверждение массового удаления */}
-        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Удалить выбранных клиентов?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Удалить {selectedIds.size}{" "}
-                {selectedIds.size === 1 ? "выбранного клиента" : "выбранных клиентов"}{" "}
-                из вашего списка? Их записи и тесты в системе сохранятся.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Отмена</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Удалить
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Error */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Loading / table / empty state */}
-        {loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full rounded-md" />
-            ))}
-          </div>
-        ) : clients.length === 0 ? (
-          <div className="flex h-24 items-center justify-center rounded-md border bg-card/70 text-sm text-muted-foreground">
-            Клиентов пока нет. Нажмите «Добавить клиента», чтобы создать первого.
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={
-              statusFilter === "ALL"
-                ? clients
-                : clients.filter((c) => c.statusId === statusFilter)
-            }
-            filterColumnId="search"
-            filterPlaceholder="Поиск по имени, email или телефону..."
-            columnLabels={{
-              name: "Имя",
-              email: "Email",
-              phone: "Телефон",
-              createdAt: "Создан"
-            }}
-            onRowClick={client => setProfileClient(client)}
-          />
-        )}
 
         {/* Диалог добавления клиента */}
         <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>

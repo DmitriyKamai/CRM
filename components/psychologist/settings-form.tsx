@@ -1918,7 +1918,7 @@ export function PsychologistSettingsForm() {
                               className="inline-block h-6 w-6 rounded border shrink-0"
                               style={{ backgroundColor: s.color }}
                             />
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-1 min-w-[4.5rem]">
                               <Button
                                 type="button"
                                 size="icon"
@@ -1932,7 +1932,9 @@ export function PsychologistSettingsForm() {
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              {s.key !== "NEW" && (
+                              {s.key === "NEW" ? (
+                                <span className="h-8 w-8 shrink-0" aria-hidden />
+                              ) : (
                                 <Button
                                   type="button"
                                   size="icon"
