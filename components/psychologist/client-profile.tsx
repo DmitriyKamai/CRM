@@ -246,6 +246,14 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
   const [tabsScrollRight, setTabsScrollRight] = useState(false);
   const [tabsHaveOverflow, setTabsHaveOverflow] = useState(false);
 
+  const currentStatus = useMemo(
+    () =>
+      statusId != null
+        ? statuses.find((s) => s.id === statusId) ?? null
+        : null,
+    [statusId, statuses]
+  );
+
   const updateTabsScrollState = useCallback(() => {
     const el = tabsScrollRef.current;
     if (!el) return;
@@ -567,7 +575,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       </AlertDialog>
 
       {/* Имя, значок зарегистрирован, статус — над вкладками, шрифт в 1.5 раза больше */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-2xl font-semibold leading-tight tracking-tight">
           {props.lastName} {props.firstName}
         </span>
@@ -593,7 +601,10 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
           }}
           disabled={statusSaving}
         >
-          <SelectTrigger className="w-[150px] h-9 text-sm">
+          <SelectTrigger
+            className="w-auto min-w-[180px] h-8 rounded-full border-0 px-3 text-xs font-semibold text-white shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring data-[placeholder]:text-white"
+            style={{ backgroundColor: currentStatus?.color ?? "hsl(350 84% 47%)" }}
+          >
             <SelectValue placeholder="Статус" />
           </SelectTrigger>
           <SelectContent>
@@ -919,22 +930,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                         type="button"
                         variant={isEditing ? "secondary" : "outline"}
                         size="icon"
-                        disabled={deleting || saving}
-                        onClick={openDeleteDialog}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Удалить клиента</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Удалить клиента</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant={isEditing ? "secondary" : "outline"}
-                        size="icon"
                         onClick={() => setIsEditing(prev => !prev)}
                         disabled={saving || deleting}
                       >
@@ -950,7 +945,6 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                   </Tooltip>
                 </div>
               </TooltipProvider>
-
               {isEditing && (
                 <Button type="submit" disabled={saving || deleting}>
                   {saving ? "Сохраняем..." : "Сохранить изменения"}

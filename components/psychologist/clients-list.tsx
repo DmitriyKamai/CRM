@@ -19,7 +19,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -146,6 +147,8 @@ export function PsychologistClientsList() {
   const listInnerRef = useRef<HTMLDivElement | null>(null);
   const [listScale, setListScale] = useState(1);
   const [listInnerHeight, setListInnerHeight] = useState(0);
+  const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
+  const [singleDeleting, setSingleDeleting] = useState(false);
 
   useEffect(() => {
     const el = listContainerRef.current;
@@ -288,6 +291,31 @@ export function PsychologistClientsList() {
       );
     } finally {
       setBulkDeleting(false);
+    }
+  }
+
+  async function confirmSingleDelete() {
+    if (!profileClient) return;
+    setSingleDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/psychologist/clients/${profileClient.id}`, {
+        method: "DELETE"
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось удалить клиента");
+      }
+      setProfileClient(null);
+      await loadClients();
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "Не удалось удалить клиента"
+      );
+    } finally {
+      setSingleDeleting(false);
+      setSingleDeleteDialogOpen(false);
     }
   }
 
@@ -464,7 +492,7 @@ export function PsychologistClientsList() {
     return (
       <div className="px-6 py-4">
         <div className="w-full space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -475,6 +503,37 @@ export function PsychologistClientsList() {
               <span className="text-lg leading-none">←</span>
               <span className="text-sm">Вернуться назад</span>
             </Button>
+            <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  disabled={singleDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Удалить клиента</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить клиента из списка?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Удалить этого клиента из вашего списка? Его записи и тесты в системе сохранятся.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmSingleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {singleDeleting ? "Удаляем..." : "Удалить"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           <PsychologistClientProfile
             id={profileClient.id}
