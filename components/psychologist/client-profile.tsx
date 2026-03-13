@@ -740,7 +740,7 @@ export const PsychologistClientProfile = forwardRef<
         >
           <SelectTrigger
             className={cn(
-              "w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring relative [&>*:first-child]:flex-1 [&>*:first-child]:flex [&>*:first-child]:justify-center [&>*:first-child]:text-center",
+              "w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring relative [&>*:first-child]:flex-1 [&>*:first-child]:min-w-0 [&>*:first-child]:flex [&>*:first-child]:justify-center [&>*:first-child]:text-center [&>svg]:shrink-0 [&>svg]:ml-1",
               currentStatus
                 ? "text-white data-[placeholder]:text-white [&>svg]:text-white [&>svg]:opacity-100"
                 : "text-foreground bg-[hsl(var(--input-bg))] data-[placeholder]:text-muted-foreground"
@@ -750,17 +750,17 @@ export const PsychologistClientProfile = forwardRef<
             <SelectValue placeholder="Статус" />
           </SelectTrigger>
           <SelectContent className="min-w-[var(--radix-select-trigger-width)] [&>*:nth-child(2)]:space-y-[5px]">
-            <SelectItem value="__none__" className="h-7 py-1 justify-center !pl-2 pr-2">
+            <SelectItem value="__none__" className="h-7 py-1 justify-center !pl-2 pr-2 cursor-pointer">
               <span className="text-sm">Без статуса</span>
             </SelectItem>
             {statuses.map(s => (
               <SelectItem
                 key={s.id}
                 value={s.id}
-                className="relative p-0 min-h-7 h-7 overflow-hidden rounded-md"
+                className="relative p-0 min-h-7 h-7 overflow-hidden rounded-md cursor-pointer"
               >
                 <span
-                  className="absolute inset-0 flex items-center justify-center rounded-md pl-8 pr-2 text-xs font-medium text-white"
+                  className="absolute inset-0 flex items-center justify-center rounded-md text-xs font-medium text-white"
                   style={{ backgroundColor: s.color }}
                 >
                   {s.label}
