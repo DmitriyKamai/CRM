@@ -18,6 +18,7 @@
     "prisma:seed-pavlova": "tsx prisma/seed-pavlova.ts",
     "prisma:seed-smil": "tsx prisma/seed-smil.ts",
     "bot": "tsx scripts/telegram-bot.ts",
+    "vercel:delete-old": "node scripts/delete-old-vercel-deployments.js",
     "postinstall": "node scripts/patch-next-dev.js"
   },
   "dependencies": {

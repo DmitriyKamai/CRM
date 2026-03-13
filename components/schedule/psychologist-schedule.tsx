@@ -886,7 +886,7 @@ export function PsychologistSchedule() {
                                         <PopoverTrigger asChild>
                                           <div
                                             className={
-                                              "absolute left-0 right-0 z-10 rounded-md border px-2 py-1.5 shadow-sm cursor-pointer " +
+                                              "absolute left-0 right-0 z-10 rounded-md border px-2 py-1.5 shadow-sm cursor-pointer text-white " +
                                               slotBgClass +
                                               " " +
                                               slotBorderClass
@@ -903,7 +903,7 @@ export function PsychologistSchedule() {
                                             <div className="text-sm font-medium">
                                               {label}
                                             </div>
-                                            <div className="mt-0.5 text-sm text-muted-foreground">
+                                            <div className="mt-0.5 text-sm text-white/90">
                                               {statusText}
                                             </div>
                                           </div>
