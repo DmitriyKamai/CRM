@@ -749,14 +749,18 @@ export const PsychologistClientProfile = forwardRef<
           >
             <SelectValue placeholder="Статус" />
           </SelectTrigger>
-          <SelectContent className="min-w-[var(--radix-select-trigger-width)]">
-            <SelectItem value="__none__" className="h-7 py-1">
+          <SelectContent className="min-w-[var(--radix-select-trigger-width)] [&>*:nth-child(2)]:space-y-[5px]">
+            <SelectItem value="__none__" className="h-7 py-1 justify-center !pl-2 pr-2">
               <span className="text-sm">Без статуса</span>
             </SelectItem>
             {statuses.map(s => (
-              <SelectItem key={s.id} value={s.id} className="min-h-7 h-7 overflow-hidden rounded-md py-0">
+              <SelectItem
+                key={s.id}
+                value={s.id}
+                className="relative p-0 min-h-7 h-7 overflow-hidden rounded-md"
+              >
                 <span
-                  className="flex w-[calc(100%+2.5rem)] -ml-8 -mr-2 items-center rounded-md py-1 pl-8 pr-2 text-xs font-medium text-white"
+                  className="absolute inset-0 flex items-center justify-center rounded-md pl-8 pr-2 text-xs font-medium text-white"
                   style={{ backgroundColor: s.color }}
                 >
                   {s.label}
