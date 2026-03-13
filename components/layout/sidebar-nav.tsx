@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -14,7 +13,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +61,6 @@ export function SidebarNavContent({
   onCollapsedChange
 }: SidebarNavContentProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
 
   const navItems =
     role === "PSYCHOLOGIST" ? PSYCHOLOGIST_NAV :
@@ -71,13 +68,6 @@ export function SidebarNavContent({
     ADMIN_NAV;
 
   const settingsHref = SETTINGS_HREF[role] ?? "/";
-
-  const user = session?.user;
-  const name = user?.name ?? (user as { email?: string } | undefined)?.email ?? "";
-  const email = (user as { email?: string } | undefined)?.email ?? "";
-  const initials = name
-    ? name.split(/\s+/).map((s: string) => s[0]).join("").toUpperCase().slice(0, 2)
-    : email.slice(0, 2).toUpperCase();
 
   const linkProps = onNavigate ? { onClick: onNavigate } : {};
 
@@ -143,26 +133,6 @@ export function SidebarNavContent({
       </div>
 
       <div className="border-t border-[hsl(var(--sidebar-border))] shrink-0" />
-
-      <div
-        className={cn(
-          "flex items-center gap-2 p-3 shrink-0",
-          collapsed && "justify-center"
-        )}
-      >
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarImage src={user?.image ?? undefined} alt={name} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        {!collapsed && (
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-medium truncate leading-tight">{name}</span>
-            <span className="text-[11px] text-muted-foreground truncate leading-tight">{email}</span>
-          </div>
-        )}
-      </div>
 
       {onCollapsedChange && (
         <div

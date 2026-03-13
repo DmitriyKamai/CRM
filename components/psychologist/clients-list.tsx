@@ -434,7 +434,7 @@ export function PsychologistClientsList() {
   // Профиль клиента поверх списка (на всю основную ширину)
   if (profileClient) {
     return (
-      <div className="h-[calc(100vh-0px)] overflow-y-auto px-6 py-4">
+      <div className="px-6 py-4">
         <div className="w-full space-y-4">
           <div className="flex items-center gap-2">
             <Button
@@ -520,7 +520,7 @@ export function PsychologistClientsList() {
   }
 
   return (
-    <div className="h-[calc(100vh-0px)] overflow-y-auto px-6 py-4">
+    <div className="px-6 py-4">
       <div className="w-full space-y-4">
         {/* Фильтр по статусу */}
         {statuses.length > 0 && (

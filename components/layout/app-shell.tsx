@@ -14,14 +14,15 @@ export function AppShell({ role, children }: AppShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <HeaderNav role={role} onMenuClick={() => setMobileMenuOpen(true)} />
-
-      <div className="flex flex-1 min-h-0">
-        <div className="hidden md:flex h-full shrink-0">
-          <SidebarNav role={role} />
-        </div>
-        <main className="flex-1 min-w-0 overflow-y-auto">
+    <div className="flex h-screen overflow-hidden">
+      {/* Сайдбар от верха до низа экрана (слева) */}
+      <div className="hidden md:flex h-full shrink-0">
+        <SidebarNav role={role} />
+      </div>
+      {/* Хедер и контент справа от сайдбара */}
+      <div className="flex flex-1 flex-col min-w-0 min-h-0">
+        <HeaderNav role={role} onMenuClick={() => setMobileMenuOpen(true)} />
+        <main className="flex-1 min-h-0 overflow-y-auto">
           {children}
         </main>
       </div>

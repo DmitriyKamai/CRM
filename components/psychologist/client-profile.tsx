@@ -566,6 +566,58 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Имя, значок зарегистрирован, статус — над вкладками, шрифт в 1.5 раза больше */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-2xl font-semibold leading-tight tracking-tight">
+          {props.lastName} {props.firstName}
+        </span>
+        {hasAccount && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
+                  <UserCheck className="h-6 w-6" aria-hidden />
+                  <span className="sr-only">Зарегистрирован</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Клиент зарегистрирован
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        <Select
+          value={statusId ?? "__none__"}
+          onValueChange={val => {
+            void handleStatusChange(val);
+          }}
+          disabled={statusSaving}
+        >
+          <SelectTrigger className="w-[150px] h-9 text-sm">
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-full shrink-0 bg-muted" />
+                Без статуса
+              </span>
+            </SelectItem>
+            {statuses.map(s => (
+              <SelectItem key={s.id} value={s.id}>
+                <span className="flex items-center gap-2">
+                  <span
+                    className="size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: s.color }}
+                  />
+                  {s.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Tabs
         defaultValue="profile"
         onValueChange={(v) => setDiagnosticsTabActive(v === "diagnostics")}
@@ -573,19 +625,21 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
       >
         <div className="w-full min-w-0 overflow-hidden">
           <div className="flex items-center gap-1 min-w-0">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-10 w-9 shrink-0 rounded-md"
-              aria-label="Предыдущие вкладки"
-              disabled={!tabsHaveOverflow || !tabsScrollLeft}
-              onClick={() => {
-                tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            {tabsHaveOverflow && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-9 shrink-0 rounded-md"
+                aria-label="Предыдущие вкладки"
+                disabled={!tabsScrollLeft}
+                onClick={() => {
+                  tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
             <div
               ref={tabsScrollRef}
               className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 basis-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -614,81 +668,31 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </TabsTrigger>
             </TabsList>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-10 w-9 shrink-0 rounded-md"
-              aria-label="Следующие вкладки"
-              disabled={!tabsHaveOverflow || !tabsScrollRight}
-              onClick={() => {
-                tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
-              }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {tabsHaveOverflow && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-9 shrink-0 rounded-md"
+                aria-label="Следующие вкладки"
+                disabled={!tabsScrollRight}
+                onClick={() => {
+                  tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
+                }}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
         <TabsContent
           value="profile"
-          className="mt-3 space-y-4 rounded-lg border bg-card p-4 max-h-[70vh] overflow-y-auto"
+          className="mt-3 space-y-4 rounded-lg border bg-card p-4"
         >
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold leading-none tracking-tight">
-                {props.lastName} {props.firstName}
-              </span>
-              {hasAccount && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
-                        <UserCheck className="h-4 w-4" aria-hidden />
-                        <span className="sr-only">Зарегистрирован</span>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Клиент зарегистрирован
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <Select
-                value={statusId ?? "__none__"}
-                onValueChange={val => {
-                  void handleStatusChange(val);
-                }}
-                disabled={statusSaving}
-              >
-                <SelectTrigger className="w-[150px] h-8 text-xs">
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">
-                    <span className="flex items-center gap-2">
-                      <span className="size-2 rounded-full shrink-0 bg-muted" />
-                      Без статуса
-                    </span>
-                  </SelectItem>
-                  {statuses.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="size-2 rounded-full shrink-0"
-                          style={{ backgroundColor: s.color }}
-                        />
-                        {s.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {props.email ?? "Email ещё не указан"} · Создан{" "}
-              {formatDate(props.createdAt)}
-            </div>
+          <div className="text-sm text-muted-foreground">
+            {props.email ?? "Email ещё не указан"} · Создан{" "}
+            {formatDate(props.createdAt)}
           </div>
 
           <form
@@ -976,7 +980,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
             <TabsContent
               key={groupId}
               value={groupId}
-              className="mt-3 flex flex-col rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-hidden"
+              className="mt-3 flex flex-col rounded-lg border bg-card p-4"
             >
               <div className="flex-none space-y-1">
                 <h3 className="text-base font-semibold leading-none tracking-tight">
@@ -988,7 +992,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
               </div>
 
               {customFieldsLoading ? (
-                <p className="flex-1 text-sm text-muted-foreground pt-2">Загружаем поля…</p>
+                <p className="text-sm text-muted-foreground pt-2">Загружаем поля…</p>
               ) : (
                 <form
                   onSubmit={async (e) => {
@@ -1013,9 +1017,9 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
                       setCustomFieldsSaving(false);
                     }
                   }}
-                  className="flex-1 min-h-0 flex flex-col gap-3"
+                  className="flex flex-col gap-3"
                 >
-                  <div className="flex-1 min-h-0 overflow-y-auto grid gap-3 md:grid-cols-2 content-start">
+                  <div className="grid gap-3 md:grid-cols-2 content-start">
                     {isEditingGroup ? (
                       <DndContext
                         sensors={sortableSensors}
@@ -1592,7 +1596,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
         <TabsContent
           value="diagnostics"
-          className="mt-3 space-y-3 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
+          className="mt-3 space-y-3 rounded-lg border bg-card p-4"
         >
           {diagnosticsLoading ? (
             <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
@@ -1626,7 +1630,7 @@ export function PsychologistClientProfile(props: ClientProfileProps) {
 
         <TabsContent
           value="appointments"
-          className="mt-3 space-y-3 rounded-lg border bg-card p-4 min-h-[420px] max-h-[70vh] overflow-y-auto"
+          className="mt-3 space-y-3 rounded-lg border bg-card p-4"
         >
           <ClientAppointments clientId={props.id} />
         </TabsContent>
