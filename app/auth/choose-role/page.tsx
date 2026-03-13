@@ -35,6 +35,9 @@ export default async function ChooseRolePage() {
   // Если роль уже выбрана — сразу ведём в соответствующий кабинет.
   // Новый соц-пользователь после первого логина имеет role=CLIENT, но без профилей —
   // в этом случае выбор роли ещё не сделан, и мы показываем экран выбора.
+  if (user.role === "ADMIN") {
+    redirect("/admin");
+  }
   if (user.role === "PSYCHOLOGIST" || user.psychologistProfile) {
     console.log("[choose-role] redirect to /psychologist (role or profile)");
     redirect("/psychologist");

@@ -11,6 +11,9 @@ export default async function LandingPage() {
   if (session?.user && role === "UNSPECIFIED") {
     redirect("/auth/choose-role");
   }
+  if (session?.user && role === "ADMIN") {
+    redirect("/admin");
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
