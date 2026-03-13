@@ -10,7 +10,7 @@ const db = prisma as any;
 
 const StatusSchema = z.object({
   id: z.string().optional(),
-  label: z.string().min(1).max(64),
+  label: z.string().min(1).max(16),
   color: z.string().min(1).max(64),
   order: z.number().int().optional()
 });

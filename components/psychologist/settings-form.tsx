@@ -1754,7 +1754,7 @@ export function PsychologistSettingsForm() {
                             id="new-status-label"
                             placeholder="Например, Активный"
                             value={newStatusLabel}
-                            maxLength={64}
+                            maxLength={16}
                             onChange={(e) => setNewStatusLabel(e.target.value)}
                           />
                         </div>
@@ -1839,7 +1839,7 @@ export function PsychologistSettingsForm() {
                               value={editingStatusLabel}
                               onChange={(e) => setEditingStatusLabel(e.target.value)}
                               className="h-8"
-                              maxLength={64}
+                              maxLength={16}
                             />
                             <div className="grid grid-cols-3 gap-1">
                               {STATUS_COLOR_PRESETS.map((c) => {
