@@ -538,7 +538,6 @@ export function PsychologistSchedule() {
         !modifiers?.range_start &&
         !modifiers?.range_end &&
         !modifiers?.range_middle;
-      const dotRing = "ring-2 ring-white";
       return (
         <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
           <span className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit]">
@@ -552,7 +551,7 @@ export function PsychologistSchedule() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle ? "bg-sky-300 " + dotRing : "bg-sky-500"
+                      isSelectedSingle ? "bg-sky-300" : "bg-sky-500"
                     )}
                     title="Свободный слот"
                   />
@@ -561,7 +560,7 @@ export function PsychologistSchedule() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle ? "bg-amber-300 " + dotRing : "bg-amber-400"
+                      isSelectedSingle ? "bg-amber-300" : "bg-amber-400"
                     )}
                     title="Ожидает подтверждения"
                   />
@@ -570,7 +569,7 @@ export function PsychologistSchedule() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle ? "bg-emerald-400 " + dotRing : "bg-emerald-500"
+                      isSelectedSingle ? "bg-emerald-400" : "bg-emerald-500"
                     )}
                     title="Подтверждённая запись"
                   />
