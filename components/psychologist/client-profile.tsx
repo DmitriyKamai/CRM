@@ -739,10 +739,9 @@ export const PsychologistClientProfile = forwardRef<
             {statuses.map(s => (
               <SelectItem key={s.id} value={s.id}>
                 <span
-                  className="inline-flex min-w-[140px] items-center gap-2 rounded-full px-2 py-1 text-xs font-medium text-white"
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-white"
                   style={{ backgroundColor: s.color }}
                 >
-                  <span className="size-2 rounded-full shrink-0 bg-white/80" />
                   {s.label}
                 </span>
               </SelectItem>
