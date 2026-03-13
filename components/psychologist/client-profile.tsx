@@ -261,7 +261,8 @@ export const PsychologistClientProfile = forwardRef<
   const [diagnosticsList, setDiagnosticsList] = useState<DiagnosticItem[]>(props.diagnostics ?? []);
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
-  const [customTabsEdit, setCustomTabsEdit] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState("profile");
+  const [isEditingCustomFields, setIsEditingCustomFields] = useState(false);
   const [editingCustomFields, setEditingCustomFields] = useState<Record<string, boolean>>({});
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
@@ -637,27 +638,48 @@ export const PsychologistClientProfile = forwardRef<
       </AlertDialog>
 
       {/* Кнопка редактирования когда управление снаружи не передано (страница по прямой ссылке) */}
-      {props.onEditingChange == null && (
+      {props.onEditingChange == null && (activeTab === "profile" || activeTab.startsWith("cf-")) && (
         <div className="flex justify-end">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   type="button"
-                  variant={isEditing ? "secondary" : "outline"}
+                  variant={
+                    activeTab === "profile"
+                      ? (isEditing ? "secondary" : "outline")
+                      : isEditingCustomFields
+                        ? "secondary"
+                        : "outline"
+                  }
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setEditing(!isEditing)}
-                  disabled={saving || deleting}
+                  onClick={() => {
+                    if (activeTab === "profile") setEditing(!isEditing);
+                    else if (activeTab.startsWith("cf-")) setIsEditingCustomFields((v) => !v);
+                  }}
+                  disabled={
+                    activeTab === "profile"
+                      ? saving || deleting
+                      : customFieldsSaving
+                  }
                 >
                   <Pencil className="h-4 w-4" />
                   <span className="sr-only">
-                    {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
+                    {activeTab === "profile"
+                      ? (isEditing ? "Завершить редактирование" : "Редактировать профиль")
+                      : isEditingCustomFields
+                        ? "Завершить редактирование"
+                        : "Редактировать дополнительные поля"}
                   </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {isEditing ? "Завершить редактирование" : "Редактировать профиль"}
+                {activeTab === "profile"
+                  ? (isEditing ? "Завершить редактирование" : "Редактировать профиль")
+                  : isEditingCustomFields
+                    ? "Завершить редактирование"
+                    : "Редактировать дополнительные поля"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -723,23 +745,23 @@ export const PsychologistClientProfile = forwardRef<
         >
           <SelectTrigger
             className={cn(
-              "w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring",
+              "w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring relative [&>*:first-child]:flex-1 [&>*:first-child]:flex [&>*:first-child]:justify-center [&>*:first-child]:text-center",
               currentStatus
-                ? "text-white data-[placeholder]:text-white justify-between"
-                : "text-foreground bg-[hsl(var(--input-bg))] data-[placeholder]:text-muted-foreground justify-between"
+                ? "text-white data-[placeholder]:text-white [&>svg]:text-white [&>svg]:opacity-100"
+                : "text-foreground bg-[hsl(var(--input-bg))] data-[placeholder]:text-muted-foreground"
             )}
             style={currentStatus ? { backgroundColor: currentStatus.color } : undefined}
           >
-            <SelectValue placeholder="Статус" className="w-full text-center" />
+            <SelectValue placeholder="Статус" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">
+          <SelectContent className="min-w-[var(--radix-select-trigger-width)]">
+            <SelectItem value="__none__" className="h-7 py-1">
               <span className="text-sm">Без статуса</span>
             </SelectItem>
             {statuses.map(s => (
-              <SelectItem key={s.id} value={s.id}>
+              <SelectItem key={s.id} value={s.id} className="min-h-7 h-7 overflow-hidden rounded-md py-0">
                 <span
-                  className="flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-white"
+                  className="flex w-[calc(100%+2.5rem)] -ml-8 -mr-2 items-center rounded-md py-1 pl-8 pr-2 text-xs font-medium text-white"
                   style={{ backgroundColor: s.color }}
                 >
                   {s.label}
@@ -751,8 +773,11 @@ export const PsychologistClientProfile = forwardRef<
       </div>
 
       <Tabs
-        defaultValue="profile"
-        onValueChange={(v) => setDiagnosticsTabActive(v === "diagnostics")}
+        value={activeTab}
+        onValueChange={(v) => {
+          setActiveTab(v);
+          setDiagnosticsTabActive(v === "diagnostics");
+        }}
         className="w-full min-w-0"
       >
         <div className="w-full min-w-0 overflow-hidden">
@@ -1095,7 +1120,7 @@ export const PsychologistClientProfile = forwardRef<
           const groupDescription =
             groupDescriptions.get(group) ??
             "Дополнительные данные клиента. Видны только вам.";
-          const isEditingGroup = isEditing || (customTabsEdit[groupId] ?? false);
+          const isEditingGroup = isEditingCustomFields;
           return (
             <TabsContent
               key={groupId}
@@ -1132,7 +1157,7 @@ export const PsychologistClientProfile = forwardRef<
                         console.error(data);
                         return;
                       }
-                      setCustomTabsEdit((prev) => ({ ...prev, [groupId]: false }));
+                      setIsEditingCustomFields(false);
                     } finally {
                       setCustomFieldsSaving(false);
                     }
@@ -1380,6 +1405,8 @@ export const PsychologistClientProfile = forwardRef<
                                 <Input
                                   value={typeof value === "string" ? value : ""}
                                   onChange={(e) => updateValue(e.target.value)}
+                                  disabled
+                                  className="bg-muted/50"
                                 />
                               )}
                               {type === "MULTILINE" && (
@@ -1387,6 +1414,8 @@ export const PsychologistClientProfile = forwardRef<
                                   rows={3}
                                   value={typeof value === "string" ? value : ""}
                                   onChange={(e) => updateValue(e.target.value)}
+                                  disabled
+                                  className="bg-muted/50"
                                 />
                               )}
                               {type === "NUMBER" && (
@@ -1396,14 +1425,16 @@ export const PsychologistClientProfile = forwardRef<
                                     typeof value === "number"
                                       ? String(value)
                                       : typeof value === "string"
-                                        ? value
-                                        : ""
+                                      ? value
+                                      : ""
                                   }
                                   onChange={(e) =>
                                     updateValue(
                                       e.target.value === "" ? null : Number(e.target.value)
                                     )
                                   }
+                                  disabled
+                                  className="bg-muted/50"
                                 />
                               )}
                               {type === "DATE" && (
@@ -1412,7 +1443,8 @@ export const PsychologistClientProfile = forwardRef<
                                     <Button
                                       variant="outline"
                                       type="button"
-                                      className="w-full justify-start text-left font-normal bg-[hsl(var(--input-bg))] border-input text-sm hover:bg-[hsl(var(--input-bg))]/90"
+                                      disabled
+                                      className="w-full justify-start text-left font-normal bg-muted/50 border-input text-sm cursor-default"
                                     >
                                       <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                                       {value && typeof value === "string" ? (
@@ -1459,10 +1491,11 @@ export const PsychologistClientProfile = forwardRef<
                                       id={`cf-bool-view-${def.id}`}
                                       checked={value === true}
                                       onCheckedChange={(checked) => updateValue(checked)}
+                                      disabled
                                     />
                                     <Label
                                       htmlFor={`cf-bool-view-${def.id}`}
-                                      className="text-sm text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                      className="text-sm text-muted-foreground font-normal cursor-default leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                     >
                                       {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
                                         "Опция"}
@@ -1474,8 +1507,9 @@ export const PsychologistClientProfile = forwardRef<
                                 <Select
                                   value={typeof value === "string" ? value : ""}
                                   onValueChange={(v) => updateValue(v)}
+                                  disabled
                                 >
-                                  <SelectTrigger>
+                                  <SelectTrigger className="bg-muted/50">
                                     <SelectValue placeholder="Выберите" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1488,7 +1522,7 @@ export const PsychologistClientProfile = forwardRef<
                                 </Select>
                               )}
                               {type === "MULTI_SELECT" && (
-                                <div className="space-y-1 rounded-md border bg-background px-2 py-2">
+                                <div className="space-y-1 rounded-md border bg-muted/50 px-2 py-2">
                                   {selectOptions.length === 0 ? (
                                     <p className="text-xs text-muted-foreground">
                                       Опции не настроены.
@@ -1502,7 +1536,7 @@ export const PsychologistClientProfile = forwardRef<
                                       return (
                                         <label
                                           key={opt.value}
-                                          className="flex items-center gap-2 text-xs"
+                                          className="flex items-center gap-2 text-xs cursor-default"
                                         >
                                           <input
                                             type="checkbox"
@@ -1516,6 +1550,7 @@ export const PsychologistClientProfile = forwardRef<
                                               }
                                               updateValue(Array.from(next));
                                             }}
+                                            disabled
                                           />
                                           <span>{opt.label}</span>
                                         </label>
@@ -1532,38 +1567,20 @@ export const PsychologistClientProfile = forwardRef<
                     )}
                   </div>
 
-                  <div className="flex-none flex items-center justify-between gap-3 pt-2 border-t">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant={isEditingGroup ? "secondary" : "outline"}
-                            size="icon"
-                            disabled={customFieldsSaving}
-                            onClick={() =>
-                              setCustomTabsEdit((prev) => ({
-                                ...prev,
-                                [groupId]: !isEditingGroup
-                              }))
-                            }
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">
-                              {isEditingGroup
-                                ? "Завершить редактирование"
-                                : "Редактировать"}
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isEditingGroup
-                            ? "Завершить редактирование дополнительных полей"
-                            : "Редактировать дополнительные поля"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {isEditingGroup && (
+                  {isEditingCustomFields && (
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          refetchCustomFieldDefs();
+                          setIsEditingCustomFields(false);
+                        }}
+                        disabled={customFieldsSaving}
+                      >
+                        Отменить
+                      </Button>
                       <Button
                         type="submit"
                         size="sm"
@@ -1571,8 +1588,8 @@ export const PsychologistClientProfile = forwardRef<
                       >
                         {customFieldsSaving ? "Сохраняем…" : "Сохранить"}
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </form>
               )}
 
