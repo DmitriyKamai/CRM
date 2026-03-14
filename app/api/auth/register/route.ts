@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { logZodError } from "@/lib/log-validation-error";
 
 // Схема валидации для регистрации (без inviteToken, он обрабатывается отдельно)
 const registerSchema = z.object({
@@ -142,8 +143,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[POST /api/auth/register] Ошибка валидации:", error);
-      console.error("[POST /api/auth/register] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("POST /api/auth/register", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

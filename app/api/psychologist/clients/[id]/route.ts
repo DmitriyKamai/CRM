@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { logZodError } from "@/lib/log-validation-error";
 
 type ParamsPromise = {
   params: Promise<{
@@ -193,8 +194,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[PATCH /api/psychologist/clients/[id]] Ошибка валидации:", error);
-      console.error("[PATCH /api/psychologist/clients/[id]] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("PATCH /api/psychologist/clients/[id]", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

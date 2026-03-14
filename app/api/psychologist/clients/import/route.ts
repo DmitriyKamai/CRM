@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { logZodError } from "@/lib/log-validation-error";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -285,8 +286,7 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      console.error("[POST /api/psychologist/clients/import] Ошибка валидации:", err);
-      console.error("[POST /api/psychologist/clients/import] issues:", JSON.stringify(err.issues, null, 2));
+      logZodError("POST /api/psychologist/clients/import", err);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: err.issues },
         { status: 400 }

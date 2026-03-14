@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { logZodError } from "@/lib/log-validation-error";
 
 const forgotSchema = z.object({
   email: z
@@ -100,8 +101,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[POST /api/auth/forgot-password] Ошибка валидации:", error);
-      console.error("[POST /api/auth/forgot-password] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("POST /api/auth/forgot-password", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { logZodError } from "@/lib/log-validation-error";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 function normalizeEmail(email: string) {
@@ -305,8 +306,7 @@ export async function POST(request: Request) {
     return NextResponse.json(clientProfile, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[POST /api/psychologist/clients] Ошибка валидации:", error);
-      console.error("[POST /api/psychologist/clients] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("POST /api/psychologist/clients", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }
@@ -357,8 +357,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[DELETE /api/psychologist/clients] Ошибка валидации:", error);
-      console.error("[DELETE /api/psychologist/clients] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("DELETE /api/psychologist/clients", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

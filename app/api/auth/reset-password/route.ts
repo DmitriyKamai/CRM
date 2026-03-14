@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/db";
+import { logZodError } from "@/lib/log-validation-error";
 
 const resetSchema = z.object({
   token: z.string().trim().min(1, "Токен обязателен"),
@@ -60,8 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[POST /api/auth/reset-password] Ошибка валидации:", error);
-      console.error("[POST /api/auth/reset-password] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("POST /api/auth/reset-password", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

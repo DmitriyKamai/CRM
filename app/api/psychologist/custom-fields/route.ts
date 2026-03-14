@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { logZodError } from "@/lib/log-validation-error";
 
 const definitionSchema = z.object({
   id: z.string().optional(),
@@ -130,8 +131,7 @@ export async function POST(request: Request) {
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[POST /api/psychologist/custom-fields] Ошибка валидации:", error);
-      console.error("[POST /api/psychologist/custom-fields] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("POST /api/psychologist/custom-fields", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }
@@ -261,8 +261,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[PATCH /api/psychologist/custom-fields] Ошибка валидации:", error);
-      console.error("[PATCH /api/psychologist/custom-fields] issues:", JSON.stringify(error.issues, null, 2));
+      logZodError("PATCH /api/psychologist/custom-fields", error);
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

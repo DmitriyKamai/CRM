@@ -468,6 +468,13 @@ export function PsychologistClientsList() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 400 && data?.issues) {
+          console.error("Ошибка валидации при импорте. Детали (issues):", data.issues);
+          data.issues.forEach((issue: { path?: unknown[]; message?: string }, i: number) => {
+            const path = issue.path?.length ? issue.path.join(".") : "данные";
+            console.error(`  [${i + 1}] Поле: ${path} — ${issue.message ?? ""}`);
+          });
+        }
         throw new Error(data?.message ?? "Ошибка импорта");
       }
       setImportResult(data as { created: number; skipped: number; failed: number; errors: { row: number; message: string }[] });
