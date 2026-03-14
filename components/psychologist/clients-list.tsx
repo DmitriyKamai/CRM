@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download, ChevronDown } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -320,7 +320,8 @@ export function PsychologistClientsList() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const dateStr = new Date().toISOString().slice(0, 10);
+      const d = new Date();
+      const dateStr = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
       a.download = `clients-${dateStr}.${format === "xlsx" ? "xlsx" : format}`;
       a.click();
       URL.revokeObjectURL(url);
@@ -780,6 +781,7 @@ export function PsychologistClientsList() {
                     >
                       <Download className="h-4 w-4 mr-1.5" />
                       {exporting ? "Экспорт…" : "Экспорт"}
+                      <ChevronDown className="h-4 w-4 ml-1.5 opacity-70" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

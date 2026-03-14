@@ -12,6 +12,22 @@ function escapeCsvCell(value: string): string {
   return s;
 }
 
+/** Формат дат в экспорте: ДД.ММ.ГГГГ, при наличии времени — пробел и ЧЧ:ММ:СС. */
+function formatExportDate(value: Date | string | null | undefined): string {
+  if (value == null) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const dd = pad(d.getDate());
+  const mm = pad(d.getMonth() + 1);
+  const yyyy = d.getFullYear();
+  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+  if (hasTime) {
+    return `${dd}.${mm}.${yyyy} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  return `${dd}.${mm}.${yyyy}`;
+}
+
 type SelectOption = { value: string; label: string };
 
 function getSelectOptions(options: unknown): SelectOption[] {
@@ -45,6 +61,11 @@ function valueToDisplay(
   }
   if (type === "BOOLEAN") {
     return isTruthy(raw) ? "true" : "false";
+  }
+  if (type === "DATE") {
+    return formatExportDate(
+      typeof raw === "string" ? new Date(raw) : raw instanceof Date ? raw : null
+    );
   }
   if (raw == null) return "";
   if (typeof raw === "string") return raw;
@@ -134,7 +155,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    const dateStr = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 
     if (format === "json") {
       const jsonItems = clients.map((c) => {
@@ -147,7 +169,11 @@ export async function GET(request: Request) {
               ? valueToDisplay(raw, d.type, d.options)
               : d.type === "BOOLEAN"
                 ? isTruthy(raw)
-                : raw;
+                : d.type === "DATE"
+                  ? formatExportDate(
+                      typeof raw === "string" ? new Date(raw) : raw instanceof Date ? raw : null
+                    ) || null
+                  : raw;
           customFields[d.label] = display;
         }
         return {
@@ -156,7 +182,7 @@ export async function GET(request: Request) {
           lastName: c.lastName,
           email: c.user?.email ?? c.email ?? null,
           phone: c.phone ?? null,
-          dateOfBirth: c.dateOfBirth?.toISOString() ?? null,
+          dateOfBirth: formatExportDate(c.dateOfBirth) || null,
           country: c.country ?? null,
           city: c.city ?? null,
           gender: c.gender ?? null,
@@ -164,7 +190,7 @@ export async function GET(request: Request) {
           status: c.status?.label ?? null,
           customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
           notes: c.notes ?? null,
-          createdAt: c.createdAt.toISOString()
+          createdAt: formatExportDate(c.createdAt)
         };
       });
       const json = JSON.stringify(jsonItems, null, 2);
@@ -197,10 +223,8 @@ export async function GET(request: Request) {
     const rows: string[][] = [];
     for (const c of clients) {
       const email = c.user?.email ?? c.email ?? "";
-      const dob = c.dateOfBirth
-        ? new Date(c.dateOfBirth).toLocaleDateString("ru-RU")
-        : "";
-      const created = new Date(c.createdAt).toLocaleDateString("ru-RU");
+      const dob = formatExportDate(c.dateOfBirth);
+      const created = formatExportDate(c.createdAt);
       const baseRow = [
         c.firstName,
         c.lastName,
@@ -216,7 +240,7 @@ export async function GET(request: Request) {
       const customRow = defs.map((d) => {
         const raw = valueByClientDef.get(`${c.id}:${d.id}`);
         const display =
-          d.type === "SELECT" || d.type === "MULTI_SELECT" || d.type === "BOOLEAN"
+          d.type === "SELECT" || d.type === "MULTI_SELECT" || d.type === "BOOLEAN" || d.type === "DATE"
             ? valueToDisplay(raw, d.type, d.options)
             : jsonValueToCsv(raw);
         return display;
