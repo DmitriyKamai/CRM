@@ -1343,19 +1343,11 @@ export const PsychologistClientProfile = forwardRef<
                             </Popover>
                           )}
                           {type === "BOOLEAN" && (
-                            <div className="flex items-center gap-3">
-                              <Switch
-                                id={`cf-bool-${def.id}`}
-                                checked={value === true}
-                                onCheckedChange={(checked) => updateValue(checked)}
-                              />
-                              <Label
-                                htmlFor={`cf-bool-${def.id}`}
-                                className="text-sm font-normal cursor-pointer leading-none text-foreground"
-                              >
-                                {def.label}
-                              </Label>
-                            </div>
+                            <Switch
+                              id={`cf-bool-${def.id}`}
+                              checked={value === true}
+                              onCheckedChange={(checked) => updateValue(checked)}
+                            />
                           )}
                           {type === "SELECT" && (
                             <Select
@@ -1520,20 +1512,12 @@ export const PsychologistClientProfile = forwardRef<
                                 </Popover>
                               )}
                               {type === "BOOLEAN" && (
-                                <div className="flex items-center gap-3">
-                                  <Switch
-                                    id={`cf-bool-view-${def.id}`}
-                                    checked={value === true}
-                                    onCheckedChange={(checked) => updateValue(checked)}
-                                    disabled
-                                  />
-                                  <Label
-                                    htmlFor={`cf-bool-view-${def.id}`}
-                                    className="text-sm font-normal cursor-default leading-none text-foreground"
-                                  >
-                                    {def.label}
-                                  </Label>
-                                </div>
+                                <Switch
+                                  id={`cf-bool-view-${def.id}`}
+                                  checked={value === true}
+                                  onCheckedChange={(checked) => updateValue(checked)}
+                                  disabled
+                                />
                               )}
                               {type === "SELECT" && (
                                 <Select
