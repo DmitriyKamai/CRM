@@ -357,9 +357,16 @@ export function PsychologistClientsList() {
             return (v ?? "") as string | number | boolean;
           });
         });
+        const nextMapping: Record<string, number> = {};
+        allHeaders.forEach((h, idx) => {
+          const base = IMPORT_FIELDS.find((f) => f.label === h);
+          if (base) nextMapping[base.key] = idx;
+          const custom = importCustomDefs.find((d) => d.label === h);
+          if (custom) nextMapping[`custom:${custom.label}`] = idx;
+        });
         setImportHeaders(allHeaders);
         setImportRows(rows);
-        setImportMapping({});
+        setImportMapping(nextMapping);
         return;
       }
       if (name.endsWith(".csv")) {
@@ -372,9 +379,16 @@ export function PsychologistClientsList() {
         }
         const headers = parseCSVLine(lines[0]);
         const rows = lines.slice(1).map(parseCSVLine);
+        const nextMapping: Record<string, number> = {};
+        headers.forEach((h, idx) => {
+          const base = IMPORT_FIELDS.find((f) => f.label === h);
+          if (base) nextMapping[base.key] = idx;
+          const custom = importCustomDefs.find((d) => d.label === h);
+          if (custom) nextMapping[`custom:${custom.label}`] = idx;
+        });
         setImportHeaders(headers);
         setImportRows(rows);
-        setImportMapping({});
+        setImportMapping(nextMapping);
         return;
       }
       if (name.endsWith(".xlsx")) {
@@ -389,10 +403,19 @@ export function PsychologistClientsList() {
           return;
         }
         const headers = (data[0] ?? []).map(String);
-        const rows = (data.slice(1) as (string | number)[][]).filter((r) => r.some((c) => c != null && String(c).trim() !== ""));
+        const rows = (data.slice(1) as (string | number)[][]).filter((r) =>
+          r.some((c) => c != null && String(c).trim() !== "")
+        );
+        const nextMapping: Record<string, number> = {};
+        headers.forEach((h, idx) => {
+          const base = IMPORT_FIELDS.find((f) => f.label === h);
+          if (base) nextMapping[base.key] = idx;
+          const custom = importCustomDefs.find((d) => d.label === h);
+          if (custom) nextMapping[`custom:${custom.label}`] = idx;
+        });
         setImportHeaders(headers);
         setImportRows(rows);
-        setImportMapping({});
+        setImportMapping(nextMapping);
       }
     } catch (err) {
       console.error(err);
@@ -1057,7 +1080,7 @@ export function PsychologistClientsList() {
                 setImportOpen(open);
               }}
             >
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Импорт клиентов</DialogTitle>
                   <DialogDescription>
