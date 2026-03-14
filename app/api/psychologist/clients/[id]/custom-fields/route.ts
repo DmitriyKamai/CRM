@@ -121,6 +121,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("[PATCH /api/psychologist/clients/[id]/custom-fields] Ошибка валидации:", error);
+      console.error("[PATCH /api/psychologist/clients/[id]/custom-fields] issues:", JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

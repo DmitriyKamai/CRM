@@ -100,6 +100,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("[POST /api/auth/forgot-password] Ошибка валидации:", error);
+      console.error("[POST /api/auth/forgot-password] issues:", JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

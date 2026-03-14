@@ -285,6 +285,8 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
+      console.error("[POST /api/psychologist/clients/import] Ошибка валидации:", err);
+      console.error("[POST /api/psychologist/clients/import] issues:", JSON.stringify(err.issues, null, 2));
       return NextResponse.json(
         { message: "Ошибка валидации", issues: err.issues },
         { status: 400 }

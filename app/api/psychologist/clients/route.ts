@@ -305,6 +305,8 @@ export async function POST(request: Request) {
     return NextResponse.json(clientProfile, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("[POST /api/psychologist/clients] Ошибка валидации:", error);
+      console.error("[POST /api/psychologist/clients] issues:", JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }
@@ -355,6 +357,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("[DELETE /api/psychologist/clients] Ошибка валидации:", error);
+      console.error("[DELETE /api/psychologist/clients] issues:", JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

@@ -60,6 +60,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("[POST /api/auth/reset-password] Ошибка валидации:", error);
+      console.error("[POST /api/auth/reset-password] issues:", JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
         { message: "Ошибка валидации", issues: error.issues },
         { status: 400 }

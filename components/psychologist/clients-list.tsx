@@ -332,7 +332,6 @@ export function PsychologistClientsList() {
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = "";
     setImportFileName(file.name);
     const name = file.name.toLowerCase();
     try {
