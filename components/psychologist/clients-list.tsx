@@ -31,6 +31,12 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
   Popover,
   PopoverTrigger,
   PopoverContent
@@ -300,10 +306,10 @@ export function PsychologistClientsList() {
     }
   }
 
-  async function handleExport() {
+  async function handleExport(format: "csv" | "json" | "xlsx") {
     setExporting(true);
     try {
-      const params = new URLSearchParams({ format: "csv" });
+      const params = new URLSearchParams({ format });
       if (statusFilter !== "ALL") params.set("statusId", statusFilter);
       const res = await fetch(`/api/psychologist/clients/export?${params.toString()}`);
       if (!res.ok) {
@@ -314,7 +320,8 @@ export function PsychologistClientsList() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `clients-${dateStr}.${format === "xlsx" ? "xlsx" : format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -764,15 +771,38 @@ export function PsychologistClientsList() {
                     Выбрать несколько
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={exporting || clients.length === 0}
-                  onClick={handleExport}
-                >
-                  <Download className="h-4 w-4 mr-1.5" />
-                  {exporting ? "Экспорт…" : "Экспорт"}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={exporting || clients.length === 0}
+                    >
+                      <Download className="h-4 w-4 mr-1.5" />
+                      {exporting ? "Экспорт…" : "Экспорт"}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => handleExport("csv")}
+                      disabled={exporting}
+                    >
+                      Скачать CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExport("json")}
+                      disabled={exporting}
+                    >
+                      Скачать JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExport("xlsx")}
+                      disabled={exporting}
+                    >
+                      Скачать XLSX
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button size="sm" onClick={() => setAddOpen(true)}>
                   Добавить клиента
                 </Button>

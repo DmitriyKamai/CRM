@@ -39,6 +39,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const statusId = searchParams.get("statusId") ?? undefined;
+    const format = (searchParams.get("format") ?? "csv").toLowerCase();
 
     const clients = await prisma.clientProfile.findMany({
       where: {
@@ -91,6 +92,43 @@ export async function GET(request: Request) {
       }
     }
 
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (format === "json") {
+      const jsonItems = clients.map((c) => {
+        const customFields: Record<string, unknown> = {};
+        for (const d of defs) {
+          const val = valueByClientDef.get(`${c.id}:${d.id}`);
+          if (val !== undefined && val !== null) customFields[d.label] = val;
+        }
+        return {
+          id: c.id,
+          firstName: c.firstName,
+          lastName: c.lastName,
+          email: c.user?.email ?? c.email ?? null,
+          phone: c.phone ?? null,
+          dateOfBirth: c.dateOfBirth?.toISOString() ?? null,
+          country: c.country ?? null,
+          city: c.city ?? null,
+          gender: c.gender ?? null,
+          maritalStatus: c.maritalStatus ?? null,
+          status: c.status?.label ?? null,
+          customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
+          notes: c.notes ?? null,
+          createdAt: c.createdAt.toISOString()
+        };
+      });
+      const json = JSON.stringify(jsonItems, null, 2);
+      const filename = `clients-${dateStr}.json`;
+      return new NextResponse(json, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filename}"`
+        }
+      });
+    }
+
     const baseHeaders = [
       "Имя",
       "Фамилия",
@@ -134,12 +172,29 @@ export async function GET(request: Request) {
       rows.push([...baseRow, ...customRow, ...tailRow]);
     }
 
+    if (format === "xlsx") {
+      const XLSX = await import("xlsx");
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Клиенты");
+      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const filename = `clients-${dateStr}.xlsx`;
+      return new NextResponse(buf, {
+        status: 200,
+        headers: {
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${filename}"`
+        }
+      });
+    }
+
     const BOM = "\uFEFF";
     const headerLine = headers.map(escapeCsvCell).join(",");
     const dataLines = rows.map((row) => row.map(escapeCsvCell).join(","));
     const csv = BOM + [headerLine, ...dataLines].join("\r\n");
 
-    const filename = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `clients-${dateStr}.csv`;
     return new NextResponse(csv, {
       status: 200,
       headers: {
