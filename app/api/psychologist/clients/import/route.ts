@@ -78,37 +78,56 @@ export async function POST(request: Request) {
       return Array.isArray(arr) ? arr : [];
     }
 
-    function labelToValue(def: { type: string; options: unknown }, display: unknown): unknown {
-      if (display == null || display === "") return null;
+    type LabelToValueResult = { value: unknown; warning?: string };
+
+    function labelToValue(
+      def: { type: string; options: unknown },
+      display: unknown
+    ): LabelToValueResult {
+      if (display == null || display === "") return { value: null };
       if (def.type === "SELECT") {
         const opts = getSelectOptions(def.options);
-        const s = String(display);
+        const s = String(display).trim();
         const found = opts.find((o) => o.label === s);
-        return found ? found.value : s;
+        if (found) return { value: found.value };
+        return { value: null, warning: `значение «${s}» не найдено в списке опций` };
       }
       if (def.type === "MULTI_SELECT") {
         const opts = getSelectOptions(def.options);
         const parts = Array.isArray(display)
           ? display.map(String)
           : String(display).split(/;\s*/).map((x) => x.trim()).filter(Boolean);
-        return parts.map((p) => opts.find((o) => o.label === p)?.value ?? p);
+        const matched: string[] = [];
+        const unmatched: string[] = [];
+        for (const p of parts) {
+          const opt = opts.find((o) => o.label === p);
+          if (opt) matched.push(opt.value);
+          else unmatched.push(p);
+        }
+        const value = matched.length > 0 ? matched : null;
+        const warning =
+          unmatched.length > 0
+            ? `значения «${unmatched.join("», «")}» не найдены в списке опций`
+            : undefined;
+        return { value, warning };
       }
       if (def.type === "BOOLEAN") {
         const v = display;
-        return v === true || v === "true" || v === "1" || v === 1;
+        return { value: v === true || v === "true" || v === "1" || v === 1 };
       }
       if (def.type === "DATE" && (typeof display === "string" || display instanceof Date)) {
         const d = typeof display === "string" ? new Date(display) : display;
-        return Number.isNaN(d.getTime()) ? null : d.toISOString();
+        return { value: Number.isNaN(d.getTime()) ? null : d.toISOString() };
       }
       if (def.type === "NUMBER") {
         const n = Number(display);
-        return Number.isNaN(n) ? null : n;
+        return { value: Number.isNaN(n) ? null : n };
       }
-      return display;
+      return { value: display };
     }
 
     const errors: { row: number; message: string }[] = [];
+    const warnings: { row: number; message: string }[] = [];
     let created = 0;
     let skipped = 0;
     const skipDuplicates = body.options?.skipDuplicatesByEmail === true;
@@ -175,8 +194,17 @@ export async function POST(request: Request) {
           const def = defByLabel.get(label);
           if (!def || rawValue === undefined || rawValue === null || rawValue === "") continue;
 
-          const value = labelToValue(def, rawValue);
-          if (value === null) continue;
+          const { value, warning } = labelToValue(def, rawValue);
+          if (value === null) {
+            if (warning) {
+              warnings.push({ row: rowIndex, message: `Поле «${label}»: ${warning}` });
+            }
+            continue;
+          }
+
+          if (warning) {
+            warnings.push({ row: rowIndex, message: `Поле «${label}»: ${warning}` });
+          }
 
           await prisma.customFieldValue.create({
             data: {
@@ -196,7 +224,8 @@ export async function POST(request: Request) {
       created,
       skipped,
       failed: errors.length,
-      errors
+      errors,
+      warnings
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

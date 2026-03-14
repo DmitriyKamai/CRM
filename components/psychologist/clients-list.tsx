@@ -191,6 +191,7 @@ export function PsychologistClientsList() {
     skipped: number;
     failed: number;
     errors: { row: number; message: string }[];
+    warnings?: { row: number; message: string }[];
   } | null>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1081,70 +1082,90 @@ export function PsychologistClientsList() {
                       </p>
                       <div className="space-y-2">
                         <Label className="text-sm">Сопоставление полей</Label>
-                        <div className="grid gap-2 rounded-md border p-3">
-                          {IMPORT_FIELDS.map((f) => (
-                            <div key={f.key} className="flex items-center gap-2">
-                              <span className="w-44 shrink-0 text-sm">{f.label}</span>
-                              <Select
-                                value={
-                                  importMapping[f.key] != null ? String(importMapping[f.key]) : "__none__"
-                                }
-                                onValueChange={(v) =>
-                                  setImportMapping((prev) => {
-                                    const next = { ...prev };
-                                    if (v === "__none__") delete next[f.key];
-                                    else next[f.key] = Number(v);
-                                    return next;
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="flex-1">
-                                  <SelectValue placeholder="— не импортировать" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">— не импортировать</SelectItem>
-                                  {importHeaders.map((h, i) => (
-                                    <SelectItem key={i} value={String(i)}>
-                                      {h || `Колонка ${i + 1}`}
-                                    </SelectItem>
+                        <div className="overflow-x-auto rounded-md border">
+                          <table className="w-full border-collapse text-xs">
+                            <thead>
+                              <tr>
+                                {importHeaders.map((_, colIndex) => {
+                                  const fieldOptions = [
+                                    ...IMPORT_FIELDS,
+                                    ...importCustomDefs.map((d) => ({
+                                      key: `custom:${d.label}`,
+                                      label: d.label
+                                    }))
+                                  ];
+                                  const currentKey =
+                                    Object.entries(importMapping).find(
+                                      ([, idx]) => idx === colIndex
+                                    )?.[0] ?? "__none__";
+                                  return (
+                                    <th
+                                      key={colIndex}
+                                      className="border-b bg-muted/40 px-2 py-1 align-bottom"
+                                    >
+                                      <Select
+                                        value={currentKey}
+                                        onValueChange={(fieldKey) =>
+                                          setImportMapping((prev) => {
+                                            const next = { ...prev };
+                                            // убрать предыдущие сопоставления для этого столбца
+                                            for (const [k, idx] of Object.entries(next)) {
+                                              if (idx === colIndex) {
+                                                delete next[k];
+                                              }
+                                            }
+                                            if (fieldKey === "__none__") {
+                                              return next;
+                                            }
+                                            // один наше поле не должно быть привязано к двум столбцам
+                                            delete next[fieldKey];
+                                            next[fieldKey] = colIndex;
+                                            return next;
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue placeholder="— не импортировать" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="__none__">— не импортировать</SelectItem>
+                                          {fieldOptions.map((opt) => (
+                                            <SelectItem key={opt.key} value={opt.key}>
+                                              {opt.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </th>
+                                  );
+                                })}
+                              </tr>
+                              <tr>
+                                {importHeaders.map((h, i) => (
+                                  <th
+                                    key={i}
+                                    className="border-b bg-muted px-2 py-1 text-left font-medium"
+                                  >
+                                    {h || `Колонка ${i + 1}`}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importRows.slice(0, 5).map((row, rowIndex) => (
+                                <tr key={rowIndex}>
+                                  {importHeaders.map((_, colIndex) => (
+                                    <td
+                                      key={colIndex}
+                                      className="border-t px-2 py-1 text-[11px] text-muted-foreground"
+                                    >
+                                      {String(row[colIndex] ?? "")}
+                                    </td>
                                   ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ))}
-                          {importCustomDefs.map((d) => (
-                            <div key={d.id} className="flex items-center gap-2">
-                              <span className="w-44 shrink-0 text-sm">{d.label}</span>
-                              <Select
-                                value={
-                                  importMapping[`custom:${d.label}`] != null
-                                    ? String(importMapping[`custom:${d.label}`])
-                                    : "__none__"
-                                }
-                                onValueChange={(v) =>
-                                  setImportMapping((prev) => {
-                                    const next = { ...prev };
-                                    const key = `custom:${d.label}`;
-                                    if (v === "__none__") delete next[key];
-                                    else next[key] = Number(v);
-                                    return next;
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="flex-1">
-                                  <SelectValue placeholder="— не импортировать" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">— не импортировать</SelectItem>
-                                  {importHeaders.map((h, i) => (
-                                    <SelectItem key={i} value={String(i)}>
-                                      {h || `Колонка ${i + 1}`}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                       <label className="flex items-center gap-2 text-sm">
@@ -1156,24 +1177,43 @@ export function PsychologistClientsList() {
                         Пропускать дубликаты по email
                       </label>
                       {importResult && (
-                        <Alert variant={importResult.failed > 0 ? "destructive" : "default"}>
-                          <AlertDescription>
-                            Создано: {importResult.created}, пропущено: {importResult.skipped}
-                            {importResult.failed > 0 && `, ошибок: ${importResult.failed}`}.
-                            {importResult.errors.length > 0 && (
-                              <ul className="mt-2 list-inside text-xs">
-                                {importResult.errors.slice(0, 10).map((e, i) => (
-                                  <li key={i}>
-                                    Строка {e.row}: {e.message}
-                                  </li>
-                                ))}
-                                {importResult.errors.length > 10 && (
-                                  <li>… и ещё {importResult.errors.length - 10}</li>
-                                )}
-                              </ul>
-                            )}
-                          </AlertDescription>
-                        </Alert>
+                        <div className="space-y-2">
+                          <Alert variant={importResult.failed > 0 ? "destructive" : "default"}>
+                            <AlertDescription>
+                              Создано: {importResult.created}, пропущено: {importResult.skipped}
+                              {importResult.failed > 0 && `, ошибок: ${importResult.failed}`}.
+                              {importResult.errors.length > 0 && (
+                                <ul className="mt-2 list-inside text-xs">
+                                  {importResult.errors.slice(0, 10).map((e, i) => (
+                                    <li key={i}>
+                                      Строка {e.row}: {e.message}
+                                    </li>
+                                  ))}
+                                  {importResult.errors.length > 10 && (
+                                    <li>… и ещё {importResult.errors.length - 10}</li>
+                                  )}
+                                </ul>
+                              )}
+                            </AlertDescription>
+                          </Alert>
+                          {importResult.warnings && importResult.warnings.length > 0 && (
+                            <Alert variant="default">
+                              <AlertDescription>
+                                <span className="font-medium">Предупреждения:</span>
+                                <ul className="mt-2 list-inside text-xs">
+                                  {importResult.warnings.slice(0, 10).map((w, i) => (
+                                    <li key={i}>
+                                      Строка {w.row}: {w.message}
+                                    </li>
+                                  ))}
+                                  {importResult.warnings.length > 10 && (
+                                    <li>… и ещё {importResult.warnings.length - 10}</li>
+                                  )}
+                                </ul>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
                       )}
                     </>
                   )}
