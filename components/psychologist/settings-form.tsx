@@ -244,7 +244,6 @@ export function PsychologistSettingsForm() {
   const [newFieldGroup, setNewFieldGroup] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
   const [newFieldOptionLabels, setNewFieldOptionLabels] = useState<string[]>([]);
-  const [newFieldBooleanLabel, setNewFieldBooleanLabel] = useState("Опция");
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
@@ -1417,16 +1416,6 @@ export function PsychologistSettingsForm() {
                           </div>
                         </div>
 
-                        {newFieldType === "BOOLEAN" && (
-                          <div className="mt-2 space-y-2">
-                            <Label>Подпись флажка</Label>
-                            <Input
-                              placeholder="Опция"
-                              value={newFieldBooleanLabel}
-                              onChange={(e) => setNewFieldBooleanLabel(e.target.value)}
-                            />
-                          </div>
-                        )}
                         {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
                           <div className="mt-2 space-y-2">
                             <Label>Варианты выбора</Label>
@@ -1511,12 +1500,7 @@ export function PsychologistSettingsForm() {
                                             }))
                                             .filter((o) => o.label.length > 0)
                                         }
-                                      : newFieldType === "BOOLEAN"
-                                        ? {
-                                            booleanLabel:
-                                              newFieldBooleanLabel.trim() || "Опция"
-                                          }
-                                        : null
+                                      : null
                                 })
                               });
                               const data = await res.json().catch(() => ({}));
@@ -1530,7 +1514,6 @@ export function PsychologistSettingsForm() {
                               setNewFieldLabel("");
                               setNewFieldType("TEXT");
                               setNewFieldOptionLabels([]);
-                              setNewFieldBooleanLabel("Опция");
                               refetchCustomFields();
                             } catch (err) {
                               console.error(err);

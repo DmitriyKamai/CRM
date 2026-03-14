@@ -1353,8 +1353,7 @@ export const PsychologistClientProfile = forwardRef<
                                 htmlFor={`cf-bool-${def.id}`}
                                 className="text-sm font-normal cursor-pointer leading-none text-foreground"
                               >
-                                {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
-                                  "Опция"}
+                                {def.label}
                               </Label>
                             </div>
                           )}
@@ -1532,8 +1531,7 @@ export const PsychologistClientProfile = forwardRef<
                                     htmlFor={`cf-bool-view-${def.id}`}
                                     className="text-sm font-normal cursor-default leading-none text-foreground"
                                   >
-                                    {(def.options as { booleanLabel?: string } | null)?.booleanLabel ??
-                                      "Опция"}
+                                    {def.label}
                                   </Label>
                                 </div>
                               )}
