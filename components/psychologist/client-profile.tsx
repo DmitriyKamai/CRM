@@ -1367,7 +1367,7 @@ export const PsychologistClientProfile = forwardRef<
                             </Select>
                           )}
                           {type === "MULTI_SELECT" && (
-                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                            <div className="flex flex-col gap-2">
                               {selectOptions.length === 0 ? (
                                 <p className="text-xs text-muted-foreground">
                                   Опции не настроены.
@@ -1383,12 +1383,11 @@ export const PsychologistClientProfile = forwardRef<
                                       key={opt.value}
                                       className="flex items-center gap-2 text-sm cursor-pointer"
                                     >
-                                      <input
-                                        type="checkbox"
+                                      <Checkbox
                                         checked={checked}
-                                        onChange={(e) => {
+                                        onCheckedChange={(checked) => {
                                           const next = new Set(current);
-                                          if (e.target.checked) {
+                                          if (checked) {
                                             next.add(opt.value);
                                           } else {
                                             next.delete(opt.value);
@@ -1538,7 +1537,7 @@ export const PsychologistClientProfile = forwardRef<
                                 </Select>
                               )}
                               {type === "MULTI_SELECT" && (
-                                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                <div className="flex flex-col gap-2 pointer-events-none">
                                   {selectOptions.length === 0 ? (
                                     <p className="text-xs text-muted-foreground">
                                       Опции не настроены.
@@ -1554,20 +1553,7 @@ export const PsychologistClientProfile = forwardRef<
                                           key={opt.value}
                                           className="flex items-center gap-2 text-sm cursor-default"
                                         >
-                                          <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={(e) => {
-                                              const next = new Set(current);
-                                              if (e.target.checked) {
-                                                next.add(opt.value);
-                                              } else {
-                                                next.delete(opt.value);
-                                              }
-                                              updateValue(Array.from(next));
-                                            }}
-                                            disabled
-                                          />
+                                          <Checkbox checked={checked} />
                                           <span>{opt.label}</span>
                                         </label>
                                       );
