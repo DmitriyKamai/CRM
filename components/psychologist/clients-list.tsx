@@ -1080,14 +1080,28 @@ export function PsychologistClientsList() {
                 setImportOpen(open);
               }}
             >
-              <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen overflow-y-auto">
+              <DialogContent
+                className={
+                  importHeaders.length > 0
+                    ? "max-w-[100vw] max-h-[100vh] w-screen h-screen overflow-hidden flex flex-col"
+                    : "max-w-2xl max-h-[90vh] overflow-y-auto"
+                }
+              >
                 <DialogHeader>
                   <DialogTitle>Импорт клиентов</DialogTitle>
                   <DialogDescription>
-                    Загрузите CSV, XLSX или JSON (массив объектов). Сопоставьте колонки с полями и нажмите «Импортировать».
+                    {importHeaders.length === 0
+                      ? "Загрузите CSV, XLSX или JSON (массив объектов)."
+                      : "Сопоставьте колонки с полями и нажмите «Импортировать»."}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                <div
+                  className={
+                    importHeaders.length > 0
+                      ? "space-y-4 flex-1 min-h-0 flex flex-col"
+                      : "space-y-4"
+                  }
+                >
                   <div>
                     <Label className="text-sm">Файл</Label>
                     <Input
@@ -1100,13 +1114,13 @@ export function PsychologistClientsList() {
                   </div>
                   {importHeaders.length > 0 && (
                     <>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground shrink-0">
                         Найдено колонок: {importHeaders.length}, строк: {importRows.length}
                       </p>
-                      <div className="space-y-2">
-                        <Label className="text-sm">Сопоставление полей</Label>
-                        <div className="overflow-x-auto rounded-md border">
-                          <table className="w-full border-collapse text-xs">
+                      <div className="space-y-2 flex-1 min-h-0 flex flex-col">
+                        <Label className="text-sm shrink-0">Сопоставление полей</Label>
+                        <div className="overflow-auto rounded-md border flex-1 min-h-0">
+                          <table className="w-full min-w-max border-collapse text-xs">
                             <thead>
                               <tr>
                                 {importHeaders.map((_, colIndex) => {
