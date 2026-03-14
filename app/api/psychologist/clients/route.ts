@@ -117,19 +117,21 @@ export async function GET() {
       });
       const defIds = customDefs.map((d) => d.id);
       const defIdToLabel = new Map(customDefs.map((d) => [d.id, d.label]));
-      let customValues: { clientId: string; definitionId: string; value: unknown }[] = [];
-      if (defIds.length > 0 && clientIds.length > 0) {
-        customValues = await prisma.customFieldValue.findMany({
-          where: {
-            clientId: { in: clientIds },
-            definitionId: { in: defIds }
-          },
-          select: { clientId: true, definitionId: true, value: true }
-        });
-      }
+      const customValuesRaw =
+        defIds.length > 0 && clientIds.length > 0
+          ? await prisma.customFieldValue.findMany({
+              where: {
+                clientId: { in: clientIds },
+                definitionId: { in: defIds }
+              },
+              select: { clientId: true, definitionId: true, value: true }
+            })
+          : [];
+      const customValues = customValuesRaw
+        .filter((v) => v.clientId != null)
+        .map((v) => ({ clientId: v.clientId!, definitionId: v.definitionId, value: v.value }));
       const customByClient = new Map<string, Record<string, unknown>>();
       for (const v of customValues) {
-        if (!v.clientId) continue;
         let row = customByClient.get(v.clientId);
         if (!row) {
           row = {};
