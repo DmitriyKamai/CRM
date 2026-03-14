@@ -327,8 +327,9 @@ export function PsychologistClientsList() {
           setImportRows([]);
           return;
         }
+        const skipKeys = new Set(["customFields", "id", "createdAt"]);
         const headers = Array.from(
-          new Set(arr.flatMap((o) => Object.keys(o).filter((k) => k !== "customFields" && k !== "id" && k !== "createdAt"))))
+          new Set(arr.flatMap((o) => Object.keys(o).filter((k) => !skipKeys.has(k))))
         );
         const customKeys = Array.from(
           new Set(arr.flatMap((o) => Object.keys((o as { customFields?: Record<string, unknown> }).customFields ?? {})))
@@ -1067,10 +1068,12 @@ export function PsychologistClientsList() {
                                   importMapping[f.key] != null ? String(importMapping[f.key]) : ""
                                 }
                                 onValueChange={(v) =>
-                                  setImportMapping((prev) => ({
-                                    ...prev,
-                                    [f.key]: v === "" ? undefined : Number(v)
-                                  }))
+                                  setImportMapping((prev) => {
+                                    const next = { ...prev };
+                                    if (v === "") delete next[f.key];
+                                    else next[f.key] = Number(v);
+                                    return next;
+                                  })
                                 }
                               >
                                 <SelectTrigger className="flex-1">
@@ -1097,10 +1100,13 @@ export function PsychologistClientsList() {
                                     : ""
                                 }
                                 onValueChange={(v) =>
-                                  setImportMapping((prev) => ({
-                                    ...prev,
-                                    [`custom:${d.label}`]: v === "" ? undefined : Number(v)
-                                  }))
+                                  setImportMapping((prev) => {
+                                    const next = { ...prev };
+                                    const key = `custom:${d.label}`;
+                                    if (v === "") delete next[key];
+                                    else next[key] = Number(v);
+                                    return next;
+                                  })
                                 }
                               >
                                 <SelectTrigger className="flex-1">
