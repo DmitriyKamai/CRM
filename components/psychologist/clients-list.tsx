@@ -59,6 +59,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { PhoneInput, formatPhoneDisplay } from "@/components/ui/phone-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { cn } from "@/lib/utils";
 
@@ -636,31 +637,22 @@ export function PsychologistClientsList() {
             selectedIds.size > 0 && selectedIds.size < clients.length;
 
           return (
-            <input
-              type="checkbox"
+            <Checkbox
               aria-label="Выбрать всех клиентов"
-              checked={allSelected}
-              ref={el => {
-                if (el) {
-                  el.indeterminate = someSelected;
-                }
-              }}
-              onChange={e => toggleAll(e.target.checked)}
+              checked={someSelected ? "indeterminate" : allSelected}
+              onCheckedChange={checked => toggleAll(checked === true)}
             />
           );
         },
         cell: ({ row }) =>
           multiSelectMode ? (
-            <input
-              type="checkbox"
-              aria-label="Выбрать клиента"
-              checked={selectedIds.has(row.original.id)}
-              onChange={e => {
-                e.stopPropagation();
-                toggleOne(row.original.id);
-              }}
-              onClick={e => e.stopPropagation()}
-            />
+            <div onClick={e => e.stopPropagation()} className="flex items-center">
+              <Checkbox
+                aria-label="Выбрать клиента"
+                checked={selectedIds.has(row.original.id)}
+                onCheckedChange={() => toggleOne(row.original.id)}
+              />
+            </div>
           ) : null,
         enableSorting: false,
         enableHiding: false
@@ -1345,7 +1337,11 @@ export function PsychologistClientsList() {
                   phone: "Телефон",
                   createdAt: "Создан"
                 }}
-                onRowClick={client => setProfileClient(client)}
+                onRowClick={
+                  multiSelectMode
+                    ? client => toggleOne(client.id)
+                    : client => setProfileClient(client)
+                }
               />
             )}
           </div>
