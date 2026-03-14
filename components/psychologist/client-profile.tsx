@@ -973,7 +973,7 @@ export const PsychologistClientProfile = forwardRef<
                       variant="ghost"
                       type="button"
                       className={cn(
-                        "w-auto justify-start text-left font-normal h-auto py-0 min-h-0 text-foreground hover:bg-transparent",
+                        "w-auto justify-start text-left font-normal h-auto py-0 min-h-0 text-foreground hover:bg-transparent disabled:opacity-100",
                         !isEditing && "cursor-default"
                       )}
                       disabled={!isEditing}
@@ -1303,7 +1303,7 @@ export const PsychologistClientProfile = forwardRef<
                                 <Button
                                   variant="ghost"
                                   type="button"
-                                  className="h-auto py-0 min-h-0 text-foreground hover:bg-transparent font-normal w-auto justify-start text-left"
+                                  className="h-auto py-0 min-h-0 text-foreground hover:bg-transparent font-normal w-auto justify-start text-left disabled:opacity-100"
                                 >
                                   {value && typeof value === "string" ? (
                                     new Date(value).toLocaleDateString("ru-RU")
@@ -1481,7 +1481,7 @@ export const PsychologistClientProfile = forwardRef<
                                       variant="ghost"
                                       type="button"
                                       disabled
-                                      className="h-auto py-0 min-h-0 text-foreground font-normal w-auto justify-start text-left cursor-default hover:bg-transparent"
+                                      className="h-auto py-0 min-h-0 text-foreground font-normal w-auto justify-start text-left cursor-default hover:bg-transparent disabled:opacity-100"
                                     >
                                       {value && typeof value === "string" ? (
                                         new Date(value).toLocaleDateString("ru-RU")

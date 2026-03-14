@@ -170,9 +170,23 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.customFieldDefinition.deleteMany({
-      where: { id, psychologistId: profile.id, target: "CLIENT" }
+    const definition = await prisma.customFieldDefinition.findFirst({
+      where: { id, psychologistId: profile.id, target: "CLIENT" },
+      select: { id: true }
     });
+    if (!definition) {
+      return NextResponse.json(
+        { message: "Поле не найдено или доступ запрещён" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.$transaction([
+      prisma.customFieldValue.deleteMany({ where: { definitionId: definition.id } }),
+      prisma.customFieldDefinition.deleteMany({
+        where: { id: definition.id, psychologistId: profile.id, target: "CLIENT" }
+      })
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {
