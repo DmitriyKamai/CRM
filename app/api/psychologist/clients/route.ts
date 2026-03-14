@@ -110,26 +110,59 @@ export async function GET() {
         }));
       }
 
+      const clientIds = clients.map((c) => c.id);
+      const customDefs = await prisma.customFieldDefinition.findMany({
+        where: { psychologistId: profile.id, target: "CLIENT" },
+        select: { id: true, label: true }
+      });
+      const defIds = customDefs.map((d) => d.id);
+      const defIdToLabel = new Map(customDefs.map((d) => [d.id, d.label]));
+      let customValues: { clientId: string; definitionId: string; value: unknown }[] = [];
+      if (defIds.length > 0 && clientIds.length > 0) {
+        customValues = await prisma.customFieldValue.findMany({
+          where: {
+            clientId: { in: clientIds },
+            definitionId: { in: defIds }
+          },
+          select: { clientId: true, definitionId: true, value: true }
+        });
+      }
+      const customByClient = new Map<string, Record<string, unknown>>();
+      for (const v of customValues) {
+        if (!v.clientId) continue;
+        let row = customByClient.get(v.clientId);
+        if (!row) {
+          row = {};
+          customByClient.set(v.clientId, row);
+        }
+        const label = defIdToLabel.get(v.definitionId);
+        if (label != null) row[label] = v.value as unknown;
+      }
+
       return NextResponse.json({
-        clients: clients.map(c => ({
-          id: c.id,
-          firstName: c.firstName,
-          lastName: c.lastName,
-          dateOfBirth: c.dateOfBirth,
-          phone: c.phone,
-          country: c.country ?? null,
-          city: c.city ?? null,
-          gender: c.gender ?? null,
-          maritalStatus: c.maritalStatus ?? null,
-          notes: c.notes,
-          createdAt: c.createdAt,
-          email: c.user?.email ?? c.email ?? null,
-          hasAccount: !!c.userId,
-          avatarUrl: c.user?.image ?? null,
-          statusId: c.status?.id ?? null,
-          statusLabel: c.status?.label ?? null,
-          statusColor: c.status?.color ?? null
-        }))
+        clients: clients.map(c => {
+          const customFields = customByClient.get(c.id) ?? null;
+          return {
+            id: c.id,
+            firstName: c.firstName,
+            lastName: c.lastName,
+            dateOfBirth: c.dateOfBirth,
+            phone: c.phone,
+            country: c.country ?? null,
+            city: c.city ?? null,
+            gender: c.gender ?? null,
+            maritalStatus: c.maritalStatus ?? null,
+            notes: c.notes,
+            createdAt: c.createdAt,
+            email: c.user?.email ?? c.email ?? null,
+            hasAccount: !!c.userId,
+            avatarUrl: c.user?.image ?? null,
+            statusId: c.status?.id ?? null,
+            statusLabel: c.status?.label ?? null,
+            statusColor: c.status?.color ?? null,
+            ...(customFields && Object.keys(customFields).length > 0 ? { customFields } : {})
+          };
+        })
       });
     });
   } catch (err) {

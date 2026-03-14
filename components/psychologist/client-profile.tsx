@@ -64,9 +64,9 @@ import { cn } from "@/lib/utils";
 
 const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
 const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-full md:w-[200px]";
-const FIELD_VALUE_CLASS = "min-w-0 w-full md:min-w-[14rem] md:w-fit";
+const FIELD_VALUE_CLASS = "min-w-0 w-full md:min-w-[28rem] md:w-fit";
 const PLAIN_INPUT_CLASS =
-  "border-0 bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-0 min-h-0 w-full min-w-0 md:w-auto md:min-w-[14rem]";
+  "border-0 bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-0 min-h-0 w-full min-w-0 md:w-auto md:min-w-[28rem]";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },

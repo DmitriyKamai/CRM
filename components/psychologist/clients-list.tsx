@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download, ChevronDown, Upload } from "lucide-react";
 import { ru } from "date-fns/locale";
@@ -81,6 +82,7 @@ type ClientDto = {
   statusId?: string | null;
   statusLabel?: string | null;
   statusColor?: string | null;
+  customFields?: Record<string, unknown>;
 };
 
 const AVATAR_COLORS = [
@@ -100,6 +102,20 @@ function getClientColor(id: string): string {
     hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   }
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function formatCustomFieldValue(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value === "boolean") return value ? "Да" : "Нет";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    try {
+      return new Date(value).toLocaleDateString("ru-RU");
+    } catch {
+      return value;
+    }
+  }
+  if (value instanceof Date) return value.toLocaleDateString("ru-RU");
+  return String(value);
 }
 
 function ClientAvatar({ client, size = "md" }: { client: ClientDto; size?: "sm" | "md" }) {
@@ -130,12 +146,27 @@ function ClientAvatar({ client, size = "md" }: { client: ClientDto; size?: "sm" 
 }
 
 export function PsychologistClientsList() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [clients, setClients] = useState<ClientDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
   const [profileClient, setProfileClient] = useState<ClientDto | null>(null);
+
+  // Синхронизация профиля с URL: при переходе по ссылке «Клиенты» в навбаре (без ?profile=) закрываем профиль
+  const profileIdFromUrl = searchParams.get("profile");
+  useEffect(() => {
+    if (!profileIdFromUrl) {
+      setProfileClient(null);
+      return;
+    }
+    const client = clients.find(c => c.id === profileIdFromUrl);
+    if (client) setProfileClient(client);
+  }, [profileIdFromUrl, clients]);
 
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -155,6 +186,7 @@ export function PsychologistClientsList() {
   const [statuses, setStatuses] = useState<Array<{ id: string; label: string; color: string }>>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [initialStatusId, setInitialStatusId] = useState<string | null>(null);
+  const [tableCustomFieldDefs, setTableCustomFieldDefs] = useState<Array<{ id: string; label: string }>>([]);
 
   const MIN_LIST_WIDTH = 720;
   const listContainerRef = useRef<HTMLDivElement | null>(null);
@@ -259,6 +291,21 @@ export function PsychologistClientsList() {
       }
     }
     void loadStatuses();
+  }, []);
+
+  useEffect(() => {
+    async function loadCustomFieldDefs() {
+      try {
+        const res = await fetch("/api/psychologist/custom-fields");
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        const items = data?.items ?? [];
+        setTableCustomFieldDefs(items.map((d: { id: string; label: string }) => ({ id: d.id, label: d.label })));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void loadCustomFieldDefs();
   }, []);
 
   useEffect(() => {
@@ -611,6 +658,7 @@ export function PsychologistClientsList() {
         throw new Error(data?.message ?? "Не удалось удалить клиента");
       }
       setProfileClient(null);
+      router.replace(pathname);
       await loadClients();
     } catch (err) {
       console.error(err);
@@ -669,6 +717,8 @@ export function PsychologistClientsList() {
       },
       {
         id: "status",
+        accessorFn: row => row.statusLabel ?? "",
+        enableHiding: false,
         header: () => (
           <span className="text-xs font-medium text-muted-foreground">Статус</span>
         ),
@@ -734,6 +784,77 @@ export function PsychologistClientsList() {
         }
       },
       {
+        id: "dateOfBirth",
+        accessorFn: row => row.dateOfBirth ?? "",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Дата рождения</span>
+        ),
+        cell: ({ row }) => {
+          const v = row.original.dateOfBirth;
+          if (!v) return <span className="text-muted-foreground">—</span>;
+          try {
+            const d = typeof v === "string" ? new Date(v) : v;
+            return (
+              <span className="text-muted-foreground">{d.toLocaleDateString("ru-RU")}</span>
+            );
+          } catch {
+            return <span className="text-muted-foreground">—</span>;
+          }
+        }
+      },
+      {
+        accessorKey: "country",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Страна</span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.country ?? "—"}</span>
+        )
+      },
+      {
+        accessorKey: "city",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Город</span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.city ?? "—"}</span>
+        )
+      },
+      {
+        accessorKey: "gender",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Пол</span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.gender ?? "—"}</span>
+        )
+      },
+      {
+        accessorKey: "maritalStatus",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Семейное положение</span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.maritalStatus ?? "—"}</span>
+        )
+      },
+      {
+        accessorKey: "notes",
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">Заметки</span>
+        ),
+        cell: ({ row }) => {
+          const n = row.original.notes;
+          if (!n || !n.trim()) return <span className="text-muted-foreground">—</span>;
+          const short = n.length > 40 ? `${n.slice(0, 40)}…` : n;
+          return (
+            <span className="text-muted-foreground truncate max-w-[200px] block" title={n}>
+              {short}
+            </span>
+          );
+        }
+      },
+      {
         accessorKey: "email",
         header: ({ column }) => (
           <Button
@@ -780,9 +901,21 @@ export function PsychologistClientsList() {
             {new Date(row.original.createdAt).toLocaleDateString("ru-RU")}
           </span>
         )
-      }
+      },
+      ...tableCustomFieldDefs.map(def => ({
+        id: `custom:${def.label}`,
+        accessorFn: (row: ClientDto) => (row.customFields ?? {})[def.label],
+        header: () => (
+          <span className="text-xs font-medium text-muted-foreground">{def.label}</span>
+        ),
+        cell: ({ row }: { row: { original: ClientDto } }) => (
+          <span className="text-muted-foreground truncate max-w-[180px] block" title={String((row.original.customFields ?? {})[def.label] ?? "")}>
+            {formatCustomFieldValue((row.original.customFields ?? {})[def.label])}
+          </span>
+        )
+      }))
     ],
-    [clients, selectedIds, multiSelectMode]
+    [clients, selectedIds, multiSelectMode, tableCustomFieldDefs]
   );
 
   // Профиль клиента поверх списка (на всю основную ширину)
@@ -796,7 +929,7 @@ export function PsychologistClientsList() {
               variant="ghost"
               size="sm"
               className="gap-2 px-2"
-              onClick={() => setProfileClient(null)}
+              onClick={() => { setProfileClient(null); router.replace(pathname); }}
             >
               <span className="text-lg leading-none">←</span>
               <span className="text-sm">Вернуться назад</span>
@@ -879,6 +1012,7 @@ export function PsychologistClientsList() {
             onDeleted={async () => {
               setProfileEditing(false);
               setProfileClient(null);
+              router.replace(pathname);
               await loadClients();
             }}
             onUpdated={next => {
@@ -1332,15 +1466,35 @@ export function PsychologistClientsList() {
                 filterColumnId="search"
                 filterPlaceholder="Поиск по имени, email или телефону..."
                 columnLabels={{
+                  status: "Статус",
                   name: "Имя",
+                  dateOfBirth: "Дата рождения",
+                  country: "Страна",
+                  city: "Город",
+                  gender: "Пол",
+                  maritalStatus: "Семейное положение",
+                  notes: "Заметки",
                   email: "Email",
                   phone: "Телефон",
-                  createdAt: "Создан"
+                  createdAt: "Создан",
+                  ...Object.fromEntries(tableCustomFieldDefs.map(d => [`custom:${d.label}`, d.label]))
+                }}
+                initialColumnVisibility={{
+                  dateOfBirth: false,
+                  country: false,
+                  city: false,
+                  gender: false,
+                  maritalStatus: false,
+                  notes: false,
+                  ...Object.fromEntries(tableCustomFieldDefs.map(d => [`custom:${d.label}`, false]))
                 }}
                 onRowClick={
                   multiSelectMode
                     ? client => toggleOne(client.id)
-                    : client => setProfileClient(client)
+                    : client => {
+                        setProfileClient(client);
+                        router.replace(`${pathname}?profile=${client.id}`);
+                      }
                 }
               />
             )}
