@@ -16,7 +16,12 @@ const createClientSchema = z.object({
   lastName: z.string().min(1, "Укажите фамилию"),
   dateOfBirth: z.string().optional(),
   phone: z.string().optional(),
-  notes: z.string().optional()
+  country: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
+  maritalStatus: z.string().optional().nullable(),
+  notes: z.string().optional(),
+  statusId: z.string().optional().nullable()
 });
 
 const bulkDeleteSchema = z.object({
@@ -206,6 +211,7 @@ export async function POST(request: Request) {
         : null;
 
     const defaultStatusId = await getDefaultStatusId(psych.id);
+    const statusIdToUse = parsed.statusId ?? defaultStatusId ?? undefined;
 
     if (email) {
       const user = await prisma.user.findUnique({
@@ -238,8 +244,12 @@ export async function POST(request: Request) {
             lastName: parsed.lastName,
             dateOfBirth: dob ?? undefined,
             phone: parsed.phone,
+            country: parsed.country ?? undefined,
+            city: parsed.city ?? undefined,
+            gender: parsed.gender ?? undefined,
+            maritalStatus: parsed.maritalStatus ?? undefined,
             notes: parsed.notes,
-            statusId: defaultStatusId ?? undefined
+            statusId: statusIdToUse
           }
         });
         return NextResponse.json(clientProfile, { status: 201 });
@@ -265,8 +275,12 @@ export async function POST(request: Request) {
           lastName: parsed.lastName,
           dateOfBirth: dob ?? undefined,
           phone: parsed.phone,
+          country: parsed.country ?? undefined,
+          city: parsed.city ?? undefined,
+          gender: parsed.gender ?? undefined,
+          maritalStatus: parsed.maritalStatus ?? undefined,
           notes: parsed.notes,
-          statusId: defaultStatusId ?? undefined
+          statusId: statusIdToUse
         }
       });
       return NextResponse.json(clientProfile, { status: 201 });
@@ -280,8 +294,12 @@ export async function POST(request: Request) {
         lastName: parsed.lastName,
         dateOfBirth: dob ?? undefined,
         phone: parsed.phone,
+        country: parsed.country ?? undefined,
+        city: parsed.city ?? undefined,
+        gender: parsed.gender ?? undefined,
+        maritalStatus: parsed.maritalStatus ?? undefined,
         notes: parsed.notes,
-        statusId: defaultStatusId ?? undefined
+        statusId: statusIdToUse
       }
     });
     return NextResponse.json(clientProfile, { status: 201 });

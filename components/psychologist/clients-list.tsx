@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download, ChevronDown } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download, ChevronDown, Upload } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -36,6 +36,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverTrigger,
@@ -158,6 +165,34 @@ export function PsychologistClientsList() {
   const [profileEditing, setProfileEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  const IMPORT_FIELDS: { key: string; label: string }[] = [
+    { key: "firstName", label: "Имя" },
+    { key: "lastName", label: "Фамилия" },
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Телефон" },
+    { key: "dateOfBirth", label: "Дата рождения" },
+    { key: "country", label: "Страна" },
+    { key: "city", label: "Город" },
+    { key: "gender", label: "Пол" },
+    { key: "maritalStatus", label: "Семейное положение" },
+    { key: "status", label: "Статус" },
+    { key: "notes", label: "Заметки" }
+  ];
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [importHeaders, setImportHeaders] = useState<string[]>([]);
+  const [importRows, setImportRows] = useState<(string | number | boolean)[][]>([]);
+  const [importMapping, setImportMapping] = useState<Record<string, number>>({});
+  const [importCustomDefs, setImportCustomDefs] = useState<Array<{ id: string; label: string }>>([]);
+  const [importSkipDuplicates, setImportSkipDuplicates] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    skipped: number;
+    failed: number;
+    errors: { row: number; message: string }[];
+  } | null>(null);
+
   useEffect(() => {
     const el = listContainerRef.current;
     if (!el) return;
@@ -224,6 +259,188 @@ export function PsychologistClientsList() {
   useEffect(() => {
     setProfileEditing(false);
   }, [profileClient?.id]);
+
+  useEffect(() => {
+    if (!importOpen) return;
+    setImportResult(null);
+    setImportHeaders([]);
+    setImportRows([]);
+    setImportMapping({});
+    async function load() {
+      try {
+        const res = await fetch("/api/psychologist/custom-fields");
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        const items = data?.items ?? [];
+        setImportCustomDefs(items.map((d: { id: string; label: string }) => ({ id: d.id, label: d.label })));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void load();
+  }, [importOpen]);
+
+  function parseCSVLine(line: string): string[] {
+    const out: string[] = [];
+    let i = 0;
+    while (i < line.length) {
+      if (line[i] === '"') {
+        let cell = "";
+        i++;
+        while (i < line.length) {
+          if (line[i] === '"') {
+            i++;
+            if (line[i] === '"') {
+              cell += '"';
+              i++;
+            } else break;
+          } else {
+            cell += line[i];
+            i++;
+          }
+        }
+        out.push(cell);
+      } else {
+        let cell = "";
+        while (i < line.length && line[i] !== ",") {
+          cell += line[i];
+          i++;
+        }
+        out.push(cell.trim());
+        i++;
+      }
+    }
+    return out;
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const name = file.name.toLowerCase();
+    try {
+      if (name.endsWith(".json")) {
+        const text = await file.text();
+        const arr = JSON.parse(text) as Record<string, unknown>[];
+        if (!Array.isArray(arr) || arr.length === 0) {
+          setImportHeaders([]);
+          setImportRows([]);
+          return;
+        }
+        const headers = Array.from(
+          new Set(arr.flatMap((o) => Object.keys(o).filter((k) => k !== "customFields" && k !== "id" && k !== "createdAt"))))
+        );
+        const customKeys = Array.from(
+          new Set(arr.flatMap((o) => Object.keys((o as { customFields?: Record<string, unknown> }).customFields ?? {})))
+        );
+        const allHeaders = [...headers, ...customKeys];
+        const rows = arr.map((obj) => {
+          const cf = (obj as { customFields?: Record<string, unknown> }).customFields ?? {};
+          return allHeaders.map((h) => {
+            if (cf[h] !== undefined) return cf[h] as string | number | boolean;
+            const v = (obj as Record<string, unknown>)[h];
+            if (v instanceof Date) return v.toISOString();
+            return (v ?? "") as string | number | boolean;
+          });
+        });
+        setImportHeaders(allHeaders);
+        setImportRows(rows);
+        setImportMapping({});
+        return;
+      }
+      if (name.endsWith(".csv")) {
+        const text = await file.text();
+        const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((l) => l.trim());
+        if (lines.length === 0) {
+          setImportHeaders([]);
+          setImportRows([]);
+          return;
+        }
+        const headers = parseCSVLine(lines[0]);
+        const rows = lines.slice(1).map(parseCSVLine);
+        setImportHeaders(headers);
+        setImportRows(rows);
+        setImportMapping({});
+        return;
+      }
+      if (name.endsWith(".xlsx")) {
+        const XLSX = await import("xlsx");
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+        if (!data.length) {
+          setImportHeaders([]);
+          setImportRows([]);
+          return;
+        }
+        const headers = (data[0] ?? []).map(String);
+        const rows = (data.slice(1) as (string | number)[][]).filter((r) => r.some((c) => c != null && String(c).trim() !== ""));
+        setImportHeaders(headers);
+        setImportRows(rows);
+        setImportMapping({});
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Не удалось прочитать файл");
+    }
+  }
+
+  async function handleImportSubmit() {
+    if (importRows.length === 0) return;
+    setImporting(true);
+    setError(null);
+    try {
+      const clients = importRows.map((row) => {
+        const get = (key: string) => {
+          const idx = importMapping[key];
+          if (idx == null || idx < 0 || idx >= row.length) return null;
+          const v = row[idx];
+          return v == null ? null : String(v).trim() || null;
+        };
+        const customFields: Record<string, unknown> = {};
+        for (const d of importCustomDefs) {
+          const v = get(`custom:${d.label}`);
+          if (v !== null && v !== undefined) customFields[d.label] = v;
+        }
+        return {
+          firstName: get("firstName") ?? "",
+          lastName: get("lastName") ?? "",
+          email: get("email"),
+          phone: get("phone"),
+          dateOfBirth: get("dateOfBirth"),
+          country: get("country"),
+          city: get("city"),
+          gender: get("gender"),
+          maritalStatus: get("maritalStatus"),
+          status: get("status"),
+          notes: get("notes"),
+          customFields: Object.keys(customFields).length > 0 ? customFields : undefined
+        };
+      });
+      const res = await fetch("/api/psychologist/clients/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clients,
+          options: { skipDuplicatesByEmail: importSkipDuplicates }
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Ошибка импорта");
+      }
+      setImportResult(data as { created: number; skipped: number; failed: number; errors: { row: number; message: string }[] });
+      if (data.created > 0 || data.skipped > 0) {
+        void loadClients();
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Ошибка импорта");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -805,11 +1022,152 @@ export function PsychologistClientsList() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                  <Upload className="h-4 w-4 mr-1.5" />
+                  Импорт
+                </Button>
                 <Button size="sm" onClick={() => setAddOpen(true)}>
                   Добавить клиента
                 </Button>
               </div>
             </div>
+
+            {/* Импорт */}
+            <Dialog open={importOpen} onOpenChange={setImportOpen}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Импорт клиентов</DialogTitle>
+                  <DialogDescription>
+                    Загрузите CSV, XLSX или JSON (массив объектов). Сопоставьте колонки с полями и нажмите «Импортировать».
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm">Файл</Label>
+                    <Input
+                      type="file"
+                      accept=".csv,.xlsx,.json"
+                      className="mt-1"
+                      onChange={handleImportFile}
+                    />
+                  </div>
+                  {importHeaders.length > 0 && (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Найдено колонок: {importHeaders.length}, строк: {importRows.length}
+                      </p>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Сопоставление полей</Label>
+                        <div className="grid gap-2 rounded-md border p-3">
+                          {IMPORT_FIELDS.map((f) => (
+                            <div key={f.key} className="flex items-center gap-2">
+                              <span className="w-44 shrink-0 text-sm">{f.label}</span>
+                              <Select
+                                value={
+                                  importMapping[f.key] != null ? String(importMapping[f.key]) : ""
+                                }
+                                onValueChange={(v) =>
+                                  setImportMapping((prev) => ({
+                                    ...prev,
+                                    [f.key]: v === "" ? undefined : Number(v)
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="— не импортировать" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">— не импортировать</SelectItem>
+                                  {importHeaders.map((h, i) => (
+                                    <SelectItem key={i} value={String(i)}>
+                                      {h || `Колонка ${i + 1}`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                          {importCustomDefs.map((d) => (
+                            <div key={d.id} className="flex items-center gap-2">
+                              <span className="w-44 shrink-0 text-sm">{d.label}</span>
+                              <Select
+                                value={
+                                  importMapping[`custom:${d.label}`] != null
+                                    ? String(importMapping[`custom:${d.label}`])
+                                    : ""
+                                }
+                                onValueChange={(v) =>
+                                  setImportMapping((prev) => ({
+                                    ...prev,
+                                    [`custom:${d.label}`]: v === "" ? undefined : Number(v)
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="— не импортировать" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">— не импортировать</SelectItem>
+                                  {importHeaders.map((h, i) => (
+                                    <SelectItem key={i} value={String(i)}>
+                                      {h || `Колонка ${i + 1}`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={importSkipDuplicates}
+                          onChange={(e) => setImportSkipDuplicates(e.target.checked)}
+                        />
+                        Пропускать дубликаты по email
+                      </label>
+                      {importResult && (
+                        <Alert variant={importResult.failed > 0 ? "destructive" : "default"}>
+                          <AlertDescription>
+                            Создано: {importResult.created}, пропущено: {importResult.skipped}
+                            {importResult.failed > 0 && `, ошибок: ${importResult.failed}`}.
+                            {importResult.errors.length > 0 && (
+                              <ul className="mt-2 list-inside text-xs">
+                                {importResult.errors.slice(0, 10).map((e, i) => (
+                                  <li key={i}>
+                                    Строка {e.row}: {e.message}
+                                  </li>
+                                ))}
+                                {importResult.errors.length > 10 && (
+                                  <li>… и ещё {importResult.errors.length - 10}</li>
+                                )}
+                              </ul>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setImportOpen(false)}>
+                    Закрыть
+                  </Button>
+                  <Button
+                    disabled={
+                      importing ||
+                      importRows.length === 0 ||
+                      importMapping.firstName == null ||
+                      importMapping.lastName == null
+                    }
+                    onClick={() => void handleImportSubmit()}
+                  >
+                    {importing ? "Импорт…" : "Импортировать"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Подтверждение массового удаления */}
             <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
