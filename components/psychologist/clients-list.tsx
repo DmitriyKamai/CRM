@@ -192,6 +192,7 @@ export function PsychologistClientsList() {
     failed: number;
     errors: { row: number; message: string }[];
   } | null>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const el = listContainerRef.current;
@@ -278,6 +279,17 @@ export function PsychologistClientsList() {
       }
     }
     void load();
+  }, [importOpen]);
+
+  useEffect(() => {
+    if (!importOpen) return;
+    function onWindowFocus() {
+      if (importFileInputRef.current && document.activeElement === importFileInputRef.current) {
+        importFileInputRef.current.blur();
+      }
+    }
+    window.addEventListener("focus", onWindowFocus);
+    return () => window.removeEventListener("focus", onWindowFocus);
   }, [importOpen]);
 
   function parseCSVLine(line: string): string[] {
@@ -1034,7 +1046,16 @@ export function PsychologistClientsList() {
             </div>
 
             {/* Импорт */}
-            <Dialog open={importOpen} onOpenChange={setImportOpen}>
+            <Dialog
+              open={importOpen}
+              onOpenChange={(open) => {
+                if (!open) {
+                  importFileInputRef.current?.blur();
+                  if (importFileInputRef.current) importFileInputRef.current.value = "";
+                }
+                setImportOpen(open);
+              }}
+            >
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Импорт клиентов</DialogTitle>
@@ -1046,6 +1067,7 @@ export function PsychologistClientsList() {
                   <div>
                     <Label className="text-sm">Файл</Label>
                     <Input
+                      ref={importFileInputRef}
                       type="file"
                       accept=".csv,.xlsx,.json"
                       className="mt-1"
@@ -1065,12 +1087,12 @@ export function PsychologistClientsList() {
                               <span className="w-44 shrink-0 text-sm">{f.label}</span>
                               <Select
                                 value={
-                                  importMapping[f.key] != null ? String(importMapping[f.key]) : ""
+                                  importMapping[f.key] != null ? String(importMapping[f.key]) : "__none__"
                                 }
                                 onValueChange={(v) =>
                                   setImportMapping((prev) => {
                                     const next = { ...prev };
-                                    if (v === "") delete next[f.key];
+                                    if (v === "__none__") delete next[f.key];
                                     else next[f.key] = Number(v);
                                     return next;
                                   })
@@ -1080,7 +1102,7 @@ export function PsychologistClientsList() {
                                   <SelectValue placeholder="— не импортировать" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">— не импортировать</SelectItem>
+                                  <SelectItem value="__none__">— не импортировать</SelectItem>
                                   {importHeaders.map((h, i) => (
                                     <SelectItem key={i} value={String(i)}>
                                       {h || `Колонка ${i + 1}`}
@@ -1097,13 +1119,13 @@ export function PsychologistClientsList() {
                                 value={
                                   importMapping[`custom:${d.label}`] != null
                                     ? String(importMapping[`custom:${d.label}`])
-                                    : ""
+                                    : "__none__"
                                 }
                                 onValueChange={(v) =>
                                   setImportMapping((prev) => {
                                     const next = { ...prev };
                                     const key = `custom:${d.label}`;
-                                    if (v === "") delete next[key];
+                                    if (v === "__none__") delete next[key];
                                     else next[key] = Number(v);
                                     return next;
                                   })
@@ -1113,7 +1135,7 @@ export function PsychologistClientsList() {
                                   <SelectValue placeholder="— не импортировать" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">— не импортировать</SelectItem>
+                                  <SelectItem value="__none__">— не импортировать</SelectItem>
                                   {importHeaders.map((h, i) => (
                                     <SelectItem key={i} value={String(i)}>
                                       {h || `Колонка ${i + 1}`}
