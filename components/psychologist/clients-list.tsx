@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -150,6 +150,7 @@ export function PsychologistClientsList() {
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   const [singleDeleting, setSingleDeleting] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const el = listContainerRef.current;
@@ -296,6 +297,31 @@ export function PsychologistClientsList() {
       );
     } finally {
       setBulkDeleting(false);
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ format: "csv" });
+      if (statusFilter !== "ALL") params.set("statusId", statusFilter);
+      const res = await fetch(`/api/psychologist/clients/export?${params.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? "Не удалось выгрузить список");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Ошибка экспорта");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -738,6 +764,15 @@ export function PsychologistClientsList() {
                     Выбрать несколько
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={exporting || clients.length === 0}
+                  onClick={handleExport}
+                >
+                  <Download className="h-4 w-4 mr-1.5" />
+                  {exporting ? "Экспорт…" : "Экспорт"}
+                </Button>
                 <Button size="sm" onClick={() => setAddOpen(true)}>
                   Добавить клиента
                 </Button>
