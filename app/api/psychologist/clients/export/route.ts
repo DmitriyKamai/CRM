@@ -12,6 +12,48 @@ function escapeCsvCell(value: string): string {
   return s;
 }
 
+type SelectOption = { value: string; label: string };
+
+function getSelectOptions(options: unknown): SelectOption[] {
+  if (!options || typeof options !== "object") return [];
+  const opts = (options as { selectOptions?: SelectOption[] }).selectOptions;
+  return Array.isArray(opts) ? opts : [];
+}
+
+function isTruthy(raw: unknown): boolean {
+  if (raw === true || raw === "true" || raw === 1) return true;
+  return false;
+}
+
+/** Преобразует сырое значение в отображаемый текст (для SELECT/MULTI_SELECT — подпись варианта, не ключ; для BOOLEAN — "true"/"false"). */
+function valueToDisplay(
+  raw: unknown,
+  type: string,
+  options: unknown
+): string {
+  if (raw == null && type !== "BOOLEAN") return "";
+  const selectOptions = getSelectOptions(options);
+  const valueToLabel = (v: string) => {
+    const opt = selectOptions.find((o) => o.value === v);
+    return opt ? opt.label : v;
+  };
+  if (type === "SELECT" && typeof raw === "string") {
+    return valueToLabel(raw);
+  }
+  if (type === "MULTI_SELECT" && Array.isArray(raw)) {
+    return raw.map((v) => valueToLabel(String(v))).join("; ");
+  }
+  if (type === "BOOLEAN") {
+    return isTruthy(raw) ? "true" : "false";
+  }
+  if (raw == null) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "number" || typeof raw === "boolean") return String(raw);
+  if (Array.isArray(raw)) return raw.map((v) => valueToDisplay(v, type, options)).join("; ");
+  if (typeof raw === "object") return JSON.stringify(raw);
+  return String(raw);
+}
+
 function jsonValueToCsv(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
@@ -68,7 +110,7 @@ export async function GET(request: Request) {
     const defs = await prisma.customFieldDefinition.findMany({
       where: { psychologistId: profile.id, target: "CLIENT" },
       orderBy: [{ group: "asc" }, { order: "asc" }, { createdAt: "asc" }],
-      select: { id: true, label: true }
+      select: { id: true, label: true, type: true, options: true }
     });
 
     const clientIds = clients.map((c) => c.id);
@@ -98,8 +140,15 @@ export async function GET(request: Request) {
       const jsonItems = clients.map((c) => {
         const customFields: Record<string, unknown> = {};
         for (const d of defs) {
-          const val = valueByClientDef.get(`${c.id}:${d.id}`);
-          if (val !== undefined && val !== null) customFields[d.label] = val;
+          const raw = valueByClientDef.get(`${c.id}:${d.id}`);
+          if (raw === undefined || raw === null) continue;
+          const display =
+            d.type === "SELECT" || d.type === "MULTI_SELECT"
+              ? valueToDisplay(raw, d.type, d.options)
+              : d.type === "BOOLEAN"
+                ? isTruthy(raw)
+                : raw;
+          customFields[d.label] = display;
         }
         return {
           id: c.id,
@@ -165,8 +214,12 @@ export async function GET(request: Request) {
         c.status?.label ?? ""
       ];
       const customRow = defs.map((d) => {
-        const val = valueByClientDef.get(`${c.id}:${d.id}`);
-        return jsonValueToCsv(val);
+        const raw = valueByClientDef.get(`${c.id}:${d.id}`);
+        const display =
+          d.type === "SELECT" || d.type === "MULTI_SELECT" || d.type === "BOOLEAN"
+            ? valueToDisplay(raw, d.type, d.options)
+            : jsonValueToCsv(raw);
+        return display;
       });
       const tailRow = [c.notes ?? "", created];
       rows.push([...baseRow, ...customRow, ...tailRow]);
