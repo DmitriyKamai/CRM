@@ -188,11 +188,13 @@ export function PsychologistClientsList() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     created: number;
+    updated?: number;
     skipped: number;
     failed: number;
     errors: { row: number; message: string }[];
     warnings?: { row: number; message: string }[];
   } | null>(null);
+  const [importFileName, setImportFileName] = useState<string | null>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -265,6 +267,7 @@ export function PsychologistClientsList() {
   useEffect(() => {
     if (!importOpen) return;
     setImportResult(null);
+    setImportFileName(null);
     setImportHeaders([]);
     setImportRows([]);
     setImportMapping({});
@@ -330,6 +333,7 @@ export function PsychologistClientsList() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
+    setImportFileName(file.name);
     const name = file.name.toLowerCase();
     try {
       if (name.endsWith(".json")) {
@@ -1102,7 +1106,7 @@ export function PsychologistClientsList() {
                       : "space-y-4"
                   }
                 >
-                  <div>
+                  <div className="space-y-1">
                     <Label className="text-sm">Файл</Label>
                     <Input
                       ref={importFileInputRef}
@@ -1111,6 +1115,11 @@ export function PsychologistClientsList() {
                       className="mt-1"
                       onChange={handleImportFile}
                     />
+                    {importFileName && (
+                      <p className="text-xs text-muted-foreground break-all">
+                        Выбран файл: <span className="font-medium">{importFileName}</span>
+                      </p>
+                    )}
                   </div>
                   {importHeaders.length > 0 && (
                     <>
@@ -1217,7 +1226,9 @@ export function PsychologistClientsList() {
                         <div className="space-y-2">
                           <Alert variant={importResult.failed > 0 ? "destructive" : "default"}>
                             <AlertDescription>
-                              Создано: {importResult.created}, пропущено: {importResult.skipped}
+                              Создано: {importResult.created}
+                              {(importResult.updated ?? 0) > 0 && `, обновлено: ${importResult.updated}`}
+                              {importResult.skipped > 0 && `, пропущено: ${importResult.skipped}`}
                               {importResult.failed > 0 && `, ошибок: ${importResult.failed}`}.
                               {importResult.errors.length > 0 && (
                                 <ul className="mt-2 list-inside text-xs">

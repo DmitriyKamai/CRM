@@ -129,6 +129,7 @@ export async function POST(request: Request) {
     const errors: { row: number; message: string }[] = [];
     const warnings: { row: number; message: string }[] = [];
     let created = 0;
+    let updated = 0;
     let skipped = 0;
     const skipDuplicates = body.options?.skipDuplicatesByEmail === true;
 
@@ -141,16 +142,6 @@ export async function POST(request: Request) {
           row.email != null && String(row.email).trim() !== ""
             ? normalizeEmail(String(row.email).trim())
             : null;
-
-        if (skipDuplicates && emailRaw) {
-          const existing = await prisma.clientProfile.findFirst({
-            where: { psychologistId: profile.id, email: emailRaw }
-          });
-          if (existing) {
-            skipped++;
-            continue;
-          }
-        }
 
         const dob =
           row.dateOfBirth != null && String(row.dateOfBirth).trim() !== ""
@@ -170,7 +161,71 @@ export async function POST(request: Request) {
             ? statusByLabel.get(String(row.status).trim()) ?? defaultStatusId
             : defaultStatusId;
 
-        const client = await prisma.clientProfile.create({
+        let client: { id: string };
+
+        if (skipDuplicates && emailRaw) {
+          const existing = await prisma.clientProfile.findFirst({
+            where: { psychologistId: profile.id, email: emailRaw }
+          });
+          if (existing) {
+            await prisma.clientProfile.update({
+              where: { id: existing.id },
+              data: {
+                firstName: row.firstName.trim(),
+                lastName: row.lastName.trim(),
+                dateOfBirth: dob ?? undefined,
+                phone: row.phone != null ? String(row.phone).trim() || null : null,
+                country: row.country != null ? String(row.country).trim() || null : null,
+                city: row.city != null ? String(row.city).trim() || null : null,
+                gender: row.gender != null ? String(row.gender).trim() || null : null,
+                maritalStatus:
+                  row.maritalStatus != null ? String(row.maritalStatus).trim() || null : null,
+                notes: row.notes != null ? String(row.notes).trim() || null : null,
+                statusId: statusId ?? undefined
+              }
+            });
+            client = { id: existing.id };
+            updated++;
+
+            const customFields = row.customFields ?? {};
+            for (const [label, rawValue] of Object.entries(customFields)) {
+              const def = defByLabel.get(label);
+              if (!def || rawValue === undefined || rawValue === null || rawValue === "") continue;
+
+              const { value, warning } = labelToValue(def, rawValue);
+              if (value === null) {
+                if (warning) {
+                  warnings.push({ row: rowIndex, message: `Поле «${label}»: ${warning}` });
+                }
+                continue;
+              }
+              if (warning) {
+                warnings.push({ row: rowIndex, message: `Поле «${label}»: ${warning}` });
+              }
+
+              const existingVal = await prisma.customFieldValue.findFirst({
+                where: { clientId: client.id, definitionId: def.id }
+              });
+              if (existingVal) {
+                await prisma.customFieldValue.update({
+                  where: { id: existingVal.id },
+                  data: { value: value as object }
+                });
+              } else {
+                await prisma.customFieldValue.create({
+                  data: {
+                    definitionId: def.id,
+                    clientId: client.id,
+                    value: value as object
+                  }
+                });
+              }
+            }
+            continue;
+          }
+        }
+
+        client = await prisma.clientProfile.create({
           data: {
             psychologistId: profile.id,
             email: emailRaw ?? undefined,
@@ -222,6 +277,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       created,
+      updated,
       skipped,
       failed: errors.length,
       errors,
@@ -234,7 +290,10 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    console.error("[POST /api/psychologist/clients/import]", err);
+    console.error("[POST /api/psychologist/clients/import] Внутренняя ошибка сервера:", err);
+    if (err instanceof Error && err.stack) {
+      console.error("[POST /api/psychologist/clients/import] Stack:", err.stack);
+    }
     return NextResponse.json(
       { message: "Внутренняя ошибка сервера" },
       { status: 500 }
