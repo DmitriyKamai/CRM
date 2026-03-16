@@ -475,6 +475,24 @@ export function PsychologistClientsList() {
     }
   }
 
+  function downloadTemplate() {
+    try {
+      const headers = IMPORT_FIELDS.map((f) => f.label);
+      const csv = `${headers.join(",")}\n`;
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "clients-template.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download template", err);
+    }
+  }
+
   async function handleImportSubmit() {
     if (importRows.length === 0) return;
     setImporting(true);
