@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff } from "lucide-react";
+import { Check, Eye, EyeOff, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -240,9 +240,64 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {passwordError && (
-              <p className="text-xs text-destructive">{passwordError}</p>
-            )}
+            {/* Индикация силы и требований к паролю */}
+            <div className="space-y-1">
+              <div className="flex gap-1">
+                {["length", "letters", "digits", "special"].map((key, index) => {
+                  const ok = (passwordChecks as any)[key];
+                  return (
+                    <div
+                      // eslint-disable-next-line react/no-array-index-key
+                      key={index}
+                      className={`h-1 flex-1 rounded-full ${
+                        !password
+                          ? "bg-muted"
+                          : ok
+                          ? "bg-emerald-500"
+                          : "bg-muted-foreground/30"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+              <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                <li className="flex items-center gap-1">
+                  {passwordChecks.length ? (
+                    <Check className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <X className="h-3 w-3 text-muted-foreground/60" />
+                  )}
+                  <span>Не менее 8 символов</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  {passwordChecks.letters ? (
+                    <Check className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <X className="h-3 w-3 text-muted-foreground/60" />
+                  )}
+                  <span>Буквы (A–Z, а–я)</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  {passwordChecks.digits ? (
+                    <Check className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <X className="h-3 w-3 text-muted-foreground/60" />
+                  )}
+                  <span>Цифры</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  {passwordChecks.special ? (
+                    <Check className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <X className="h-3 w-3 text-muted-foreground/60" />
+                  )}
+                  <span>Спецсимволы (!, ?, % и т.п.)</span>
+                </li>
+              </ul>
+              {passwordError && (
+                <p className="text-xs text-destructive">{passwordError}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

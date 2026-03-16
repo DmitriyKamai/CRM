@@ -62,6 +62,7 @@ import { PhoneInput, formatPhoneDisplay } from "@/components/ui/phone-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
+import { UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ClientDto = {
@@ -1238,20 +1239,54 @@ export function PsychologistClientsList() {
                       : "space-y-4"
                   }
                 >
-                  <div className="space-y-1">
-                    <Label className="text-sm">Файл</Label>
-                    <Input
-                      ref={importFileInputRef}
-                      type="file"
-                      accept=".csv,.xlsx,.json"
-                      className="mt-1"
-                      onChange={handleImportFile}
-                    />
-                    {importFileName && (
-                      <p className="text-xs text-muted-foreground break-all">
-                        Выбран файл: <span className="font-medium">{importFileName}</span>
-                      </p>
-                    )}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <Label className="text-sm">Файл</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Поддерживаются CSV, XLSX и JSON. Для корректного распознавания дат
+                          используйте формат из шаблона.
+                        </p>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Шаблон
+                      </Button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => importFileInputRef.current?.click()}
+                      className="group flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <UploadCloud className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">
+                          Перетащите файл сюда или нажмите, чтобы выбрать
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          CSV, XLSX или JSON, размером до 10 МБ.
+                        </p>
+                      </div>
+                      {importFileName && (
+                        <p className="mt-1 text-xs text-muted-foreground break-all">
+                          Выбран файл: <span className="font-medium">{importFileName}</span>
+                        </p>
+                      )}
+                      <Input
+                        ref={importFileInputRef}
+                        type="file"
+                        accept=".csv,.xlsx,.json"
+                        className="sr-only"
+                        onChange={handleImportFile}
+                      />
+                    </button>
+
+                    <p className="text-xs text-muted-foreground">
+                      Файл не отправляется на сторонние сервисы — разбор выполняется внутри системы.
+                    </p>
                   </div>
                   {importHeaders.length > 0 && (
                     <>
@@ -1452,8 +1487,32 @@ export function PsychologistClientsList() {
                 ))}
               </div>
             ) : clients.length === 0 ? (
-              <div className="flex h-24 items-center justify-center rounded-md border bg-card/70 text-sm text-muted-foreground">
-                Клиентов пока нет. Нажмите «Добавить клиента», чтобы создать первого.
+              <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/40 px-6 py-10 text-center">
+                <div className="space-y-3 max-w-md">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Клиентов пока нет</p>
+                    <p className="text-xs text-muted-foreground">
+                      Добавьте первого клиента вручную или импортируйте список из файла.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <Button size="sm" onClick={() => setAddOpen(true)}>
+                      <Plus className="mr-1.5 h-3.5 w-3.5" />
+                      Добавить клиента
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setImportOpen(true)}
+                    >
+                      <UploadCloud className="mr-1.5 h-3.5 w-3.5" />
+                      Импорт из файла
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : (
               <DataTable

@@ -13,7 +13,7 @@ import {
   getCountryCodeByName
 } from "@/lib/data/countries-ru";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter, Pencil, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter, Pencil, Trash2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -935,9 +935,63 @@ export function PsychologistSettingsForm() {
                     : undefined
                 }
               />
-              {newPasswordError && (
-                <p className="text-xs text-destructive">{newPasswordError}</p>
-              )}
+              <div className="space-y-1">
+                <div className="flex gap-1">
+                  {["length", "letters", "digits", "special"].map((key, index) => {
+                    const ok = (newPasswordChecks as any)[key];
+                    return (
+                      // eslint-disable-next-line react/no-array-index-key
+                      <div
+                        key={index}
+                        className={`h-1 flex-1 rounded-full ${
+                          !newPassword
+                            ? "bg-muted"
+                            : ok
+                            ? "bg-emerald-500"
+                            : "bg-muted-foreground/30"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+                <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                  <li className="flex items-center gap-1">
+                    {newPasswordChecks.length ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <X className="h-3 w-3 text-muted-foreground/60" />
+                    )}
+                    <span>Не менее 8 символов</span>
+                  </li>
+                  <li className="flex items-center gap-1">
+                    {newPasswordChecks.letters ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <X className="h-3 w-3 text-muted-foreground/60" />
+                    )}
+                    <span>Буквы (A–Z, а–я)</span>
+                  </li>
+                  <li className="flex items-center gap-1">
+                    {newPasswordChecks.digits ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <X className="h-3 w-3 text-muted-foreground/60" />
+                    )}
+                    <span>Цифры</span>
+                  </li>
+                  <li className="flex items-center gap-1">
+                    {newPasswordChecks.special ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <X className="h-3 w-3 text-muted-foreground/60" />
+                    )}
+                    <span>Спецсимволы (!, ?, % и т.п.)</span>
+                  </li>
+                </ul>
+                {newPasswordError && (
+                  <p className="text-xs text-destructive">{newPasswordError}</p>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPasswordConfirm">Повторите новый пароль</Label>

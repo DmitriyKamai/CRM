@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Check, Eye, EyeOff, X } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,26 +126,82 @@ function ResetPasswordPageInner() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="new-password">Новый пароль</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setNewPassword(value);
-                    setChecks(evaluatePassword(value));
-                  }}
-                  onBlur={() => setTouched(true)}
-                  className={
-                    touched && passwordError
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : touched && !passwordError
-                      ? "border-emerald-500 focus-visible:ring-emerald-500"
-                      : undefined
-                  }
-                />
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewPassword(value);
+                      setChecks(evaluatePassword(value));
+                    }}
+                    onBlur={() => setTouched(true)}
+                    className={
+                      touched && passwordError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : touched && !passwordError
+                        ? "border-emerald-500 focus-visible:ring-emerald-500"
+                        : undefined
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex gap-1">
+                    {["length", "letters", "digits", "special"].map((key, index) => {
+                      const ok = (checks as any)[key];
+                      return (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <div
+                          key={index}
+                          className={`h-1 flex-1 rounded-full ${
+                            !newPassword
+                              ? "bg-muted"
+                              : ok
+                              ? "bg-emerald-500"
+                              : "bg-muted-foreground/30"
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <li className="flex items-center gap-1">
+                      {checks.length ? (
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <X className="h-3 w-3 text-muted-foreground/60" />
+                      )}
+                      <span>Не менее 8 символов</span>
+                    </li>
+                    <li className="flex items-center gap-1">
+                      {checks.letters ? (
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <X className="h-3 w-3 text-muted-foreground/60" />
+                      )}
+                      <span>Буквы (A–Z, а–я)</span>
+                    </li>
+                    <li className="flex items-center gap-1">
+                      {checks.digits ? (
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <X className="h-3 w-3 text-muted-foreground/60" />
+                      )}
+                      <span>Цифры</span>
+                    </li>
+                    <li className="flex items-center gap-1">
+                      {checks.special ? (
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <X className="h-3 w-3 text-muted-foreground/60" />
+                      )}
+                      <span>Спецсимволы (!, ?, % и т.п.)</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="new-password-confirm">Повторите новый пароль</Label>

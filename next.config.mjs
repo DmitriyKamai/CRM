@@ -4,6 +4,14 @@ const nextConfig = {
   // Включаем React Compiler по новой схеме
   reactCompiler: true,
   poweredByHeader: false,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com"
+      }
+    ]
+  },
   // Разрешить запросы к dev-серверу с других устройств в сети (напр. с телефона по http://192.168.1.10:3000)
   allowedDevOrigins: ["http://192.168.1.10:3000", "http://192.168.1.10"],
   async headers() {
