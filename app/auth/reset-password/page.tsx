@@ -54,6 +54,29 @@ function ResetPasswordPageInner() {
   const passwordMismatch =
     newPasswordConfirm.length > 0 && newPasswordConfirm !== newPassword;
 
+  const passwordRequirements = [
+    { key: "length" as const, text: "Не менее 8 символов" },
+    { key: "letters" as const, text: "Буквы (A–Z, а–я)" },
+    { key: "digits" as const, text: "Цифры" },
+    { key: "special" as const, text: "Спецсимволы (!, ?, % и т.п.)" }
+  ];
+
+  const filledCount = (() => {
+    let c = 0;
+    for (const req of passwordRequirements) {
+      if ((checks as any)[req.key]) c++;
+      else break; // строгая последовательность
+    }
+    return c;
+  })();
+
+  const segmentColors = [
+    "bg-destructive/60",
+    "bg-amber-500",
+    "bg-yellow-500",
+    "bg-emerald-500"
+  ] as const;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setTouched(true);
@@ -150,56 +173,47 @@ function ResetPasswordPageInner() {
                 </div>
                 <div className="space-y-1">
                   <div className="flex gap-1">
-                    {["length", "letters", "digits", "special"].map((key, index) => {
-                      const ok = (checks as any)[key];
+                    {passwordRequirements.map((req, index) => {
+                      const filled = !newPassword ? false : index < filledCount;
                       return (
                         // eslint-disable-next-line react/no-array-index-key
                         <div
-                          key={index}
+                          key={req.key}
                           className={`h-1 flex-1 rounded-full ${
-                            !newPassword
+                            filled
+                              ? segmentColors[index] ?? "bg-emerald-500"
+                              : !newPassword
                               ? "bg-muted"
-                              : ok
-                              ? "bg-emerald-500"
                               : "bg-muted-foreground/30"
                           }`}
                         />
                       );
                     })}
                   </div>
-                  <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                    <li className="flex items-center gap-1">
-                      {checks.length ? (
-                        <Check className="h-3 w-3 text-emerald-500" />
-                      ) : (
-                        <X className="h-3 w-3 text-muted-foreground/60" />
-                      )}
-                      <span>Не менее 8 символов</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      {checks.letters ? (
-                        <Check className="h-3 w-3 text-emerald-500" />
-                      ) : (
-                        <X className="h-3 w-3 text-muted-foreground/60" />
-                      )}
-                      <span>Буквы (A–Z, а–я)</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      {checks.digits ? (
-                        <Check className="h-3 w-3 text-emerald-500" />
-                      ) : (
-                        <X className="h-3 w-3 text-muted-foreground/60" />
-                      )}
-                      <span>Цифры</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      {checks.special ? (
-                        <Check className="h-3 w-3 text-emerald-500" />
-                      ) : (
-                        <X className="h-3 w-3 text-muted-foreground/60" />
-                      )}
-                      <span>Спецсимволы (!, ?, % и т.п.)</span>
-                    </li>
+                  <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
+                    {passwordRequirements.map((req, index) => {
+                      const sequentialOk = index < filledCount;
+                      return (
+                        <li key={req.key} className="flex items-center gap-1">
+                          {sequentialOk ? (
+                            <Check
+                              className={`h-3 w-3 ${
+                                index === 0
+                                  ? "text-destructive"
+                                  : index === 1
+                                  ? "text-amber-500"
+                                  : index === 2
+                                  ? "text-yellow-500"
+                                  : "text-emerald-500"
+                              }`}
+                            />
+                          ) : (
+                            <X className="h-3 w-3 text-muted-foreground/60" />
+                          )}
+                          <span>{req.text}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               </div>
