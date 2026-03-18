@@ -1275,7 +1275,7 @@ export function PsychologistClientsList() {
                     <button
                       type="button"
                       onClick={() => importFileInputRef.current?.click()}
-                      className="group flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
+                      className="group w-full flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <UploadCloud className="h-5 w-5" />

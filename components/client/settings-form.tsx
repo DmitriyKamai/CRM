@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, User, Lock, Link2, Check, X } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
@@ -377,12 +377,35 @@ export function ClientSettingsForm() {
     return c;
   })();
 
-  const segmentColors = [
-    "bg-destructive/60",
-    "bg-amber-500",
-    "bg-yellow-500",
-    "bg-emerald-500"
-  ] as const;
+  const progressStage = !newPassword
+    ? -1
+    : filledCount <= 0
+      ? 0
+      : filledCount === 1
+        ? 1
+        : filledCount === 2
+          ? 2
+          : 3;
+
+  const progressTrackColor =
+    progressStage === -1
+      ? "bg-muted"
+      : progressStage === 0
+        ? "bg-destructive/20"
+        : progressStage === 1
+          ? "bg-amber-500/20"
+          : progressStage === 2
+            ? "bg-yellow-500/20"
+            : "bg-emerald-500/20";
+
+  const progressFillColor =
+    progressStage === 0
+      ? "bg-destructive/60"
+      : progressStage === 1
+        ? "bg-amber-500"
+        : progressStage === 2
+          ? "bg-yellow-500"
+          : "bg-emerald-500";
 
   return (
     <SettingsFormErrorBoundary>
@@ -591,60 +614,43 @@ export function ClientSettingsForm() {
                     autoComplete="new-password"
                     minLength={8}
                     className={
-                      newPasswordError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : newPasswordValid
+                      newPasswordValid
                         ? "border-emerald-500 focus-visible:ring-emerald-500"
                         : undefined
                     }
                   />
                   <div className="space-y-1">
-                    <div className="flex gap-1">
-                      {passwordRequirements.map((req, index) => {
-                        const filled = !newPassword ? false : index < filledCount;
-                        return (
-                          // eslint-disable-next-line react/no-array-index-key
-                          <div
-                            key={req.key}
-                            className={`h-1 flex-1 rounded-full ${
-                              filled
-                                ? segmentColors[index] ?? "bg-emerald-500"
-                                : !newPassword
-                                ? "bg-muted"
-                                : "bg-muted-foreground/30"
-                            }`}
-                          />
-                        );
-                      })}
+                    <div
+                      className={`h-1 w-full overflow-hidden rounded-full ${progressTrackColor}`}
+                    >
+                      <div
+                        className={`h-full rounded-full ${progressFillColor}`}
+                        style={{ width: `${(filledCount / 4) * 100}%` }}
+                      />
                     </div>
                     <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
                       {passwordRequirements.map((req, index) => {
                         const sequentialOk = index < filledCount;
                         return (
                           <li key={req.key} className="flex items-center gap-1">
-                            {sequentialOk ? (
-                              <Check
-                                className={`h-3 w-3 ${
-                                  index === 0
-                                    ? "text-destructive"
-                                    : index === 1
-                                    ? "text-amber-500"
-                                    : index === 2
-                                    ? "text-yellow-500"
-                                    : "text-emerald-500"
-                                }`}
-                              />
-                            ) : (
-                              <X className="h-3 w-3 text-muted-foreground/60" />
-                            )}
-                            <span>{req.text}</span>
+                            <Check
+                              className={`h-3 w-3 ${
+                                sequentialOk
+                                  ? "text-emerald-500"
+                                  : "text-muted-foreground/60"
+                              }`}
+                            />
+                            <span
+                              className={
+                                sequentialOk ? "text-foreground" : undefined
+                              }
+                            >
+                              {req.text}
+                            </span>
                           </li>
                         );
                       })}
                     </ul>
-                    {newPasswordError && (
-                      <p className="text-xs text-destructive">{newPasswordError}</p>
-                    )}
                   </div>
                 </div>
                 <div className="space-y-2">

@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Check, Eye, EyeOff, X } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,12 +70,35 @@ function ResetPasswordPageInner() {
     return c;
   })();
 
-  const segmentColors = [
-    "bg-destructive/60",
-    "bg-amber-500",
-    "bg-yellow-500",
-    "bg-emerald-500"
-  ] as const;
+  const progressStage = !newPassword
+    ? -1
+    : filledCount <= 0
+      ? 0
+      : filledCount === 1
+        ? 1
+        : filledCount === 2
+          ? 2
+          : 3;
+
+  const progressTrackColor =
+    progressStage === -1
+      ? "bg-muted"
+      : progressStage === 0
+        ? "bg-destructive/20"
+        : progressStage === 1
+          ? "bg-amber-500/20"
+          : progressStage === 2
+            ? "bg-yellow-500/20"
+            : "bg-emerald-500/20";
+
+  const progressFillColor =
+    progressStage === 0
+      ? "bg-destructive/60"
+      : progressStage === 1
+        ? "bg-amber-500"
+        : progressStage === 2
+          ? "bg-yellow-500"
+          : "bg-emerald-500";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -163,54 +186,36 @@ function ResetPasswordPageInner() {
                     }}
                     onBlur={() => setTouched(true)}
                     className={
-                      touched && passwordError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : touched && !passwordError
+                      touched && !passwordError
                         ? "border-emerald-500 focus-visible:ring-emerald-500"
                         : undefined
                     }
                   />
                 </div>
                 <div className="space-y-1">
-                  <div className="flex gap-1">
-                    {passwordRequirements.map((req, index) => {
-                      const filled = !newPassword ? false : index < filledCount;
-                      return (
-                        // eslint-disable-next-line react/no-array-index-key
-                        <div
-                          key={req.key}
-                          className={`h-1 flex-1 rounded-full ${
-                            filled
-                              ? segmentColors[index] ?? "bg-emerald-500"
-                              : !newPassword
-                              ? "bg-muted"
-                              : "bg-muted-foreground/30"
-                          }`}
-                        />
-                      );
-                    })}
+                  <div className={`h-1 w-full overflow-hidden rounded-full ${progressTrackColor}`}>
+                    <div
+                      className={`h-full rounded-full ${progressFillColor}`}
+                      style={{ width: `${(filledCount / 4) * 100}%` }}
+                    />
                   </div>
                   <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
                     {passwordRequirements.map((req, index) => {
                       const sequentialOk = index < filledCount;
                       return (
                         <li key={req.key} className="flex items-center gap-1">
-                          {sequentialOk ? (
-                            <Check
-                              className={`h-3 w-3 ${
-                                index === 0
-                                  ? "text-destructive"
-                                  : index === 1
-                                  ? "text-amber-500"
-                                  : index === 2
-                                  ? "text-yellow-500"
-                                  : "text-emerald-500"
-                              }`}
-                            />
-                          ) : (
-                            <X className="h-3 w-3 text-muted-foreground/60" />
-                          )}
-                          <span>{req.text}</span>
+                          <Check
+                            className={`h-3 w-3 ${
+                              sequentialOk
+                                ? "text-emerald-500"
+                                : "text-muted-foreground/60"
+                            }`}
+                          />
+                          <span
+                            className={sequentialOk ? "text-foreground" : undefined}
+                          >
+                            {req.text}
+                          </span>
                         </li>
                       );
                     })}
@@ -225,18 +230,16 @@ function ResetPasswordPageInner() {
                   value={newPasswordConfirm}
                   onChange={(e) => setNewPasswordConfirm(e.target.value)}
                   className={
-                    touched && (passwordMismatch || passwordError)
+                    touched && passwordMismatch
                       ? "border-destructive focus-visible:ring-destructive"
                       : touched && !passwordMismatch && !passwordError
-                      ? "border-emerald-500 focus-visible:ring-emerald-500"
-                      : undefined
+                        ? "border-emerald-500 focus-visible:ring-emerald-500"
+                        : undefined
                   }
                 />
               </div>
-              {touched && (passwordError || passwordMismatch) && (
-                <p className="text-xs text-destructive">
-                  {passwordMismatch ? "Пароли не совпадают" : passwordError}
-                </p>
+              {touched && passwordMismatch && (
+                <p className="text-xs text-destructive">Пароли не совпадают</p>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Сохраняем..." : "Сохранить новый пароль"}
