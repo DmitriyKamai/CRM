@@ -15,6 +15,25 @@ export default async function LandingPage() {
     redirect("/admin");
   }
 
+  const dashboard =
+    session?.user && role
+      ? role === "CLIENT"
+        ? { href: "/client", label: "Кабинет клиента" }
+        : role === "PSYCHOLOGIST"
+          ? { href: "/psychologist", label: "Кабинет психолога" }
+          : null
+      : null;
+
+  if (session?.user && !dashboard) {
+    // На всякий случай: если роль неизвестна, ведём на выбор роли.
+    redirect("/auth/choose-role");
+  }
+
+  const userLabel =
+    session?.user?.email ??
+    (session?.user as any)?.name ??
+    "Пользователь";
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b bg-background/80 backdrop-blur">
@@ -23,15 +42,28 @@ export default async function LandingPage() {
             Empatix
           </Link>
           <nav className="flex items-center gap-2">
-            <Button variant="ghost" asChild size="sm">
-              <Link href="/auth/login">Войти</Link>
-            </Button>
-            <Button variant="outline" asChild size="sm">
-              <Link href="/auth/register/psychologist">Я психолог</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/auth/register/client">Я клиент</Link>
-            </Button>
+            {dashboard ? (
+              <>
+                <Button variant="ghost" asChild size="sm">
+                  <Link href={dashboard.href}>{dashboard.label}</Link>
+                </Button>
+                <span className="hidden sm:inline text-xs text-muted-foreground">
+                  Вы вошли: {userLabel}
+                </span>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild size="sm">
+                  <Link href="/auth/login">Войти</Link>
+                </Button>
+                <Button variant="outline" asChild size="sm">
+                  <Link href="/auth/register/psychologist">Я психолог</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/auth/register/client">Я клиент</Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -47,14 +79,25 @@ export default async function LandingPage() {
           </p>
         </section>
 
-        <section className="flex flex-wrap items-center justify-center gap-3">
-          <Button size="lg" asChild>
-            <Link href="/auth/register/psychologist">Начать как психолог</Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/auth/login">Войти в аккаунт</Link>
-          </Button>
-        </section>
+        {dashboard ? (
+          <section className="flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" asChild>
+              <Link href={dashboard.href}>Перейти в кабинет</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/auth/choose-role">Сменить роль</Link>
+            </Button>
+          </section>
+        ) : (
+          <section className="flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" asChild>
+              <Link href="/auth/register/psychologist">Начать как психолог</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/auth/login">Войти в аккаунт</Link>
+            </Button>
+          </section>
+        )}
       </main>
     </div>
   );
