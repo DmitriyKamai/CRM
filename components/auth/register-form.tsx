@@ -168,28 +168,25 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
     { key: "special" as const, text: "Спецсимволы (!, ?, % и т.п.)" }
   ];
 
-  const filledCount = (() => {
-    let c = 0;
-    for (const req of passwordRequirements) {
-      if ((passwordChecks as any)[req.key]) c++;
-      else break; // строгая последовательность: следующий сегмент не заполняем, пока предыдущий не выполнен
-    }
-    return c;
-  })();
+  const passedCount = passwordRequirements.reduce((acc, req) => {
+    return acc + (((passwordChecks as any)[req.key] as boolean) ? 1 : 0);
+  }, 0);
 
   const progressStage = !password
     ? -1
-    : filledCount <= 0
-      ? 0
-      : filledCount === 1
-        ? 1
-        : filledCount === 2
-          ? 2
-          : 3;
+    : passedCount <= 0
+      ? -1
+      : passedCount === 1
+        ? 0
+        : passedCount === 2
+          ? 1
+          : passedCount === 3
+            ? 2
+            : 3;
 
   const progressTrackColor =
     progressStage === -1
-      ? "bg-muted"
+      ? "bg-muted/40"
       : progressStage === 0
         ? "bg-destructive/20"
         : progressStage === 1
@@ -206,6 +203,9 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
         : progressStage === 2
           ? "bg-yellow-500"
           : "bg-emerald-500";
+
+  const progressFillWidthPct =
+    passedCount === 0 ? 0 : (passedCount / 4) * 100;
 
   const formContent = (
     <>
@@ -289,7 +289,7 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
               <div className={`h-1 w-full overflow-hidden rounded-full ${progressTrackColor}`}>
                 <div
                   className={`h-full rounded-full ${progressFillColor}`}
-                  style={{ width: `${(filledCount / 4) * 100}%` }}
+                  style={{ width: `${progressFillWidthPct}%` }}
                 />
               </div>
               <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
@@ -298,7 +298,7 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
                   return (
                     <li key={req.key} className="flex items-center gap-1">
                       <Check
-                        className={`h-3 w-3 ${
+                        className={`h-4 w-4 ${
                           passed
                             ? "text-emerald-500"
                             : "text-muted-foreground/60"
