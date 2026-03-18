@@ -989,19 +989,19 @@ export function PsychologistSettingsForm() {
                     />
                   </div>
                   <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
-                    {passwordRequirements.map((req, index) => {
-                      const sequentialOk = index < filledCount;
+                    {passwordRequirements.map((req) => {
+                      const passed = (newPasswordChecks as any)[req.key] as boolean;
                       return (
                         <li key={req.key} className="flex items-center gap-1">
                           <Check
                             className={`h-3 w-3 ${
-                              sequentialOk
+                              passed
                                 ? "text-emerald-500"
                                 : "text-muted-foreground/60"
                             }`}
                           />
                           <span
-                            className={sequentialOk ? "text-foreground" : undefined}
+                            className={passed ? "text-foreground" : undefined}
                           >
                             {req.text}
                           </span>
