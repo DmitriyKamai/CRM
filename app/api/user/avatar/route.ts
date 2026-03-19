@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
-import { authOptions } from "@/lib/auth";
+
 import { prisma } from "@/lib/db";
+import { requireAuth } from "@/lib/security/api-guards";
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -10,15 +10,9 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 /** Загрузить аватар: multipart/form-data с полем "file". Сохраняет URL в User.image. */
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
 
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(
@@ -97,15 +91,9 @@ export async function POST(request: Request) {
 /** Удалить свой аватар (вернуть User.image в null). */
 export async function DELETE() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
 
     await prisma.user.update({
       where: { id: userId },

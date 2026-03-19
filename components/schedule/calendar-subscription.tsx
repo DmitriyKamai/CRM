@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Calendar } from "lucide-react";
+import { Copy, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export function CalendarSubscriptionBlock() {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   async function handleLoadUrl() {
@@ -37,6 +38,24 @@ export function CalendarSubscriptionBlock() {
       toast.success("Ссылка скопирована");
     } catch {
       toast.error("Не удалось скопировать");
+    }
+  }
+
+  async function handleRotate() {
+    if (rotating) return;
+    setRotating(true);
+    try {
+      const res = await fetch("/api/calendar/feed-url", { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { url?: string; message?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.message ?? "Ошибка");
+      }
+      setUrl(data.url);
+      toast.success("Ссылка обновлена. Добавьте новую в календарь — старая больше не будет работать.");
+    } catch {
+      toast.error("Не удалось перевыпустить ссылку");
+    } finally {
+      setRotating(false);
     }
   }
 
@@ -92,7 +111,10 @@ export function CalendarSubscriptionBlock() {
         <p className="text-xs text-muted-foreground">
           Добавьте ссылку в Google Calendar или Apple Calendar (подписка по URL), чтобы видеть расписание в своём календаре.
         </p>
-        <div className="flex gap-2 items-center">
+        <p className="text-xs text-amber-600 dark:text-amber-500/90">
+          К расписанию по этой ссылке может подключиться любой, кто её знает. Если ссылку могли увидеть посторонние — нажмите «Новая ссылка» и укажите в календаре уже новый URL подписки.
+        </p>
+        <div className="flex gap-2 items-center flex-wrap">
           <input
             type="text"
             readOnly
@@ -109,6 +131,17 @@ export function CalendarSubscriptionBlock() {
           >
             <Copy className="h-4 w-4 mr-1" />
             Копировать
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={handleRotate}
+            disabled={rotating}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${rotating ? "animate-spin" : ""}`} />
+            {rotating ? "Обновление…" : "Новая ссылка"}
           </Button>
         </div>
         {url.includes("localhost") && (

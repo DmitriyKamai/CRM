@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { z } from "zod";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
 import { logZodError } from "@/lib/log-validation-error";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -32,34 +31,13 @@ const updateClientSchema = z.object({
 
 export async function GET(_req: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-
-  const userId = (session.user as unknown as { id?: string | null }).id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
-
-  const psych = await prisma.psychologistProfile.findUnique({
-    where: { userId },
-    select: { id: true }
-  });
-
-  if (!psych) {
-    return NextResponse.json(
-      { message: "Профиль психолога не найден" },
-      { status: 400 }
-    );
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const client = await prisma.clientProfile.findFirst({
     where: {
       id,
-      psychologistId: psych.id
+      psychologistId: ctx.psychologistId
     },
     include: {
       user: {
@@ -100,35 +78,14 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    const psych = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-
-    if (!psych) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     const json = await request.json().catch(() => null);
     const data = updateClientSchema.parse(json ?? {});
 
     const existing = await prisma.clientProfile.findFirst({
-      where: { id, psychologistId: psych.id }
+      where: { id, psychologistId: ctx.psychologistId }
     });
 
     if (!existing) {
@@ -173,7 +130,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         const email = normalizeEmail(emailRaw);
         const duplicate = await prisma.clientProfile.findFirst({
           where: {
-            psychologistId: psych.id,
+            psychologistId: ctx.psychologistId,
             email,
             id: { not: existing.id }
           }
@@ -221,32 +178,11 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 export async function DELETE(_request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    const psych = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-
-    if (!psych) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     const existing = await prisma.clientProfile.findFirst({
-      where: { id, psychologistId: psych.id }
+      where: { id, psychologistId: ctx.psychologistId }
     });
 
     if (!existing) {

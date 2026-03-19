@@ -12,12 +12,19 @@
     childProcessMod.execSync ?? (childProcessMod.default && childProcessMod.default.execSync);
 
   if (!process.env.DIRECT_DATABASE_URL) {
-    console.error(
-      "[migrate-deploy] DIRECT_DATABASE_URL is not set. Migrations need a direct connection."
-    );
-    console.error("  For Neon: use the direct connection string (host without -pooler).");
-    console.error("  Add DIRECT_DATABASE_URL in your deployment environment (e.g. Vercel).");
-    process.exit(1);
+    if (process.env.DATABASE_URL) {
+      console.warn(
+        "[migrate-deploy] DIRECT_DATABASE_URL is not set; using DATABASE_URL for migrate deploy."
+      );
+      console.warn(
+        "  For Neon in production, prefer DIRECT_DATABASE_URL (non-pooler host) to avoid timeouts."
+      );
+    } else {
+      console.error(
+        "[migrate-deploy] Set DATABASE_URL, or for Neon also set DIRECT_DATABASE_URL (direct host)."
+      );
+      process.exit(1);
+    }
   }
 
   execSync("npx prisma migrate deploy", {

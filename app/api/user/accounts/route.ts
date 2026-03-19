@@ -1,19 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+
 import { prisma } from "@/lib/db";
+import { requireAuth } from "@/lib/security/api-guards";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
 
     const rows = await prisma.account.findMany({
       where: { userId },
@@ -38,15 +32,9 @@ export async function GET() {
 /** Отвязать OAuth-аккаунт (google | apple). Нельзя отвязать последний способ входа. */
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
 
     const { searchParams } = new URL(request.url);
     const provider = searchParams.get("provider");

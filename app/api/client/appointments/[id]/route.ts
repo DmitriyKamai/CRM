@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requireClient } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -13,17 +12,9 @@ type ParamsPromise = {
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "CLIENT") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const clientCtx = await requireClient();
+    if (!clientCtx.ok) return clientCtx.response;
+    const userId = clientCtx.userId;
 
     const body = await request.json().catch(() => null);
     const status = body?.status as

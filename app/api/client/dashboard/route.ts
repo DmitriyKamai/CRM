@@ -1,46 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
+import { requireClient } from "@/lib/security/api-guards";
 
 async function handleGet(): Promise<Response> {
   return withPrismaLock(async () => {
   try {
-    let session;
-    try {
-      session = await getServerSession(authOptions);
-    } catch (sessionErr) {
-      console.error("[API /api/client/dashboard] getServerSession:", sessionErr);
-      return NextResponse.json(
-        { error: "Ошибка проверки сессии" },
-        { status: 500 }
-      );
-    }
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const role = (session.user as unknown as { role?: string | null }).role;
-    if (role !== "CLIENT") {
-      return NextResponse.json(
-        { error: "forbidden" },
-        { status: 403 }
-      );
-    }
-
-    const userId = (session.user as unknown as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json(
-        { error: "unauthorized" },
-        { status: 401 }
-      );
-    }
+    const clientCtx = await requireClient();
+    if (!clientCtx.ok) return clientCtx.response;
+    const userId = clientCtx.userId;
+    const session = clientCtx.session;
 
     let clientProfiles: { id: string; firstName: string; lastName: string }[];
     try {

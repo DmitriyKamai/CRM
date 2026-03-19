@@ -1,24 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
+import { requireRoles } from "@/lib/security/api-guards";
 
 export async function GET() {
   try {
     return await withPrismaLock(async () => {
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-
-  const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
+  const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
+  if (!psychAuth.ok) return psychAuth.response;
+  const userId = psychAuth.userId;
 
   // Находим или создаём профиль психолога для текущего пользователя
   let profile = await prisma.psychologistProfile.findUnique({
@@ -113,17 +104,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-
-  const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
+  const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
+  if (!psychAuth.ok) return psychAuth.response;
+  const userId = psychAuth.userId;
 
   let profile = await prisma.psychologistProfile.findUnique({
     where: { userId }

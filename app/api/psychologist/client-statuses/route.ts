@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { z } from "zod";
 
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requirePsychologist, requireRoles } from "@/lib/security/api-guards";
 
 // Обёртка для обхода отставания типов Prisma (новая модель ClientStatus ещё не сгенерирована)
 type ClientStatusRecord = {
@@ -37,18 +36,10 @@ const StatusSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireRoles(["PSYCHOLOGIST"]);
+    if (!auth.ok) return auth.response;
     const profile = await db.psychologistProfile.findUnique({
-      where: { userId },
+      where: { userId: auth.userId },
       select: { id: true }
     });
 
@@ -99,27 +90,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-    const profile = await db.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
+    const profile = { id: ctx.psychologistId };
 
     const json = await request.json();
     const parsed = StatusSchema.omit({ id: true }).parse(json);
@@ -151,27 +124,9 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-    const profile = await db.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
+    const profile = { id: ctx.psychologistId };
 
     const json = await request.json();
     const body = StatusSchema.extend({
@@ -207,27 +162,9 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-    const profile = await db.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-
-    if (!profile) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
+    const profile = { id: ctx.psychologistId };
 
     const json = await request.json().catch(() => null);
     const id = z.string().parse(json?.id);

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -13,12 +12,8 @@ type ParamsPromise = {
 // Обновление/отмена/удаление слота
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const body = await request.json().catch(() => null);
   const status = body?.status as "FREE" | "BOOKED" | "CANCELED" | undefined;
@@ -109,12 +104,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
 export async function DELETE(_request: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const slot = await prisma.scheduleSlot.findUnique({
     where: { id },
@@ -122,6 +113,13 @@ export async function DELETE(_request: Request, { params }: ParamsPromise) {
   });
 
   if (!slot) {
+    return NextResponse.json(
+      { message: "Слот не найден" },
+      { status: 404 }
+    );
+  }
+
+  if (slot.psychologistId !== ctx.psychologistId) {
     return NextResponse.json(
       { message: "Слот не найден" },
       { status: 404 }

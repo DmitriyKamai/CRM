@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { TestType } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
+import { getClientIp, requireRoles } from "@/lib/security/api-guards";
 
 function randomToken() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -16,12 +15,7 @@ function randomToken() {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-
-  const ip =
-    request.headers.get("x-forwarded-for") ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = getClientIp(request);
 
   const allowed = checkRateLimit({
     key: `diagnostic-link:${ip}`,
@@ -38,10 +32,9 @@ export async function POST(request: Request) {
 
   try {
     return await withPrismaLock(async () => {
-      if (!session?.user || (session.user as { role?: string }).role !== "PSYCHOLOGIST") {
-        return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-      }
-      const userId = (session.user as { id: string }).id;
+      const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
+      if (!psychAuth.ok) return psychAuth.response;
+      const userId = psychAuth.userId;
 
       let profile = await prisma.psychologistProfile.findUnique({
         where: { userId }

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -10,12 +9,8 @@ type ParamsPromise = {
 
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "ADMIN") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if (!admin.ok) return admin.response;
 
   const body = await request.json().catch(() => null);
   if (typeof body?.isActive !== "boolean") {

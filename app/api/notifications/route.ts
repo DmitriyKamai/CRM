@@ -1,22 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
+import { requireAuth } from "@/lib/security/api-guards";
 
 export async function GET() {
   try {
     return await withPrismaLock(async () => {
-      const session = await getServerSession(authOptions);
-      if (!session?.user) {
-        return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
-      }
-
-      const userId = (session.user as unknown as { id?: string }).id;
-      if (!userId) {
-        return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-      }
+      const auth = await requireAuth();
+      if (!auth.ok) return auth.response;
+      const userId = auth.userId;
       const notifications = await prisma.notification.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },

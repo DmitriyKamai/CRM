@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 function escapeCsvCell(value: string): string {
   const s = String(value ?? "");
@@ -86,19 +85,9 @@ function jsonValueToCsv(value: unknown): string {
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as { role?: string }).role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as { id?: string }).id as string;
-    const profile = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-    if (!profile) {
-      return NextResponse.json({ message: "Профиль не найден" }, { status: 400 });
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
+    const profile = { id: ctx.psychologistId };
 
     const { searchParams } = new URL(request.url);
     const statusId = searchParams.get("statusId") ?? undefined;

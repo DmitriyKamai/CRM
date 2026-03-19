@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+
 import { prisma } from "@/lib/db";
+import { requireAuth } from "@/lib/security/api-guards";
 
 /** Максимум символов в блоке «О себе» профессионального профиля */
 const BIO_MAX_LENGTH = 1500;
@@ -17,15 +17,9 @@ const MAX_CONTACT_LINK_LENGTH = 128;
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId || typeof userId !== "string") {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -72,7 +66,7 @@ export async function GET() {
     };
 
     let psychologistProfile: PsychologistProfileDTO | null = null;
-    if ((session.user as { role?: string }).role === "PSYCHOLOGIST") {
+    if (auth.user.role === "PSYCHOLOGIST") {
       const profile = await prisma.psychologistProfile.findUnique({
         where: { userId }
       });
@@ -142,13 +136,10 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id: string }).id;
-    const role = (session.user as { role?: string }).role;
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
+    const role = auth.user.role;
     let body: Record<string, unknown>;
     try {
       body = await request.json();
@@ -256,7 +247,7 @@ export async function PATCH(request: Request) {
           where: { userId },
           create: {
             userId,
-            firstName: profileUpdates.firstName ?? (session.user as { name?: string }).name ?? "Психолог",
+            firstName: profileUpdates.firstName ?? (auth.session.user as { name?: string }).name ?? "Психолог",
             lastName: profileUpdates.lastName ?? "",
             phone: profileUpdates.phone ?? null,
             country: profileUpdates.country ?? null,

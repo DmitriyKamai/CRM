@@ -27,7 +27,11 @@ function getSecret(): string {
   return secret;
 }
 
-/** Создаёт токен для ссылки на фид календаря психолога (без хранения в БД). */
+/**
+ * Легаси: stateless HMAC-токен (в URL есть символ «.»).
+ * Новые ссылки выдаются через `CalendarFeedToken` в БД (`lib/calendar-feed-token.ts`);
+ * `GET /api/calendar/feed` принимает оба формата.
+ */
 export function createCalendarFeedToken(psychologistProfileId: string): string {
   const secret = getSecret();
   const payload = Buffer.from(psychologistProfileId, "utf8");

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
-import { authOptions } from "@/lib/auth";
+
 import { prisma } from "@/lib/db";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -10,23 +10,8 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 /** Загрузить фото профиля психолога (для карточки в «Записаться к психологу»). Сохраняет URL в PsychologistProfile.profilePhotoUrl. */
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    const profile = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-    if (!profile) {
-      return NextResponse.json({ message: "Профиль психолога не найден" }, { status: 403 });
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(
@@ -59,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "gif";
-    const pathname = `profile-photos/${profile.id}-${Date.now()}.${ext}`;
+    const pathname = `profile-photos/${ctx.psychologistId}-${Date.now()}.${ext}`;
 
     const blob = await put(pathname, file, {
       access: "public",
@@ -67,7 +52,7 @@ export async function POST(request: Request) {
     });
 
     await prisma.psychologistProfile.update({
-      where: { id: profile.id },
+      where: { id: ctx.psychologistId },
       data: { profilePhotoUrl: blob.url }
     });
 
@@ -84,18 +69,11 @@ export async function POST(request: Request) {
 /** Удалить фото профиля (PsychologistProfile.profilePhotoUrl = null). */
 export async function DELETE() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     await prisma.psychologistProfile.updateMany({
-      where: { userId },
+      where: { id: ctx.psychologistId },
       data: { profilePhotoUrl: null }
     });
 

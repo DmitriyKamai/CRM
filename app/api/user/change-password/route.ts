@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
-import { authOptions } from "@/lib/auth";
+
 import { prisma } from "@/lib/db";
+import { requireAuth } from "@/lib/security/api-guards";
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
   let body: { currentPassword?: string; newPassword?: string };
   try {
@@ -49,7 +47,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = (session.user as { id: string }).id;
+  const userId = auth.userId;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { hashedPassword: true }

@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/security/api-guards";
 
 // Список пользователей для админки
 export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "ADMIN") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if (!admin.ok) return admin.response;
 
   const users = await prisma.user.findMany({
     select: {

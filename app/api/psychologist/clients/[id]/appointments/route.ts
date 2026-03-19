@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -12,34 +11,13 @@ type ParamsPromise = {
 
 export async function GET(_req: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-
-  const userId = (session.user as unknown as { id?: string | null }).id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
-
-  const psych = await prisma.psychologistProfile.findUnique({
-    where: { userId },
-    select: { id: true }
-  });
-
-  if (!psych) {
-    return NextResponse.json(
-      { message: "Профиль психолога не найден" },
-      { status: 400 }
-    );
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const client = await prisma.clientProfile.findFirst({
     where: {
       id,
-      psychologistId: psych.id
+      psychologistId: ctx.psychologistId
     },
     select: { id: true }
   });
@@ -50,7 +28,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
 
   const appointments = await prisma.appointment.findMany({
     where: {
-      psychologistId: psych.id,
+      psychologistId: ctx.psychologistId,
       clientId: client.id
     },
     orderBy: {
@@ -74,33 +52,18 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
 export async function POST(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    const psych = await prisma.psychologistProfile.findUnique({
-      where: { userId }
+    const psychProfile = await prisma.psychologistProfile.findUnique({
+      where: { id: ctx.psychologistId },
+      select: { firstName: true, lastName: true }
     });
-
-    if (!psych) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
 
     const client = await prisma.clientProfile.findFirst({
       where: {
         id,
-        psychologistId: psych.id
+        psychologistId: ctx.psychologistId
       },
       select: {
         id: true,
@@ -138,7 +101,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     // Иначе в сетке могут появиться пересекающиеся интервалы.
     const overlap = await prisma.scheduleSlot.findFirst({
       where: {
-        psychologistId: psych.id,
+        psychologistId: ctx.psychologistId,
         start: { lt: end },
         end: { gt: start }
       },
@@ -159,7 +122,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     const result = await prisma.$transaction(async tx => {
       const slot = await tx.scheduleSlot.create({
         data: {
-          psychologistId: psych.id,
+          psychologistId: ctx.psychologistId,
           start,
           end,
           status: "BOOKED"
@@ -169,7 +132,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
       const appointment = await tx.appointment.create({
         data: {
           slotId: slot.id,
-          psychologistId: psych.id,
+          psychologistId: ctx.psychologistId,
           clientId: client.id,
           start,
           end,
@@ -183,7 +146,9 @@ export async function POST(request: Request, { params }: ParamsPromise) {
           dateStyle: "short",
           timeStyle: "short"
         });
-        const psychologistName = `${psych.lastName} ${psych.firstName}`.trim() || "Психолог";
+        const psychologistName = psychProfile
+          ? `${psychProfile.lastName} ${psychProfile.firstName}`.trim() || "Психолог"
+          : "Психолог";
         await tx.notification.create({
           data: {
             userId: client.userId!,

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requirePsychologist } from "@/lib/security/api-guards";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
@@ -15,12 +14,8 @@ type ParamsPromise = {
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     const body = await request.json().catch(() => null);
     const status = body?.status as "PENDING_CONFIRMATION" | "SCHEDULED" | "COMPLETED" | "CANCELED" | undefined;
@@ -32,31 +27,20 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       );
     }
 
-    const userId = (session.user as unknown as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    // Находим профиль психолога, чтобы убедиться, что он владеет записью
     const profile = await prisma.psychologistProfile.findUnique({
-      where: { userId }
+      where: { id: ctx.psychologistId }
     });
 
-    if (!profile) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 404 }
-      );
-    }
-
-    const psychologistName = `${profile.lastName} ${profile.firstName}`.trim() || "Психолог";
+    const psychologistName = profile
+      ? `${profile.lastName} ${profile.firstName}`.trim() || "Психолог"
+      : "Психолог";
 
     const appt = await prisma.appointment.findUnique({
       where: { id },
       include: { slot: true, client: { select: { userId: true, psychologistId: true } } }
     });
 
-    if (!appt || appt.psychologistId !== profile.id) {
+    if (!appt || appt.psychologistId !== ctx.psychologistId) {
       return NextResponse.json(
         { message: "Запись не найдена или вам недоступна" },
         { status: 404 }
@@ -64,7 +48,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     }
 
     const wasPendingBefore = appt.status === "PENDING_CONFIRMATION";
-    const alreadyInListBefore = appt.client?.psychologistId === profile.id;
+    const alreadyInListBefore = appt.client?.psychologistId === ctx.psychologistId;
     const clientAddedToList =
       status === "SCHEDULED" && wasPendingBefore && !alreadyInListBefore;
 
@@ -89,11 +73,11 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
     // При подтверждении записи (PENDING → SCHEDULED) добавляем клиента в список только если его там ещё нет, уведомление о добавлении — только в этом случае
     if (status === "SCHEDULED" && wasPending) {
-      const alreadyInList = appt.client?.psychologistId === profile.id;
+      const alreadyInList = appt.client?.psychologistId === ctx.psychologistId;
       if (!alreadyInList) {
         await tx.clientProfile.update({
           where: { id: appt.clientId },
-          data: { psychologistId: profile.id }
+          data: { psychologistId: ctx.psychologistId }
         });
       }
       const clientUserId = appt.client?.userId;

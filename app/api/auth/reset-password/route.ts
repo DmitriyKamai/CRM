@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/security/api-guards";
 
 const resetSchema = z.object({
   token: z.string().trim().min(1, "Токен обязателен"),
@@ -20,6 +22,19 @@ const resetSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const allowed = checkRateLimit({
+      key: `reset-password:ip:${ip}`,
+      windowMs: 10 * 60 * 1000,
+      max: 30
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { message: "Слишком много попыток. Попробуйте позже." },
+        { status: 429 }
+      );
+    }
+
     const json = await request.json().catch(() => ({}));
     const data = resetSchema.parse(json);
 

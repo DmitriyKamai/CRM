@@ -205,6 +205,19 @@ model PsychologistProfile {
   appointments            Appointment[]
   clientRegistrationInvites ClientRegistrationInvite[]
   clientStatuses            ClientStatus[]
+  calendarFeedToken         CalendarFeedToken?
+}
+
+/// Секретная ссылка ICS-календаря (можно перевыпустить — старая перестаёт работать).
+model CalendarFeedToken {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  psychologistId String   @unique
+  createdAt      DateTime @default(now())
+
+  psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+
+  @@index([token])
 }
 
 model ClientProfile {

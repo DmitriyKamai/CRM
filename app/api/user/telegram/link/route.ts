@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { randomBytes } from "crypto";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requireAuth } from "@/lib/security/api-guards";
 
 const LINK_PREFIX = "link_";
 const TOKEN_BYTES = 16;
@@ -12,15 +11,9 @@ const EXPIRES_IN_SEC = 10 * 60; // 10 минут
 /** POST — создать одноразовую ссылку для привязки Telegram */
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
-    }
-
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Нет id пользователя" }, { status: 400 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
 
     const token = LINK_PREFIX + randomBytes(TOKEN_BYTES).toString("hex");
     const expiresAt = new Date(Date.now() + EXPIRES_IN_SEC * 1000);

@@ -29,6 +29,27 @@ CRM для психологов и их клиентов:
     - `/auth/register/client` – регистрация клиента.
 - **Первый администратор**: в `.env` задайте `INITIAL_ADMIN_EMAIL=ваш@email.com`. Пользователь с этим email при первом входе (логин или OAuth) получит роль `ADMIN` и доступ в `/admin`. Дальше новых админов можно назначать в разделе «Пользователи» админки.
 
+### Windows: `EPERM` при `prisma generate`
+
+Сообщение вида `operation not permitted, rename ... query_engine-windows.dll.node` значит, что **файл движка Prisma занят** другим процессом.
+
+1. Остановите **все** процессы Node: dev-сервер (`npm run dev:*`), бота, тесты, лишние терминалы в Cursor/VS Code.
+2. Закройте вкладки, где открыт проект из OneDrive/синхронизируемой папки (по возможности держите репозиторий вне облака).
+3. В корне репозитория выполните:
+   ```bash
+   npm run prisma:generate:clean
+   ```
+   Скрипт удаляет `node_modules/.prisma` и снова вызывает `prisma generate`.
+
+4. **Если EPERM не исчезает** — DLL всё ещё занят (часто Cursor, расширение Prisma или `node`). Закройте **Cursor / VS Code полностью**, откройте **отдельный PowerShell** (`Win+R` → `powershell`), перейдите в папку проекта и выполните:
+   ```powershell
+   cd <корень-репозитория>   # например D:\CRM
+   .\scripts\prisma-generate-windows.ps1 -KillNode
+   ```
+   (`-KillNode` гасит все `node.exe`, поэтому **не** запускайте это через `npm run` — сначала закройте редактор.) Скрипт удалит `node_modules\.prisma` и вызовет `prisma generate`.
+
+Если снова EPERM — антивирус / облачная синхронизация папки или перезагрузка ПК, затем повторите шаг 4.
+
 ### Как запускать проект
 
 1. Установите зависимости:
@@ -56,6 +77,27 @@ npm run dev
 - `lib/` – утилиты и доменная логика (валидация, доступ к БД, расчёт результатов тестов).
 - `prisma/` – схема БД (`schema.prisma`) и миграции.
 
+### Миграции базы данных
+
+1. **Локально** (создаёт/применяет миграции и обновляет клиент Prisma):
+   ```bash
+   npm run prisma:migrate
+   ```
+   Нужны `DATABASE_URL` (и при использовании Neon в `schema.prisma` — `DIRECT_DATABASE_URL` для dev по желанию).
+
+2. **Только применить уже лежащие в репозитории миграции** (как на проде / CI):
+   ```bash
+   npm run prisma:migrate:deploy
+   ```
+   Скрипт `scripts/migrate-deploy.js` отключает advisory lock (удобно для Neon) и вызывает `prisma migrate deploy`. Если задан только `DATABASE_URL`, миграции пойдут через него; для Neon в проде рекомендуется задать ещё **`DIRECT_DATABASE_URL`** (строка без `-pooler` в хосте).
+
+3. После миграций при необходимости:
+   ```bash
+   npm run prisma:generate
+   ```
+
+При сборке (`npm run build`) миграции выполняются автоматически перед `next build`.
+
 ### Схема БД (Prisma)
 
 Основные сущности:
@@ -64,6 +106,7 @@ npm run dev
 - **PsychologistProfile / ClientProfile**: отдельные профили психолога и клиента, связанные с `User`.
 - **Test / TestQuestion / TestScale / TestResult / DiagnosticLink**: модель психологических тестов (на старте – опросник Шмишека), вопросы, шкалы, результаты и ссылки для прохождения.
 - **ScheduleSlot / Appointment**: слоты расписания и конкретные записи на приём.
+- **CalendarFeedToken**: секретный токен подписки на ICS-календарь психолога (см. `SECURITY.md`).
 - **CustomFieldDefinition / CustomFieldValue**: пользовательские поля, которые психолог может заводить для клиентов и приёмов.
 - **Recommendation**: текстовые рекомендации от психолога клиенту, при желании привязанные к результату теста.
 

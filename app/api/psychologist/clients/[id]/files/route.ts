@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
 
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -26,29 +25,11 @@ const ALLOWED_MIME_TYPES = [
 
 export async function GET(_req: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-  const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
-
-  const psych = await prisma.psychologistProfile.findUnique({
-    where: { userId },
-    select: { id: true }
-  });
-  if (!psych) {
-    return NextResponse.json(
-      { message: "Профиль психолога не найден" },
-      { status: 400 }
-    );
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const files = await prisma.clientFile.findMany({
-    where: { psychologistId: psych.id, clientId: id },
+    where: { psychologistId: ctx.psychologistId, clientId: id },
     orderBy: { createdAt: "desc" }
   });
 
@@ -58,26 +39,8 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
 export async function POST(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-    const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    const psych = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-    if (!psych) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(
@@ -113,7 +76,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     }
 
     const existingCount = await prisma.clientFile.count({
-      where: { psychologistId: psych.id, clientId: id }
+      where: { psychologistId: ctx.psychologistId, clientId: id }
     });
     if (existingCount >= MAX_FILES_PER_CLIENT) {
       return NextResponse.json(
@@ -124,7 +87,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
 
     const safeName = file.name || "file";
     const ext = safeName.includes(".") ? safeName.split(".").pop() : "bin";
-    const pathname = `client-files/${psych.id}/${id}/${Date.now()}-${Math.random()
+    const pathname = `client-files/${ctx.psychologistId}/${id}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
 
@@ -135,7 +98,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
 
     const created = await prisma.clientFile.create({
       data: {
-        psychologistId: psych.id,
+        psychologistId: ctx.psychologistId,
         clientId: id,
         url: blob.url,
         filename: safeName,

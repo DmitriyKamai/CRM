@@ -1,24 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp, requireClient } from "@/lib/security/api-guards";
 import { sendNewAppointmentToPsychologist } from "@/lib/telegram";
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "CLIENT") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-
-  const userId = (session.user as unknown as { id?: string }).id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
+  const clientCtx = await requireClient();
+  if (!clientCtx.ok) return clientCtx.response;
+  const userId = clientCtx.userId;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body.slotId !== "string") {
@@ -77,10 +68,7 @@ export async function POST(request: Request) {
   }
   const clientId = clientProfile.id;
 
-  const ip =
-    request.headers.get("x-forwarded-for") ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = getClientIp(request);
 
   const allowed = checkRateLimit({
     key: `appointment:${clientId}:${ip}`,

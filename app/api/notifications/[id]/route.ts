@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { requireAuth } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -10,15 +9,9 @@ type ParamsPromise = {
 
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
-    }
-
-    const userId = (session.user as unknown as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
     const { id } = await params;
 
     const notification = await prisma.notification.findFirst({
@@ -58,15 +51,9 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
 export async function DELETE(_request: Request, { params }: ParamsPromise) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
-    }
-
-    const userId = (session.user as unknown as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
     const { id } = await params;
 
     const notification = await prisma.notification.findFirst({

@@ -1,16 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/lib/db";
 import { verifyCalendarFeedToken, buildIcs } from "@/lib/calendar-feed";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/security/api-guards";
+
+async function resolvePsychologistIdForFeed(token: string): Promise<string | null> {
+  // Легаси: HMAC-токен из `createCalendarFeedToken` всегда содержит разделитель «.»
+  if (token.includes(".")) {
+    return verifyCalendarFeedToken(token);
+  }
+  const row = await prisma.calendarFeedToken.findUnique({
+    where: { token },
+    select: { psychologistId: true }
+  });
+  return row?.psychologistId ?? null;
+}
 
 /** GET /api/calendar/feed?token=... — фид календаря в формате ICS (для подписки в Google/Apple Calendar). */
 export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const allowed = checkRateLimit({
+      key: `calendar-feed:ip:${ip}`,
+      windowMs: 10 * 60 * 1000,
+      max: 600
+    });
+    if (!allowed) {
+      return new NextResponse("Слишком много запросов", { status: 429 });
+    }
+
     const token = request.nextUrl.searchParams.get("token");
     if (!token) {
       return new NextResponse("Не указан токен", { status: 400 });
     }
 
-    const psychologistId = verifyCalendarFeedToken(token);
+    const psychologistId = await resolvePsychologistIdForFeed(token);
     if (!psychologistId) {
       return new NextResponse("Недействительная ссылка", { status: 403 });
     }

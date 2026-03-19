@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -17,29 +16,11 @@ const valuesSchema = z.record(z.string(), z.unknown().nullable());
 
 export async function GET(_req: Request, { params }: ParamsPromise) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-  if (!session?.user || role !== "PSYCHOLOGIST") {
-    return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-  }
-  const userId = (session.user as unknown as { id?: string | null }).id;
-  if (!userId) {
-    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-  }
-
-  const psych = await prisma.psychologistProfile.findUnique({
-    where: { userId },
-    select: { id: true }
-  });
-  if (!psych) {
-    return NextResponse.json(
-      { message: "Профиль психолога не найден" },
-      { status: 400 }
-    );
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const defs = await prisma.customFieldDefinition.findMany({
-    where: { psychologistId: psych.id, target: "CLIENT" },
+    where: { psychologistId: ctx.psychologistId, target: "CLIENT" },
     orderBy: [{ group: "asc" }, { order: "asc" }, { createdAt: "asc" }]
   });
 
@@ -68,32 +49,14 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
-    if (!session?.user || role !== "PSYCHOLOGIST") {
-      return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
-    }
-    const userId = (session.user as unknown as { id?: string | null }).id;
-    if (!userId) {
-      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
-    }
-
-    const psych = await prisma.psychologistProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    });
-    if (!psych) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
-    }
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
     const body = await request.json().catch(() => ({}));
     const parsed = valuesSchema.parse(body?.values ?? {});
 
     const defs = await prisma.customFieldDefinition.findMany({
-      where: { psychologistId: psych.id, target: "CLIENT" }
+      where: { psychologistId: ctx.psychologistId, target: "CLIENT" }
     });
     const allowedIds = new Set(defs.map((d) => d.id));
 
