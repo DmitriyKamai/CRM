@@ -676,15 +676,15 @@ export function PsychologistSchedule() {
                 </div>
                 <ul className="space-y-0.5">
                   <li className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-sm bg-sky-500/40 border border-sky-500/60" />
+                    <span className="h-3 w-3 rounded-sm bg-sky-500 border border-sky-600" />
                     <span>Свободный слот</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-sm bg-amber-400/60 border border-amber-500/70" />
+                    <span className="h-3 w-3 rounded-sm bg-amber-400 border border-amber-500" />
                     <span>Запись, ожидающая подтверждения</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-sm bg-emerald-500/60 border border-emerald-500/70" />
+                    <span className="h-3 w-3 rounded-sm bg-emerald-500 border border-emerald-600" />
                     <span>Подтверждённая запись</span>
                   </li>
                 </ul>
@@ -766,7 +766,7 @@ export function PsychologistSchedule() {
                           })}
                         </div>
                         {holiday ? (
-                          <div className="text-sm text-red-500">{holiday}</div>
+                          <div className="text-sm text-destructive">{holiday}</div>
                         ) : null}
                       </div>
                     );

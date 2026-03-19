@@ -454,7 +454,7 @@ export function PavlovaTestForm({ token, questions }: Props) {
                   )}
 
                   {missingPrevious.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
                       <span>
                         Чтобы завершить тест, ответьте на вопрос
                         {missingPrevious.length === 1 ? "" : "ы"}:{" "}

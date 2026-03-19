@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Popover,
   PopoverContent,
@@ -540,26 +539,21 @@ export function ClientSettingsForm() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Пол</Label>
-                  <RadioGroup
-                    value={gender}
-                    onValueChange={setGender}
-                    className="flex flex-wrap gap-4"
+                <div className="space-y-2 max-w-xs">
+                  <Label htmlFor="client-gender">Пол</Label>
+                  <Select
+                    value={gender || "unspecified"}
+                    onValueChange={value => setGender(value === "unspecified" ? "" : value)}
                   >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="male" id="client-gender-male" />
-                      <Label htmlFor="client-gender-male" className="font-normal cursor-pointer">
-                        Мужской
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="female" id="client-gender-female" />
-                      <Label htmlFor="client-gender-female" className="font-normal cursor-pointer">
-                        Женский
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                    <SelectTrigger id="client-gender">
+                      <SelectValue placeholder="Выберите" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Мужской</SelectItem>
+                      <SelectItem value="female">Женский</SelectItem>
+                      <SelectItem value="unspecified">Не указано</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 max-w-xs">
                   <Label htmlFor="client-marital">Семейное положение</Label>

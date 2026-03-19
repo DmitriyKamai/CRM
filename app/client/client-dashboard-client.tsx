@@ -98,7 +98,7 @@ export function ClientDashboardClient() {
             return;
           }
           if (res.status === 403) {
-            window.location.href = "/";
+            window.location.href = "/?forbidden=1";
             return;
           }
           setError(body?.error ?? "Не удалось загрузить данные");
@@ -168,14 +168,14 @@ export function ClientDashboardClient() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-slate-400">Загрузка кабинета…</p>
+        <p className="text-sm text-muted-foreground">Загрузка кабинета…</p>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="space-y-4 rounded-lg border border-amber-700/60 bg-amber-950/40 p-6 text-amber-200">
+      <div className="space-y-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-6 text-amber-900 dark:text-amber-200">
         <p className="font-medium">Ошибка загрузки</p>
         <p className="text-sm">{error ?? "Нет данных"}</p>
         <p className="text-sm">
@@ -190,8 +190,8 @@ export function ClientDashboardClient() {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h1 className="text-xl font-semibold text-slate-50">Кабинет клиента</h1>
-        <p className="text-sm text-slate-300">
+        <h1 className="text-xl font-semibold text-foreground">Кабинет клиента</h1>
+        <p className="text-sm text-muted-foreground">
           {data.name}. Здесь вы можете управлять записями, смотреть результаты
           психологической диагностики и рекомендации психолога.
         </p>
@@ -200,12 +200,12 @@ export function ClientDashboardClient() {
       <section className="grid gap-3 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-normal text-slate-400 uppercase">
+            <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
               Предстоящие приёмы
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-slate-50">
+            <div className="text-2xl font-semibold text-foreground">
               {data.upcomingAppointments}
             </div>
           </CardContent>
@@ -213,12 +213,12 @@ export function ClientDashboardClient() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-normal text-slate-400 uppercase">
+            <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
               Результаты тестов
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-slate-50">
+            <div className="text-2xl font-semibold text-foreground">
               {data.testResults}
             </div>
           </CardContent>
@@ -226,16 +226,16 @@ export function ClientDashboardClient() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-normal text-slate-400 uppercase">
+            <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
               Полезные действия
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs text-slate-300">
+          <CardContent className="space-y-1 text-xs text-muted-foreground">
             <ul className="list-disc list-inside space-y-1">
               <li>
                 <Link
                   href="/client/psychologists"
-                  className="text-sky-400 hover:underline"
+                  className="text-primary/90 transition-colors hover:text-primary"
                 >
                   Выбрать психолога и записаться
                 </Link>
@@ -255,7 +255,7 @@ export function ClientDashboardClient() {
         <TabsContent value="appointments" className="space-y-3">
           {data.upcomingAppointmentsList.length === 0 ? (
             <Card>
-              <CardContent className="py-6 text-sm text-slate-400">
+              <CardContent className="py-6 text-sm text-muted-foreground">
                 У вас пока нет предстоящих записей.
               </CardContent>
             </Card>
@@ -273,16 +273,16 @@ export function ClientDashboardClient() {
                     >
                       <div className="space-y-0.5">
                         <div className="flex flex-wrap items-baseline gap-2">
-                          <span className="font-medium text-slate-50">
+                          <span className="font-medium text-foreground">
                             {apt.psychologistName}
                           </span>
                           {apt.status === "PENDING_CONFIRMATION" && (
-                            <span className="rounded bg-amber-900/60 px-2 py-0.5 text-sm text-amber-200">
+                            <span className="rounded bg-amber-500/15 px-2 py-0.5 text-sm text-amber-900 dark:text-amber-200">
                               Ожидает подтверждения
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-muted-foreground">
                           {formatAppointmentDateTime(apt.start, apt.end)}
                         </div>
                       </div>
@@ -324,7 +324,7 @@ export function ClientDashboardClient() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Тесты к прохождению</CardTitle>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Психолог отправил вам эти тесты. Пройдите их по ссылке.
                 </p>
               </CardHeader>
@@ -336,10 +336,10 @@ export function ClientDashboardClient() {
                       className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
                     >
                       <div>
-                        <div className="font-medium text-slate-50">
+                        <div className="font-medium text-foreground">
                           {link.testTitle}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-muted-foreground">
                           {link.psychologistName} · {formatDate(link.createdAt)}
                         </div>
                       </div>
@@ -356,7 +356,7 @@ export function ClientDashboardClient() {
           )}
           {data.diagnosticResults.length === 0 && (!data.pendingDiagnosticLinks || data.pendingDiagnosticLinks.length === 0) ? (
             <Card>
-              <CardContent className="py-6 text-sm text-slate-400">
+              <CardContent className="py-6 text-sm text-muted-foreground">
                 Результаты психологической диагностики пока не сохранены. Если
                 психолог отправит вам тест, он появится здесь в блоке «Тесты к
                 прохождению».
@@ -377,15 +377,15 @@ export function ClientDashboardClient() {
                       className="rounded-md border border-border bg-card px-3 py-2"
                     >
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-medium text-slate-50">
+                        <span className="font-medium text-foreground">
                           {r.testTitle}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {formatDate(r.createdAt)}
                         </span>
                       </div>
                       {r.interpretation && (
-                        <p className="mt-1 text-xs text-slate-300 whitespace-pre-line">
+                        <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
                           {r.interpretation}
                         </p>
                       )}
@@ -400,7 +400,7 @@ export function ClientDashboardClient() {
         <TabsContent value="recommendations" className="space-y-3">
           {data.recommendations.length === 0 ? (
             <Card>
-              <CardContent className="py-6 text-sm text-slate-400">
+              <CardContent className="py-6 text-sm text-muted-foreground">
                 Рекомендации от психолога пока не добавлены.
               </CardContent>
             </Card>
@@ -418,18 +418,18 @@ export function ClientDashboardClient() {
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-medium text-slate-50">
+                          <span className="font-medium text-foreground">
                             {rec.title}
                           </span>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-muted-foreground">
                             {rec.psychologistName}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {formatDate(rec.createdAt)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-300 whitespace-pre-line">
+                      <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
                         {rec.body}
                       </p>
                     </li>

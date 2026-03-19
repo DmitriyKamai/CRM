@@ -17,10 +17,10 @@ export default async function PsychologistSchedulePage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold text-slate-50">
+      <h1 className="text-xl font-semibold text-foreground">
         Расписание приёмов
       </h1>
-      <p className="text-sm text-slate-300">
+      <p className="text-sm text-muted-foreground">
         Здесь вы можете создавать слоты в расписании, которые будут доступны
         клиентам для записи.
       </p>

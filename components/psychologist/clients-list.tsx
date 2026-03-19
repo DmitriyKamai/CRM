@@ -188,7 +188,7 @@ export function PsychologistClientsList() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [tableCustomFieldDefs, setTableCustomFieldDefs] = useState<Array<{ id: string; label: string }>>([]);
 
-  const MIN_LIST_WIDTH = 720;
+  const MIN_LIST_WIDTH = 1;
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const listInnerRef = useRef<HTMLDivElement | null>(null);
   const [listScale, setListScale] = useState(1);
@@ -735,7 +735,9 @@ export function PsychologistClientsList() {
         accessorFn: row => row.statusLabel ?? "",
         enableHiding: false,
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Статус</span>
+          <span className="inline-block min-w-[8rem] text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Статус
+          </span>
         ),
         cell: ({ row }) => {
           const { statusLabel, statusColor } = row.original;
@@ -746,7 +748,7 @@ export function PsychologistClientsList() {
             statusLabel.length > 16 ? `${statusLabel.slice(0, 16)}…` : statusLabel;
           return (
             <span
-              className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium text-white"
+              className="inline-flex min-w-[8rem] items-center justify-center rounded-md px-2 py-0.5 text-[11px] font-medium text-white whitespace-nowrap"
               style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
               title={statusLabel.length > 16 ? statusLabel : undefined}
             >
@@ -772,10 +774,10 @@ export function PsychologistClientsList() {
         cell: ({ row }) => {
           const c = row.original;
           return (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex min-w-[14rem] items-center gap-2 whitespace-nowrap">
               <ClientAvatar client={c} size="sm" />
-              <span className="font-medium inline-flex items-center gap-1.5 truncate">
-                <span className="truncate">
+              <span className="font-medium inline-flex items-center gap-1.5 whitespace-nowrap">
+                <span className="whitespace-nowrap">
                   {c.lastName} {c.firstName}
                 </span>
                 {c.hasAccount === true && (
@@ -802,7 +804,9 @@ export function PsychologistClientsList() {
         id: "dateOfBirth",
         accessorFn: row => row.dateOfBirth ?? "",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Дата рождения</span>
+          <span className="inline-block min-w-[8rem] text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Дата рождения
+          </span>
         ),
         cell: ({ row }) => {
           const v = row.original.dateOfBirth;
@@ -810,7 +814,7 @@ export function PsychologistClientsList() {
           try {
             const d = typeof v === "string" ? new Date(v) : v;
             return (
-              <span className="text-muted-foreground">{d.toLocaleDateString("ru-RU")}</span>
+              <span className="inline-block min-w-[8rem] text-muted-foreground whitespace-nowrap">{d.toLocaleDateString("ru-RU")}</span>
             );
           } catch {
             return <span className="text-muted-foreground">—</span>;
@@ -820,50 +824,50 @@ export function PsychologistClientsList() {
       {
         accessorKey: "country",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Страна</span>
+          <span className="inline-block min-w-[8rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Страна</span>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.country ?? "—"}</span>
+          <span className="inline-block max-w-[10rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap" title={row.original.country ?? ""}>{row.original.country ?? "—"}</span>
         )
       },
       {
         accessorKey: "city",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Город</span>
+          <span className="inline-block min-w-[8rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Город</span>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.city ?? "—"}</span>
+          <span className="inline-block max-w-[10rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap" title={row.original.city ?? ""}>{row.original.city ?? "—"}</span>
         )
       },
       {
         accessorKey: "gender",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Пол</span>
+          <span className="inline-block min-w-[6rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Пол</span>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.gender ?? "—"}</span>
+          <span className="inline-block min-w-[6rem] text-muted-foreground whitespace-nowrap">{row.original.gender ?? "—"}</span>
         )
       },
       {
         accessorKey: "maritalStatus",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Семейное положение</span>
+          <span className="inline-block min-w-[11rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Семейное положение</span>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.maritalStatus ?? "—"}</span>
+          <span className="inline-block max-w-[12rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap" title={row.original.maritalStatus ?? ""}>{row.original.maritalStatus ?? "—"}</span>
         )
       },
       {
         accessorKey: "notes",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Заметки</span>
+          <span className="inline-block min-w-[12rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Заметки</span>
         ),
         cell: ({ row }) => {
           const n = row.original.notes;
           if (!n || !n.trim()) return <span className="text-muted-foreground">—</span>;
           const short = n.length > 40 ? `${n.slice(0, 40)}…` : n;
           return (
-            <span className="text-muted-foreground truncate max-w-[200px] block" title={n}>
+            <span className="inline-block max-w-[18rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap" title={n}>
               {short}
             </span>
           );
@@ -875,7 +879,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-0 text-xs font-medium text-muted-foreground justify-start"
+            className="h-8 min-w-[14rem] px-0 text-xs font-medium text-muted-foreground justify-start whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Email
@@ -883,16 +887,16 @@ export function PsychologistClientsList() {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.email ?? "—"}</span>
+          <span className="inline-block min-w-[14rem] text-muted-foreground whitespace-nowrap">{row.original.email ?? "—"}</span>
         )
       },
       {
         accessorKey: "phone",
         header: () => (
-          <span className="text-xs font-medium text-muted-foreground">Телефон</span>
+          <span className="inline-block min-w-[10rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Телефон</span>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">
+          <span className="inline-block min-w-[10rem] text-muted-foreground whitespace-nowrap">
             {formatPhoneDisplay(row.original.phone)}
           </span>
         )
@@ -904,7 +908,7 @@ export function PsychologistClientsList() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-0 text-xs font-medium text-muted-foreground justify-start"
+            className="h-8 min-w-[8rem] px-0 text-xs font-medium text-muted-foreground justify-start whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Создан
@@ -912,7 +916,7 @@ export function PsychologistClientsList() {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">
+          <span className="inline-block min-w-[8rem] text-muted-foreground whitespace-nowrap">
             {new Date(row.original.createdAt).toLocaleDateString("ru-RU")}
           </span>
         )
@@ -924,7 +928,7 @@ export function PsychologistClientsList() {
           <span className="text-xs font-medium text-muted-foreground">{def.label}</span>
         ),
         cell: ({ row }: { row: { original: ClientDto } }) => (
-          <span className="text-muted-foreground truncate max-w-[180px] block" title={String((row.original.customFields ?? {})[def.label] ?? "")}>
+          <span className="inline-block max-w-[12rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap" title={String((row.original.customFields ?? {})[def.label] ?? "")}>
             {formatCustomFieldValue((row.original.customFields ?? {})[def.label])}
           </span>
         )
@@ -1561,6 +1565,8 @@ export function PsychologistClientsList() {
                   notes: false,
                   ...Object.fromEntries(tableCustomFieldDefs.map(d => [`custom:${d.label}`, false]))
                 }}
+                visibilityStorageKey="psychologist-clients-table-columns"
+                minTableWidthClassName="min-w-[1500px]"
                 onRowClick={
                   multiSelectMode
                     ? client => toggleOne(client.id)

@@ -78,29 +78,29 @@ export function UsersTable() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-50">Пользователи</h2>
+        <h2 className="text-sm font-semibold text-foreground">Пользователи</h2>
         <Button variant="ghost" size="sm" onClick={load}>
           Обновить
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 text-xs text-red-100">
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-sm text-slate-300">Загружаем список...</div>
+        <div className="text-sm text-muted-foreground">Загружаем список...</div>
       ) : users.length === 0 ? (
-        <div className="text-sm text-slate-300">
+        <div className="text-sm text-muted-foreground">
           Пользователи пока не зарегистрированы.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-xs text-left text-slate-200">
+          <table className="min-w-full text-xs text-left text-foreground">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400">
+              <tr className="border-b border-border text-muted-foreground">
                 <th className="px-2 py-2">Email</th>
                 <th className="px-2 py-2">Имя</th>
                 <th className="px-2 py-2">Роль</th>
@@ -111,15 +111,15 @@ export function UsersTable() {
               {users.map(user => (
                 <tr
                   key={user.id}
-                  className="border-b border-slate-900 hover:bg-slate-900/50"
+                  className="border-b border-border hover:bg-muted/40"
                 >
                   <td className="px-2 py-2">{user.email}</td>
-                  <td className="px-2 py-2 text-slate-300">
+                  <td className="px-2 py-2 text-muted-foreground">
                     {user.name ?? "—"}
                   </td>
                   <td className="px-2 py-2">
                     <select
-                      className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                      className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                       value={user.role}
                       disabled={savingId === user.id}
                       onChange={e => changeRole(user.id, e.target.value as Role)}
@@ -129,7 +129,7 @@ export function UsersTable() {
                       <option value="ADMIN">Админ</option>
                     </select>
                   </td>
-                  <td className="px-2 py-2 text-slate-400">
+                  <td className="px-2 py-2 text-muted-foreground">
                     {new Date(user.createdAt).toLocaleString("ru-RU", {
                       dateStyle: "short",
                       timeStyle: "short"

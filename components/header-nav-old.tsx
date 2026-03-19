@@ -142,7 +142,7 @@ export function HeaderNav() {
 
   if (status === "loading") {
     return (
-      <div className="flex items-center gap-3 text-xs text-slate-400">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
         Загрузка...
       </div>
     );

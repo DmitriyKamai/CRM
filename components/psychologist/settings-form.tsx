@@ -911,26 +911,21 @@ export function PsychologistSettingsForm() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Пол</Label>
-              <RadioGroup
-                value={gender}
-                onValueChange={setGender}
-                className="flex flex-wrap gap-4"
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="psychologist-gender">Пол</Label>
+              <Select
+                value={gender || "unspecified"}
+                onValueChange={(value) => setGender(value === "unspecified" ? "" : value)}
               >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="male" id="gender-male" />
-                  <Label htmlFor="gender-male" className="font-normal cursor-pointer">
-                    Мужской
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="female" id="gender-female" />
-                  <Label htmlFor="gender-female" className="font-normal cursor-pointer">
-                    Женский
-                  </Label>
-                </div>
-              </RadioGroup>
+                <SelectTrigger id="psychologist-gender">
+                  <SelectValue placeholder="Выберите" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Мужской</SelectItem>
+                  <SelectItem value="female">Женский</SelectItem>
+                  <SelectItem value="unspecified">Не указано</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2 max-w-xs">
               <Label htmlFor="marital">Семейное положение</Label>

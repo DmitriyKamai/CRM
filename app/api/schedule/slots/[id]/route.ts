@@ -65,6 +65,28 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
   const nextEnd = new Date(nextStart.getTime() + nextDuration * 60 * 1000);
 
+  // Блокируем пересечения с другими слотами этого психолога.
+  // Условие пересечения: nextStart < other.end && nextEnd > other.start
+  const overlap = await prisma.scheduleSlot.findFirst({
+    where: {
+      psychologistId: existing.psychologistId,
+      id: { not: existing.id },
+      start: { lt: nextEnd },
+      end: { gt: nextStart }
+    },
+    select: { id: true }
+  });
+
+  if (overlap) {
+    return NextResponse.json(
+      {
+        message:
+          "Новый интервал пересекается с другим слотом. Измените время начала или длительность."
+      },
+      { status: 409 }
+    );
+  }
+
   const updateData: {
     status?: "FREE" | "BOOKED" | "CANCELED";
     start?: Date;

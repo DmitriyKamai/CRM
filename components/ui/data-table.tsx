@@ -46,6 +46,10 @@ export interface DataTableProps<TData, TValue> {
   columnLabels?: Record<string, string>;
   /** Начальная видимость колонок (по умолчанию все видимы) */
   initialColumnVisibility?: VisibilityState;
+  /** Ключ для сохранения видимости колонок в localStorage */
+  visibilityStorageKey?: string;
+  /** Минимальная ширина таблицы для горизонтального скролла */
+  minTableWidthClassName?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -56,15 +60,59 @@ export function DataTable<TData, TValue>({
   filterColumnId,
   filterPlaceholder,
   columnLabels,
-  initialColumnVisibility
+  initialColumnVisibility,
+  visibilityStorageKey,
+  minTableWidthClassName
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(initialColumnVisibility ?? {});
+  const visibilityReadyRef = React.useRef(false);
 
-  // TanStack Table uses imperative APIs that React Compiler marks as incompatible.
-  // We intentionally keep this hook here for table state orchestration.
-  // eslint-disable-next-line react-hooks/incompatible-library
+  React.useEffect(() => {
+    if (!initialColumnVisibility) return;
+    setColumnVisibility(prev => {
+      const next: VisibilityState = { ...prev };
+      for (const [key, value] of Object.entries(initialColumnVisibility)) {
+        if (next[key] === undefined) {
+          next[key] = value;
+        }
+      }
+      return next;
+    });
+  }, [initialColumnVisibility]);
+
+  React.useEffect(() => {
+    if (!visibilityStorageKey || visibilityReadyRef.current) return;
+    try {
+      const raw = window.localStorage.getItem(visibilityStorageKey);
+      if (!raw) {
+        visibilityReadyRef.current = true;
+        return;
+      }
+      const parsed = JSON.parse(raw) as VisibilityState;
+      if (parsed && typeof parsed === "object") {
+        setColumnVisibility(prev => ({ ...prev, ...parsed }));
+      }
+    } catch (err) {
+      console.error("Failed to restore column visibility", err);
+    } finally {
+      visibilityReadyRef.current = true;
+    }
+  }, [visibilityStorageKey]);
+
+  React.useEffect(() => {
+    if (!visibilityStorageKey || !visibilityReadyRef.current) return;
+    try {
+      window.localStorage.setItem(
+        visibilityStorageKey,
+        JSON.stringify(columnVisibility)
+      );
+    } catch (err) {
+      console.error("Failed to persist column visibility", err);
+    }
+  }, [columnVisibility, visibilityStorageKey]);
+
   const table = useReactTable({
     data,
     columns,
@@ -126,12 +174,12 @@ export function DataTable<TData, TValue>({
 
       {/* Table: горизонтальный скролл на узких экранах */}
       <div className="overflow-x-auto rounded-md border">
-        <Table className="min-w-[600px]">
+        <Table className={minTableWidthClassName ?? "min-w-[600px]"}>
           <TableHeader className="bg-muted/10">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map(header => (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
+                  <TableHead key={header.id} colSpan={header.colSpan} className="whitespace-nowrap align-top">
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -158,7 +206,7 @@ export function DataTable<TData, TValue>({
                   }
                 >
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="whitespace-nowrap align-top">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

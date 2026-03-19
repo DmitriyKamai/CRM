@@ -49,7 +49,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Tooltip,
   TooltipContent,
@@ -1059,26 +1058,26 @@ export const PsychologistClientProfile = forwardRef<
               </div>
             </div>
             <div className={FIELD_ROW_CLASS}>
-              <Label className={FIELD_LABEL_CLASS}>Пол</Label>
-              <RadioGroup
-                value={gender}
-                onValueChange={setGender}
-                className={cn("flex flex-wrap gap-4", FIELD_VALUE_CLASS)}
-                disabled={!isEditing}
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="male" id="client-gender-male" />
-                  <Label htmlFor="client-gender-male" className="font-normal cursor-pointer text-sm text-foreground">
-                    Мужской
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="female" id="client-gender-female" />
-                  <Label htmlFor="client-gender-female" className="font-normal cursor-pointer text-sm text-foreground">
-                    Женский
-                  </Label>
-                </div>
-              </RadioGroup>
+              <Label className={FIELD_LABEL_CLASS} htmlFor="client-gender-select">Пол</Label>
+              <div className={FIELD_VALUE_CLASS}>
+                <Select
+                  value={gender || "unspecified"}
+                  onValueChange={value => setGender(value === "unspecified" ? "" : value)}
+                  disabled={!isEditing}
+                >
+                  <SelectTrigger
+                    id="client-gender-select"
+                    className={cn("border-0 bg-transparent shadow-none h-auto py-0 min-h-0 w-auto", !isEditing && "cursor-default")}
+                  >
+                    <SelectValue placeholder="Выберите" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Мужской</SelectItem>
+                    <SelectItem value="female">Женский</SelectItem>
+                    <SelectItem value="unspecified">Не указано</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className={FIELD_ROW_CLASS}>
               <Label htmlFor="client-marital" className={FIELD_LABEL_CLASS}>

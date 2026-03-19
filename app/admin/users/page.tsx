@@ -12,15 +12,15 @@ export default async function AdminUsersPage() {
   }
 
   if ((session.user as unknown as { role?: string | null }).role !== "ADMIN") {
-    redirect("/");
+    redirect("/?forbidden=1");
   }
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold text-slate-50">
+      <h1 className="text-xl font-semibold text-foreground">
         Пользователи и роли
       </h1>
-      <p className="text-sm text-slate-300">
+      <p className="text-sm text-muted-foreground">
         Здесь можно просматривать зарегистрированных пользователей и изменять их
         роль (клиент, психолог, админ).
       </p>

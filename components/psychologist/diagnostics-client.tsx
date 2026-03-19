@@ -544,7 +544,7 @@ export function PsychologistDiagnosticsClient() {
           </DialogHeader>
 
           {sendToClientSuccess && (
-            <div className="rounded-md border border-green-500/60 bg-green-500/10 px-3 py-2 text-xs text-green-200">
+            <div className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
               {sendToClientSuccess}
             </div>
           )}

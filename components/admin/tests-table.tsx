@@ -76,32 +76,32 @@ export function TestsTable() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-50">Диагностические тесты</h2>
+        <h2 className="text-sm font-semibold text-foreground">Диагностические тесты</h2>
         <Button variant="ghost" size="sm" onClick={load}>
           Обновить
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 text-xs text-red-100">
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-sm text-slate-300">Загружаем тесты...</div>
+        <div className="text-sm text-muted-foreground">Загружаем тесты...</div>
       ) : tests.length === 0 ? (
-        <div className="text-sm text-slate-300">Тесты ещё не добавлены.</div>
+        <div className="text-sm text-muted-foreground">Тесты ещё не добавлены.</div>
       ) : (
-        <div className="space-y-2 text-xs text-slate-200">
+        <div className="space-y-2 text-xs text-foreground">
           {tests.map(test => (
             <div
               key={test.id}
-              className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950/40 px-3 py-2"
+              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2"
             >
               <div>
-                <div className="font-medium text-slate-50">{test.title}</div>
-                <div className="text-sm text-slate-400">
+                <div className="font-medium text-foreground">{test.title}</div>
+                <div className="text-sm text-muted-foreground">
                   Тип: {test.type} · создан{" "}
                   {new Date(test.createdAt).toLocaleString("ru-RU", {
                     dateStyle: "short",
@@ -112,7 +112,7 @@ export function TestsTable() {
               <div className="flex items-center gap-2">
                 <span
                   className={`text-sm ${
-                    test.isActive ? "text-emerald-400" : "text-slate-500"
+                    test.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
                   }`}
                 >
                   {test.isActive ? "активен" : "отключён"}

@@ -137,7 +137,9 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         <ThemeToggle />
-        <NotificationsPanel />
+        <div className="mr-1 sm:mr-2">
+          <NotificationsPanel />
+        </div>
         <DropdownMenu
           onOpenChange={(open) => {
             if (open && role === "PSYCHOLOGIST") fetchProfessionLabel();

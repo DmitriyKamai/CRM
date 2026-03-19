@@ -126,7 +126,34 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     }
 
     const start = new Date(startIso);
+    if (Number.isNaN(start.getTime())) {
+      return NextResponse.json(
+        { message: "Неверный формат даты начала" },
+        { status: 400 }
+      );
+    }
     const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+
+    // Нельзя создать запись, если интервал пересекается с любым существующим слотом.
+    // Иначе в сетке могут появиться пересекающиеся интервалы.
+    const overlap = await prisma.scheduleSlot.findFirst({
+      where: {
+        psychologistId: psych.id,
+        start: { lt: end },
+        end: { gt: start }
+      },
+      select: { id: true }
+    });
+
+    if (overlap) {
+      return NextResponse.json(
+        {
+          message:
+            "Нельзя создать запись: выбранное время пересекается с уже существующим слотом."
+        },
+        { status: 409 }
+      );
+    }
 
     const hasAccount = !!client.userId;
     const result = await prisma.$transaction(async tx => {
