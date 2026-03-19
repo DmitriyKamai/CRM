@@ -1085,6 +1085,10 @@ export function PsychologistClientsList() {
   }
 
   const listScaled = listScale < 1;
+  const visibleClients =
+    statusFilter === "ALL"
+      ? clients
+      : clients.filter((c) => c.statusId === statusFilter);
 
   return (
     <div className="px-6 py-4">
@@ -1504,16 +1508,20 @@ export function PsychologistClientsList() {
                   <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
               </div>
-            ) : clients.length === 0 ? (
+            ) : visibleClients.length === 0 ? (
               <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/40 px-6 py-10 text-center">
                 <div className="space-y-3 max-w-md">
                   <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Users className="h-5 w-5" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">Клиентов пока нет</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {clients.length === 0 ? "Клиентов пока нет" : "По выбранному фильтру клиентов нет"}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Добавьте первого клиента вручную или импортируйте список из файла.
+                      {clients.length === 0
+                        ? "Добавьте первого клиента вручную или импортируйте список из файла."
+                        : "Смените вкладку статуса или добавьте клиента с подходящим статусом."}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
@@ -1535,11 +1543,7 @@ export function PsychologistClientsList() {
             ) : (
               <DataTable
                 columns={columns}
-                data={
-                  statusFilter === "ALL"
-                    ? clients
-                    : clients.filter((c) => c.statusId === statusFilter)
-                }
+                data={visibleClients}
                 filterColumnId="search"
                 filterPlaceholder="Поиск по имени, email или телефону..."
                 columnLabels={{
