@@ -60,9 +60,14 @@ const PROFILE_HREF: Record<string, string> = {
 type HeaderNavProps = {
   role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN";
   onMenuClick?: () => void;
+  /**
+   * Опциональный бренд слева в шапке (нужно, например, для главной страницы).
+   * На остальных страницах обычно используется только меню/иконки.
+   */
+  brand?: { href: string; label: string };
 };
 
-export function HeaderNav({ role, onMenuClick }: HeaderNavProps) {
+export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
   const { data: session } = useSession();
   const [professionLabel, setProfessionLabel] = useState<string | null>(null);
 
@@ -120,6 +125,14 @@ export function HeaderNav({ role, onMenuClick }: HeaderNavProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
+        )}
+        {brand && (
+          <Link
+            href={brand.href}
+            className="tangerine-bold text-2xl sm:text-3xl text-foreground leading-none whitespace-nowrap hover:opacity-90"
+          >
+            {brand.label}
+          </Link>
         )}
       </div>
       <div className="flex items-center gap-2 sm:gap-3">

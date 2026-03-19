@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { HeaderNav } from "@/components/layout/header-nav";
 
 export default async function LandingPage() {
   const session = await getServerSession(authOptions);
@@ -29,6 +30,9 @@ export default async function LandingPage() {
     redirect("/auth/choose-role");
   }
 
+  const authenticatedRole =
+    role === "CLIENT" ? "CLIENT" : role === "PSYCHOLOGIST" ? "PSYCHOLOGIST" : null;
+
   const userLabel =
     session?.user?.email ??
     (session?.user as any)?.name ??
@@ -36,22 +40,21 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="tangerine-bold text-5xl text-foreground leading-none">
-            Empatix
-          </Link>
-          <nav className="flex items-center gap-2">
-            {dashboard ? (
-              <>
-                <Button variant="ghost" asChild size="sm">
-                  <Link href={dashboard.href}>{dashboard.label}</Link>
-                </Button>
-                <span className="hidden sm:inline text-xs text-muted-foreground">
-                  Вы вошли: {userLabel}
-                </span>
-              </>
-            ) : (
+      {authenticatedRole ? (
+        <HeaderNav
+          role={authenticatedRole}
+          brand={{ href: "/", label: "Empatix" }}
+        />
+      ) : (
+        <header className="border-b bg-background/80 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+            <Link
+              href="/"
+              className="tangerine-bold text-5xl text-foreground leading-none"
+            >
+              Empatix
+            </Link>
+            <nav className="flex items-center gap-2">
               <>
                 <Button variant="ghost" asChild size="sm">
                   <Link href="/auth/login">Войти</Link>
@@ -63,10 +66,10 @@ export default async function LandingPage() {
                   <Link href="/auth/register/client">Я клиент</Link>
                 </Button>
               </>
-            )}
-          </nav>
-        </div>
-      </header>
+            </nav>
+          </div>
+        </header>
+      )}
 
       <main className="flex-1 flex flex-col items-center justify-center gap-10 px-4 py-16">
         <section className="text-center space-y-5 max-w-2xl">
@@ -87,6 +90,9 @@ export default async function LandingPage() {
             <Button size="lg" variant="outline" asChild>
               <Link href="/auth/choose-role">Сменить роль</Link>
             </Button>
+            <p className="w-full text-center text-sm text-muted-foreground">
+              Вы вошли: {userLabel}
+            </p>
           </section>
         ) : (
           <section className="flex flex-wrap items-center justify-center gap-3">
