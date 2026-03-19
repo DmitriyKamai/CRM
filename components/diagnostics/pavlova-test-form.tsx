@@ -189,14 +189,6 @@ export function PavlovaTestForm({ token, questions }: Props) {
     };
   }, [token]);
 
-  const goNext = useCallback(() => {
-    if (currentStep < totalSteps - 1) {
-      const next = currentStep + 1;
-      setCurrentStep(next);
-      persistProgress(answers, next);
-    }
-  }, [currentStep, totalSteps, answers, persistProgress]);
-
   const goPrev = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(s => s - 1);

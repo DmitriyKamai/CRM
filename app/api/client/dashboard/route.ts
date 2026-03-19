@@ -26,14 +26,15 @@ async function handleGet(): Promise<Response> {
       );
     }
 
-    if ((session.user as any).role !== "CLIENT") {
+    const role = (session.user as unknown as { role?: string | null }).role;
+    if (role !== "CLIENT") {
       return NextResponse.json(
         { error: "forbidden" },
         { status: 403 }
       );
     }
 
-    const userId = (session.user as any).id as string | undefined;
+    const userId = (session.user as unknown as { id?: string }).id;
     if (!userId) {
       return NextResponse.json(
         { error: "unauthorized" },
@@ -160,10 +161,17 @@ async function handleGet(): Promise<Response> {
         const linkIds = pendingLinksFiltered.slice(0, 20).map((l) => l.id);
         let progressByLinkId = new Map<string, number>();
         try {
-          const progressList = await (prisma as any).diagnosticProgress.findMany({
+          const prismaWithDiagnosticProgress = prisma as unknown as {
+            diagnosticProgress: {
+              findMany: (
+                args: unknown
+              ) => Promise<Array<{ diagnosticLinkId: string; currentStep: number }>>;
+            };
+          };
+          const progressList = await prismaWithDiagnosticProgress.diagnosticProgress.findMany({
             where: { diagnosticLinkId: { in: linkIds } },
             select: { diagnosticLinkId: true, currentStep: true }
-          }) as { diagnosticLinkId: string; currentStep: number }[];
+          });
           progressByLinkId = new Map(
             progressList.map((p) => [p.diagnosticLinkId, p.currentStep])
           );

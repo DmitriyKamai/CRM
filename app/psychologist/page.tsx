@@ -13,12 +13,16 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PsychologistDashboardPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [clientsCount, setClientsCount] = useState<number | null>(null);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<number | null>(null);
+  type UserWithRole = { role?: "UNSPECIFIED" | "ADMIN" | "CLIENT" | "PSYCHOLOGIST" | string };
+  // Счётчики пока не грузятся с бэка (страница-заглушка),
+  // поэтому храним значения сразу, чтобы не вызывать setState в useEffect.
+  const [clientsCount] = useState<number>(0);
+  const [upcomingAppointments] = useState<number>(0);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -26,37 +30,39 @@ export default function PsychologistDashboardPage() {
       router.replace("/auth/login?callbackUrl=/psychologist");
       return;
     }
-    const role = (session.user as any).role;
+    const role = (session.user as UserWithRole).role;
     if (role === "UNSPECIFIED") {
       router.replace("/auth/choose-role");
       return;
     }
     if (role !== "PSYCHOLOGIST") {
-      router.replace("/");
+      router.replace("/?forbidden=1");
       return;
     }
-
-    setClientsCount(0);
-    setUpcomingAppointments(0);
   }, [status, session, router]);
 
   if (status === "loading") {
     return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Загружаем кабинет психолога...
-        </p>
+      <div className="p-6 space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="h-4 w-[28rem] max-w-full" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+        </div>
       </div>
     );
   }
 
-  const role = (session?.user as any)?.role;
+  const role = (session?.user as UserWithRole | undefined)?.role;
   if (!session?.user || role === "UNSPECIFIED" || role !== "PSYCHOLOGIST") {
     return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Перенаправляем…
-        </p>
+      <div className="p-6 space-y-4">
+        <p className="text-sm text-muted-foreground">Проверяем доступ…</p>
+        <Skeleton className="h-24 rounded-xl" />
       </div>
     );
   }
@@ -85,7 +91,7 @@ export default function PsychologistDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
-              {clientsCount ?? "—"}
+              {clientsCount}
             </div>
           </CardContent>
         </Card>
@@ -96,7 +102,7 @@ export default function PsychologistDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
-              {upcomingAppointments ?? "—"}
+              {upcomingAppointments}
             </div>
           </CardContent>
         </Card>

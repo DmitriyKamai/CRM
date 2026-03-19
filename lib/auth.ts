@@ -1,6 +1,6 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { NextAuthOptions } from "next-auth";
-import type { Adapter } from "next-auth/adapters";
+import type { Adapter, AdapterSession, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 // GoogleProvider and AppleProvider are loaded conditionally at runtime
@@ -16,10 +16,13 @@ function safeNoop<T>(fn: () => T): T | null {
   }
 }
 
+const noopAdapterUser = null as unknown as AdapterUser;
+const noopAdapterSession = null as unknown as AdapterSession;
+
 /** Адаптер-заглушка: не обращается к БД. Все методы не бросают, чтобы не ронять процесс. */
 const noopAdapter: Adapter = {
   async createUser() {
-    return safeNoop(() => null as any) ?? (null as any);
+    return safeNoop(() => noopAdapterUser) ?? noopAdapterUser;
   },
   async getUser() {
     return safeNoop(() => null) ?? null;
@@ -31,13 +34,13 @@ const noopAdapter: Adapter = {
     return safeNoop(() => null) ?? null;
   },
   async updateUser() {
-    return safeNoop(() => null as any) ?? (null as any);
+    return safeNoop(() => noopAdapterUser) ?? noopAdapterUser;
   },
   async linkAccount() {
     safeNoop(() => {});
   },
   async createSession() {
-    return safeNoop(() => null as any) ?? (null as any);
+    return safeNoop(() => noopAdapterSession) ?? noopAdapterSession;
   },
   async getSessionAndUser() {
     return safeNoop(() => null) ?? null;
@@ -91,7 +94,12 @@ function buildProviders() {
           email: user.email,
           name: user.name ?? undefined,
           role: user.role
-        } as any;
+        } as unknown as {
+          id: string;
+          email: string;
+          name?: string | undefined;
+          role?: string | null;
+        };
       }
     })
   ];
@@ -144,7 +152,7 @@ function parseCookieUserId(cookieHeader: string | null): string | null {
 
 function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
   return {
-    async signIn({ user, account }) {
+    async signIn({ account }) {
       if (!req || !account || (account.provider !== "google" && account.provider !== "apple")) return true;
       const linkUserId = parseCookieUserId(req.headers.get("cookie") ?? null);
       if (!linkUserId) return true;
@@ -164,14 +172,16 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
     },
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id;
+        token.id = (user as unknown as { id: string }).id;
         return token;
       }
       return token;
     },
     async session({ session, token }) {
       if (!session.user || !token) return session;
-      (session.user as any).id = token.id;
+      const tokenId = (token as unknown as { id?: unknown }).id;
+      (session.user as unknown as { id?: string | undefined }).id =
+        tokenId as string | undefined;
       const userId = (token.id ?? token.sub) as string | undefined;
       if (!userId) return session;
       try {
@@ -194,7 +204,7 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
           }
           session.user.email = user.email;
           session.user.image = user.image ?? undefined;
-          (session.user as any).role = effectiveRole;
+          (session.user as unknown as { role?: string }).role = effectiveRole;
           if (effectiveRole === "PSYCHOLOGIST") {
             const profile = await prisma.psychologistProfile.findUnique({
               where: { userId },

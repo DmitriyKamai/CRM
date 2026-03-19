@@ -13,14 +13,15 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+  if (!session?.user || role !== "ADMIN") {
     return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
-  const role = body?.role as string | undefined;
+  const nextRole = body?.role as string | undefined;
 
-  if (!role || !["CLIENT", "PSYCHOLOGIST", "ADMIN"].includes(role)) {
+  if (!nextRole || !["CLIENT", "PSYCHOLOGIST", "ADMIN"].includes(nextRole)) {
     return NextResponse.json(
       { message: "Неверная роль" },
       { status: 400 }
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
   const user = await prisma.user.update({
     where: { id },
-    data: { role: role as Role }
+    data: { role: nextRole as Role }
   });
 
   return NextResponse.json({

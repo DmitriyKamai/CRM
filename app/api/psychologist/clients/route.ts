@@ -34,11 +34,18 @@ export async function GET() {
     return await withPrismaLock(async () => {
       const session = await getServerSession(authOptions);
 
-      if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+      const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+      if (!session?.user || role !== "PSYCHOLOGIST") {
         return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
       }
 
-      const userId = (session.user as any).id as string;
+      const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
+      if (!userId) {
+        return NextResponse.json(
+          { message: "Сессия недействительна" },
+          { status: 401 }
+        );
+      }
 
       const profile = await prisma.psychologistProfile.findUnique({
         where: { userId },
@@ -94,7 +101,7 @@ export async function GET() {
             maritalStatus: true
           }
         }) as ClientRow[];
-      } catch (e) {
+      } catch {
         // Колонки country, city, gender, maritalStatus могут отсутствовать, если миграция не применена
         clients = (await prisma.clientProfile.findMany({
           where: { psychologistId: profile.id },
@@ -180,11 +187,18 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+    if (!session?.user || role !== "PSYCHOLOGIST") {
       return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
     }
 
-    const userId = (session.user as any).id as string;
+    const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { message: "Сессия недействительна" },
+        { status: 401 }
+      );
+    }
 
     const psych = await prisma.psychologistProfile.findUnique({
       where: { userId }
@@ -360,11 +374,18 @@ export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+    if (!session?.user || role !== "PSYCHOLOGIST") {
       return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
     }
 
-    const userId = (session.user as any).id as string;
+    const userId = (session?.user as unknown as { id?: string | null } | null)?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { message: "Сессия недействительна" },
+        { status: 401 }
+      );
+    }
 
     const psych = await prisma.psychologistProfile.findUnique({
       where: { userId },

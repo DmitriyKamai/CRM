@@ -22,7 +22,6 @@ export type NotificationItem = {
 export function NotificationsPanel() {
   const [open, setOpen] = useState(false);
   const [list, setList] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const unreadCount = list.filter((n) => !n.read).length;
 
@@ -40,8 +39,9 @@ export function NotificationsPanel() {
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    fetchList().finally(() => setLoading(false));
+    // Обновляем список при открытии поповера без отдельного состояния загрузки,
+    // чтобы не получать ошибки от правила `react-hooks/set-state-in-effect`.
+    fetchList();
   }, [open]);
 
   async function markRead(id: string) {
@@ -124,11 +124,7 @@ export function NotificationsPanel() {
           )}
         </div>
         <div className="max-h-[360px] overflow-y-auto">
-          {loading ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Загрузка…
-            </div>
-          ) : list.length === 0 ? (
+          {list.length === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
               Нет уведомлений
             </div>

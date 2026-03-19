@@ -15,7 +15,10 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id as string;
+    const userId = (session.user as unknown as { id?: string }).id;
+    if (!userId) {
+      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
+    }
     const { id } = await params;
 
     const notification = await prisma.notification.findFirst({
@@ -60,7 +63,10 @@ export async function DELETE(_request: Request, { params }: ParamsPromise) {
       return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id as string;
+    const userId = (session.user as unknown as { id?: string }).id;
+    if (!userId) {
+      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
+    }
     const { id } = await params;
 
     const notification = await prisma.notification.findFirst({

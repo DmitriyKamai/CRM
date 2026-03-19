@@ -77,20 +77,6 @@ function interpretScale(key: ShmishekScaleKey, value: number): string {
   const level: "low" | "medium" | "high" =
     value <= 6 ? "low" : value >= ACCENT_THRESHOLD ? "high" : "medium";
 
-  const scaleLabels: Record<ShmishekScaleKey, string> = {
-    hyperthymic: "Гипертимный",
-    dysthymic: "Дистимный",
-    cyclothymic: "Циклотимный",
-    exalted: "Экзальтированный",
-    anxious: "Тревожно-боязливый",
-    emotive: "Эмотивный",
-    demonstrative: "Демонстративный",
-    stuck: "Застревающий",
-    excitable: "Возбудимый",
-    pedantic: "Педантичный"
-  };
-  const name = scaleLabels[key];
-
   switch (key) {
     case "hyperthymic":
       if (level === "high" || isAccent)

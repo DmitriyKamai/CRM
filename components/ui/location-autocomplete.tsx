@@ -104,6 +104,7 @@ export function CountryAutocomplete({
                 key={c.isoCode}
                 className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground outline-none"
                 role="option"
+                aria-selected={c.name === value}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   handleSelect(c.name, c.isoCode);
@@ -231,6 +232,7 @@ export function CityAutocomplete({
                 key={name}
                 className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground outline-none"
                 role="option"
+                aria-selected={name === value}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   handleSelect(name);

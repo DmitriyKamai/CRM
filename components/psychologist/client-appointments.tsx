@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -97,7 +97,7 @@ export function ClientAppointments({ clientId }: Props) {
   const [createTime, setCreateTime] = useState<string | undefined>(undefined);
   const [duration, setDuration] = useState(50);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -115,11 +115,11 @@ export function ClientAppointments({ clientId }: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [clientId]);
 
   useEffect(() => {
     void load();
-  }, [clientId]);
+  }, [load]);
 
   async function handleStatusChange(id: string, status: AppointmentDto["status"]) {
     setError(null);

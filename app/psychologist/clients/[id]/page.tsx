@@ -23,11 +23,14 @@ export default async function PsychologistClientProfilePage({
     redirect(`/auth/login?callbackUrl=/psychologist/clients/${id}`);
   }
 
-  if ((session.user as any).role !== "PSYCHOLOGIST") {
+  if ((session.user as unknown as { role?: string | null }).role !== "PSYCHOLOGIST") {
     redirect("/");
   }
 
-  const userId = (session.user as any).id as string;
+  const userId = (session.user as unknown as { id?: string }).id;
+  if (!userId) {
+    redirect(`/auth/login?callbackUrl=/psychologist/clients/${id}`);
+  }
 
   const psych = await prisma.psychologistProfile.findUnique({
     where: { userId },

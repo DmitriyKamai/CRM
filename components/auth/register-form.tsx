@@ -136,8 +136,11 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
       router.push(signInResult?.url ?? callbackUrl);
     } catch (err) {
       console.error(err);
+      const errWithCause = err as { cause?: { code?: string } } | null;
       const isRefused =
-        err instanceof TypeError && (err.message === "Failed to fetch" || (err as any).cause?.code === "ECONNREFUSED");
+        err instanceof TypeError &&
+        (err.message === "Failed to fetch" ||
+          errWithCause?.cause?.code === "ECONNREFUSED");
       setError(
         isRefused
           ? "Не удалось подключиться к серверу. Убедитесь, что dev-сервер запущен (npm run dev). Если открываете с другого устройства, используйте адрес вида http://IP-вашего-ПК:3000, а не localhost."
@@ -169,7 +172,7 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
   ];
 
   const passedCount = passwordRequirements.reduce((acc, req) => {
-    return acc + (((passwordChecks as any)[req.key] as boolean) ? 1 : 0);
+    return acc + (passwordChecks[req.key] ? 1 : 0);
   }, 0);
 
   const progressStage = !password
@@ -293,8 +296,8 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
                 />
               </div>
               <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
-                {passwordRequirements.map((req, index) => {
-                  const passed = (passwordChecks as any)[req.key] as boolean;
+                {passwordRequirements.map((req) => {
+                  const passed = passwordChecks[req.key];
                   return (
                     <li key={req.key} className="flex items-center gap-1">
                       <Check

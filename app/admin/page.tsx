@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
@@ -11,8 +12,8 @@ export default async function AdminDashboardPage() {
     redirect("/auth/login?callbackUrl=/admin");
   }
 
-  if ((session.user as any).role !== "ADMIN") {
-    redirect("/");
+  if ((session.user as unknown as { role?: string | null }).role !== "ADMIN") {
+    redirect("/?forbidden=1");
   }
 
   const [usersCount, psychologistsCount, clientsCount, testsCount, appointmentsCount] =
@@ -26,60 +27,63 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-semibold text-slate-50">Админ-панель</h1>
-      <p className="text-sm text-slate-300">
+      <h1 className="text-xl font-semibold text-foreground">Админ-панель</h1>
+      <p className="text-sm text-muted-foreground">
         Базовый обзор ключевых сущностей CRM. Разделы пользователей и
         диагностики доступны через ссылки ниже.
       </p>
 
       <div className="grid gap-3 md:grid-cols-3">
         <div className="card p-4 space-y-1">
-          <div className="text-xs text-slate-400 uppercase">Пользователи</div>
-          <div className="text-2xl font-semibold text-slate-50">
+          <div className="text-xs text-muted-foreground uppercase">Пользователи</div>
+          <div className="text-2xl font-semibold text-foreground">
             {usersCount}
           </div>
         </div>
         <div className="card p-4 space-y-1">
-          <div className="text-xs text-slate-400 uppercase">Психологи</div>
-          <div className="text-2xl font-semibold text-slate-50">
+          <div className="text-xs text-muted-foreground uppercase">Психологи</div>
+          <div className="text-2xl font-semibold text-foreground">
             {psychologistsCount}
           </div>
         </div>
         <div className="card p-4 space-y-1">
-          <div className="text-xs text-slate-400 uppercase">Клиенты</div>
-          <div className="text-2xl font-semibold text-slate-50">
+          <div className="text-xs text-muted-foreground uppercase">Клиенты</div>
+          <div className="text-2xl font-semibold text-foreground">
             {clientsCount}
           </div>
         </div>
         <div className="card p-4 space-y-1">
-          <div className="text-xs text-slate-400 uppercase">Тесты</div>
-          <div className="text-2xl font-semibold text-slate-50">
+          <div className="text-xs text-muted-foreground uppercase">Тесты</div>
+          <div className="text-2xl font-semibold text-foreground">
             {testsCount}
           </div>
         </div>
         <div className="card p-4 space-y-1">
-          <div className="text-xs text-slate-400 uppercase">Записи</div>
-          <div className="text-2xl font-semibold text-slate-50">
+          <div className="text-xs text-muted-foreground uppercase">Записи</div>
+          <div className="text-2xl font-semibold text-foreground">
             {appointmentsCount}
           </div>
         </div>
       </div>
 
-      <div className="card p-4 space-y-2 text-sm text-slate-200">
-        <div className="font-medium text-slate-50">Разделы админки</div>
-        <ul className="list-disc list-inside space-y-1 text-slate-300">
+      <div className="card p-4 space-y-2 text-sm text-muted-foreground">
+        <div className="font-medium text-foreground">Разделы админки</div>
+        <ul className="list-disc list-inside space-y-1">
           <li>
-            <a href="/admin/users" className="text-sky-400 hover:underline">
+            <Link
+              href="/admin/users"
+              className="text-primary/90 transition-colors hover:text-primary"
+            >
               Пользователи и роли
-            </a>
+            </Link>
           </li>
           <li>
-            <a
+            <Link
               href="/admin/diagnostics"
-              className="text-sky-400 hover:underline"
+              className="text-primary/90 transition-colors hover:text-primary"
             >
               Диагностика и тесты
-            </a>
+            </Link>
           </li>
         </ul>
       </div>

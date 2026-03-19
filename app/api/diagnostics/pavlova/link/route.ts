@@ -36,10 +36,14 @@ export async function POST(request: Request) {
 
   try {
     return await withPrismaLock(async () => {
-      if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+      const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+      if (!session?.user || role !== "PSYCHOLOGIST") {
         return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
       }
-      const userId = (session.user as any).id as string;
+      const userId = (session.user as unknown as { id?: string }).id;
+      if (!userId) {
+        return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
+      }
 
       let profile = await prisma.psychologistProfile.findUnique({
         where: { userId }

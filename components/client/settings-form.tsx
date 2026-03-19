@@ -330,7 +330,6 @@ export function ClientSettingsForm() {
   }
 
   const hasGoogle = accounts.some((a) => a.provider === "google");
-  const hasApple = accounts.some((a) => a.provider === "apple");
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const displayName = session?.user?.name ?? fullName ?? "";
   const displayEmail = (email || profile.user?.email) ?? "";
@@ -369,7 +368,7 @@ export function ClientSettingsForm() {
   ];
 
   const passedCount = passwordRequirements.reduce((acc, req) => {
-    return acc + (((newPasswordChecks as any)[req.key] as boolean) ? 1 : 0);
+    return acc + (newPasswordChecks[req.key] ? 1 : 0);
   }, 0);
 
   const progressStage = !newPassword
@@ -630,7 +629,7 @@ export function ClientSettingsForm() {
                     </div>
                     <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
                       {passwordRequirements.map((req) => {
-                        const passed = (newPasswordChecks as any)[req.key] as boolean;
+                        const passed = newPasswordChecks[req.key];
                         return (
                           <li key={req.key} className="flex items-center gap-1">
                             <Check

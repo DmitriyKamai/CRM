@@ -157,7 +157,7 @@ export async function POST(request: Request) {
     const warnings: { row: number; message: string }[] = [];
     let created = 0;
     let updated = 0;
-    let skipped = 0;
+    const skipped = 0;
     const skipDuplicates = body.options?.skipDuplicatesByEmail === true;
 
     for (let i = 0; i < body.clients.length; i++) {

@@ -97,7 +97,6 @@ export function ShmishekTestForm({ token, questions }: Props) {
     if (Number.isFinite(vNum) && (vNum === 0 || vNum === 1)) return vNum as AnswerValue;
     return undefined;
   };
-  const hasAnswer = (q: QuestionDto) => getAnswer(q.index) !== undefined;
   const allAnswered =
     questions.length > 0 &&
     questions.every(q => {
@@ -163,14 +162,6 @@ export function ShmishekTestForm({ token, questions }: Props) {
       }
     };
   }, [token]);
-
-  const goNext = useCallback(() => {
-    if (currentStep < totalSteps - 1) {
-      const next = currentStep + 1;
-      setCurrentStep(next);
-      persistProgress(answers, next);
-    }
-  }, [currentStep, totalSteps, answers, persistProgress]);
 
   const goPrev = useCallback(() => {
     if (currentStep > 0) {

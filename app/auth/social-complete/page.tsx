@@ -15,7 +15,7 @@ export default async function SocialCompletePage({ searchParams }: Props) {
     redirect("/auth/login");
   }
 
-  const userId = (session.user as any).id as string | undefined;
+  const userId = (session.user as unknown as { id?: string }).id;
   if (!userId) {
     redirect("/");
   }

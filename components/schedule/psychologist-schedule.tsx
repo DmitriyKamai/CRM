@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,6 +33,7 @@ import { ScheduleGridSkeleton } from "@/components/schedule/schedule-skeleton";
 
 type SlotStatus = "FREE" | "BOOKED" | "CANCELED";
 type AppointmentStatus = "PENDING_CONFIRMATION" | "SCHEDULED" | null;
+type ApiErrorBody = { message?: string } | null;
 
 type SlotDto = {
   id: string;
@@ -157,7 +158,7 @@ export function PsychologistSchedule() {
     .filter(([md]) => md.slice(0, 2) === currentMonthKey)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 
-  async function loadSlots(retries = 2): Promise<void> {
+  const loadSlots = useCallback(async (retries = 2): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
@@ -186,11 +187,11 @@ export function PsychologistSchedule() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadSlots();
-  }, []);
+  }, [loadSlots]);
 
   async function loadClientsOnce(): Promise<void> {
     if (clients.length > 0 || clientsLoading) return;
@@ -256,7 +257,7 @@ export function PsychologistSchedule() {
         });
       }
 
-      let body: any = null;
+      let body: ApiErrorBody = null;
       try {
         body = await res.json();
       } catch {
@@ -334,7 +335,7 @@ export function PsychologistSchedule() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "CANCELED" })
       });
-      let body: any = null;
+      let body: ApiErrorBody = null;
       try {
         body = await res.json();
       } catch {
@@ -373,7 +374,7 @@ export function PsychologistSchedule() {
       const res = await fetch(`/api/schedule/slots/${slotId}`, {
         method: "DELETE"
       });
-      let body: any = null;
+      let body: ApiErrorBody = null;
       try {
         body = await res.json();
       } catch {
@@ -421,7 +422,7 @@ export function PsychologistSchedule() {
         })
       });
 
-      let body: any = null;
+      let body: ApiErrorBody = null;
       try {
         body = await res.json();
       } catch {

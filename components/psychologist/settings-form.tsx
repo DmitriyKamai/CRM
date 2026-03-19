@@ -120,6 +120,18 @@ type PasswordChecks = {
   special: boolean;
 };
 
+type CustomFieldOption = { value: string; label: string };
+type CustomFieldDef = {
+  id: string;
+  key?: string | null;
+  label: string;
+  type: "TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT" | string;
+  group?: string | null;
+  description?: string | null;
+  options?: { selectOptions?: CustomFieldOption[] } | null;
+  order?: number | null;
+};
+
 const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
   TEXT: "Текст (одна строка)",
   MULTILINE: "Текст (несколько строк)",
@@ -230,7 +242,7 @@ export function PsychologistSettingsForm() {
   const [profilePublished, setProfilePublished] = useState(false);
   const [savingPublish, setSavingPublish] = useState(false);
   const [unlinkAccountProvider, setUnlinkAccountProvider] = useState<"google" | "apple" | null>(null);
-  const [customFields, setCustomFields] = useState<any[]>([]);
+  const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldsError, setCustomFieldsError] = useState<string | null>(null);
   const [newTabName, setNewTabName] = useState("");
@@ -408,7 +420,7 @@ export function PsychologistSettingsForm() {
         if (!cancelled && a?.accounts) setAccounts(a.accounts);
         if (!cancelled) setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
@@ -660,7 +672,6 @@ export function PsychologistSettingsForm() {
   }
 
   const hasGoogle = accounts.some((a) => a.provider === "google");
-  const hasApple = accounts.some((a) => a.provider === "apple");
   const name = session?.user?.name ?? "";
   const displayEmail = (email || profile.user?.email) ?? "";
   const image = session?.user?.image ?? null;
@@ -713,7 +724,7 @@ export function PsychologistSettingsForm() {
   ];
 
   const passedCount = passwordRequirements.reduce((acc, req) => {
-    return acc + (((newPasswordChecks as any)[req.key] as boolean) ? 1 : 0);
+    return acc + (newPasswordChecks[req.key] ? 1 : 0);
   }, 0);
 
   const progressStage = !newPassword
@@ -990,7 +1001,7 @@ export function PsychologistSettingsForm() {
                   </div>
                   <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
                     {passwordRequirements.map((req) => {
-                      const passed = (newPasswordChecks as any)[req.key] as boolean;
+                      const passed = newPasswordChecks[req.key];
                       return (
                         <li key={req.key} className="flex items-center gap-1">
                           <Check

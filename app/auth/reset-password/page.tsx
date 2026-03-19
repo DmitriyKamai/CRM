@@ -62,7 +62,7 @@ function ResetPasswordPageInner() {
   ];
 
   const passedCount = passwordRequirements.reduce((acc, req) => {
-    return acc + (((checks as any)[req.key] as boolean) ? 1 : 0);
+    return acc + (checks[req.key] ? 1 : 0);
   }, 0);
 
   const progressStage = !newPassword
@@ -200,8 +200,8 @@ function ResetPasswordPageInner() {
                     />
                   </div>
                   <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
-                    {passwordRequirements.map((req, index) => {
-                      const passed = (checks as any)[req.key] as boolean;
+                    {passwordRequirements.map((req) => {
+                      const passed = checks[req.key];
                       return (
                         <li key={req.key} className="flex items-center gap-1">
                           <Check

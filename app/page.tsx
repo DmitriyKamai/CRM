@@ -5,8 +5,36 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { HeaderNav } from "@/components/layout/header-nav";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default async function LandingPage() {
+type LandingPageProps = {
+  searchParams?:
+    | Promise<Record<string, string | string[] | undefined> | URLSearchParams>
+    | Record<string, string | string[] | undefined>
+    | URLSearchParams;
+};
+
+export default async function LandingPage({ searchParams }: LandingPageProps) {
+  const resolvedParams = searchParams
+    ? await Promise.resolve(searchParams)
+    : undefined;
+
+  let forbiddenParam: string | string[] | null | undefined;
+  if (
+    resolvedParams &&
+    typeof resolvedParams === "object" &&
+    "get" in resolvedParams &&
+    typeof resolvedParams.get === "function"
+  ) {
+    forbiddenParam = resolvedParams.get("forbidden");
+  } else {
+    forbiddenParam = (resolvedParams as Record<string, string | string[] | undefined> | undefined)?.forbidden;
+  }
+
+  const showForbiddenNotice =
+    forbiddenParam === "1" ||
+    (Array.isArray(forbiddenParam) && forbiddenParam.includes("1"));
+
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (session?.user && role === "UNSPECIFIED") {
@@ -33,9 +61,10 @@ export default async function LandingPage() {
   const authenticatedRole =
     role === "CLIENT" ? "CLIENT" : role === "PSYCHOLOGIST" ? "PSYCHOLOGIST" : null;
 
+  type UserWithName = { name?: string | null };
   const userLabel =
     session?.user?.email ??
-    (session?.user as any)?.name ??
+    (session?.user as UserWithName)?.name ??
     "Пользователь";
 
   return (
@@ -72,6 +101,13 @@ export default async function LandingPage() {
       )}
 
       <main className="flex-1 flex flex-col items-center justify-center gap-10 px-4 py-16">
+        {showForbiddenNotice && (
+          <Alert variant="destructive" className="max-w-2xl w-full">
+            <AlertDescription>
+              У вас нет доступа к запрошенному разделу. Откройте доступный кабинет через кнопку ниже.
+            </AlertDescription>
+          </Alert>
+        )}
         <section className="text-center space-y-5 max-w-2xl">
           <h1 className="text-7xl md:text-8xl font-semibold tangerine-bold leading-none">
             Empatix

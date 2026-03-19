@@ -18,7 +18,7 @@ export default async function ClientDashboardPage() {
     redirect("/auth/choose-role");
   }
   if (role !== "CLIENT") {
-    redirect("/");
+    redirect("/?forbidden=1");
   }
 
   return <div className="p-6"><ClientDashboardClient /></div>;

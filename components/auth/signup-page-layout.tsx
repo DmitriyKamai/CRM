@@ -19,7 +19,7 @@ export function SignupPageLayout({
   children
 }: SignupPageLayoutProps) {
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:py-10">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:py-10" data-role={role}>
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-start">
         <div className="flex flex-col gap-6">
           <div className="flex justify-center gap-2 lg:justify-start">

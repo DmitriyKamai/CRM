@@ -11,7 +11,7 @@ export default async function AdminUsersPage() {
     redirect("/auth/login?callbackUrl=/admin/users");
   }
 
-  if ((session.user as any).role !== "ADMIN") {
+  if ((session.user as unknown as { role?: string | null }).role !== "ADMIN") {
     redirect("/");
   }
 

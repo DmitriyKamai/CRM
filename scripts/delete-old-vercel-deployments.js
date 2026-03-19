@@ -9,12 +9,8 @@
  *   npm run vercel:delete-old
  *   npm run vercel:delete-old -- --dry-run   # только показать, не удалять
  */
-const path = require('path');
-require('dotenv').config();
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
-const DRY_RUN = process.argv.includes('--dry-run');
-
-const VERCEL_API = 'https://api.vercel.com';
+let DRY_RUN = false;
+let VERCEL_API = "https://api.vercel.com";
 
 function getEnv(name, defaultValue) {
   const v = process.env[name];
@@ -69,58 +65,75 @@ async function listAllDeployments(token, projectId, teamId) {
 }
 
 async function main() {
-  const token = getEnv('VERCEL_TOKEN', process.env.TOKEN);
+  // Dynamic imports to avoid `require()` (eslint rule `@typescript-eslint/no-require-imports`).
+  const pathMod = await import("path");
+  const dotenvMod = await import("dotenv");
+  const path = pathMod.default ?? pathMod;
+  const dotenv = dotenvMod.default ?? dotenvMod;
+
+  dotenv.config();
+  dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+
+  DRY_RUN = process.argv.includes("--dry-run");
+
+  const token = getEnv("VERCEL_TOKEN", process.env.TOKEN);
   if (!token) {
-    console.error('Задайте VERCEL_TOKEN (или TOKEN).');
+    console.error("Задайте VERCEL_TOKEN (или TOKEN).");
     process.exit(1);
   }
 
-  const projectSlug = getEnv('VERCEL_PROJECT_ID', 'psychologist-crm');
-  const teamId = getEnv('VERCEL_TEAM_ID', '');
+  const projectSlug = getEnv("VERCEL_PROJECT_ID", "psychologist-crm");
+  const teamId = getEnv("VERCEL_TEAM_ID", "");
 
   let projectId = projectSlug;
   try {
     projectId = await getProjectId(token, projectSlug, teamId);
   } catch (e) {
     if (e.message.includes('404') || e.message.includes('not_found')) {
-      console.error('Проект не найден. Если он в команде Vercel, добавьте в .env.local:');
-      console.error('  VERCEL_TEAM_ID=team_xxx  (Vercel → Team → Settings → General)');
-      console.error('Текущие: VERCEL_PROJECT_ID=' + projectSlug + (teamId ? ', VERCEL_TEAM_ID=' + teamId : ' (команда не задана)'));
+      console.error("Проект не найден. Если он в команде Vercel, добавьте в .env.local:");
+      console.error("  VERCEL_TEAM_ID=team_xxx  (Vercel → Team → Settings → General)");
+      console.error(
+        "Текущие: VERCEL_PROJECT_ID=" +
+          projectSlug +
+          (teamId
+            ? ", VERCEL_TEAM_ID=" + teamId
+            : " (команда не задана)")
+      );
     }
-    console.error('Ошибка:', e.message);
+    console.error("Ошибка:", e.message);
     process.exit(1);
   }
 
   const todayStart = startOfTodayUTC();
-  console.log('Оставляем деплои с', new Date(todayStart).toISOString(), 'и позже (UTC).\n');
+  console.log("Оставляем деплои с", new Date(todayStart).toISOString(), "и позже (UTC).\n");
 
   let deployments;
   try {
     deployments = await listAllDeployments(token, projectId, teamId);
   } catch (e) {
-    console.error('Не удалось получить список деплоев:', e.message);
+    console.error("Не удалось получить список деплоев:", e.message);
     process.exit(1);
   }
 
   const toDelete = deployments.filter((d) => (d.created ?? 0) < todayStart);
   const toKeep = deployments.filter((d) => (d.created ?? 0) >= todayStart);
 
-  console.log('Всего деплоев:', deployments.length);
-  console.log('Оставляем (сегодня):', toKeep.length);
-  console.log('Удаляем:', toDelete.length);
+  console.log("Всего деплоев:", deployments.length);
+  console.log("Оставляем (сегодня):", toKeep.length);
+  console.log("Удаляем:", toDelete.length);
 
   if (toDelete.length === 0) {
-    console.log('Нечего удалять.');
+    console.log("Нечего удалять.");
     return;
   }
 
   if (DRY_RUN) {
-    console.log('\n[--dry-run] Будут удалены:');
+    console.log("\n[--dry-run] Будут удалены:");
     toDelete.forEach((d) => {
       const created = d.created ? new Date(d.created).toISOString() : '?';
       console.log('  ', d.uid || d.id, created);
     });
-    console.log('\nЗапустите без --dry-run, чтобы удалить.');
+    console.log("\nЗапустите без --dry-run, чтобы удалить.");
     return;
   }
 
@@ -135,7 +148,12 @@ async function main() {
     }
   }
 
-  console.log('\nГотово.');
+  console.log("\nГотово.");
 }
 
-main();
+(async () => {
+  await main();
+})().catch((e) => {
+  console.error("Fatal error:", e?.message ?? e);
+  process.exit(1);
+});

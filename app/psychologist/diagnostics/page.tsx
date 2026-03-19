@@ -13,7 +13,7 @@ export default async function PsychologistDiagnosticsPage() {
     redirect("/auth/login?callbackUrl=/psychologist/diagnostics");
   }
 
-  if ((session.user as any).role !== "PSYCHOLOGIST") {
+  if ((session.user as unknown as { role?: string | null }).role !== "PSYCHOLOGIST") {
     redirect("/");
   }
 

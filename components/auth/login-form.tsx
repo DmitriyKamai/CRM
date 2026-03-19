@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,23 +14,23 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const urlErrorMessage =
+    searchParams.get("error") === "AccountAlreadyLinked"
+      ? "Этот Google или Apple аккаунт уже привязан к другому пользователю. Войдите под тем аккаунтом или используйте другой."
+      : null;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const err = searchParams.get("error");
-    if (err === "AccountAlreadyLinked") {
-      setError("Этот Google или Apple аккаунт уже привязан к другому пользователю. Войдите под тем аккаунтом или используйте другой.");
-    }
-  }, [searchParams]);
+  const [error, setError] = useState<string | null>(urlErrorMessage);
+  const [urlErrorDismissed, setUrlErrorDismissed] = useState(false);
+  const displayedError = error ?? (!urlErrorDismissed ? urlErrorMessage : null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setUrlErrorDismissed(true);
 
     const result = await signIn("credentials", {
       redirect: false,
@@ -63,9 +63,9 @@ export function LoginForm() {
         <CardTitle className="text-lg">Вход в CRM</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && (
+        {displayedError && (
           <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-            {error}
+            {displayedError}
           </div>
         )}
 
@@ -100,7 +100,7 @@ export function LoginForm() {
         <div className="text-sm font-semibold text-muted-foreground">
           <Link
             href="/auth/forgot-password"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-primary/90 transition-colors hover:text-primary"
           >
             Забыли пароль?
           </Link>
@@ -163,14 +163,14 @@ export function LoginForm() {
           <br />
           <Link
             href="/auth/register/client"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-primary/90 transition-colors hover:text-primary"
           >
             Зарегистрироваться как клиент
           </Link>
           {" / "}
           <Link
             href="/auth/register/psychologist"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-primary/90 transition-colors hover:text-primary"
           >
             психолог
           </Link>

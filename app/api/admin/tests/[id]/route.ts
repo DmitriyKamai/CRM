@@ -12,7 +12,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+  if (!session?.user || role !== "ADMIN") {
     return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
   }
 

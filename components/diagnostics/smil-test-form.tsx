@@ -131,7 +131,6 @@ export function SmilTestForm({ token, clientInfo }: Props) {
   const [questions, setQuestions] = useState<QuestionDto[]>([]);
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
   const [currentStep, setCurrentStep] = useState(0);
-  const [meta, setMeta] = useState<{ variant: string; gender?: string; age?: number } | null>(null);
   const [needDemographics, setNeedDemographics] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +148,6 @@ export function SmilTestForm({ token, clientInfo }: Props) {
   } | null>(null);
   const submittedRef = useRef(false);
 
-  const hasVariant = !!variant;
   const totalSteps = needDemographics
     ? 1 + 1 + SMIL_QUESTION_COUNT
     : 1 + SMIL_QUESTION_COUNT;
@@ -199,7 +197,6 @@ export function SmilTestForm({ token, clientInfo }: Props) {
       .then(({ answers: a, currentStep: s, meta: m }) => {
         if (cancelled) return;
         setAnswers(a);
-        setMeta(m && m.variant ? (m as { variant: string; gender?: string; age?: number }) : null);
         const hasVariantFromProgress = !!m?.variant;
         const gender = clientInfo?.gender ?? m?.gender;
         const ageFromClient = clientInfo?.dateOfBirth
@@ -244,7 +241,7 @@ export function SmilTestForm({ token, clientInfo }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [variant]);
+  }, [variant, questions.length]);
 
   useEffect(() => {
     return () => {
@@ -260,14 +257,6 @@ export function SmilTestForm({ token, clientInfo }: Props) {
       }
     };
   }, [token]);
-
-  const goNext = useCallback(() => {
-    if (currentStep < totalSteps - 1) {
-      const next = currentStep + 1;
-      setCurrentStep(next);
-      persistProgress(answers, next);
-    }
-  }, [currentStep, totalSteps, answers, persistProgress]);
 
   const goPrev = useCallback(() => {
     if (currentStep > 0) setCurrentStep(s => s - 1);
@@ -288,7 +277,6 @@ export function SmilTestForm({ token, clientInfo }: Props) {
         currentStep: 1,
         meta: { variant: v, gender, age: ageNum }
       });
-      setMeta({ variant: v, gender, age: ageNum });
       setNeedDemographics(true);
       setCurrentStep(1);
       const qs = await fetchQuestions(v);

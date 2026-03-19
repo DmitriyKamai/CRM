@@ -12,7 +12,7 @@ export default async function ChooseRolePage() {
     redirect("/auth/login");
   }
 
-  const userId = (session.user as any).id as string | undefined;
+  const userId = (session.user as unknown as { id?: string }).id;
   if (!userId) {
     redirect("/auth/login");
   }

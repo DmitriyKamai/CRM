@@ -124,7 +124,6 @@ export function computePavlovaScores(
 const ACCENT_THRESHOLD = 38;
 const MAX_SCORE = 48;
 const NORM_LOW_MAX = 17;
-const NORM_MEDIUM_MAX = 37;
 
 function interpretScale(key: PavlovaScaleKey, value: number): string {
   const level: "low" | "medium" | "high" =
@@ -133,20 +132,6 @@ function interpretScale(key: PavlovaScaleKey, value: number): string {
       : value >= ACCENT_THRESHOLD
         ? "high"
         : "medium";
-
-  const scaleLabels: Record<PavlovaScaleKey, string> = {
-    hyperthymic: "Гипертимный",
-    stuck: "Застревающий",
-    emotive: "Эмотивный",
-    pedantic: "Педантичный",
-    anxious: "Тревожно-боязливый",
-    cyclothymic: "Циклотимный",
-    demonstrative: "Демонстративный",
-    excitable: "Возбудимый",
-    dysthymic: "Дистимный",
-    exalted: "Экзальтированный"
-  };
-  const name = scaleLabels[key];
 
   switch (key) {
     case "hyperthymic":

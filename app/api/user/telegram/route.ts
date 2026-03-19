@@ -4,10 +4,6 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 
-const LINK_PREFIX = "link_";
-const TOKEN_BYTES = 16;
-const EXPIRES_IN_SEC = 10 * 60; // 10 минут
-
 /** GET — статус привязки Telegram для текущего пользователя */
 export async function GET() {
   try {

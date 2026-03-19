@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -17,10 +18,14 @@ const valuesSchema = z.record(z.string(), z.unknown().nullable());
 export async function GET(_req: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+  const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+  if (!session?.user || role !== "PSYCHOLOGIST") {
     return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
   }
-  const userId = (session.user as any).id as string;
+  const userId = (session.user as unknown as { id?: string | null }).id;
+  if (!userId) {
+    return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
+  }
 
   const psych = await prisma.psychologistProfile.findUnique({
     where: { userId },
@@ -64,10 +69,14 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as any).role !== "PSYCHOLOGIST") {
+    const role = (session?.user as unknown as { role?: string | null } | null)?.role;
+    if (!session?.user || role !== "PSYCHOLOGIST") {
       return NextResponse.json({ message: "Доступ запрещён" }, { status: 403 });
     }
-    const userId = (session.user as any).id as string;
+    const userId = (session.user as unknown as { id?: string | null }).id;
+    if (!userId) {
+      return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
+    }
 
     const psych = await prisma.psychologistProfile.findUnique({
       where: { userId },
@@ -108,13 +117,13 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
           data: {
             definitionId,
             clientId: id,
-            value: raw as any
+            value: raw as Prisma.InputJsonValue
           }
         });
       } else {
         await prisma.customFieldValue.update({
           where: { id: existing.id },
-          data: { value: raw as any }
+          data: { value: raw as Prisma.InputJsonValue }
         });
       }
     }

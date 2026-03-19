@@ -53,13 +53,31 @@ export async function GET() {
       ? user.dateOfBirth.toISOString().slice(0, 10)
       : null;
 
-    let psychologistProfile: any | null = null;
+    type PsychologistProfileDTO = {
+      firstName: string;
+      lastName: string;
+      phone: string | null;
+      country: string | null;
+      city: string | null;
+      gender: string | null;
+      maritalStatus: string | null;
+      specialization: string | null;
+      bio: string | null;
+      profilePhotoUrl: string | null;
+      profilePublished: boolean;
+      contactPhone: string | null;
+      contactTelegram: string | null;
+      contactViber: string | null;
+      contactWhatsapp: string | null;
+    };
+
+    let psychologistProfile: PsychologistProfileDTO | null = null;
     if ((session.user as { role?: string }).role === "PSYCHOLOGIST") {
       const profile = await prisma.psychologistProfile.findUnique({
         where: { userId }
       });
       if (profile) {
-        const p = profile as any;
+        const p = profile;
         psychologistProfile = {
           firstName: p.firstName,
           lastName: p.lastName,

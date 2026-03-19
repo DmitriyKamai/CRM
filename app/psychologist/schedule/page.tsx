@@ -11,7 +11,7 @@ export default async function PsychologistSchedulePage() {
     redirect("/auth/login?callbackUrl=/psychologist/schedule");
   }
 
-  if ((session.user as any).role !== "PSYCHOLOGIST") {
+  if ((session.user as unknown as { role?: string | null }).role !== "PSYCHOLOGIST") {
     redirect("/");
   }
 

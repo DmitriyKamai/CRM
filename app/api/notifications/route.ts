@@ -13,7 +13,10 @@ export async function GET() {
         return NextResponse.json({ message: "Необходима авторизация" }, { status: 401 });
       }
 
-      const userId = (session.user as any).id as string;
+      const userId = (session.user as unknown as { id?: string }).id;
+      if (!userId) {
+        return NextResponse.json({ message: "Сессия недействительна" }, { status: 401 });
+      }
       const notifications = await prisma.notification.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },

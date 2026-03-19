@@ -18,7 +18,7 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar as CalendarIcon, Mail, Pencil, Trash2, UserCheck, Paperclip, Download, Trash, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mail, Pencil, UserCheck, Paperclip, Download, Trash, ChevronLeft, ChevronRight } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -190,6 +190,26 @@ type ClientProfileProps = {
   }[];
 };
 
+type CustomFieldOption = { value: string; label: string };
+type CustomFieldDef = {
+  id: string;
+  key?: string | null;
+  label: string;
+  type: string;
+  group?: string | null;
+  description?: string | null;
+  options?: { selectOptions?: CustomFieldOption[] } | null;
+};
+
+type ClientFileItem = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
+};
+
 export type PsychologistClientProfileHandle = {
   saveAll: () => Promise<void>;
 };
@@ -213,7 +233,7 @@ export const PsychologistClientProfile = forwardRef<
       if (props.onEditingChange) props.onEditingChange(value);
       else setIsEditingState(value);
     },
-    [props.onEditingChange]
+    [props]
   );
 
   const [firstName, setFirstName] = useState(props.firstName);
@@ -237,24 +257,12 @@ export const PsychologistClientProfile = forwardRef<
   type StatusItem = { id: string; label: string; color: string };
   const [statuses, setStatuses] = useState<StatusItem[]>([]);
 
-  const isDirty =
-    firstName !== props.firstName ||
-    lastName !== props.lastName ||
-    email !== (props.email ?? "") ||
-    phone !== (props.phone ?? "") ||
-    country !== (props.country ?? "") ||
-    city !== (props.city ?? "") ||
-    gender !== (props.gender ?? "") ||
-    maritalStatus !== (props.maritalStatus ?? "") ||
-    notes !== (props.notes ?? "") ||
-    (dob?.toISOString().slice(0, 10) ?? "") !== (props.dateOfBirth ? new Date(props.dateOfBirth).toISOString().slice(0, 10) : "");
-
   const hasAccount = props.hasAccount ?? false;
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
-  const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
   const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<ClientFileItem[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
 
@@ -268,7 +276,6 @@ export const PsychologistClientProfile = forwardRef<
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
-  const [editingCustomFields, setEditingCustomFields] = useState<Record<string, boolean>>({});
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
   const [tabsScrollRight, setTabsScrollRight] = useState(false);
@@ -605,10 +612,6 @@ export const PsychologistClientProfile = forwardRef<
       console.error(err);
       setError("Не удалось отправить приглашение. Попробуйте позже.");
     }
-  }
-
-  function openDeleteDialog() {
-    setDeleteDialogOpen(true);
   }
 
   async function confirmDelete() {
@@ -1252,7 +1255,7 @@ export const PsychologistClientProfile = forwardRef<
                             const selectOptions: { value: string; label: string }[] =
                               def.options?.selectOptions ?? [];
 
-                            function updateValue(next: any) {
+                            function updateValue(next: unknown) {
                               setCustomFieldValues((prev) => ({
                                 ...prev,
                                 [def.id]: next
@@ -1417,7 +1420,7 @@ export const PsychologistClientProfile = forwardRef<
                         const selectOptions: { value: string; label: string }[] =
                           def.options?.selectOptions ?? [];
 
-                        function updateValue(next: any) {
+                        function updateValue(next: unknown) {
                           setCustomFieldValues((prev) => ({
                             ...prev,
                             [def.id]: next

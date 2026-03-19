@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, X, Search, Download, ChevronDown, Upload } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, Download, ChevronDown, Upload } from "lucide-react";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -186,7 +186,6 @@ export function PsychologistClientsList() {
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [statuses, setStatuses] = useState<Array<{ id: string; label: string; color: string }>>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [initialStatusId, setInitialStatusId] = useState<string | null>(null);
   const [tableCustomFieldDefs, setTableCustomFieldDefs] = useState<Array<{ id: string; label: string }>>([]);
 
   const MIN_LIST_WIDTH = 720;
@@ -253,7 +252,7 @@ export function PsychologistClientsList() {
     return () => ro.disconnect();
   }, [listScale, loading, clients.length, statusFilter]);
 
-  async function loadClients() {
+  const loadClients = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -264,9 +263,6 @@ export function PsychologistClientsList() {
       }
       const data = (await res.json()) as { clients: ClientDto[] };
       setClients(data.clients);
-      if (!initialStatusId && data.clients.length > 0) {
-        setInitialStatusId(data.clients[0].statusId ?? null);
-      }
       setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
@@ -274,11 +270,11 @@ export function PsychologistClientsList() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadClients();
-  }, []);
+  }, [loadClients]);
 
   useEffect(() => {
     async function loadStatuses() {
@@ -595,13 +591,13 @@ export function PsychologistClientsList() {
     });
   }
 
-  function toggleAll(checked: boolean) {
+  const toggleAll = useCallback((checked: boolean) => {
     if (!checked) {
       setSelectedIds(new Set());
       return;
     }
     setSelectedIds(new Set(clients.map(c => c.id)));
-  }
+  }, [clients]);
 
   function openBulkDeleteDialog() {
     if (selectedIds.size === 0) return;
@@ -934,7 +930,7 @@ export function PsychologistClientsList() {
         )
       }))
     ],
-    [clients, selectedIds, multiSelectMode, tableCustomFieldDefs]
+    [clients, selectedIds, multiSelectMode, tableCustomFieldDefs, toggleAll]
   );
 
   // Профиль клиента поверх списка (на всю основную ширину)
