@@ -27,11 +27,14 @@ export function middleware(request: NextRequest) {
       "base-uri 'self'",
       "form-action 'self'",
       "frame-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+      // Inline/eval пока не включаем для сокращения площади атаки.
+      // CSP Report-Only: браузер не блокирует, а сообщает о нарушениях.
+      "script-src 'self' blob:",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https: wss: http: ws:"
+      "connect-src 'self' https: wss: http: ws:",
+      "report-uri /api/csp-report"
     ].join("; ")
   );
 

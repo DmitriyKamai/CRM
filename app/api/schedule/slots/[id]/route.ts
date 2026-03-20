@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
 
 type ParamsPromise = {
   params: Promise<{
@@ -135,6 +136,20 @@ export async function DELETE(_request: Request, { params }: ParamsPromise) {
 
   await prisma.scheduleSlot.delete({
     where: { id }
+  });
+
+  await safeLogAudit({
+    action: "SCHEDULE_SLOT_DELETE",
+    actorUserId: ctx.userId,
+    actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+    targetType: "ScheduleSlot",
+    targetId: id,
+    meta: {
+      status: slot.status,
+      start: slot.start.toISOString(),
+      end: slot.end.toISOString()
+    },
+    ip: getClientIp(_request)
   });
 
   return NextResponse.json({ ok: true });

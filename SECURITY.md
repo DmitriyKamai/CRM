@@ -6,12 +6,12 @@
 
 - **Аутентификация:** NextAuth (JWT-сессии), пароли через bcrypt.
 - **Валидация входных данных:** по возможности Zod в API-роутах.
-- **Заголовки:** `middleware.ts` — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`**, в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
+- **Заголовки:** `middleware.ts` — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`** (сейчас ужесточена `script-src`: убраны `'unsafe-inline'` и `'unsafe-eval'`), в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
 - **Rate limiting (in-memory):** `lib/rate-limit.ts` — регистрация, восстановление пароля, сброс пароля. Ключ обычно IP (+ для forgot — отдельный лимит по email).
 - **Guards для API:** `lib/security/api-guards.ts` — `requireAuth`, `requireRoles`, `requirePsychologist`, `requireAdmin`, `requireClient`, `getClientIp`. Большинство маршрутов в `app/api/**` уже используют эти хелперы вместо ручного `getServerSession` + проверки роли.
 - **Владение ресурсами:** для `PATCH`/`DELETE` слота расписания проверяется `psychologistId` слота — нельзя менять чужие слоты по id.
-- **Аудит-лог:** таблица `prisma/AuditLog` и best-effort записи о смене роли админом, перевыпуске календарной ссылки и смене пароля.
-- **CI:** `.github/workflows/ci.yml` — после `npm ci` и `prisma generate` прогоняются `tsc`, `next lint` и `npm audit --omit=dev`.
+- **Аудит-лог:** таблица `prisma/AuditLog` и best-effort записи о смене роли админом, перевыпуске календарной ссылки, смене пароля, удалении слота расписания, изменении статуса записи (подтверждение/отмена) психологом и переключении активности теста админом.
+- **CI:** `.github/workflows/ci.yml` — после `npm ci` и `prisma generate` прогоняются `tsc`, `npm run lint` и `npm audit --omit=dev`.
 - **ICS по ссылке:** только токен в БД (`CalendarFeedToken`), перевыпуск из кабинета (**`POST /api/calendar/feed-url`**).
 - **Перевыпуск календарной ссылки:** лимит на `POST /api/calendar/feed-url` — защита от спама перевыпусками.
 - **Сессия:** JWT max **14 суток**, продление не чаще **24 ч** при активности (`lib/auth.ts`).
@@ -58,7 +58,7 @@
 
 ## Дальнейшие шаги (рекомендации)
 
-- Централизованный аудит-лог критичных действий.
-- CSP (Content-Security-Policy) после инвентаризации inline-скриптов.
+- Дальше расширить аудит-лог на другие критичные операции (массовые удаления/импорт/экспорт и т.п.).
+- CSP: дальше — после сбора отчётов ужесточать `style-src`/добавлять nonce (если понадобится).
 - При частых ложных срабатываниях `npm audit` в CI — задать политику (например, только уровень `high` / `--audit-level`) или отдельный scheduled job.
 - Сканирование секретов в PR (GitHub secret scanning, gitleaks).

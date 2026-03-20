@@ -137,7 +137,10 @@ export function AuditLogTable() {
             value={[
               "PASSWORD_CHANGE",
               "ADMIN_USER_ROLE_CHANGE",
-              "CALENDAR_FEED_TOKEN_ROTATE"
+              "CALENDAR_FEED_TOKEN_ROTATE",
+              "SCHEDULE_SLOT_DELETE",
+              "APPOINTMENT_STATUS_CHANGE",
+              "ADMIN_TEST_TOGGLE"
             ].includes(action)
               ? action
               : ""}
@@ -160,6 +163,9 @@ export function AuditLogTable() {
               <SelectItem value="PASSWORD_CHANGE">Смена пароля</SelectItem>
               <SelectItem value="ADMIN_USER_ROLE_CHANGE">Смена роли админом</SelectItem>
               <SelectItem value="CALENDAR_FEED_TOKEN_ROTATE">Перевыпуск календарной ссылки</SelectItem>
+              <SelectItem value="SCHEDULE_SLOT_DELETE">Удаление слота расписания</SelectItem>
+              <SelectItem value="APPOINTMENT_STATUS_CHANGE">Изменение статуса записи</SelectItem>
+              <SelectItem value="ADMIN_TEST_TOGGLE">Переключение активности теста</SelectItem>
             </SelectContent>
           </Select>
         </div>

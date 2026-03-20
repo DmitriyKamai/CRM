@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/security/api-guards";
+import { getClientIp, requireAdmin } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -23,6 +24,16 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const test = await prisma.test.update({
     where: { id },
     data: { isActive: body.isActive }
+  });
+
+  await safeLogAudit({
+    action: "ADMIN_TEST_TOGGLE",
+    actorUserId: admin.userId,
+    actorRole: admin.role,
+    targetType: "Test",
+    targetId: id,
+    meta: { nextIsActive: body.isActive },
+    ip: getClientIp(request)
   });
 
   return NextResponse.json({

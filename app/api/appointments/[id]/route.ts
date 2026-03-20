@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
@@ -53,8 +54,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       status === "SCHEDULED" && wasPendingBefore && !alreadyInListBefore;
 
     const result = await prisma.$transaction(async tx => {
-    const slotIdToFree = appt.slotId;
-    const wasPending = appt.status === "PENDING_CONFIRMATION";
+      const slotIdToFree = appt.slotId;
+      const wasPending = appt.status === "PENDING_CONFIRMATION";
 
     const updated = await tx.appointment.update({
       where: { id },
@@ -115,8 +116,23 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       }
     }
 
-    return updated;
-  });
+      return updated;
+    });
+
+    await safeLogAudit({
+      action: "APPOINTMENT_STATUS_CHANGE",
+      actorUserId: ctx.userId,
+      actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+      targetType: "Appointment",
+      targetId: id,
+      meta: {
+        fromStatus: appt.status,
+        toStatus: status,
+        wasPendingBefore,
+        clientAddedToList
+      },
+      ip: getClientIp(request)
+    });
 
     // Уведомление клиенту в Telegram при подтверждении или отмене
     const clientUserId = appt.client?.userId;
