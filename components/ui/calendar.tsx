@@ -36,8 +36,8 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
+        // Не используем `toLocaleString()` без явной локали: на сервере и в браузере
+        // часовой пояс/локаль могут отличаться, что ломает hydration (React #418).
         ...formatters,
       }}
       classNames={{
@@ -190,7 +190,9 @@ function CalendarDayButton({
       ref={ref}
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString()}
+      // Детерминированная строка даты (по частям локальной даты),
+      // чтобы атрибут не зависел от часового пояса/локали при SSR->hydration.
+      data-day={`${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, "0")}-${String(day.date.getDate()).padStart(2, "0")}`}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&
