@@ -38,7 +38,8 @@ export function TestsTable() {
   const [take, setTake] = useState<number>(25);
 
   // Быстрые фильтры
-  const [isActiveFilter, setIsActiveFilter] = useState<string>(""); // '', 'true', 'false'
+  const ALL_STATUS = "ALL";
+  const [isActiveFilter, setIsActiveFilter] = useState<string>(ALL_STATUS); // 'ALL', 'true', 'false'
   const [search, setSearch] = useState<string>("");
 
   const totalPages = Math.max(1, Math.ceil(totalCount / take));
@@ -51,7 +52,8 @@ export function TestsTable() {
     const nextSearch = overrides?.search ?? search;
     const nextTake = overrides?.take ?? take;
     const sp = new URLSearchParams();
-    if (nextIsActiveFilter) sp.set("isActive", nextIsActiveFilter);
+    if (nextIsActiveFilter && nextIsActiveFilter !== ALL_STATUS)
+      sp.set("isActive", nextIsActiveFilter);
     if (nextSearch.trim()) sp.set("search", nextSearch.trim());
     sp.set("take", String(nextTake));
     sp.set("page", String(pageValue));
@@ -155,7 +157,7 @@ export function TestsTable() {
               <SelectValue placeholder="Все" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все</SelectItem>
+              <SelectItem value={ALL_STATUS}>Все</SelectItem>
               <SelectItem value="true">Активны</SelectItem>
               <SelectItem value="false">Отключены</SelectItem>
             </SelectContent>

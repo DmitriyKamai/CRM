@@ -45,6 +45,8 @@ export function UsersTable() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / take));
 
+  const ALL_ROLE = "ALL";
+
   function buildQueryString(
     pageValue: number,
     overrides?: { role?: string; search?: string; take?: number }
@@ -53,7 +55,7 @@ export function UsersTable() {
     const nextSearch = overrides?.search ?? search;
     const nextTake = overrides?.take ?? take;
     const sp = new URLSearchParams();
-    if (nextRole) sp.set("role", nextRole);
+    if (nextRole && nextRole !== ALL_ROLE) sp.set("role", nextRole);
     if (nextSearch.trim()) sp.set("search", nextSearch.trim());
     sp.set("take", String(nextTake));
     sp.set("page", String(pageValue));
@@ -149,7 +151,7 @@ export function UsersTable() {
         <div className="md:col-span-1">
           <div className="text-xs text-muted-foreground mb-1">Роль</div>
           <Select
-            value={role}
+            value={role || ALL_ROLE}
             onValueChange={(v) => {
               setRole(v);
               setPage(1);
@@ -160,7 +162,7 @@ export function UsersTable() {
               <SelectValue placeholder="Все" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все</SelectItem>
+              <SelectItem value={ALL_ROLE}>Все</SelectItem>
               <SelectItem value="CLIENT">CLIENT</SelectItem>
               <SelectItem value="PSYCHOLOGIST">PSYCHOLOGIST</SelectItem>
               <SelectItem value="ADMIN">ADMIN</SelectItem>

@@ -51,6 +51,8 @@ export function AuditLogTable() {
   const [to, setTo] = useState("");
   const [take, setTake] = useState<number>(50);
 
+  const ACTION_ALL = "ALL";
+
   const totalPages = Math.max(1, Math.ceil(totalCount / take));
 
   function buildQueryString(
@@ -143,9 +145,9 @@ export function AuditLogTable() {
               "ADMIN_TEST_TOGGLE"
             ].includes(action)
               ? action
-              : ""}
+              : ACTION_ALL}
             onValueChange={(v) => {
-              if (v === "") {
+              if (v === ACTION_ALL) {
                 setAction("");
                 void load(1, { action: "" });
               } else {
@@ -159,7 +161,7 @@ export function AuditLogTable() {
               <SelectValue placeholder="Любое" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Любое</SelectItem>
+              <SelectItem value={ACTION_ALL}>Любое</SelectItem>
               <SelectItem value="PASSWORD_CHANGE">Смена пароля</SelectItem>
               <SelectItem value="ADMIN_USER_ROLE_CHANGE">Смена роли админом</SelectItem>
               <SelectItem value="CALENDAR_FEED_TOKEN_ROTATE">Перевыпуск календарной ссылки</SelectItem>

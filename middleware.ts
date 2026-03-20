@@ -30,9 +30,9 @@ export function middleware(request: NextRequest) {
       // Inline/eval пока не включаем для сокращения площади атаки.
       // CSP Report-Only: браузер не блокирует, а сообщает о нарушениях.
       "script-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://lh3.googleusercontent.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https: wss: http: ws:",
       "report-uri /api/csp-report"
     ].join("; ")
