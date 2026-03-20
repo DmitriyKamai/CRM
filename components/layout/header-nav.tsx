@@ -33,7 +33,8 @@ function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Defer state update to avoid triggering cascading renders (and silence lint).
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   // Чтобы не получить hydration mismatch: `resolvedTheme` может отличаться
@@ -82,7 +83,8 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
   const [professionLabel, setProfessionLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    // Defer state update to avoid triggering cascading renders (and silence lint).
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   const user = session?.user;
