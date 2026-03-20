@@ -228,7 +228,7 @@ export function AuditLogTable() {
           <Input
             value={targetType}
             onChange={(e) => setTargetType(e.target.value)}
-            placeholder="User / PsychologistProfile"
+            placeholder="Напр. User / PsychologistProfile"
           />
         </div>
 
@@ -237,7 +237,7 @@ export function AuditLogTable() {
           <Input
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
-            placeholder="id"
+            placeholder="ID"
           />
         </div>
 
@@ -283,7 +283,7 @@ export function AuditLogTable() {
               <TableRow>
                 <TableHead className="align-middle">Дата</TableHead>
                 <TableHead className="align-middle">Событие</TableHead>
-                <TableHead className="align-middle">Кем</TableHead>
+                <TableHead className="align-middle">Исполнитель</TableHead>
                 <TableHead className="align-middle">Объект</TableHead>
                 <TableHead className="align-middle">IP</TableHead>
                 <TableHead className="align-middle">Данные</TableHead>

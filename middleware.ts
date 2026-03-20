@@ -29,7 +29,10 @@ export function middleware(request: NextRequest) {
       "frame-src 'self'",
       // Inline/eval пока не включаем для сокращения площади атаки.
       // CSP Report-Only: браузер не блокирует, а сообщает о нарушениях.
+      // Next.js/React runtime может использовать inline-сценарии.
+      // Чтобы не спамить отчётами в report-only режиме, разрешаем inline только для script-src-elem.
       "script-src 'self' blob:",
+      "script-src-elem 'self' blob: 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://lh3.googleusercontent.com",
       "font-src 'self' data: https://fonts.gstatic.com",

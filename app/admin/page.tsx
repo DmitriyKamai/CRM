@@ -90,7 +90,7 @@ export default async function AdminDashboardPage() {
               href="/admin/audit-log"
               className="text-primary/90 transition-colors hover:text-primary"
             >
-              Аудит действий пользователей
+              Аудит-лог
             </Link>
           </li>
         </ul>
