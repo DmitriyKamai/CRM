@@ -1,25 +1,38 @@
 import { NextResponse } from "next/server";
 
+import { safeLogAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/db";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{ id: string; fileId: string }>;
 };
 
-export async function DELETE(_req: Request, { params }: ParamsPromise) {
+export async function DELETE(req: Request, { params }: ParamsPromise) {
   try {
     const { id, fileId } = await params;
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
 
-    await prisma.clientFile.deleteMany({
+    const result = await prisma.clientFile.deleteMany({
       where: {
         id: fileId,
         clientId: id,
         psychologistId: ctx.psychologistId
       }
     });
+
+    if (result.count > 0) {
+      await safeLogAudit({
+        action: "CLIENT_FILE_DELETE",
+        actorUserId: ctx.userId,
+        actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+        targetType: "ClientFile",
+        targetId: fileId,
+        ip: getClientIp(req),
+        meta: { clientId: id }
+      });
+    }
 
     // Физическое удаление из Blob Storage пока не трогаем — URL станет недоступен после очистки.
     return NextResponse.json({ success: true });

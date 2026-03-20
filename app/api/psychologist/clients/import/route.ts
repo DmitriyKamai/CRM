@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { safeLogAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
     const profile = { id: ctx.psychologistId };
+    const ip = getClientIp(request);
 
     const json = await request.json().catch(() => null);
     const body = importBodySchema.parse(json ?? {});
@@ -300,6 +302,22 @@ export async function POST(request: Request) {
         errors.push({ row: rowIndex, message });
       }
     }
+
+    await safeLogAudit({
+      action: "CLIENTS_IMPORT",
+      actorUserId: ctx.userId,
+      actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+      targetType: "PsychologistProfile",
+      targetId: profile.id,
+      ip,
+      meta: {
+        importedRows: body.clients.length,
+        created,
+        updated,
+        skipped,
+        failed: errors.length
+      }
+    });
 
     return NextResponse.json({
       created,

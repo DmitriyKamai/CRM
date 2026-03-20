@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { safeLogAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/db";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
 function escapeCsvCell(value: string): string {
   const s = String(value ?? "");
@@ -88,6 +89,7 @@ export async function GET(request: Request) {
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
     const profile = { id: ctx.psychologistId };
+    const ip = getClientIp(request);
 
     const { searchParams } = new URL(request.url);
     const statusId = searchParams.get("statusId") ?? undefined;
@@ -184,6 +186,19 @@ export async function GET(request: Request) {
       });
       const json = JSON.stringify(jsonItems, null, 2);
       const filename = `clients-${dateStr}.json`;
+      await safeLogAudit({
+        action: "CLIENTS_EXPORT",
+        actorUserId: ctx.userId,
+        actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+        targetType: "PsychologistProfile",
+        targetId: profile.id,
+        ip,
+        meta: {
+          format: "json",
+          statusId: statusId ?? null,
+          exportedCount: clients.length
+        }
+      });
       return new NextResponse(json, {
         status: 200,
         headers: {
@@ -245,6 +260,19 @@ export async function GET(request: Request) {
       XLSX.utils.book_append_sheet(wb, ws, "Клиенты");
       const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
       const filename = `clients-${dateStr}.xlsx`;
+      await safeLogAudit({
+        action: "CLIENTS_EXPORT",
+        actorUserId: ctx.userId,
+        actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+        targetType: "PsychologistProfile",
+        targetId: profile.id,
+        ip,
+        meta: {
+          format: "xlsx",
+          statusId: statusId ?? null,
+          exportedCount: clients.length
+        }
+      });
       return new NextResponse(buf, {
         status: 200,
         headers: {
@@ -261,6 +289,19 @@ export async function GET(request: Request) {
     const csv = BOM + [headerLine, ...dataLines].join("\r\n");
 
     const filename = `clients-${dateStr}.csv`;
+    await safeLogAudit({
+      action: "CLIENTS_EXPORT",
+      actorUserId: ctx.userId,
+      actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+      targetType: "PsychologistProfile",
+      targetId: profile.id,
+      ip,
+      meta: {
+        format: "csv",
+        statusId: statusId ?? null,
+        exportedCount: clients.length
+      }
+    });
     return new NextResponse(csv, {
       status: 200,
       headers: {

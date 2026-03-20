@@ -55,6 +55,14 @@ function formatAction(action: string) {
       return "Изменение статуса записи";
     case "ADMIN_TEST_TOGGLE":
       return "Переключение активности теста";
+    case "DIAGNOSTIC_LINK_CREATE":
+      return "Создание диагностической ссылки";
+    case "CLIENTS_EXPORT":
+      return "Экспорт клиентов";
+    case "CLIENTS_IMPORT":
+      return "Импорт клиентов";
+    case "CLIENT_FILE_DELETE":
+      return "Удаление файла клиента";
     default:
       return action;
   }
@@ -167,7 +175,11 @@ export function AuditLogTable() {
               "CALENDAR_FEED_TOKEN_ROTATE",
               "SCHEDULE_SLOT_DELETE",
               "APPOINTMENT_STATUS_CHANGE",
-              "ADMIN_TEST_TOGGLE"
+              "ADMIN_TEST_TOGGLE",
+              "DIAGNOSTIC_LINK_CREATE",
+              "CLIENTS_EXPORT",
+              "CLIENTS_IMPORT",
+              "CLIENT_FILE_DELETE"
             ].includes(action)
               ? action
               : ACTION_ALL}
@@ -193,6 +205,10 @@ export function AuditLogTable() {
               <SelectItem value="SCHEDULE_SLOT_DELETE">Удаление слота расписания</SelectItem>
               <SelectItem value="APPOINTMENT_STATUS_CHANGE">Изменение статуса записи</SelectItem>
               <SelectItem value="ADMIN_TEST_TOGGLE">Переключение активности теста</SelectItem>
+              <SelectItem value="DIAGNOSTIC_LINK_CREATE">Создание диагностической ссылки</SelectItem>
+              <SelectItem value="CLIENTS_EXPORT">Экспорт клиентов</SelectItem>
+              <SelectItem value="CLIENTS_IMPORT">Импорт клиентов</SelectItem>
+              <SelectItem value="CLIENT_FILE_DELETE">Удаление файла клиента</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { TestType } from "@prisma/client";
 
+import { safeLogAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
@@ -118,6 +119,20 @@ export async function POST(request: Request) {
         "http://localhost:3000";
 
       const url = `${baseUrl}/diagnostics/${link.token}`;
+
+      await safeLogAudit({
+        action: "DIAGNOSTIC_LINK_CREATE",
+        actorUserId: userId,
+        actorRole: psychAuth.role,
+        targetType: "DiagnosticLink",
+        targetId: link.id,
+        ip,
+        meta: {
+          testType: "SMIL",
+          clientId,
+          maxUses
+        }
+      });
 
       return NextResponse.json(
         {
