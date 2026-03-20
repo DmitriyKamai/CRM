@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/security/api-guards";
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   const page = q.page ?? 1;
   const skip = (page - 1) * take;
 
-  const where: any = {};
+  const where: Prisma.UserWhereInput = {};
   if (q.role) where.role = q.role;
 
   if (q.search) {

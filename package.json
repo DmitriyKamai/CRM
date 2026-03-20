@@ -10,7 +10,7 @@
     "dev:debug": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --unhandled-rejections=strict\" next dev --webpack",
     "build": "prisma generate && node scripts/migrate-deploy.js && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --omit=dev",
     "security:check": "npm run typecheck && npm run lint && npm run security:audit",

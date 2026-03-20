@@ -3,6 +3,7 @@
  * На Windows помогает при EPERM при переименовании query_engine-*.dll.node
  * (файл часто держит запущенный Node / dev-сервер).
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("fs");
 const path = require("path");
 
