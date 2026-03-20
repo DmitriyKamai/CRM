@@ -173,7 +173,7 @@ export function TestsTable() {
           />
         </div>
         <div className="md:col-span-1">
-          <div className="text-xs text-muted-foreground mb-1">Take</div>
+          <div className="text-xs text-muted-foreground mb-1">Записей</div>
           <Select
             value={String(take)}
             onValueChange={(v) => {

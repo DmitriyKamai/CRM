@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Users,
   BarChart2,
+  History,
   Settings,
   ChevronLeft,
   ChevronRight
@@ -39,6 +40,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Обзор", icon: <LayoutDashboard className="h-4 w-4" />, exact: true },
   { href: "/admin/users", label: "Пользователи", icon: <Users className="h-4 w-4" /> },
   { href: "/admin/diagnostics", label: "Тесты", icon: <BarChart2 className="h-4 w-4" /> },
+  { href: "/admin/audit-log", label: "Аудит действий пользователей", icon: <History className="h-4 w-4" /> }
 ];
 
 const SETTINGS_HREF: Record<string, string> = {

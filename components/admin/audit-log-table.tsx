@@ -31,8 +31,33 @@ function qs(v: string | null | undefined) {
   return (v ?? "").trim();
 }
 
-function formatCell(value: string | null | undefined) {
-  return value && value.trim().length > 0 ? value : "—";
+function formatActorRole(role: string | null | undefined) {
+  const v = (role ?? "").trim();
+  if (!v) return "—";
+  if (v === "ADMIN") return "Админ";
+  if (v === "PSYCHOLOGIST") return "Психолог";
+  if (v === "CLIENT") return "Клиент";
+  if (v === "UNSPECIFIED") return "Не определено";
+  return v;
+}
+
+function formatAction(action: string) {
+  switch (action) {
+    case "PASSWORD_CHANGE":
+      return "Смена пароля";
+    case "ADMIN_USER_ROLE_CHANGE":
+      return "Смена роли админом";
+    case "CALENDAR_FEED_TOKEN_ROTATE":
+      return "Перевыпуск календарной ссылки";
+    case "SCHEDULE_SLOT_DELETE":
+      return "Удаление слота расписания";
+    case "APPOINTMENT_STATUS_CHANGE":
+      return "Изменение статуса записи";
+    case "ADMIN_TEST_TOGGLE":
+      return "Переключение активности теста";
+    default:
+      return action;
+  }
 }
 
 export function AuditLogTable() {
@@ -134,7 +159,7 @@ export function AuditLogTable() {
       {/* Быстрые фильтры */}
       <div className="grid gap-3 md:grid-cols-4">
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Quick action</div>
+          <div className="text-xs text-muted-foreground mb-1">Быстрый фильтр</div>
           <Select
             value={[
               "PASSWORD_CHANGE",
@@ -175,7 +200,7 @@ export function AuditLogTable() {
 
       <div className="grid gap-3 md:grid-cols-6">
         <div className="md:col-span-2">
-          <div className="text-xs text-muted-foreground mb-1">Action</div>
+          <div className="text-xs text-muted-foreground mb-1">Событие</div>
           <Input
             value={action}
             onChange={(e) => setAction(e.target.value)}
@@ -184,22 +209,22 @@ export function AuditLogTable() {
         </div>
 
         <div className="md:col-span-1">
-          <div className="text-xs text-muted-foreground mb-1">Role</div>
+          <div className="text-xs text-muted-foreground mb-1">Роль</div>
           <Select value={actorRole} onValueChange={setActorRole}>
             <SelectTrigger>
               <SelectValue placeholder="Любая" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ADMIN">ADMIN</SelectItem>
-              <SelectItem value="PSYCHOLOGIST">PSYCHOLOGIST</SelectItem>
-              <SelectItem value="CLIENT">CLIENT</SelectItem>
-              <SelectItem value="UNSPECIFIED">UNSPECIFIED</SelectItem>
+              <SelectItem value="ADMIN">Админ</SelectItem>
+              <SelectItem value="PSYCHOLOGIST">Психолог</SelectItem>
+              <SelectItem value="CLIENT">Клиент</SelectItem>
+              <SelectItem value="UNSPECIFIED">Не определено</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="md:col-span-1">
-          <div className="text-xs text-muted-foreground mb-1">Target type</div>
+          <div className="text-xs text-muted-foreground mb-1">Тип объекта</div>
           <Input
             value={targetType}
             onChange={(e) => setTargetType(e.target.value)}
@@ -208,7 +233,7 @@ export function AuditLogTable() {
         </div>
 
         <div className="md:col-span-1">
-          <div className="text-xs text-muted-foreground mb-1">Target id</div>
+          <div className="text-xs text-muted-foreground mb-1">ID объекта</div>
           <Input
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
@@ -217,7 +242,7 @@ export function AuditLogTable() {
         </div>
 
         <div className="md:col-span-1">
-          <div className="text-xs text-muted-foreground mb-1">Take</div>
+          <div className="text-xs text-muted-foreground mb-1">Записей</div>
           <Select value={String(take)} onValueChange={(v) => setTake(Number(v))}>
             <SelectTrigger>
               <SelectValue />
@@ -231,12 +256,12 @@ export function AuditLogTable() {
         </div>
 
         <div className="md:col-span-2">
-          <div className="text-xs text-muted-foreground mb-1">From</div>
+          <div className="text-xs text-muted-foreground mb-1">С</div>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
 
         <div className="md:col-span-2">
-          <div className="text-xs text-muted-foreground mb-1">To</div>
+          <div className="text-xs text-muted-foreground mb-1">По</div>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
       </div>
@@ -257,11 +282,11 @@ export function AuditLogTable() {
             <TableHeader className="bg-muted/10">
               <TableRow>
                 <TableHead className="align-middle">Дата</TableHead>
-                <TableHead className="align-middle">Action</TableHead>
-                <TableHead className="align-middle">Actor</TableHead>
-                <TableHead className="align-middle">Target</TableHead>
+                <TableHead className="align-middle">Событие</TableHead>
+                <TableHead className="align-middle">Кем</TableHead>
+                <TableHead className="align-middle">Объект</TableHead>
                 <TableHead className="align-middle">IP</TableHead>
-                <TableHead className="align-middle">Meta</TableHead>
+                <TableHead className="align-middle">Данные</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,9 +298,9 @@ export function AuditLogTable() {
                       timeStyle: "short"
                     })}
                   </TableCell>
-                  <TableCell className="font-medium">{r.action}</TableCell>
+                  <TableCell className="font-medium">{formatAction(r.action)}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    <div>{formatCell(r.actorRole)}</div>
+                    <div>{formatActorRole(r.actorRole)}</div>
                     <div className="text-[11px]">
                       {r.actorEmail ?? r.actorName ?? r.actorUserId ?? "—"}
                     </div>
