@@ -30,7 +30,16 @@ function getProfessionLabel(specialization: string | null | undefined): string {
 
 function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Чтобы не получить hydration mismatch: `resolvedTheme` может отличаться
+  // между SSR и первым CSR-рендером (system theme/localStorage).
+  // До mount показываем детерминированный плейсхолдер.
+  const isDark = mounted ? resolvedTheme === "dark" : true;
   return (
     <Button
       variant="ghost"
@@ -69,16 +78,26 @@ type HeaderNavProps = {
 
 export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
   const [professionLabel, setProfessionLabel] = useState<string | null>(null);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const user = session?.user;
-  const name = user?.name ?? (user as { email?: string } | undefined)?.email ?? "";
-  const email = (user as { email?: string } | undefined)?.email ?? "";
-  const initials = name
-    ? name.split(/\s+/).map((s: string) => s[0]).join("").toUpperCase().slice(0, 2)
-    : email
-      ? email.slice(0, 2).toUpperCase()
-      : "?";
+  const name =
+    mounted
+      ? user?.name ?? (user as { email?: string } | undefined)?.email ?? ""
+      : "";
+  const email = mounted ? (user as { email?: string } | undefined)?.email ?? "" : "";
+  const initials = mounted
+    ? name
+      ? name.split(/\s+/).map((s: string) => s[0]).join("").toUpperCase().slice(0, 2)
+      : email
+        ? email.slice(0, 2).toUpperCase()
+        : "?"
+    : "?";
 
   const settingsHref = SETTINGS_HREF[role] ?? "/";
   const profileHref = PROFILE_HREF[role] ?? "/";
@@ -105,12 +124,12 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
 
   const roleLabel =
     role === "PSYCHOLOGIST"
-      ? (professionLabel ?? "Специалист")
+      ? mounted ? (professionLabel ?? "Специалист") : "—"
       : role === "CLIENT"
-        ? "Клиент"
+        ? mounted ? "Клиент" : "—"
         : role === "ADMIN"
-          ? "Администратор"
-          : "Пользователь";
+          ? mounted ? "Администратор" : "—"
+          : mounted ? "Пользователь" : "—";
 
   return (
     <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] px-4">
@@ -152,7 +171,10 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
               aria-label="Меню пользователя"
             >
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.image ?? undefined} alt={name} />
+                <AvatarImage
+                  src={mounted ? user?.image ?? undefined : undefined}
+                  alt={mounted ? name : ""}
+                />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                   {initials}
                 </AvatarFallback>
@@ -166,14 +188,21 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
           >
             <div className="flex items-center gap-3 p-2">
               <Avatar className="h-14 w-14 shrink-0">
-                <AvatarImage src={user?.image ?? undefined} alt={name} />
+                <AvatarImage
+                  src={mounted ? user?.image ?? undefined : undefined}
+                  alt={mounted ? name : ""}
+                />
                 <AvatarFallback className="bg-muted text-sm font-medium">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p className="truncate text-sm font-medium leading-none">{name}</p>
-                <p className="break-all text-xs text-muted-foreground">{email}</p>
+                <p className="truncate text-sm font-medium leading-none">
+                  {mounted ? name : "—"}
+                </p>
+                <p className="break-all text-xs text-muted-foreground">
+                  {mounted ? email : ""}
+                </p>
                 <p className="text-xs text-muted-foreground">{roleLabel}</p>
               </div>
             </div>
