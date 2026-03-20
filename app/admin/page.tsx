@@ -85,6 +85,14 @@ export default async function AdminDashboardPage() {
               Диагностика и тесты
             </Link>
           </li>
+          <li>
+            <Link
+              href="/admin/audit-log"
+              className="text-primary/90 transition-colors hover:text-primary"
+            >
+              Аудит действий пользователей
+            </Link>
+          </li>
         </ul>
       </div>
     </div>

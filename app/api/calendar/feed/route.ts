@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { verifyCalendarFeedToken, buildIcs } from "@/lib/calendar-feed";
+import { buildIcs } from "@/lib/calendar-feed";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/security/api-guards";
 
 async function resolvePsychologistIdForFeed(token: string): Promise<string | null> {
-  // Легаси: HMAC-токен из `createCalendarFeedToken` всегда содержит разделитель «.»
-  if (token.includes(".")) {
-    return verifyCalendarFeedToken(token);
-  }
   const row = await prisma.calendarFeedToken.findUnique({
     where: { token },
     select: { psychologistId: true }

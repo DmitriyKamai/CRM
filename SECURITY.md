@@ -6,12 +6,15 @@
 
 - **Аутентификация:** NextAuth (JWT-сессии), пароли через bcrypt.
 - **Валидация входных данных:** по возможности Zod в API-роутах.
-- **Заголовки:** `middleware.ts` — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
+- **Заголовки:** `middleware.ts` — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`**, в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
 - **Rate limiting (in-memory):** `lib/rate-limit.ts` — регистрация, восстановление пароля, сброс пароля. Ключ обычно IP (+ для forgot — отдельный лимит по email).
 - **Guards для API:** `lib/security/api-guards.ts` — `requireAuth`, `requireRoles`, `requirePsychologist`, `requireAdmin`, `requireClient`, `getClientIp`. Большинство маршрутов в `app/api/**` уже используют эти хелперы вместо ручного `getServerSession` + проверки роли.
 - **Владение ресурсами:** для `PATCH`/`DELETE` слота расписания проверяется `psychologistId` слота — нельзя менять чужие слоты по id.
+- **Аудит-лог:** таблица `prisma/AuditLog` и best-effort записи о смене роли админом, перевыпуске календарной ссылки и смене пароля.
 - **CI:** `.github/workflows/ci.yml` — после `npm ci` и `prisma generate` прогоняются `tsc`, `next lint` и `npm audit --omit=dev`.
-- **ICS по ссылке:** токен подписки в БД (`CalendarFeedToken`) с перевыпуском из кабинета; старые HMAC-ссылки по-прежнему поддерживаются.
+- **ICS по ссылке:** только токен в БД (`CalendarFeedToken`), перевыпуск из кабинета (**`POST /api/calendar/feed-url`**).
+- **Перевыпуск календарной ссылки:** лимит на `POST /api/calendar/feed-url` — защита от спама перевыпусками.
+- **Сессия:** JWT max **14 суток**, продление не чаще **24 ч** при активности (`lib/auth.ts`).
 
 ## Публичные и «токеновые» эндпоинты
 
@@ -21,15 +24,14 @@
 
 **`GET /api/calendar/feed?token=…`** — секретная ссылка (как подписка по URL в Google/Apple Calendar).
 
-- **Новый формат:** случайный токен (**256 бит**), хранится в `CalendarFeedToken` (один на профиль). Выдача: **`GET /api/calendar/feed-url`**, перевыпуск: **`POST /api/calendar/feed-url`** (только сессия психолога) — старый URL сразу перестаёт работать.
-- **Легаси:** если в `token` есть **`.`**, принимается старый **HMAC**-токен (`CALENDAR_FEED_SECRET` / `NEXTAUTH_SECRET`). Отозвать такие ссылки можно только сменой секрета на сервере.
+- Токен — случайные **256 бит**, хранится в `CalendarFeedToken` (один активный на профиль). Выдача: **`GET /api/calendar/feed-url`**, перевыпуск: **`POST /api/calendar/feed-url`** (сессия психолога) — прежний URL перестаёт работать.
 - **Подобрать чужой токен нереалистично**; **утёкший** токен даёт лишь **чтение ICS**, не доступ к аккаунту.
 
 Практика: HTTPS, не логировать query целиком. Лимит: **600 запросов / 10 мин** на IP.
 
 | Область | Поведение |
 |--------|-----------|
-| **`GET /api/calendar/feed?token=…`** | Чтение ICS при валидном токене из БД или (легаси) HMAC. |
+| **`GET /api/calendar/feed?token=…`** | Чтение ICS при валидном токене из БД. |
 | **`GET` / `POST /api/calendar/feed-url`** | Текущая ссылка / **перевыпуск** токена. |
 | **`POST /api/auth/register`**, **`forgot-password`**, **`reset-password`** | Публичные; уже с rate limit по IP / email. |
 | **`POST /api/auth/[...nextauth]`** | NextAuth (логин, OAuth callback и т.д.). |
@@ -47,7 +49,8 @@
 
 - Не коммитьте `.env*`. В репозитории уже в `.gitignore`.
 - В проде: уникальные `NEXTAUTH_SECRET`, пароли БД, ключи OAuth/email.
-- Регулярно: `npm audit` (в проекте есть скрипт `npm run security:audit`).
+- Регулярно: `npm audit` (в проекте есть скрипт `npm run security:audit`). Полная локальная проверка: **`npm run security:check`** (типы + lint + audit).
+- Шаблон переменных: **`.env.example`** (без секретов в репозитории).
 
 ## Сообщить об уязвимости
 

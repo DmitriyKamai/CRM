@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/security/api-guards";
+import { getClientIp } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
 
 export async function POST(request: Request) {
   const auth = await requireAuth();
@@ -68,6 +70,16 @@ export async function POST(request: Request) {
   await prisma.user.update({
     where: { id: userId },
     data: { hashedPassword: hashed }
+  });
+
+  await safeLogAudit({
+    action: "PASSWORD_CHANGE",
+    actorUserId: userId,
+    actorRole: auth.user.role,
+    targetType: "User",
+    targetId: userId,
+    meta: { method: "self_service" },
+    ip: getClientIp(request)
   });
 
   return NextResponse.json({ ok: true });

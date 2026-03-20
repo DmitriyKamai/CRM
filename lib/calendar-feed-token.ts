@@ -2,10 +2,7 @@ import { randomBytes } from "crypto";
 
 import type { PrismaClient } from "@prisma/client";
 
-/**
- * Возвращает непрозрачный токен подписки ICS из БД; при отсутствии создаёт запись.
- * Старые ссылки на основе HMAC (`lib/calendar-feed.ts`) по-прежнему принимаются в `GET /api/calendar/feed`.
- */
+/** Возвращает непрозрачный токен подписки ICS из БД; при отсутствии создаёт запись. */
 export async function getOrCreateCalendarFeedToken(
   prisma: PrismaClient,
   psychologistId: string

@@ -220,6 +220,29 @@ model CalendarFeedToken {
   @@index([token])
 }
 
+/// Аудит-лог критичных действий (best-effort, без блокировки основных сценариев).
+model AuditLog {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+
+  actorUserId String?
+  actorRole   String?
+
+  action     String
+  targetType String?
+  targetId   String?
+
+  ip   String?
+  meta Json?
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorUserId])
+  @@index([action, createdAt])
+}
+
 model ClientProfile {
   id             String   @id @default(cuid())
   userId         String?

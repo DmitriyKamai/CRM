@@ -13,7 +13,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --omit=dev",
-    "security:check": "npm run lint && npm run security:audit",
+    "security:check": "npm run typecheck && npm run lint && npm run security:audit",
     "prisma:generate": "prisma generate",
     "prisma:generate:clean": "node scripts/clean-prisma-engine.js && prisma generate",
     "prisma:migrate": "prisma migrate dev",

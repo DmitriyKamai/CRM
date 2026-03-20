@@ -6,6 +6,9 @@ import {
   rotateCalendarFeedToken
 } from "@/lib/calendar-feed-token";
 import { requirePsychologist } from "@/lib/security/api-guards";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
 
 function calendarBaseUrl(request: NextRequest): string {
   return (
@@ -18,6 +21,19 @@ function calendarBaseUrl(request: NextRequest): string {
 /** GET /api/calendar/feed-url — текущая ссылка на ICS (токен хранится в БД). */
 export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const allowed = checkRateLimit({
+      key: `calendar-feed-url:get:ip:${ip}`,
+      windowMs: 10 * 60 * 1000,
+      max: 60
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { message: "Слишком много попыток. Попробуйте позже." },
+        { status: 429 }
+      );
+    }
+
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
 
@@ -37,12 +53,36 @@ export async function GET(request: NextRequest) {
 /** POST /api/calendar/feed-url — перевыпустить токен (старые подписки перестанут обновляться). */
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const allowed = checkRateLimit({
+      key: `calendar-feed-url:rotate:ip:${ip}`,
+      windowMs: 60 * 60 * 1000,
+      max: 10
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { message: "Слишком много попыток. Попробуйте позже." },
+        { status: 429 }
+      );
+    }
+
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
 
     const token = await rotateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);
     const url = `${baseUrl}/api/calendar/feed?token=${encodeURIComponent(token)}`;
+
+    await safeLogAudit({
+      action: "CALENDAR_FEED_TOKEN_ROTATE",
+      actorUserId: ctx.userId,
+      actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+      targetType: "PsychologistProfile",
+      targetId: ctx.psychologistId,
+      meta: { reason: "rotate" },
+      ip
+    });
+
     return NextResponse.json({ url });
   } catch (err) {
     console.error("[POST /api/calendar/feed-url]", err);

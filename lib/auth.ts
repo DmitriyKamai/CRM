@@ -235,7 +235,12 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
 // При отсутствии OAuth используем noopAdapter, чтобы не обращаться к Account/Session и не падать.
 export const authOptions: NextAuthOptions = {
   adapter: hasOAuthProviders() ? PrismaAdapter(prisma) : noopAdapter,
-  session: { strategy: "jwt" },
+  // JWT-сессия: ограничиваем срок и частоту продления токена (меньше окно компрометации украденной сессии).
+  session: {
+    strategy: "jwt",
+    maxAge: 14 * 24 * 60 * 60, // 14 суток
+    updateAge: 24 * 60 * 60 // не чаще раза в сутки при активности
+  },
   pages: { signIn: "/auth/login" },
   providers: buildProviders(),
   callbacks: buildCallbacks(null)

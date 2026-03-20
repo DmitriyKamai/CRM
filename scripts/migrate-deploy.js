@@ -11,6 +11,14 @@
   const execSync =
     childProcessMod.execSync ?? (childProcessMod.default && childProcessMod.default.execSync);
 
+  // Для npm-скриптов Node не всегда подхватывает `.env`, поэтому явно грузим dotenv.
+  try {
+    const dotenvMod = await import("dotenv");
+    dotenvMod.config();
+  } catch {
+    // ignore (dotenv не критичен)
+  }
+
   if (!process.env.DIRECT_DATABASE_URL) {
     if (process.env.DATABASE_URL) {
       console.warn(
