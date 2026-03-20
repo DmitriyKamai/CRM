@@ -142,6 +142,7 @@ export function PsychologistSchedule() {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [displayedMonth, setDisplayedMonth] = useState<Date>(() => toFirstOfMonth(new Date()));
   const lastMonthKeyRef = useRef<string>(toMonthKey(new Date()));
+  const [mounted, setMounted] = useState(false);
 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [clientsLoading, setClientsLoading] = useState<boolean>(false);
@@ -192,6 +193,11 @@ export function PsychologistSchedule() {
   useEffect(() => {
     void loadSlots();
   }, [loadSlots]);
+
+  // Avoid hydration mismatches caused by time-zone / "now" differences between server and browser.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function loadClientsOnce(): Promise<void> {
     if (clients.length > 0 || clientsLoading) return;
@@ -615,6 +621,32 @@ export function PsychologistSchedule() {
   }, [loading]);
 
   const scaled = scale < 1;
+
+  if (!mounted) {
+    return (
+      <div className="w-full min-w-0">
+        <div className="flex gap-1 items-start">
+          <div className="w-72 shrink-0 flex flex-col">
+            <div className="h-10 shrink-0" aria-hidden />
+            <div
+              className="h-[360px] rounded-md border border-border bg-muted/30 animate-pulse"
+              aria-busy="true"
+              aria-label="Загрузка календаря"
+            />
+            <div className="mt-3 h-24 rounded-md bg-muted/30 animate-pulse" aria-hidden />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
+            <Card className="overflow-hidden border border-border rounded-lg">
+              <CardContent className="space-y-2 px-4 py-3">
+                <ScheduleGridSkeleton />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
