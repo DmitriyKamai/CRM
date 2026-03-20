@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown";
 
-    const allowed = checkRateLimit({
+    const allowed = await checkRateLimit({
       key: `register:${ip}`,
       windowMs: 10 * 60 * 1000,
       max: 20

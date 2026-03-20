@@ -7,7 +7,7 @@
 - **Аутентификация:** NextAuth (JWT-сессии), пароли через bcrypt.
 - **Валидация входных данных:** по возможности Zod в API-роутах.
 - **Заголовки:** `middleware.ts` — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`** (в реальном фронтенде Next.js/React использует inline-сценарии: поэтому `script-src-elem` допускает `'unsafe-inline'`, а `script-src` остаётся строгим; в production остаются только HSTS), в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
-- **Rate limiting (in-memory):** `lib/rate-limit.ts` — регистрация, восстановление пароля, сброс пароля. Ключ обычно IP (+ для forgot — отдельный лимит по email).
+- **Rate limiting:** `lib/rate-limit.ts` — регистрация, восстановление пароля, сброс пароля. Поддерживает Redis/Upstash (если настроены) и fallback в in-memory (на dev/single instance).
 - **Guards для API:** `lib/security/api-guards.ts` — `requireAuth`, `requireRoles`, `requirePsychologist`, `requireAdmin`, `requireClient`, `getClientIp`. Большинство маршрутов в `app/api/**` уже используют эти хелперы вместо ручного `getServerSession` + проверки роли.
 - **Владение ресурсами:** для `PATCH`/`DELETE` слота расписания проверяется `psychologistId` слота — нельзя менять чужие слоты по id.
 - **Аудит-лог:** таблица `prisma/AuditLog` и best-effort записи о смене роли админом, перевыпуске календарной ссылки, смене пароля, удалении слота расписания, изменении статуса записи (подтверждение/отмена) психологом и переключении активности теста админом.

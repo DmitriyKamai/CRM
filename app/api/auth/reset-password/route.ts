@@ -23,7 +23,7 @@ const resetSchema = z.object({
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
-    const allowed = checkRateLimit({
+    const allowed = await checkRateLimit({
       key: `reset-password:ip:${ip}`,
       windowMs: 10 * 60 * 1000,
       max: 30

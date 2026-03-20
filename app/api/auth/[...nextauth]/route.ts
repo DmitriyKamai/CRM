@@ -21,7 +21,7 @@ async function wrappedHandler(
       req.headers.get("x-real-ip") ??
       "unknown";
 
-    const allowed = checkRateLimit({
+    const allowed = await checkRateLimit({
       key: `login:${ip}`,
       windowMs: 60 * 1000,
       max: 5

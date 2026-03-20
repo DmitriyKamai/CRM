@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown";
 
-    const allowedByIp = checkRateLimit({
+    const allowedByIp = await checkRateLimit({
       key: `forgot-password:ip:${ip}`,
       windowMs: 10 * 60 * 1000,
       max: 20
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const data = forgotSchema.parse(json);
     const email = data.email.trim().toLowerCase();
 
-    const allowedByEmail = checkRateLimit({
+    const allowedByEmail = await checkRateLimit({
       key: `forgot-password:email:${email}`,
       windowMs: 60 * 60 * 1000,
       max: 3

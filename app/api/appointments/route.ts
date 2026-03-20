@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
   const ip = getClientIp(request);
 
-  const allowed = checkRateLimit({
+  const allowed = await checkRateLimit({
     key: `appointment:${clientId}:${ip}`,
     windowMs: 10 * 60 * 1000,
     max: 30

@@ -22,7 +22,7 @@ function calendarBaseUrl(request: NextRequest): string {
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const allowed = checkRateLimit({
+    const allowed = await checkRateLimit({
       key: `calendar-feed-url:get:ip:${ip}`,
       windowMs: 10 * 60 * 1000,
       max: 60
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const allowed = checkRateLimit({
+    const allowed = await checkRateLimit({
       key: `calendar-feed-url:rotate:ip:${ip}`,
       windowMs: 60 * 60 * 1000,
       max: 10

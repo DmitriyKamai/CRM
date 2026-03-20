@@ -17,7 +17,7 @@ async function resolvePsychologistIdForFeed(token: string): Promise<string | nul
 export async function GET(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const allowed = checkRateLimit({
+    const allowed = await checkRateLimit({
       key: `calendar-feed:ip:${ip}`,
       windowMs: 10 * 60 * 1000,
       max: 600
