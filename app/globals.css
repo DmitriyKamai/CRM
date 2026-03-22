@@ -72,53 +72,52 @@
   }
 
   /*
-   * Тёмная тема: нейтрали в духе shadcn slate / пресет Blue (холодный сине-серый, hue ~217–222),
-   * см. реестр тем ui.shadcn.com (neutral + blue). Оранжевый primary/ring и стекло — без изменений.
+   * Тёмная тема: семантика собрана из палитры Tailwind «blue»
+   * (https://ui.shadcn.com/colors#blue — те же шаги 50–950, что и `tailwindcss/colors` blue).
+   * Оранжевый primary/ring и стекло — без изменений.
    */
   .dark {
-    --background: 222.2 47.4% 11.2%;
-    --foreground: 210 40% 98%;
+    --background: 226 57% 21%; /* blue-950 #172554 */
+    --foreground: 214 100% 97%; /* blue-50 #eff6ff */
 
-    --card: 217.2 32.6% 14%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 64% 33%; /* blue-900 #1e3a8a */
+    --card-foreground: 214 100% 97%;
 
-    --popover: 217.2 32.6% 17.5%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 226 71% 40%; /* blue-800 #1e40af — чуть выше карточки */
+    --popover-foreground: 214 100% 97%;
 
-    /* Оранжевый акцент — как в светлой теме */
     --primary: 28 90% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 226 71% 40%; /* blue-800 */
+    --secondary-foreground: 214 100% 97%;
 
-    --muted: 217.2 32.6% 16%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 225 62% 27%; /* между blue-950 и blue-900 */
+    --muted-foreground: 213 94% 68%; /* blue-400 #60a5fa */
 
-    --accent: 217.2 32.6% 19%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 226 71% 40%; /* blue-800 */
+    --accent-foreground: 214 100% 97%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 22%;
-    --input: 217.2 32.6% 20%;
-    --input-bg: 222.2 42% 10%;
+    --border: 224 55% 28%; /* ~blue-900, темнее карточки */
+    --input: 224 64% 33%; /* blue-900 */
+    --input-bg: 226 58% 19%; /* чуть глубже blue-950 */
     --ring: 28 90% 54%;
 
-    --sidebar-bg: 217.2 30% 13%;
-    --sidebar-border: 217.2 32.6% 22%;
+    --sidebar-bg: 224 63% 31%; /* около blue-900 */
+    --sidebar-border: 224 50% 28%;
 
     --status-success: 142 45% 48%;
     --status-warning: 28 88% 56%;
-    --status-free: 199 55% 52%;
+    --status-free: 217 91% 60%; /* blue-500 #3b82f6 */
 
-    /* chart-1 — оранжевый; остальное в холодной гамме (как blue theme charts в shadcn) */
     --chart-1: 28 90% 54%;
-    --chart-2: 215 70% 55%;
-    --chart-3: 250 50% 58%;
-    --chart-4: 142 45% 48%;
-    --chart-5: 200 55% 48%;
+    --chart-2: 213 94% 68%; /* blue-400 */
+    --chart-3: 217 91% 60%; /* blue-500 */
+    --chart-4: 221 83% 53%; /* blue-600 */
+    --chart-5: 212 96% 78%; /* blue-300 */
   }
 
   * {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sqltag as sql } from "@prisma/client/runtime/library";
 import { z } from "zod";
-
-import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/security/api-guards";
@@ -52,55 +51,54 @@ export async function GET(request: NextRequest) {
   const fromDate = parseDate(q.from, false);
   const toDate = parseDate(q.to, true);
 
-  // Простой подход: собираем WHERE через Prisma.sql, чтобы избежать SQL-injection.
-  // Важно: используем $queryRaw вместо prisma.auditLog.findMany, чтобы не зависеть от
-  // состояния Prisma Client генерации на Windows.
-  let whereSql = Prisma.sql`TRUE`;
+  // Собираем WHERE через sqltag (аналог Prisma.sql), параметры — через плейсхолдеры.
+  // $queryRaw вместо prisma.auditLog.findMany — меньше зависимость от генерации клиента на Windows.
+  let whereSql = sql`TRUE`;
   if (q.action) {
-    whereSql = Prisma.sql`${whereSql} AND "action" ILIKE ${`%${q.action}%`}`;
+    whereSql = sql`${whereSql} AND "action" ILIKE ${`%${q.action}%`}`;
   }
   if (q.actorUserId) {
-    whereSql = Prisma.sql`${whereSql} AND "actorUserId" = ${q.actorUserId}`;
+    whereSql = sql`${whereSql} AND "actorUserId" = ${q.actorUserId}`;
   }
   if (q.actorRole) {
-    whereSql = Prisma.sql`${whereSql} AND "actorRole" ILIKE ${`%${q.actorRole}%`}`;
+    whereSql = sql`${whereSql} AND "actorRole" ILIKE ${`%${q.actorRole}%`}`;
   }
   if (q.targetType) {
-    whereSql = Prisma.sql`${whereSql} AND "targetType" ILIKE ${`%${q.targetType}%`}`;
+    whereSql = sql`${whereSql} AND "targetType" ILIKE ${`%${q.targetType}%`}`;
   }
   if (q.targetId) {
-    whereSql = Prisma.sql`${whereSql} AND "targetId" ILIKE ${`%${q.targetId}%`}`;
+    whereSql = sql`${whereSql} AND "targetId" ILIKE ${`%${q.targetId}%`}`;
   }
   if (q.ip) {
-    whereSql = Prisma.sql`${whereSql} AND "ip" ILIKE ${`%${q.ip}%`}`;
+    whereSql = sql`${whereSql} AND "ip" ILIKE ${`%${q.ip}%`}`;
   }
   if (fromDate) {
-    whereSql = Prisma.sql`${whereSql} AND "createdAt" >= ${fromDate}`;
+    whereSql = sql`${whereSql} AND "createdAt" >= ${fromDate}`;
   }
   if (toDate) {
-    whereSql = Prisma.sql`${whereSql} AND "createdAt" <= ${toDate}`;
+    whereSql = sql`${whereSql} AND "createdAt" <= ${toDate}`;
   }
 
   const take = q.take ?? 50;
   const page = q.page ?? 1;
   const offset = (page - 1) * take;
 
-  const rows = await prisma.$queryRaw<
-    Array<{
-      id: string;
-      createdAt: Date;
-      action: string;
-      actorUserId: string | null;
-      actorRole: string | null;
-      targetType: string | null;
-      targetId: string | null;
-      ip: string | null;
-      meta: unknown;
-      actorEmail: string | null;
-      actorName: string | null;
-    }>
-  >(
-    Prisma.sql`
+  type AuditLogRow = {
+    id: string;
+    createdAt: Date;
+    action: string;
+    actorUserId: string | null;
+    actorRole: string | null;
+    targetType: string | null;
+    targetId: string | null;
+    ip: string | null;
+    meta: unknown;
+    actorEmail: string | null;
+    actorName: string | null;
+  };
+
+  const rows = (await prisma.$queryRaw(
+    sql`
       SELECT
         "AuditLog"."id",
         "AuditLog"."createdAt",
@@ -120,22 +118,20 @@ export async function GET(request: NextRequest) {
       OFFSET ${offset}
       LIMIT ${take}
     `
-  );
+  )) as AuditLogRow[];
 
-  const countRows = await prisma.$queryRaw<
-    Array<{ count: string }>
-  >(
-    Prisma.sql`
+  const countRows = (await prisma.$queryRaw(
+    sql`
       SELECT COUNT(*)::text AS count
       FROM "AuditLog"
       LEFT JOIN "User" ON "User"."id" = "AuditLog"."actorUserId"
       WHERE ${whereSql}
     `
-  );
+  )) as Array<{ count: string }>;
   const totalCount = Number(countRows[0]?.count ?? 0);
 
   return NextResponse.json({
-    rows: rows.map((r) => ({
+    rows: rows.map((r: AuditLogRow) => ({
       id: r.id,
       createdAt: r.createdAt.toISOString(),
       action: r.action,
