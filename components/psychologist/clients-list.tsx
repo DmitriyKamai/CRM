@@ -446,11 +446,9 @@ export function PsychologistClientsList({
         return;
       }
       if (name.endsWith(".xlsx")) {
-        const XLSX = await import("xlsx");
+        const { parseXlsxFirstSheetToAoA } = await import("@/lib/clients-xlsx-parse");
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+        const data = await parseXlsxFirstSheetToAoA(buf);
         if (!data.length) {
           setImportHeaders([]);
           setImportRows([]);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { safeLogAudit } from "@/lib/audit-log";
+import { buildClientsXlsxBuffer } from "@/lib/clients-xlsx-build";
 import { prisma } from "@/lib/db";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
@@ -254,11 +255,7 @@ export async function GET(request: Request) {
     }
 
     if (format === "xlsx") {
-      const XLSX = await import("xlsx");
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Клиенты");
-      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const buf = await buildClientsXlsxBuffer(headers, rows);
       const filename = `clients-${dateStr}.xlsx`;
       await safeLogAudit({
         action: "CLIENTS_EXPORT",
@@ -273,7 +270,7 @@ export async function GET(request: Request) {
           exportedCount: clients.length
         }
       });
-      return new NextResponse(buf, {
+      return new NextResponse(new Uint8Array(buf), {
         status: 200,
         headers: {
           "Content-Type":
