@@ -122,11 +122,7 @@ export function PublicPsychologistsList({
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div
-          className="h-12 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent sm:h-14"
-          aria-hidden
-        />
-        <div className="space-y-1.5 px-5 pb-4 pt-2 sm:px-7">
+        <div className="space-y-1.5 px-5 pb-4 pt-5 sm:px-7">
           <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Найти психолога
           </h1>
@@ -352,7 +348,7 @@ export function PublicPsychologistsList({
                           alt=""
                           className="rounded-none rounded-t-2xl object-cover"
                         />
-                        <AvatarFallback className="rounded-none rounded-t-2xl bg-gradient-to-br from-primary/30 via-primary/20 to-muted/80 text-2xl font-semibold tracking-tight text-primary/90">
+                        <AvatarFallback className="bg-placeholder-surface rounded-none rounded-t-2xl text-2xl font-semibold tracking-tight text-muted-foreground">
                           {initials || "?"}
                         </AvatarFallback>
                       </Avatar>

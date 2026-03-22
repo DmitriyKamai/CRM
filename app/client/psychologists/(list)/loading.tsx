@@ -24,8 +24,7 @@ export default function PsychologistsListLoading() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:py-10">
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <Skeleton className="h-14 w-full rounded-none" />
-        <div className="space-y-2 p-5 pb-4 pt-2 sm:px-7">
+        <div className="space-y-2 p-5 pb-4 pt-5 sm:px-7">
           <Skeleton className="h-8 w-64 max-w-full" />
           <Skeleton className="h-12 w-full max-w-2xl" />
         </div>

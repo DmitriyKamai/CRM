@@ -187,13 +187,8 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       </Link>
 
       <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div
-          className="h-24 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent sm:h-28"
-          aria-hidden
-        />
-
-        <div className="flex flex-col gap-8 p-6 pt-2 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
-          <div className="mx-auto flex shrink-0 justify-center lg:mx-0 lg:-mt-16 lg:pt-0">
+        <div className="flex flex-col gap-8 p-6 pt-6 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
+          <div className="mx-auto flex shrink-0 justify-center lg:mx-0">
             <div
               className={cn(
                 "relative overflow-hidden border-4 border-background shadow-lg ring-1 ring-border/50",
@@ -210,10 +205,10 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                 />
               ) : (
                 <div
-                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 via-primary/20 to-muted/80"
+                  className="bg-placeholder-surface flex h-full w-full items-center justify-center"
                   aria-hidden
                 >
-                  <span className="text-3xl font-semibold tracking-tight text-primary/90 sm:text-4xl">
+                  <span className="text-3xl font-semibold tracking-tight text-muted-foreground sm:text-4xl">
                     {initials || "—"}
                   </span>
                 </div>

@@ -8,12 +8,8 @@ export default function PsychologistProfileLoading() {
       <Skeleton className="h-5 w-44 rounded-md" aria-hidden />
 
       <Card className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <Skeleton
-          className="h-24 w-full rounded-none sm:h-28"
-          aria-hidden
-        />
-        <div className="flex flex-col gap-8 p-6 pt-2 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
-          <div className="mx-auto flex shrink-0 justify-center lg:mx-0 lg:-mt-12">
+        <div className="flex flex-col gap-8 p-6 pt-6 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
+          <div className="mx-auto flex shrink-0 justify-center lg:mx-0">
             <Skeleton className="h-36 w-36 rounded-full sm:h-40 sm:w-40 lg:h-[22rem] lg:w-[17rem] lg:rounded-3xl" />
           </div>
           <div className="min-w-0 flex-1 space-y-5 lg:pt-2">

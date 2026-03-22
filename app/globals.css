@@ -17,55 +17,54 @@
     --gray-900: 0 0% 9%;
     --gray-950: 0 0% 3.9%;
 
-    /* Светлая тема — нейтральный slate */
-    --background: 220 14% 96%;
-    --foreground: 224 16% 16%;
+    /*
+     * Светлая тема — палитра из style-dist.css (Нити Дружбы / niti-d.by):
+     * #272932 текст, #f79127 CTA, #d37c21 hover, #798086 вторичный текст,
+     * #e9e9ea бордеры, #f6f0ed / #feeddc / #f8f8f8 фоны, #556f7a акцент.
+     */
+    --background: 23 33% 95%;
+    --foreground: 228 12% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 16% 16%;
+    --card-foreground: 228 12% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 16% 16%;
+    --popover-foreground: 228 12% 18%;
 
-    /* Акцент: чуть спокойнее по насыщенности */
-    --primary: 350 38% 54%;
+    --primary: 29 93% 56%;
     --primary-foreground: 0 0% 100%;
 
-    /* secondary — чуть плотнее, чем muted (кнопки/чипы vs фоны блоков) */
-    --secondary: 220 15% 88%;
-    --secondary-foreground: 224 16% 16%;
+    --secondary: 60 5% 89%;
+    --secondary-foreground: 228 12% 18%;
 
-    --accent: 220 14% 91%;
-    --accent-foreground: 224 16% 16%;
+    --accent: 28 55% 94%;
+    --accent-foreground: 228 12% 18%;
 
-    --muted: 220 11% 93%;
-    --muted-foreground: 220 10% 40%;
+    --muted: 25 22% 93%;
+    --muted-foreground: 210 5% 50%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Границы чуть заметнее на карточках */
-    --border: 220 13% 84%;
-    --input: 220 13% 84%;
+    --border: 240 3% 92%;
+    --input: 240 3% 92%;
     --input-bg: 0 0% 100%;
-    --ring: 350 38% 54%;
+    --ring: 29 93% 56%;
     --radius: 0.625rem;
 
-    /* Фон сайдбара */
-    --sidebar-bg: 220 20% 98%;
-    --sidebar-border: 220 13% 84%;
+    --sidebar-bg: 0 0% 97%;
+    --sidebar-border: 240 3% 92%;
 
-    /* Маркеры статусов */
+    /* #556f7a, #f79127, оранжевый hover */
     --status-success: 142 45% 42%;
-    --status-warning: 38 88% 48%;
-    --status-free: 199 89% 48%;
+    --status-warning: 29 93% 56%;
+    --status-free: 199 18% 41%;
 
-    /* Палитра для графиков */
-    --chart-1: 350 38% 54%;
-    --chart-2: 270 32% 65%;
-    --chart-3: 199 60% 50%;
-    --chart-4: 142 45% 42%;
-    --chart-5: 38 88% 48%;
+    --chart-1: 29 93% 56%;
+    --chart-2: 199 18% 41%;
+    --chart-3: 210 5% 50%;
+    --chart-4: 28 73% 48%;
+    --chart-5: 28 70% 93%;
   }
 
   /* Тёмная тема: мягкий «антрацит»; popover чуть светлее карточки */
@@ -115,6 +114,29 @@
 }
 
 @layer utilities {
+  /**
+   * Плейсхолдер без градиентов: ровный muted + лёгкая сетка точек (светлая/тёмная тема).
+   */
+  .bg-placeholder-surface {
+    background-color: hsl(var(--muted));
+    background-image: radial-gradient(
+      circle at center,
+      hsl(var(--foreground) / 0.07) 1px,
+      transparent 1px
+    );
+    background-size: 18px 18px;
+  }
+
+  /**
+   * Лёгкое «стекло» (blur) — по желанию на карточках/модалках, в духе мягких слоёв сайта-референса.
+   */
+  .surface-glass {
+    border: 1px solid hsl(var(--border) / 0.85);
+    background-color: hsl(var(--card) / 0.75);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
   .field-label {
     font-size: 0.6875rem;
     text-transform: uppercase;
