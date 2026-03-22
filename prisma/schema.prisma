@@ -195,6 +195,8 @@ model PsychologistProfile {
   profilePhotoUrl     String?   // фото для карточки в «Записаться к психологу» (отдельно от User.image — аватар)
   profilePublished    Boolean @default(false) @map("profilePhotoPublished") // «Опубликовать профиль» — тогда профиль и карточка видны клиентам
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
+  /// OAuth refresh token для чтения Google Таблиц от имени психолога (импорт клиентов).
+  googleSheetsRefreshToken String? @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

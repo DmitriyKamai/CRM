@@ -192,6 +192,28 @@ export function PsychologistClientsList({
     if (client) setProfileClient(client);
   }, [profileIdFromUrl, clients]);
 
+  useEffect(() => {
+    const v = searchParams.get("sheet_oauth");
+    if (!v) return;
+    if (v === "ok") {
+      toast.success("Google подключён — можно подтягивать таблицы для импорта");
+    } else if (v === "denied") {
+      toast.error("Доступ к Google не выдан");
+    } else if (v === "norefresh") {
+      toast.error(
+        "Google не выдал долгоживущий токен. Откройте настройки аккаунта Google → безопасность → доступ приложений, отзовите CRM и подключите снова."
+      );
+    } else if (v === "invalid") {
+      toast.error("Ошибка авторизации");
+    } else {
+      toast.error("Не удалось подключить Google");
+    }
+    const q = new URLSearchParams(searchParams.toString());
+    q.delete("sheet_oauth");
+    const qs = q.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, pathname, router]);
+
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [dob, setDob] = useState<Date | undefined>(undefined);
@@ -222,9 +244,12 @@ export function PsychologistClientsList({
   const [exporting, setExporting] = useState(false);
   const [googleSheetsImportUrl, setGoogleSheetsImportUrl] = useState("");
   const [googleSheetsImportLoading, setGoogleSheetsImportLoading] = useState(false);
-  const [googleSheetsImportCredStatus, setGoogleSheetsImportCredStatus] = useState<
-    "missing" | "invalid" | "ok" | null
-  >(null);
+  const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
+    null
+  );
+  const [googleSheetsGoogleConnected, setGoogleSheetsGoogleConnected] = useState<boolean | null>(
+    null
+  );
 
   const IMPORT_FIELDS: { key: string; label: string }[] = [
     { key: "firstName", label: "Имя" },
@@ -345,7 +370,8 @@ export function PsychologistClientsList({
     setImportRows([]);
     setImportMapping({});
     setGoogleSheetsImportUrl("");
-    setGoogleSheetsImportCredStatus(null);
+    setGoogleSheetsOAuthConfigured(null);
+    setGoogleSheetsGoogleConnected(null);
     async function load() {
       try {
         const res = await fetch("/api/psychologist/custom-fields");
@@ -368,14 +394,13 @@ export function PsychologistClientsList({
         const res = await fetch("/api/psychologist/google-sheets");
         if (!res.ok || cancelled) return;
         const data = (await res.json().catch(() => null)) as {
-          credentialsStatus?: "missing" | "invalid" | "ok";
+          oauthConfigured?: boolean;
+          googleConnected?: boolean;
           spreadsheetId?: string | null;
         } | null;
         if (cancelled) return;
-        const cs = data?.credentialsStatus;
-        setGoogleSheetsImportCredStatus(
-          cs === "ok" || cs === "missing" || cs === "invalid" ? cs : "missing"
-        );
+        setGoogleSheetsOAuthConfigured(Boolean(data?.oauthConfigured));
+        setGoogleSheetsGoogleConnected(Boolean(data?.googleConnected));
         const id =
           typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
             ? data.spreadsheetId.trim()
@@ -384,7 +409,10 @@ export function PsychologistClientsList({
           setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${id}/edit`);
         }
       } catch {
-        if (!cancelled) setGoogleSheetsImportCredStatus("missing");
+        if (!cancelled) {
+          setGoogleSheetsOAuthConfigured(false);
+          setGoogleSheetsGoogleConnected(false);
+        }
       }
     })();
     return () => {
@@ -778,6 +806,18 @@ export function PsychologistClientsList({
       setError(msg);
     } finally {
       setGoogleSheetsImportLoading(false);
+    }
+  }
+
+  async function handleDisconnectGoogleSheets() {
+    try {
+      const res = await fetch("/api/psychologist/google-sheets", { method: "DELETE" });
+      const data = (await res.json().catch(() => null)) as { message?: string } | null;
+      if (!res.ok) throw new Error(data?.message ?? "Не удалось отключить Google");
+      setGoogleSheetsGoogleConnected(false);
+      toast.success("Доступ Google к таблицам отключён");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось отключить");
     }
   }
 
@@ -1443,29 +1483,55 @@ export function PsychologistClientsList({
                     </div>
 
                     <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-                      <div className="flex items-center gap-2">
-                        <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <Label className="text-sm font-medium">Google Таблицы</Label>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <Label className="text-sm font-medium">Google Таблицы</Label>
+                        </div>
+                        {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-muted-foreground"
+                            onClick={() => void handleDisconnectGoogleSheets()}
+                          >
+                            Отключить Google
+                          </Button>
+                        ) : null}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Читается первый лист таблицы. Первая строка — названия колонок (как в шаблоне
-                        CSV). Таблицу расшарьте на email из <code className="rounded bg-muted px-1">client_email</code> в
-                        JSON ключа (достаточно «Читатель»).
+                        Читается первый лист таблицы; первая строка — заголовки колонок (как в шаблоне
+                        CSV). Доступ к файлам — с вашего Google-аккаунта, без расшаривания на
+                        технические email.
                       </p>
-                      {googleSheetsImportCredStatus === "missing" ? (
+                      {googleSheetsOAuthConfigured === false ? (
                         <Alert variant="destructive" className="py-2">
                           <AlertDescription className="text-xs">
-                            На сервере не задан ключ сервисного аккаунта (см.{" "}
-                            <code className="rounded bg-muted px-1">GOOGLE_SERVICE_ACCOUNT_JSON</code> в .env).
+                            На сервере не заданы{" "}
+                            <code className="rounded bg-muted px-1">GOOGLE_CLIENT_ID</code>,{" "}
+                            <code className="rounded bg-muted px-1">GOOGLE_CLIENT_SECRET</code> и{" "}
+                            <code className="rounded bg-muted px-1">NEXTAUTH_URL</code> — обратитесь к
+                            администратору.
                           </AlertDescription>
                         </Alert>
-                      ) : googleSheetsImportCredStatus === "invalid" ? (
-                        <Alert variant="destructive" className="py-2">
-                          <AlertDescription className="text-xs">
-                            JSON ключа не парсится — проверьте переменную окружения или используйте
-                            Base64 одной строкой.
-                          </AlertDescription>
-                        </Alert>
+                      ) : null}
+                      {googleSheetsOAuthConfigured && !googleSheetsGoogleConnected ? (
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <p className="text-xs text-muted-foreground">
+                            Один раз разрешите приложению чтение таблиц — как обычный вход через Google.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="shrink-0 w-fit"
+                            onClick={() => {
+                              window.location.href = "/api/psychologist/google-sheets/oauth/start";
+                            }}
+                          >
+                            Подключить Google
+                          </Button>
+                        </div>
                       ) : null}
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                         <div className="min-w-0 flex-1 space-y-1">
@@ -1486,7 +1552,8 @@ export function PsychologistClientsList({
                           className="shrink-0"
                           disabled={
                             googleSheetsImportLoading ||
-                            googleSheetsImportCredStatus !== "ok"
+                            !googleSheetsOAuthConfigured ||
+                            !googleSheetsGoogleConnected
                           }
                           onClick={() => void handleImportFromGoogleSheets()}
                         >
@@ -1496,8 +1563,8 @@ export function PsychologistClientsList({
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Файлы CSV/XLSX/JSON разбираются в браузере. Google Таблицы читаются на сервере по
-                      API.
+                      Файлы CSV/XLSX/JSON разбираются в браузере. Импорт из Google выполняется на сервере
+                      с вашего разрешения (OAuth).
                     </p>
                   </div>
                   {importHeaders.length > 0 && (

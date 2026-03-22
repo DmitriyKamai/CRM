@@ -1,79 +1,75 @@
-import { existsSync, readFileSync } from "fs";
+import { createHmac, timingSafeEqual } from "crypto";
 
 import { google } from "googleapis";
 
-const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
-export type GoogleSheetsCredentialsStatus = "missing" | "invalid" | "ok";
-
-function stripBom(s: string): string {
-  return s.startsWith("\uFEFF") ? s.slice(1) : s;
+export function getGoogleSheetsOAuthRedirectUri(): string {
+  const base = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
+  if (!base) {
+    throw new Error("NEXTAUTH_URL не задан — нужен для redirect URI Google OAuth");
+  }
+  return `${base}/api/psychologist/google-sheets/oauth/callback`;
 }
 
-function getRawServiceAccountJsonString(): string | null {
-  const b64 =
-    process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64?.trim() ||
-    process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64?.trim();
-  if (b64) {
-    try {
-      return stripBom(Buffer.from(b64, "base64").toString("utf8")).trim();
-    } catch {
-      return null;
-    }
-  }
-
-  const inline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
-  if (inline) {
-    return stripBom(inline);
-  }
-
-  const filePath =
-    process.env.GOOGLE_SERVICE_ACCOUNT_PATH?.trim() ||
-    process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
-  if (filePath && existsSync(filePath)) {
-    try {
-      return stripBom(readFileSync(filePath, "utf8")).trim();
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
+export function isGoogleOAuthConfiguredForSheets(): boolean {
+  const id = process.env.GOOGLE_CLIENT_ID?.trim();
+  const secret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const base = process.env.NEXTAUTH_URL?.trim();
+  return Boolean(id && secret && base);
 }
 
-export function getGoogleSheetsCredentialsStatus(): GoogleSheetsCredentialsStatus {
-  const raw = getRawServiceAccountJsonString();
-  if (!raw) return "missing";
+export function createSheetsOAuth2Client() {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) {
+    throw new Error("GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET обязательны");
+  }
+  return new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    getGoogleSheetsOAuthRedirectUri()
+  );
+}
+
+function oauthStateSecret(): string {
+  return process.env.NEXTAUTH_SECRET?.trim() || "fallback-secret-change-me";
+}
+
+/** Подпись state для OAuth callback (привязка к psychologistId). */
+export function signGoogleSheetsOAuthState(psychologistId: string): string {
+  const payload = Buffer.from(
+    JSON.stringify({ p: psychologistId, exp: Date.now() + 10 * 60 * 1000 })
+  ).toString("base64url");
+  const sig = createHmac("sha256", oauthStateSecret()).update(payload).digest("base64url");
+  return `${payload}.${sig}`;
+}
+
+export function verifyGoogleSheetsOAuthState(state: string): string | null {
+  const dot = state.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const payload = state.slice(0, dot);
+  const sig = state.slice(dot + 1);
+  const expected = createHmac("sha256", oauthStateSecret()).update(payload).digest("base64url");
   try {
-    JSON.parse(raw);
-    return "ok";
+    const a = Buffer.from(sig, "utf8");
+    const b = Buffer.from(expected, "utf8");
+    if (a.length !== b.length) return null;
+    if (!timingSafeEqual(a, b)) return null;
   } catch {
-    return "invalid";
+    return null;
   }
-}
-
-export function isGoogleSheetsConfigured(): boolean {
-  return getGoogleSheetsCredentialsStatus() === "ok";
-}
-
-function getSheetsClient() {
-  const raw = getRawServiceAccountJsonString();
-  if (!raw) {
-    throw new Error(
-      "Ключ сервисного аккаунта не найден: задайте GOOGLE_SERVICE_ACCOUNT_JSON (лучше одной строкой), GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 или путь к файлу в GOOGLE_SERVICE_ACCOUNT_PATH / GOOGLE_APPLICATION_CREDENTIALS"
-    );
-  }
-  let credentials: Record<string, unknown>;
   try {
-    credentials = JSON.parse(raw) as Record<string, unknown>;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      p?: string;
+      exp?: number;
+    };
+    if (typeof data.p !== "string" || typeof data.exp !== "number") return null;
+    if (data.exp < Date.now()) return null;
+    return data.p;
   } catch {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON: невалидный JSON");
+    return null;
   }
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: SCOPES
-  });
-  return google.sheets({ version: "v4", auth });
 }
 
 function escapeSheetTitle(title: string): string {
@@ -82,13 +78,17 @@ function escapeSheetTitle(title: string): string {
 
 /**
  * Читает первый лист таблицы (или лист с указанным названием) как массив строк.
- * Первая строка — заголовки для импорта.
+ * Первая строка — заголовки для импорта. Доступ через OAuth refresh token пользователя.
  */
 export async function readSpreadsheetAsAoA(
   spreadsheetId: string,
-  sheetTitle?: string | null
+  sheetTitle: string | null | undefined,
+  refreshToken: string
 ): Promise<{ sheetTitle: string; values: (string | number | boolean | null)[][] }> {
-  const sheets = getSheetsClient();
+  const oauth2 = createSheetsOAuth2Client();
+  oauth2.setCredentials({ refresh_token: refreshToken });
+  const sheets = google.sheets({ version: "v4", auth: oauth2 });
+
   let title = sheetTitle?.trim() || null;
   if (!title) {
     const meta = await sheets.spreadsheets.get({ spreadsheetId });
@@ -122,6 +122,17 @@ export async function readSpreadsheetAsAoA(
   }
 
   return { sheetTitle: title, values };
+}
+
+export function buildGoogleSheetsAuthorizeUrl(psychologistId: string): string {
+  const oauth2 = createSheetsOAuth2Client();
+  const state = signGoogleSheetsOAuthState(psychologistId);
+  return oauth2.generateAuthUrl({
+    access_type: "offline",
+    scope: [READONLY_SCOPE],
+    prompt: "consent",
+    state
+  });
 }
 
 /** ID таблицы из `PsychologistProfile.settingsJson.googleSheets.spreadsheetId`. */

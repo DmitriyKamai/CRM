@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import {
-  getGoogleSheetsCredentialsStatus,
   getSpreadsheetIdFromProfileSettings,
-  isGoogleSheetsConfigured,
+  isGoogleOAuthConfiguredForSheets,
   parseSpreadsheetId
 } from "@/lib/google-sheets";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
-/** Статус ключа API и сохранённая таблица для импорта (подстановка ссылки). */
+/** Статус OAuth, подключение Google и сохранённая таблица для подстановки ссылки. */
 export async function GET() {
   try {
     const ctx = await requirePsychologist();
@@ -17,17 +16,34 @@ export async function GET() {
 
     const p = await prisma.psychologistProfile.findUnique({
       where: { id: ctx.psychologistId },
-      select: { settingsJson: true }
+      select: { settingsJson: true, googleSheetsRefreshToken: true }
     });
 
-    const credentialsStatus = getGoogleSheetsCredentialsStatus();
     return NextResponse.json({
-      serverConfigured: isGoogleSheetsConfigured(),
-      credentialsStatus,
+      oauthConfigured: isGoogleOAuthConfiguredForSheets(),
+      googleConnected: Boolean(p?.googleSheetsRefreshToken?.trim()),
       spreadsheetId: getSpreadsheetIdFromProfileSettings(p?.settingsJson)
     });
   } catch (err) {
     console.error("[GET /api/psychologist/google-sheets]", err);
+    return NextResponse.json({ message: "Ошибка сервера" }, { status: 500 });
+  }
+}
+
+/** Отозвать доступ Google (удалить refresh token). */
+export async function DELETE() {
+  try {
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
+
+    await prisma.psychologistProfile.update({
+      where: { id: ctx.psychologistId },
+      data: { googleSheetsRefreshToken: null }
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[DELETE /api/psychologist/google-sheets]", err);
     return NextResponse.json({ message: "Ошибка сервера" }, { status: 500 });
   }
 }
@@ -58,7 +74,10 @@ export async function PATCH(request: Request) {
         : {};
 
     if (body.spreadsheetId === null || body.spreadsheetId === "") {
-      const next = { ...cur, googleSheets: { ...((cur.googleSheets as object) ?? {}), spreadsheetId: null } };
+      const next = {
+        ...cur,
+        googleSheets: { ...((cur.googleSheets as object) ?? {}), spreadsheetId: null }
+      };
       await prisma.psychologistProfile.update({
         where: { id: ctx.psychologistId },
         data: { settingsJson: next }

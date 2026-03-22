@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import {
   getSpreadsheetIdFromProfileSettings,
-  isGoogleSheetsConfigured,
+  isGoogleOAuthConfiguredForSheets,
   parseSpreadsheetId,
   readSpreadsheetAsAoA
 } from "@/lib/google-sheets";
@@ -17,18 +17,18 @@ const bodySchema = z.object({
 
 /**
  * Читает первый лист Google Таблицы (или указанный лист) и возвращает строки для
- * сопоставления полей — как при импорте из CSV/XLSX.
+ * сопоставления полей — как при импорте из CSV/XLSX. Доступ через OAuth пользователя.
  */
 export async function POST(request: Request) {
   try {
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
 
-    if (!isGoogleSheetsConfigured()) {
+    if (!isGoogleOAuthConfiguredForSheets()) {
       return NextResponse.json(
         {
           message:
-            "Импорт из Google Таблиц не настроен: на сервере не задан ключ сервисного аккаунта (GOOGLE_SERVICE_ACCOUNT_JSON и т.д.)."
+            "Импорт из Google Таблиц не настроен на сервере: задайте GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET и NEXTAUTH_URL."
         },
         { status: 503 }
       );
@@ -36,6 +36,22 @@ export async function POST(request: Request) {
 
     const json = await request.json().catch(() => null);
     const body = bodySchema.parse(json ?? {});
+
+    const profile = await prisma.psychologistProfile.findUnique({
+      where: { id: ctx.psychologistId },
+      select: { settingsJson: true, googleSheetsRefreshToken: true }
+    });
+
+    const refreshToken = profile?.googleSheetsRefreshToken?.trim();
+    if (!refreshToken) {
+      return NextResponse.json(
+        {
+          message:
+            "Сначала подключите Google: нажмите «Подключить Google» в блоке импорта и разрешите чтение таблиц."
+        },
+        { status: 401 }
+      );
+    }
 
     let spreadsheetId: string | null = null;
     if (typeof body.spreadsheetUrlOrId === "string" && body.spreadsheetUrlOrId.trim()) {
@@ -47,10 +63,6 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      const profile = await prisma.psychologistProfile.findUnique({
-        where: { id: ctx.psychologistId },
-        select: { settingsJson: true }
-      });
       spreadsheetId = getSpreadsheetIdFromProfileSettings(profile?.settingsJson);
     }
 
@@ -58,7 +70,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "Не указана таблица: вставьте ссылку на Google Таблицу в форму импорта (или сохраните её через API профиля)."
+            "Не указана таблица: вставьте ссылку на Google Таблицу или сохраните её после успешной загрузки."
         },
         { status: 400 }
       );
@@ -66,7 +78,8 @@ export async function POST(request: Request) {
 
     const { sheetTitle, values } = await readSpreadsheetAsAoA(
       spreadsheetId,
-      body.sheetTitle ?? undefined
+      body.sheetTitle ?? undefined,
+      refreshToken
     );
 
     if (values.length === 0) {
@@ -96,7 +109,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "Нет доступа к таблице. В Google Таблицах: Доступ → добавьте email из поля client_email в JSON ключа (права «Читатель» или «Редактор»)."
+            "Нет доступа к этой таблице с вашего Google-аккаунта. Убедитесь, что вы владелец или вам выдан доступ к файлу в Google Таблицах."
         },
         { status: 403 }
       );
