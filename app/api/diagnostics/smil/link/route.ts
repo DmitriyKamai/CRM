@@ -4,6 +4,7 @@ import { TestType } from "@prisma/client";
 
 import { safeLogAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { getClientIp, requireRoles } from "@/lib/security/api-guards";
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
       { status: 429 }
     );
   }
+
+  const mod = await assertModuleEnabled("diagnostics");
+  if (mod) return mod;
 
   try {
     return await withPrismaLock(async () => {

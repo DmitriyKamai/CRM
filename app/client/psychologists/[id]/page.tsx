@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ClientBooking } from "@/components/schedule/client-booking";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 
 type ParamsPromise = { params: Promise<{ id: string }> };
 
@@ -115,6 +116,9 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
     // Должно быть покрыто `notFound()`, но оставляем guard на случай непредвиденного null.
     return notFound();
   }
+
+  const modules = await getPlatformModuleFlags();
+  const bookingEnabled = modules.scheduling;
 
   const fullName = `${psychologist.firstName} ${psychologist.lastName}`.trim();
   const cityLine =
@@ -261,10 +265,18 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
         </div>
       )}
 
-      <ClientBooking
-        psychologistId={psychologist.id}
-        psychologistName={fullName}
-      />
+      {!bookingEnabled && (
+        <p className="text-center text-sm text-muted-foreground">
+          Онлайн-запись через сервис сейчас недоступна. Свяжитесь с психологом по контактам выше.
+        </p>
+      )}
+
+      {bookingEnabled && (
+        <ClientBooking
+          psychologistId={psychologist.id}
+          psychologistName={fullName}
+        />
+      )}
     </div>
   );
 }

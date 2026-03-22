@@ -206,7 +206,11 @@ function Section({
   );
 }
 
-export function PsychologistSettingsForm() {
+export function PsychologistSettingsForm({
+  schedulingEnabled = true
+}: {
+  schedulingEnabled?: boolean;
+}) {
   const { data: session, update: updateSession } = useSession();
   const [activeTab, setActiveTab] = useState("profile");
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -325,6 +329,10 @@ export function PsychologistSettingsForm() {
         }
       });
   }, []);
+
+  useEffect(() => {
+    if (!schedulingEnabled && activeTab === "calendar") setActiveTab("profile");
+  }, [schedulingEnabled, activeTab]);
 
   async function handlePublishProfileChange(published: boolean) {
     setSavingPublish(true);
@@ -782,10 +790,12 @@ export function PsychologistSettingsForm() {
           <Link2 className="h-4 w-4" />
           Аккаунты
         </TabsTrigger>
-        <TabsTrigger value="calendar" className="flex items-center gap-2 shrink-0">
-          <CalendarDays className="h-4 w-4" />
-          Календарь
-        </TabsTrigger>
+        {schedulingEnabled && (
+          <TabsTrigger value="calendar" className="flex items-center gap-2 shrink-0">
+            <CalendarDays className="h-4 w-4" />
+            Календарь
+          </TabsTrigger>
+        )}
         <TabsTrigger value="customFields" className="flex items-center gap-2 shrink-0">
           <ListChecks className="h-4 w-4" />
           Поля клиента
@@ -2037,13 +2047,15 @@ export function PsychologistSettingsForm() {
         )}
       </TabsContent>
 
-      <TabsContent value="calendar" className="mt-4">
-        {activeTab === "calendar" && (
-        <Section title="Подписка на календарь">
-          <CalendarSubscriptionBlock />
-        </Section>
-        )}
-      </TabsContent>
+      {schedulingEnabled && (
+        <TabsContent value="calendar" className="mt-4">
+          {activeTab === "calendar" && (
+            <Section title="Подписка на календарь">
+              <CalendarSubscriptionBlock />
+            </Section>
+          )}
+        </TabsContent>
+      )}
 
       <TabsContent value="professional" className="mt-4">
         {activeTab === "professional" && (
@@ -2051,6 +2063,7 @@ export function PsychologistSettingsForm() {
           <ProfilePhotoUploadBlock
             profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
             profilePublished={profilePublished}
+            schedulingEnabled={schedulingEnabled}
             initials={initials}
             alt={name || "Психолог"}
             onSuccess={refetchProfile}

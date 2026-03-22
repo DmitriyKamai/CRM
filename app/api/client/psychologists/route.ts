@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 
+/** Каталог опубликованных психологов — доступен всегда (запись на приём — отдельно, через модуль расписания). */
 export async function GET() {
   try {
     const psychologists = await prisma.psychologistProfile.findMany({

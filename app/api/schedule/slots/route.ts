@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { requireRoles } from "@/lib/security/api-guards";
 
@@ -104,6 +105,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+  const mod = await assertModuleEnabled("scheduling");
+  if (mod) return mod;
   const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
   if (!psychAuth.ok) return psychAuth.response;
   const userId = psychAuth.userId;

@@ -10,6 +10,8 @@ import { toast } from "sonner";
 type Props = {
   profilePhotoUrl: string | null;
   profilePublished: boolean;
+  /** false — модуль записей выключен: без публикации в каталоге */
+  schedulingEnabled?: boolean;
   initials: string;
   alt: string;
   onSuccess?: () => void;
@@ -20,6 +22,7 @@ type Props = {
 export function ProfilePhotoUploadBlock({
   profilePhotoUrl,
   profilePublished,
+  schedulingEnabled = true,
   initials,
   alt,
   onSuccess,
@@ -123,27 +126,31 @@ export function ProfilePhotoUploadBlock({
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Фото для карточки в разделе «Записаться к психологу». JPEG, PNG, WebP или GIF, не более 2 МБ.
+            {schedulingEnabled
+              ? "Фото для карточки в разделе «Записаться к психологу». JPEG, PNG, WebP или GIF, не более 2 МБ."
+              : "Фото профиля. JPEG, PNG, WebP или GIF, не более 2 МБ."}
           </p>
         </div>
       </div>
-      <div className="flex items-center justify-between rounded-lg border border-border/80 p-4">
-        <div className="space-y-0.5">
-          <Label htmlFor="profile-published" className="text-base cursor-pointer">
-            Опубликовать профиль
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Только при включённой опции клиенты увидят ваш профиль в разделе «Записаться к психологу».
-          </p>
+      {schedulingEnabled && (
+        <div className="flex items-center justify-between rounded-lg border border-border/80 p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="profile-published" className="text-base cursor-pointer">
+              Опубликовать профиль
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Только при включённой опции клиенты увидят ваш профиль в разделе «Записаться к психологу».
+            </p>
+          </div>
+          <Switch
+            id="profile-published"
+            checked={profilePublished}
+            onCheckedChange={handlePublishChange}
+            disabled={publishSaving}
+            className="cursor-pointer disabled:cursor-pointer"
+          />
         </div>
-        <Switch
-          id="profile-published"
-          checked={profilePublished}
-          onCheckedChange={handlePublishChange}
-          disabled={publishSaving}
-          className="cursor-pointer disabled:cursor-pointer"
-        />
-      </div>
+      )}
     </div>
   );
 }

@@ -146,6 +146,10 @@ function SortableFieldWrap({
 
 type ClientProfileProps = {
   id: string;
+  /** false — скрыть записи (модуль расписания выключен админом) */
+  schedulingEnabled?: boolean;
+  /** false — скрыть диагностику */
+  diagnosticsEnabled?: boolean;
   email: string | null;
   hasAccount?: boolean;
   firstName: string;
@@ -275,6 +279,14 @@ export const PsychologistClientProfile = forwardRef<
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const schedulingOn = props.schedulingEnabled !== false;
+  const diagnosticsOn = props.diagnosticsEnabled !== false;
+
+  useEffect(() => {
+    if (!diagnosticsOn && activeTab === "diagnostics") setActiveTab("profile");
+    if (!schedulingOn && activeTab === "appointments") setActiveTab("profile");
+  }, [diagnosticsOn, schedulingOn, activeTab]);
+
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
   const [tabsScrollRight, setTabsScrollRight] = useState(false);
@@ -367,7 +379,7 @@ export const PsychologistClientProfile = forwardRef<
   }, [props.id, refetchCustomFieldDefs]);
 
   useEffect(() => {
-    if (!diagnosticsTabActive || !props.id) return;
+    if (!diagnosticsOn || !diagnosticsTabActive || !props.id) return;
     setDiagnosticsLoading(true);
     fetch(`/api/psychologist/clients/${props.id}/diagnostics`)
       .then((res) => (res.ok ? res.json() : null))
@@ -376,7 +388,7 @@ export const PsychologistClientProfile = forwardRef<
       })
       .catch(() => {})
       .finally(() => setDiagnosticsLoading(false));
-  }, [diagnosticsTabActive, props.id]);
+  }, [diagnosticsOn, diagnosticsTabActive, props.id]);
 
   useEffect(() => {
     fetch("/api/psychologist/client-statuses")
@@ -813,8 +825,10 @@ export const PsychologistClientProfile = forwardRef<
                   {group}
                 </SelectItem>
               ))}
-              <SelectItem value="diagnostics">Психологическая диагностика</SelectItem>
-              <SelectItem value="appointments">Записи</SelectItem>
+              {diagnosticsOn && (
+                <SelectItem value="diagnostics">Психологическая диагностика</SelectItem>
+              )}
+              {schedulingOn && <SelectItem value="appointments">Записи</SelectItem>}
             </SelectContent>
           </Select>
         </div>
@@ -856,12 +870,16 @@ export const PsychologistClientProfile = forwardRef<
                   {group}
                 </TabsTrigger>
               ))}
-              <TabsTrigger value="diagnostics" className="whitespace-nowrap shrink-0">
-                Психологическая диагностика
-              </TabsTrigger>
-              <TabsTrigger value="appointments" className="whitespace-nowrap shrink-0">
-                Записи
-              </TabsTrigger>
+              {diagnosticsOn && (
+                <TabsTrigger value="diagnostics" className="whitespace-nowrap shrink-0">
+                  Психологическая диагностика
+                </TabsTrigger>
+              )}
+              {schedulingOn && (
+                <TabsTrigger value="appointments" className="whitespace-nowrap shrink-0">
+                  Записи
+                </TabsTrigger>
+              )}
             </TabsList>
             </div>
             {tabsHaveOverflow && (
@@ -1733,46 +1751,50 @@ export const PsychologistClientProfile = forwardRef<
           );
         })}
 
-        <TabsContent
-          value="diagnostics"
-          className="mt-3 space-y-3 rounded-lg border bg-card p-4"
-        >
-          {diagnosticsLoading ? (
-            <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
-          ) : diagnosticsList.length > 0 ? (
-            <ul className="space-y-2">
-              {diagnosticsList.map((result) => (
-                <li
-                  key={result.id}
-                  className="rounded-md border bg-card px-3 py-2 text-sm"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">{result.testTitle}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(result.createdAt)}
-                    </span>
-                  </div>
-                  {result.interpretation && (
-                    <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
-                      {result.interpretation}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Результаты психологической диагностики для этого клиента пока не сохранены.
-            </p>
-          )}
-        </TabsContent>
+        {diagnosticsOn && (
+          <TabsContent
+            value="diagnostics"
+            className="mt-3 space-y-3 rounded-lg border bg-card p-4"
+          >
+            {diagnosticsLoading ? (
+              <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
+            ) : diagnosticsList.length > 0 ? (
+              <ul className="space-y-2">
+                {diagnosticsList.map((result) => (
+                  <li
+                    key={result.id}
+                    className="rounded-md border bg-card px-3 py-2 text-sm"
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-medium">{result.testTitle}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(result.createdAt)}
+                      </span>
+                    </div>
+                    {result.interpretation && (
+                      <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
+                        {result.interpretation}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Результаты психологической диагностики для этого клиента пока не сохранены.
+              </p>
+            )}
+          </TabsContent>
+        )}
 
-        <TabsContent
-          value="appointments"
-          className="mt-3 space-y-3 rounded-lg border bg-card p-4"
-        >
-          <ClientAppointments clientId={props.id} />
-        </TabsContent>
+        {schedulingOn && (
+          <TabsContent
+            value="appointments"
+            className="mt-3 space-y-3 rounded-lg border bg-card p-4"
+          >
+            <ClientAppointments clientId={props.id} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

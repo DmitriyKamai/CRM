@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { requireClient } from "@/lib/security/api-guards";
 
@@ -32,6 +33,7 @@ async function handleGet(): Promise<Response> {
     }
 
     const clientIds = clientProfiles.map((c) => c.id);
+    const modules = await getPlatformModuleFlags();
 
     let upcomingAppointmentsList: Array<{
       id: string;
@@ -67,98 +69,104 @@ async function handleGet(): Promise<Response> {
 
     if (clientIds.length > 0) {
       try {
-        const now = new Date();
-        const appointments = await prisma.appointment.findMany({
-          where: {
-            clientId: { in: clientIds },
-            start: { gte: now },
-            status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] }
-          },
-          include: {
-            psychologist: {
-              select: { firstName: true, lastName: true }
-            }
-          },
-          orderBy: { start: "asc" },
-          take: 20
-        });
-        upcomingAppointments = appointments.length;
-        upcomingAppointmentsList = appointments.map((a) => ({
-          id: a.id,
-          start: a.start.toISOString(),
-          end: a.end.toISOString(),
-          psychologistName: `${a.psychologist.lastName} ${a.psychologist.firstName}`.trim(),
-          status: a.status as "PENDING_CONFIRMATION" | "SCHEDULED",
-          proposedByPsychologist:
-            typeof a.notes === "string" &&
-            a.notes.includes("PROPOSED_BY_PSYCHOLOGIST")
-        }));
-
-        const results = await prisma.testResult.findMany({
-          where: { clientId: { in: clientIds } },
-          include: {
-            test: {
-              select: { title: true }
-            }
-          },
-          orderBy: { createdAt: "desc" },
-          take: 20
-        });
-        testResults = results.length;
-        diagnosticResults = results.map((r) => ({
-          id: r.id,
-          testTitle: r.test.title,
-          createdAt: r.createdAt.toISOString(),
-          interpretation: r.interpretation
-        }));
-
-        const pendingLinksRaw = await prisma.diagnosticLink.findMany({
-          where: { clientId: { in: clientIds } },
-          include: {
-            test: { select: { title: true } },
-            psychologist: {
-              select: { firstName: true, lastName: true }
-            }
-          },
-          orderBy: { createdAt: "desc" },
-          take: 50
-        });
-        const pendingLinksFiltered = pendingLinksRaw.filter((l) => {
-          if (l.expiresAt && l.expiresAt <= new Date()) return false;
-          if (l.maxUses != null && (l.usedCount ?? 0) >= l.maxUses) return false;
-          return true;
-        });
-        const linkIds = pendingLinksFiltered.slice(0, 20).map((l) => l.id);
-        let progressByLinkId = new Map<string, number>();
-        try {
-          const prismaWithDiagnosticProgress = prisma as unknown as {
-            diagnosticProgress: {
-              findMany: (
-                args: unknown
-              ) => Promise<Array<{ diagnosticLinkId: string; currentStep: number }>>;
-            };
-          };
-          const progressList = await prismaWithDiagnosticProgress.diagnosticProgress.findMany({
-            where: { diagnosticLinkId: { in: linkIds } },
-            select: { diagnosticLinkId: true, currentStep: true }
+        if (modules.scheduling) {
+          const now = new Date();
+          const appointments = await prisma.appointment.findMany({
+            where: {
+              clientId: { in: clientIds },
+              start: { gte: now },
+              status: { in: ["SCHEDULED", "PENDING_CONFIRMATION"] }
+            },
+            include: {
+              psychologist: {
+                select: { firstName: true, lastName: true }
+              }
+            },
+            orderBy: { start: "asc" },
+            take: 20
           });
-          progressByLinkId = new Map(
-            progressList.map((p) => [p.diagnosticLinkId, p.currentStep])
-          );
-        } catch {
-          // DiagnosticProgress table may not exist yet
+          upcomingAppointments = appointments.length;
+          upcomingAppointmentsList = appointments.map((a) => ({
+            id: a.id,
+            start: a.start.toISOString(),
+            end: a.end.toISOString(),
+            psychologistName: `${a.psychologist.lastName} ${a.psychologist.firstName}`.trim(),
+            status: a.status as "PENDING_CONFIRMATION" | "SCHEDULED",
+            proposedByPsychologist:
+              typeof a.notes === "string" &&
+              a.notes.includes("PROPOSED_BY_PSYCHOLOGIST")
+          }));
         }
-        pendingDiagnosticLinks = pendingLinksFiltered.slice(0, 20).map((l) => {
-          const currentStep = progressByLinkId.get(l.id) ?? 0;
-          return {
-            id: l.id,
-            token: l.token,
-            testTitle: l.test.title,
-            psychologistName: `${l.psychologist?.lastName ?? ""} ${l.psychologist?.firstName ?? ""}`.trim() || "Психолог",
-            createdAt: l.createdAt.toISOString(),
-            hasProgress: currentStep > 0
-          };
-        });
+
+        if (modules.diagnostics) {
+          const results = await prisma.testResult.findMany({
+            where: { clientId: { in: clientIds } },
+            include: {
+              test: {
+                select: { title: true }
+              }
+            },
+            orderBy: { createdAt: "desc" },
+            take: 20
+          });
+          testResults = results.length;
+          diagnosticResults = results.map((r) => ({
+            id: r.id,
+            testTitle: r.test.title,
+            createdAt: r.createdAt.toISOString(),
+            interpretation: r.interpretation
+          }));
+
+          const pendingLinksRaw = await prisma.diagnosticLink.findMany({
+            where: { clientId: { in: clientIds } },
+            include: {
+              test: { select: { title: true } },
+              psychologist: {
+                select: { firstName: true, lastName: true }
+              }
+            },
+            orderBy: { createdAt: "desc" },
+            take: 50
+          });
+          const pendingLinksFiltered = pendingLinksRaw.filter((l) => {
+            if (l.expiresAt && l.expiresAt <= new Date()) return false;
+            if (l.maxUses != null && (l.usedCount ?? 0) >= l.maxUses) return false;
+            return true;
+          });
+          const linkIds = pendingLinksFiltered.slice(0, 20).map((l) => l.id);
+          let progressByLinkId = new Map<string, number>();
+          try {
+            const prismaWithDiagnosticProgress = prisma as unknown as {
+              diagnosticProgress: {
+                findMany: (
+                  args: unknown
+                ) => Promise<Array<{ diagnosticLinkId: string; currentStep: number }>>;
+              };
+            };
+            const progressList = await prismaWithDiagnosticProgress.diagnosticProgress.findMany({
+              where: { diagnosticLinkId: { in: linkIds } },
+              select: { diagnosticLinkId: true, currentStep: true }
+            });
+            progressByLinkId = new Map(
+              progressList.map((p) => [p.diagnosticLinkId, p.currentStep])
+            );
+          } catch {
+            // DiagnosticProgress table may not exist yet
+          }
+          pendingDiagnosticLinks = pendingLinksFiltered.slice(0, 20).map((l) => {
+            const currentStep = progressByLinkId.get(l.id) ?? 0;
+            return {
+              id: l.id,
+              token: l.token,
+              testTitle: l.test.title,
+              psychologistName:
+                `${l.psychologist?.lastName ?? ""} ${l.psychologist?.firstName ?? ""}`.trim() ||
+                "Психолог",
+              createdAt: l.createdAt.toISOString(),
+              hasProgress: currentStep > 0
+            };
+          });
+        }
 
         const recs = await prisma.recommendation.findMany({
           where: { clientId: { in: clientIds } },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requireClient } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
@@ -14,6 +15,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     const { id } = await params;
     const clientCtx = await requireClient();
     if (!clientCtx.ok) return clientCtx.response;
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
     const userId = clientCtx.userId;
 
     const body = await request.json().catch(() => null);

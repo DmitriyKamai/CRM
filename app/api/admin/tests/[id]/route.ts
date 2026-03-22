@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { getClientIp, requireAdmin } from "@/lib/security/api-guards";
 import { safeLogAudit } from "@/lib/audit-log";
 
@@ -12,6 +13,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
+  const mod = await assertModuleEnabled("diagnostics");
+  if (mod) return mod;
 
   const body = await request.json().catch(() => null);
   if (typeof body?.isActive !== "boolean") {

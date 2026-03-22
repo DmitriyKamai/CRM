@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getSmilQuestions } from "@/lib/diagnostics/smil-questions";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 
 export async function GET(request: Request) {
   try {
+    const mod = await assertModuleEnabled("diagnostics");
+    if (mod) return mod;
     const { searchParams } = new URL(request.url);
     const variant = searchParams.get("variant");
     if (variant !== "male" && variant !== "female" && variant !== "adolescent") {

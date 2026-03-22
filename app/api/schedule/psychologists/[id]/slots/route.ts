@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -9,6 +10,8 @@ type ParamsPromise = {
 // Свободные слоты конкретного психолога (для записи клиента)
 export async function GET(_request: Request, { params }: ParamsPromise) {
   try {
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
     const { id: psychologistId } = await params;
     const now = new Date();
 

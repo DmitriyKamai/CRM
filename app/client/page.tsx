@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { ClientDashboardClient } from "./client-dashboard-client";
 
 /**
@@ -21,5 +22,14 @@ export default async function ClientDashboardPage() {
     redirect("/?forbidden=1");
   }
 
-  return <div className="p-6"><ClientDashboardClient /></div>;
+  const modules = await getPlatformModuleFlags();
+
+  return (
+    <div className="p-6">
+      <ClientDashboardClient
+        schedulingEnabled={modules.scheduling}
+        diagnosticsEnabled={modules.diagnostics}
+      />
+    </div>
+  );
 }

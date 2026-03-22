@@ -4,20 +4,23 @@ import { useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { HeaderNav } from "@/components/layout/header-nav";
 import { SidebarNav, SidebarNavContent } from "@/components/layout/sidebar-nav";
+import type { PlatformModuleFlags } from "@/lib/platform-modules";
 
 type AppShellProps = {
   role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN";
   children: React.ReactNode;
+  /** Если не передано — считаем все модули включёнными (SSR/старые вызовы). */
+  modules?: PlatformModuleFlags;
 };
 
-export function AppShell({ role, children }: AppShellProps) {
+export function AppShell({ role, children, modules }: AppShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Сайдбар от верха до низа экрана (слева) */}
       <div className="hidden md:flex h-full shrink-0">
-        <SidebarNav role={role} />
+        <SidebarNav role={role} modules={modules} />
       </div>
       {/* Хедер и контент справа от сайдбара */}
       <div className="flex flex-1 flex-col min-w-0 min-h-0">
@@ -33,7 +36,11 @@ export function AppShell({ role, children }: AppShellProps) {
           className="w-[280px] p-0 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))]"
         >
           <div className="flex h-full flex-col pt-2">
-            <SidebarNavContent role={role} onNavigate={() => setMobileMenuOpen(false)} />
+            <SidebarNavContent
+              role={role}
+              modules={modules}
+              onNavigate={() => setMobileMenuOpen(false)}
+            />
           </div>
         </SheetContent>
       </Sheet>

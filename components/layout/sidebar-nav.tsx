@@ -10,12 +10,14 @@ import {
   History,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Boxes
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { PlatformModuleFlags } from "@/lib/platform-modules";
 
 type NavItem = {
   href: string;
@@ -39,6 +41,7 @@ const CLIENT_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Обзор", icon: <LayoutDashboard className="h-4 w-4" />, exact: true },
   { href: "/admin/users", label: "Пользователи", icon: <Users className="h-4 w-4" /> },
+  { href: "/admin/modules", label: "Модули", icon: <Boxes className="h-4 w-4" /> },
   { href: "/admin/diagnostics", label: "Тесты", icon: <BarChart2 className="h-4 w-4" /> },
   { href: "/admin/audit-log", label: "Аудит действий пользователей", icon: <History className="h-4 w-4" /> }
 ];
@@ -51,23 +54,50 @@ const SETTINGS_HREF: Record<string, string> = {
 
 type SidebarNavContentProps = {
   role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN";
+  modules?: PlatformModuleFlags;
   onNavigate?: () => void;
   collapsed?: boolean;
   onCollapsedChange?: (v: boolean) => void;
 };
 
+const DEFAULT_MODULES: PlatformModuleFlags = {
+  scheduling: true,
+  diagnostics: true
+};
+
+function filterNavForModules(
+  role: SidebarNavContentProps["role"],
+  items: NavItem[],
+  modules: PlatformModuleFlags
+): NavItem[] {
+  return items.filter((item) => {
+    if (role === "PSYCHOLOGIST") {
+      if (!modules.scheduling && item.href === "/psychologist/schedule") return false;
+      if (!modules.diagnostics && item.href === "/psychologist/diagnostics") return false;
+    }
+    if (role === "ADMIN") {
+      if (!modules.diagnostics && item.href === "/admin/diagnostics") return false;
+    }
+    return true;
+  });
+}
+
 export function SidebarNavContent({
   role,
+  modules = DEFAULT_MODULES,
   onNavigate,
   collapsed = false,
   onCollapsedChange
 }: SidebarNavContentProps) {
   const pathname = usePathname();
 
-  const navItems =
-    role === "PSYCHOLOGIST" ? PSYCHOLOGIST_NAV :
-    role === "CLIENT" ? CLIENT_NAV :
-    ADMIN_NAV;
+  const navItems = useMemo(() => {
+    const base =
+      role === "PSYCHOLOGIST" ? PSYCHOLOGIST_NAV :
+      role === "CLIENT" ? CLIENT_NAV :
+      ADMIN_NAV;
+    return filterNavForModules(role, base, modules);
+  }, [role, modules]);
 
   const settingsHref = SETTINGS_HREF[role] ?? "/";
 
@@ -160,7 +190,13 @@ export function SidebarNavContent({
   );
 }
 
-export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN" }) {
+export function SidebarNav({
+  role,
+  modules
+}: {
+  role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN";
+  modules?: PlatformModuleFlags;
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -174,6 +210,7 @@ export function SidebarNav({ role }: { role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN"
     >
       <SidebarNavContent
         role={role}
+        modules={modules}
         collapsed={collapsed}
         onCollapsedChange={setCollapsed}
       />

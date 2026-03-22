@@ -31,7 +31,12 @@ function getProfessionLabel(specialization: string | null | undefined): string {
   return PROFESSION_LABELS[specialization.trim()] ?? "Специалист";
 }
 
-export function PublicPsychologistsList() {
+export function PublicPsychologistsList({
+  schedulingEnabled = true
+}: {
+  /** false — каталог без кнопки «Записаться» и без упора на онлайн-запись */
+  schedulingEnabled?: boolean;
+}) {
   const [allPsychologists, setAllPsychologists] = useState<Psychologist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -199,7 +204,7 @@ export function PublicPsychologistsList() {
                   </CardContent>
                   <CardFooter className="mt-auto px-4 pb-6 pt-4">
                     <Button className="w-full" variant="secondary">
-                      Записаться
+                      {schedulingEnabled ? "Записаться" : "Подробнее"}
                     </Button>
                   </CardFooter>
                 </Card>

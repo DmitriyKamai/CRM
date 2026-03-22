@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 import {
   buildShmishekInterpretation,
@@ -57,6 +58,8 @@ const answersSchema = {
 
 export async function POST(request: Request) {
   try {
+    const mod = await assertModuleEnabled("diagnostics");
+    if (mod) return mod;
     const json = await request.json();
     const { token, answers } = answersSchema.validate(json);
 

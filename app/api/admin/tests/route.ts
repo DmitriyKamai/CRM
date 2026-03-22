@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requireAdmin } from "@/lib/security/api-guards";
 
 const querySchema = z.object({
@@ -15,6 +16,8 @@ const querySchema = z.object({
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
+  const mod = await assertModuleEnabled("diagnostics");
+  if (mod) return mod;
 
   const url = new URL(request.url);
   const parsed = querySchema.safeParse(Object.fromEntries(url.searchParams.entries()));

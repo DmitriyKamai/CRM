@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -16,13 +17,15 @@ export default async function AdminDashboardPage() {
     redirect("/?forbidden=1");
   }
 
+  const modules = await getPlatformModuleFlags();
+
   const [usersCount, psychologistsCount, clientsCount, testsCount, appointmentsCount] =
     await Promise.all([
       prisma.user.count(),
       prisma.psychologistProfile.count(),
       prisma.clientProfile.count(),
-      prisma.test.count(),
-      prisma.appointment.count()
+      modules.diagnostics ? prisma.test.count() : Promise.resolve(0),
+      modules.scheduling ? prisma.appointment.count() : Promise.resolve(0)
     ]);
 
   return (
@@ -52,18 +55,22 @@ export default async function AdminDashboardPage() {
             {clientsCount}
           </div>
         </div>
-        <div className="card p-4 space-y-1">
-          <div className="text-xs text-muted-foreground uppercase">Тесты</div>
-          <div className="text-2xl font-semibold text-foreground">
-            {testsCount}
+        {modules.diagnostics && (
+          <div className="card p-4 space-y-1">
+            <div className="text-xs text-muted-foreground uppercase">Тесты</div>
+            <div className="text-2xl font-semibold text-foreground">
+              {testsCount}
+            </div>
           </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <div className="text-xs text-muted-foreground uppercase">Записи</div>
-          <div className="text-2xl font-semibold text-foreground">
-            {appointmentsCount}
+        )}
+        {modules.scheduling && (
+          <div className="card p-4 space-y-1">
+            <div className="text-xs text-muted-foreground uppercase">Записи</div>
+            <div className="text-2xl font-semibold text-foreground">
+              {appointmentsCount}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="card p-4 space-y-2 text-sm text-muted-foreground">
@@ -77,12 +84,22 @@ export default async function AdminDashboardPage() {
               Пользователи и роли
             </Link>
           </li>
+          {modules.diagnostics && (
+            <li>
+              <Link
+                href="/admin/diagnostics"
+                className="text-primary/90 transition-colors hover:text-primary"
+              >
+                Диагностика и тесты
+              </Link>
+            </li>
+          )}
           <li>
             <Link
-              href="/admin/diagnostics"
+              href="/admin/modules"
               className="text-primary/90 transition-colors hover:text-primary"
             >
-              Диагностика и тесты
+              Модули продукта
             </Link>
           </li>
           <li>

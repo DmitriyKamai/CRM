@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 function validateToken(token: unknown): string | null {
@@ -32,6 +33,8 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
+    const mod = await assertModuleEnabled("diagnostics");
+    if (mod) return mod;
     return await withPrismaLock(async () => {
       const link = await prisma.diagnosticLink.findUnique({
         where: { token },
@@ -94,6 +97,9 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
+
+    const mod = await assertModuleEnabled("diagnostics");
+    if (mod) return mod;
 
     const answers = validateAnswers(body.answers);
     const currentStep =

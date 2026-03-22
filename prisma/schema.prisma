@@ -526,3 +526,12 @@ model Recommendation {
   @@index([clientId])
 }
 
+// --- Глобальные переключатели модулей (одна строка id = default) ---
+
+model PlatformSettings {
+  id                 String   @id
+  schedulingEnabled  Boolean  @default(true)
+  diagnosticsEnabled Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+}
+

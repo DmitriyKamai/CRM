@@ -5,6 +5,7 @@ import { PavlovaTestForm } from "@/components/diagnostics/pavlova-test-form";
 import { ShmishekTestForm } from "@/components/diagnostics/shmishek-test-form";
 import { SmilTestForm } from "@/components/diagnostics/smil-test-form";
 import { prisma } from "@/lib/db";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 interface Props {
@@ -13,6 +14,11 @@ interface Props {
 
 export default async function DiagnosticByTokenPage({ params }: Props) {
   const { token } = await params;
+
+  const modules = await getPlatformModuleFlags();
+  if (!modules.diagnostics) {
+    notFound();
+  }
 
   let link: Awaited<
     ReturnType<

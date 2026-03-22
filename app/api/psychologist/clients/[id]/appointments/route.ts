@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
@@ -13,6 +14,8 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const ctx = await requirePsychologist();
   if (!ctx.ok) return ctx.response;
+  const mod = await assertModuleEnabled("scheduling");
+  if (mod) return mod;
 
   const client = await prisma.clientProfile.findFirst({
     where: {
@@ -54,6 +57,8 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     const { id } = await params;
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
 
     const psychProfile = await prisma.psychologistProfile.findUnique({
       where: { id: ctx.psychologistId },

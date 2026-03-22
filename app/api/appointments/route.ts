@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp, requireClient } from "@/lib/security/api-guards";
 import { sendNewAppointmentToPsychologist } from "@/lib/telegram";
@@ -9,6 +10,8 @@ import { sendNewAppointmentToPsychologist } from "@/lib/telegram";
 export async function POST(request: Request) {
   const clientCtx = await requireClient();
   if (!clientCtx.ok) return clientCtx.response;
+  const mod = await assertModuleEnabled("scheduling");
+  if (mod) return mod;
   const userId = clientCtx.userId;
 
   const body = await request.json().catch(() => null);

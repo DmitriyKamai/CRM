@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 const BOT_SECRET_HEADER = "x-bot-secret";
@@ -19,6 +20,9 @@ export async function POST(
     if (!expected || secret !== expected) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
+
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
 
     const { id: appointmentId } = await params;
     const body = await request.json().catch(() => null);

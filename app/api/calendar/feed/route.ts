@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { buildIcs } from "@/lib/calendar-feed";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/security/api-guards";
 
@@ -34,6 +35,11 @@ export async function GET(request: NextRequest) {
     const psychologistId = await resolvePsychologistIdForFeed(token);
     if (!psychologistId) {
       return new NextResponse("Недействительная ссылка", { status: 403 });
+    }
+
+    const modules = await getPlatformModuleFlags();
+    if (!modules.scheduling) {
+      return new NextResponse("Календарь недоступен", { status: 403 });
     }
 
     const profile = await prisma.psychologistProfile.findUnique({

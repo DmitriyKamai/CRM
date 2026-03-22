@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import {
   getOrCreateCalendarFeedToken,
   rotateCalendarFeedToken
@@ -36,6 +37,8 @@ export async function GET(request: NextRequest) {
 
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
 
     const token = await getOrCreateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);
@@ -68,6 +71,8 @@ export async function POST(request: NextRequest) {
 
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
 
     const token = await rotateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);

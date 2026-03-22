@@ -50,6 +50,11 @@ type DashboardData = {
   recommendations: RecommendationItem[];
 };
 
+type ClientDashboardClientProps = {
+  schedulingEnabled?: boolean;
+  diagnosticsEnabled?: boolean;
+};
+
 function formatAppointmentDateTime(start: string, end: string): string {
   const d = new Date(start);
   const e = new Date(end);
@@ -78,7 +83,10 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ClientDashboardClient() {
+export function ClientDashboardClient({
+  schedulingEnabled = true,
+  diagnosticsEnabled = true
+}: ClientDashboardClientProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,47 +195,78 @@ export function ClientDashboardClient() {
     );
   }
 
+  const defaultTab = schedulingEnabled
+    ? "appointments"
+    : diagnosticsEnabled
+      ? "diagnostics"
+      : "recommendations";
+
+  const introParts: string[] = [];
+  if (schedulingEnabled) introParts.push("управлять записями");
+  if (diagnosticsEnabled) {
+    introParts.push("смотреть результаты психологической диагностики");
+  }
+  introParts.push("искать психологов в каталоге");
+  introParts.push("читать рекомендации психолога");
+  const intro =
+    introParts.length > 0
+      ? `${data.name}. Здесь вы можете ${introParts.join(", ")}.`
+      : `${data.name}. Добро пожаловать в кабинет.`;
+
+  const metricsCardCount =
+    (schedulingEnabled ? 1 : 0) + (diagnosticsEnabled ? 1 : 0) + 1;
+
   return (
     <div className="space-y-6">
       <section className="space-y-2">
         <h1 className="text-xl font-semibold text-foreground">Кабинет клиента</h1>
-        <p className="text-sm text-muted-foreground">
-          {data.name}. Здесь вы можете управлять записями, смотреть результаты
-          психологической диагностики и рекомендации психолога.
-        </p>
+        <p className="text-sm text-muted-foreground">{intro}</p>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
-              Предстоящие приёмы
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-foreground">
-              {data.upcomingAppointments}
-            </div>
-          </CardContent>
-        </Card>
+      {metricsCardCount > 0 && (
+      <section
+        className={`grid gap-3 ${
+          metricsCardCount >= 3
+            ? "md:grid-cols-3"
+            : metricsCardCount === 2
+              ? "md:grid-cols-2"
+              : "md:grid-cols-1"
+        }`}
+      >
+        {schedulingEnabled && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
+                Предстоящие приёмы
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-foreground">
+                {data.upcomingAppointments}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {diagnosticsEnabled && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
+                Результаты тестов
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-foreground">
+                {data.testResults}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
-              Результаты тестов
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-foreground">
-              {data.testResults}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
-              Полезные действия
+              Каталог психологов
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-xs text-muted-foreground">
@@ -237,21 +276,25 @@ export function ClientDashboardClient() {
                   href="/client/psychologists"
                   className="text-primary/90 transition-colors hover:text-primary"
                 >
-                  Выбрать психолога и записаться
+                  {schedulingEnabled
+                    ? "Выбрать психолога и записаться"
+                    : "Найти психолога"}
                 </Link>
               </li>
             </ul>
           </CardContent>
         </Card>
       </section>
+      )}
 
-      <Tabs defaultValue="appointments" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="appointments">Записи</TabsTrigger>
-          <TabsTrigger value="diagnostics">Диагностика</TabsTrigger>
+          {schedulingEnabled && <TabsTrigger value="appointments">Записи</TabsTrigger>}
+          {diagnosticsEnabled && <TabsTrigger value="diagnostics">Диагностика</TabsTrigger>}
           <TabsTrigger value="recommendations">Рекомендации</TabsTrigger>
         </TabsList>
 
+        {schedulingEnabled && (
         <TabsContent value="appointments" className="space-y-3">
           {data.upcomingAppointmentsList.length === 0 ? (
             <Card>
@@ -318,7 +361,9 @@ export function ClientDashboardClient() {
             </Card>
           )}
         </TabsContent>
+        )}
 
+        {diagnosticsEnabled && (
         <TabsContent value="diagnostics" className="space-y-3">
           {data.pendingDiagnosticLinks && data.pendingDiagnosticLinks.length > 0 && (
             <Card>
@@ -396,6 +441,7 @@ export function ClientDashboardClient() {
             </Card>
           ) : null}
         </TabsContent>
+        )}
 
         <TabsContent value="recommendations" className="space-y-3">
           {data.recommendations.length === 0 ? (

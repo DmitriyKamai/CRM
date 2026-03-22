@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import {
   buildSmilInterpretation,
   computeSmilTScores,
@@ -65,6 +66,8 @@ function toScoringVariant(variant: SmilRequestVariant): SmilVariant {
 
 export async function POST(request: Request) {
   try {
+    const mod = await assertModuleEnabled("diagnostics");
+    if (mod) return mod;
     const json = await request.json();
     const { token, answers, variant } = validatePayload(json);
     const scoringVariant = toScoringVariant(variant);

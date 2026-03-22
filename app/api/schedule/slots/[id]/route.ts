@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { assertModuleEnabled } from "@/lib/platform-modules";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 import { safeLogAudit } from "@/lib/audit-log";
 
@@ -15,6 +16,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const ctx = await requirePsychologist();
   if (!ctx.ok) return ctx.response;
+  const mod = await assertModuleEnabled("scheduling");
+  if (mod) return mod;
 
   const body = await request.json().catch(() => null);
   const status = body?.status as "FREE" | "BOOKED" | "CANCELED" | undefined;
@@ -107,6 +110,8 @@ export async function DELETE(_request: Request, { params }: ParamsPromise) {
   const { id } = await params;
   const ctx = await requirePsychologist();
   if (!ctx.ok) return ctx.response;
+  const mod = await assertModuleEnabled("scheduling");
+  if (mod) return mod;
 
   const slot = await prisma.scheduleSlot.findUnique({
     where: { id },

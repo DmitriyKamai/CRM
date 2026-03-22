@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 
 export const dynamic = "force-dynamic";
 
@@ -88,30 +89,31 @@ export default async function PsychologistClientProfilePage({
   const email = client.user?.email ?? client.email ?? null;
   const hasAccount = !!client.userId;
 
-  const testResults = await prisma.testResult.findMany({
-    where: {
-      AND: [
-        { clientId: client.id },
-        {
-          OR: [
-            { psychologistId: psych.id },
-            { psychologistId: null }
+  const modules = await getPlatformModuleFlags();
+
+  const testResults = modules.diagnostics
+    ? await prisma.testResult.findMany({
+        where: {
+          AND: [
+            { clientId: client.id },
+            {
+              OR: [{ psychologistId: psych.id }, { psychologistId: null }]
+            }
           ]
-        }
-      ]
-    },
-    include: {
-      test: {
-        select: {
-          title: true
-        }
-      }
-    },
-    orderBy: {
-      createdAt: "desc"
-    },
-    take: 20
-  });
+        },
+        include: {
+          test: {
+            select: {
+              title: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 20
+      })
+    : [];
 
   return (
     <div className="space-y-6 min-w-0 max-w-full">
@@ -126,6 +128,8 @@ export default async function PsychologistClientProfilePage({
 
       <PsychologistClientProfile
         id={client.id}
+        schedulingEnabled={modules.scheduling}
+        diagnosticsEnabled={modules.diagnostics}
         email={email}
         hasAccount={hasAccount}
         firstName={client.firstName}
