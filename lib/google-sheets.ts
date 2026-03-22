@@ -2,7 +2,15 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 import { google } from "googleapis";
 
-const READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+/** Чтение ячеек при импорте. */
+const SHEETS_READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+/**
+ * Просмотр файлов в Drive — нужен для Google Picker (окно «выбрать таблицу»).
+ * Без этого после выбора файла Google может отвечать 403.
+ */
+const DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+
+const SHEETS_OAUTH_SCOPES = [SHEETS_READONLY_SCOPE, DRIVE_READONLY_SCOPE];
 
 export function getGoogleSheetsOAuthRedirectUri(): string {
   const base = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
@@ -129,8 +137,9 @@ export function buildGoogleSheetsAuthorizeUrl(psychologistId: string): string {
   const state = signGoogleSheetsOAuthState(psychologistId);
   return oauth2.generateAuthUrl({
     access_type: "offline",
-    scope: [READONLY_SCOPE],
+    scope: SHEETS_OAUTH_SCOPES,
     prompt: "consent",
+    include_granted_scopes: true,
     state
   });
 }
