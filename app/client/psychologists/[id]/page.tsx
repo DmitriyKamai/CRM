@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  ChevronLeft,
-  MessageCircle,
-  MessageSquare,
-  Phone,
-  Send
-} from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
+import {
+  ContactBrandPhoneIcon,
+  ContactBrandTelegramIcon,
+  ContactBrandViberIcon,
+  ContactBrandWhatsappIcon
+} from "@/components/client/contact-channel-brand-icons";
 import { ClientBooking } from "@/components/schedule/client-booking";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -257,7 +257,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                     {phoneHref && psychologist.contactPhone && (
                       <Button variant="outline" size="sm" className="gap-2" asChild>
                         <a href={phoneHref}>
-                          <Phone className="h-4 w-4 shrink-0" aria-hidden />
+                          <ContactBrandPhoneIcon />
                           <span className="max-w-[200px] truncate sm:max-w-none">
                             {psychologist.contactPhone}
                           </span>
@@ -272,7 +272,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                           rel="noopener noreferrer"
                           title={psychologist.contactTelegram}
                         >
-                          <Send className="h-4 w-4 shrink-0" aria-hidden />
+                          <ContactBrandTelegramIcon />
                           <span className="max-w-[160px] truncate sm:max-w-[220px]">
                             {psychologist.contactTelegram}
                           </span>
@@ -287,8 +287,8 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                           rel="noopener noreferrer"
                           title={psychologist.contactWhatsapp}
                         >
-                          <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
-                          WhatsApp
+                          <ContactBrandWhatsappIcon />
+                          <span>WhatsApp</span>
                         </a>
                       </Button>
                     )}
@@ -300,10 +300,8 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                           rel="noopener noreferrer"
                           title={psychologist.contactViber}
                         >
-                          <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
-                          <span className="max-w-[140px] truncate sm:max-w-none">
-                            Viber
-                          </span>
+                          <ContactBrandViberIcon />
+                          <span>Viber</span>
                         </a>
                       </Button>
                     )}
