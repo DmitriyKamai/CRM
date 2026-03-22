@@ -4,11 +4,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getClientIp, requireClient } from "@/lib/security/api-guards";
+import { getClientIp, requireClientOrPsychologist } from "@/lib/security/api-guards";
 import { sendNewAppointmentToPsychologist } from "@/lib/telegram";
 
 export async function POST(request: Request) {
-  const clientCtx = await requireClient();
+  const clientCtx = await requireClientOrPsychologist();
   if (!clientCtx.ok) return clientCtx.response;
   const mod = await assertModuleEnabled("scheduling");
   if (mod) return mod;
@@ -30,6 +30,20 @@ export async function POST(request: Request) {
   if (!slot) {
     return NextResponse.json(
       { message: "Слот не найден" },
+      { status: 400 }
+    );
+  }
+
+  const ownPsychProfile = await prisma.psychologistProfile.findUnique({
+    where: { userId },
+    select: { id: true }
+  });
+  if (ownPsychProfile && ownPsychProfile.id === slot.psychologistId) {
+    return NextResponse.json(
+      {
+        message:
+          "Нельзя записаться на свой собственный слот. Выберите другого специалиста или попросите коллегу выделить время."
+      },
       { status: 400 }
     );
   }

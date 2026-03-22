@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
-import { requireClient } from "@/lib/security/api-guards";
+import { requireClientOrPsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -13,7 +13,7 @@ type ParamsPromise = {
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
-    const clientCtx = await requireClient();
+    const clientCtx = await requireClientOrPsychologist();
     if (!clientCtx.ok) return clientCtx.response;
     const mod = await assertModuleEnabled("scheduling");
     if (mod) return mod;

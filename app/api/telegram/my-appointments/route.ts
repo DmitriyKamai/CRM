@@ -89,35 +89,22 @@ export async function POST(request: Request) {
 
     // Записи как психолог: смотрим по наличию PsychologistProfile, а не только по role=PSYCHOLOGIST
     // (иначе «ко мне» не видны при UNSPECIFIED/ADMIN с карточкой специалиста).
-    type Row = {
+    /** Одна запись для бота: без слияния «к вам» / «вы идёте» в один список — иначе путаются имена. */
+    type Item = {
       id: string;
       start: string;
       end: string;
       status: string;
-      clientName?: string;
-      psychologistName?: string;
-      /** Удобно для бота: всегда «второе лицо» в приёме */
+      /** К вам на приём — имя клиента; ваш визит — имя специалиста */
       counterpartyName: string;
     };
 
-    const asClient: Row[] = clientAppointments.map((a) => {
-      const psychologistName =
-        [a.psychologist.lastName, a.psychologist.firstName].filter(Boolean).join(" ").trim() || "Психолог";
-      return {
-        id: a.id,
-        start: a.start.toISOString(),
-        end: a.end.toISOString(),
-        status: a.status,
-        psychologistName,
-        counterpartyName: psychologistName
-      };
-    });
-
-    let asPsychologist: Row[] = [];
     const psychProfile = await prisma.psychologistProfile.findUnique({
       where: { userId: user.id },
       select: { id: true }
     });
+
+    let appointmentsAsPsychologist: Item[] = [];
     if (psychProfile) {
       const psychRows = await prisma.appointment.findMany({
         where: {
@@ -130,7 +117,7 @@ export async function POST(request: Request) {
           client: { select: { firstName: true, lastName: true } }
         }
       });
-      asPsychologist = psychRows.map((a) => {
+      appointmentsAsPsychologist = psychRows.map((a) => {
         const clientName =
           [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент";
         return {
@@ -138,28 +125,34 @@ export async function POST(request: Request) {
           start: a.start.toISOString(),
           end: a.end.toISOString(),
           status: a.status,
-          clientName,
           counterpartyName: clientName
         };
       });
     }
 
-    const byId = new Map<string, Row>();
-    for (const r of [...asPsychologist, ...asClient]) {
-      if (!byId.has(r.id)) byId.set(r.id, r);
-    }
-    const merged = [...byId.values()].sort(
-      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
-    );
+    const appointmentsAsClient: Item[] = clientAppointments.map((a) => {
+      const psychologistName =
+        [a.psychologist.lastName, a.psychologist.firstName].filter(Boolean).join(" ").trim() || "Психолог";
+      return {
+        id: a.id,
+        start: a.start.toISOString(),
+        end: a.end.toISOString(),
+        status: a.status,
+        counterpartyName: psychologistName
+      };
+    });
 
-    const hasPsych = asPsychologist.length > 0;
-    const hasClient = asClient.length > 0;
+    const hasPsych = appointmentsAsPsychologist.length > 0;
+    const hasClient = appointmentsAsClient.length > 0;
     const role =
       hasPsych && hasClient ? "mixed" : hasPsych ? "psychologist" : "client";
 
     return NextResponse.json({
       role,
-      appointments: merged
+      /** Приёмы к вам как к специалисту — в строке имя клиента */
+      appointmentsAsPsychologist,
+      /** Ваши записи к другим специалистам — в строке имя психолога */
+      appointmentsAsClient
     });
   } catch (err) {
     console.error("[POST /api/telegram/my-appointments]", err);

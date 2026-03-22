@@ -132,3 +132,14 @@ export async function requireClient(): Promise<
 > {
   return requireRoles(["CLIENT"]);
 }
+
+/**
+ * Действия от лица «клиента в каталоге»: запись на слот, подтверждение/отмена своей записи к коллеге.
+ * Специалист с ролью PSYCHOLOGIST тоже может (не к себе — отдельная проверка в POST /api/appointments).
+ */
+export async function requireClientOrPsychologist(): Promise<
+  | { ok: true; session: Session; userId: string; user: SessionUser; role: AppRole }
+  | AuthFailure
+> {
+  return requireRoles(["CLIENT", "PSYCHOLOGIST"]);
+}

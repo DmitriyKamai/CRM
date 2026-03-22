@@ -20,7 +20,7 @@ const mainKeyboard = Markup.keyboard([
 const HELP_TEXT =
   "Команды:\n" +
   "/start — привязать Telegram к аккаунту (откройте ссылку из настроек на сайте)\n" +
-  "/myappointments или кнопка «Мои записи» — предстоящие записи\n" +
+  "/myappointments или кнопка «Мои записи» — записи к вам на приём и ваши визиты к специалистам\n" +
   "/help — эта справка\n\n" +
   "Уведомления о новых записях приходят сюда же, если аккаунт привязан.";
 
@@ -127,38 +127,47 @@ async function runMyAppointments(ctx: Context) {
       return;
     }
 
-    const appointments = data.appointments || [];
-    const role = data.role;
+    type ApptRow = {
+      id: string;
+      start: string;
+      status: string;
+      counterpartyName?: string;
+    };
 
-    if (appointments.length === 0) {
-      await ctx.reply("У вас нет предстоящих записей.", mainKeyboard).catch(() => {});
+    const incoming = (data.appointmentsAsPsychologist ?? []) as ApptRow[];
+    const outgoing = (data.appointmentsAsClient ?? []) as ApptRow[];
+
+    if (incoming.length === 0 && outgoing.length === 0) {
+      await ctx.reply("У вас нет записей за выбранный период.", mainKeyboard).catch(() => {});
       return;
     }
 
-    const lines = appointments.map(
-      (
-        a: {
-          start: string;
-          counterpartyName?: string;
-          clientName?: string;
-          psychologistName?: string;
-          status: string;
-        },
-        i: number
-      ) => {
-        const d = new Date(a.start);
-        const dateStr = d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
-        const who =
-          a.counterpartyName ??
-          (role === "psychologist" ? a.clientName : a.psychologistName);
-        const statusLabel = a.status === "PENDING_CONFIRMATION" ? " (ожидает подтверждения)" : "";
-        return `${i + 1}. ${dateStr} — ${who}${statusLabel}`;
-      }
-    );
+    const statusSuffix = (s: string) =>
+      s === "PENDING_CONFIRMATION" ? " (ожидает подтверждения)" : "";
 
-    const text = "Мои записи:\n\n" + lines.join("\n") + "\n\nДля записей «ожидает подтверждения» можно нажать «Подтвердить» или «Отменить». Для подтверждённых — только «Отменить».";
+    const formatLine = (a: ApptRow, n: number) => {
+      const d = new Date(a.start);
+      const dateStr = d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+      const name = a.counterpartyName ?? "—";
+      return `${n}. ${dateStr} — ${name}${statusSuffix(a.status)}`;
+    };
 
-    const buttons = appointments.map((a: { id: string; start: string; status: string }) => {
+    const blocks: string[] = ["Мои записи:\n"];
+    if (incoming.length > 0) {
+      blocks.push("\n📥 К вам на приём (клиент):");
+      incoming.forEach((a, i) => blocks.push(formatLine(a, i + 1)));
+    }
+    if (outgoing.length > 0) {
+      blocks.push("\n📤 Вы записаны к специалисту:");
+      outgoing.forEach((a, i) => blocks.push(formatLine(a, i + 1)));
+    }
+
+    const text =
+      blocks.join("\n") +
+      "\n\nДля записей «ожидает подтверждения» можно нажать «Подтвердить» или «Отменить». Для подтверждённых — только «Отменить».";
+
+    const forButtons: ApptRow[] = [...incoming, ...outgoing];
+    const buttons = forButtons.map((a: { id: string; start: string; status: string }) => {
       const timeStr = new Date(a.start).toLocaleString("ru-RU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
       if (a.status === "PENDING_CONFIRMATION") {
         return [

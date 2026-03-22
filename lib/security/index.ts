@@ -6,6 +6,7 @@ export {
   requireAdmin,
   requireAuth,
   requireClient,
+  requireClientOrPsychologist,
   requirePsychologist,
   requireRoles,
   sessionUser
