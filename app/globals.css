@@ -145,24 +145,25 @@
   }
 
   /**
-   * «Стекло»: низкая непрозрачность фона + сильнее blur — иначе выглядит как сплошная плита.
+   * «Стекло»: в светлой теме полупрозрачный белый card даёт «серую плиту» — берём tint от --background,
+   * слабый blur и высокая прозрачность, чтобы просвечивал холст и не было мутного серого.
    */
   .surface-glass {
-    border: 1px solid hsl(var(--border) / 0.45);
-    background-color: hsl(var(--card) / 0.48);
-    -webkit-backdrop-filter: blur(18px) saturate(1.15);
-    backdrop-filter: blur(18px) saturate(1.15);
+    border: 1px solid hsl(var(--border) / 0.32);
+    background-color: hsl(var(--background) / 0.28);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
   }
 
-  /** Нижняя плашка — чуть плотнее, чем шапка, чтобы кнопка читалась. */
+  /** Нижняя плашка — чуть плотнее для контраста кнопки. */
   .surface-glass-dock {
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.35);
     border-bottom: none;
     border-left: none;
     border-right: none;
-    background-color: hsl(var(--card) / 0.55);
-    -webkit-backdrop-filter: blur(20px) saturate(1.15);
-    backdrop-filter: blur(20px) saturate(1.15);
+    background-color: hsl(var(--background) / 0.38);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
 
   .field-label {
