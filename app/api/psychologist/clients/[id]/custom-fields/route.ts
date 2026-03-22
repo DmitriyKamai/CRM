@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 
+import { safeLogAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -52,6 +53,14 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
 
+    const owned = await prisma.clientProfile.findFirst({
+      where: { id, psychologistId: ctx.psychologistId },
+      select: { id: true }
+    });
+    if (!owned) {
+      return NextResponse.json({ message: "Клиент не найден" }, { status: 404 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const parsed = valuesSchema.parse(body?.values ?? {});
 
@@ -89,6 +98,19 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
           data: { value: raw as Prisma.InputJsonValue }
         });
       }
+    }
+
+    const fieldKeys = Object.keys(parsed);
+    if (fieldKeys.length > 0) {
+      await safeLogAudit({
+        action: "CLIENT_CUSTOM_FIELDS_BULK_UPDATE",
+        actorUserId: ctx.userId,
+        actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+        targetType: "ClientProfile",
+        targetId: id,
+        ip: getClientIp(request),
+        meta: { fieldCount: fieldKeys.length }
+      });
     }
 
     return NextResponse.json({ success: true });

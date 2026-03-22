@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
+import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{
@@ -175,7 +176,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: ParamsPromise) {
+export async function DELETE(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
     const ctx = await requirePsychologist();
@@ -192,6 +193,16 @@ export async function DELETE(_request: Request, { params }: ParamsPromise) {
     await prisma.clientProfile.update({
       where: { id: existing.id },
       data: { psychologistId: null }
+    });
+
+    await safeLogAudit({
+      action: "CLIENT_DELETE",
+      actorUserId: ctx.userId,
+      actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+      targetType: "ClientProfile",
+      targetId: existing.id,
+      ip: getClientIp(request),
+      meta: { mode: "detach_from_psychologist" }
     });
 
     return NextResponse.json({ success: true });

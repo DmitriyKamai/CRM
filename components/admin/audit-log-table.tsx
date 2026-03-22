@@ -63,6 +63,10 @@ function formatAction(action: string) {
       return "Импорт клиентов";
     case "CLIENT_FILE_DELETE":
       return "Удаление файла клиента";
+    case "CLIENT_DELETE":
+      return "Удаление клиента из списка";
+    case "CLIENT_CUSTOM_FIELDS_BULK_UPDATE":
+      return "Массовое обновление кастомных полей клиента";
     default:
       return action;
   }
@@ -179,7 +183,9 @@ export function AuditLogTable() {
               "DIAGNOSTIC_LINK_CREATE",
               "CLIENTS_EXPORT",
               "CLIENTS_IMPORT",
-              "CLIENT_FILE_DELETE"
+              "CLIENT_FILE_DELETE",
+              "CLIENT_DELETE",
+              "CLIENT_CUSTOM_FIELDS_BULK_UPDATE"
             ].includes(action)
               ? action
               : ACTION_ALL}
@@ -209,6 +215,10 @@ export function AuditLogTable() {
               <SelectItem value="CLIENTS_EXPORT">Экспорт клиентов</SelectItem>
               <SelectItem value="CLIENTS_IMPORT">Импорт клиентов</SelectItem>
               <SelectItem value="CLIENT_FILE_DELETE">Удаление файла клиента</SelectItem>
+              <SelectItem value="CLIENT_DELETE">Удаление клиента из списка</SelectItem>
+              <SelectItem value="CLIENT_CUSTOM_FIELDS_BULK_UPDATE">
+                Кастомные поля клиента (массово)
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
