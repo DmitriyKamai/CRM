@@ -959,7 +959,7 @@ export function PsychologistSchedule() {
                                         <PopoverContent
                                           side="right"
                                           align="start"
-                                          className="w-64 space-y-3 bg-card text-xs"
+                                          className="w-64 space-y-3 text-xs"
                                         >
                                           <div className="flex items-start justify-between gap-2">
                                             <div>
