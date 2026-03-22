@@ -81,8 +81,25 @@ function formatEventLine(row: HistoryEventRow): { title: string; detail?: string
       };
     }
     case "CUSTOM_FIELDS_UPDATED": {
+      const changes = meta.changes as
+        | { label?: string; from?: string; to?: string }[]
+        | undefined;
+      if (Array.isArray(changes) && changes.length > 0) {
+        const parts = changes
+          .slice(0, 6)
+          .map((c) => `${c.label ?? "Поле"}: «${c.from ?? "—"}» → «${c.to ?? "—"}»`);
+        const more =
+          changes.length > 6 ? ` и ещё ${changes.length - 6}` : "";
+        return {
+          title: "Изменены дополнительные поля",
+          detail: parts.join("; ") + more
+        };
+      }
       const n = typeof meta.fieldCount === "number" ? meta.fieldCount : 0;
-      return { title: "Обновлены дополнительные поля", detail: n > 0 ? `Полей: ${n}` : undefined };
+      return {
+        title: "Изменены дополнительные поля",
+        detail: n > 0 ? `Полей: ${n}` : undefined
+      };
     }
     case "DIAGNOSTIC_LINK_CREATED": {
       const tt = typeof meta.testType === "string" ? diagnosticTestLabel(meta.testType) : "тест";

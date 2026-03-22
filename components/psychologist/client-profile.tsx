@@ -819,8 +819,6 @@ export const PsychologistClientProfile = forwardRef<
         </Select>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 lg:items-start min-w-0 w-full">
-        <div className="min-w-0 flex-1">
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
@@ -937,9 +935,11 @@ export const PsychologistClientProfile = forwardRef<
           </div>
         </div>
 
+        <div className="mt-3 flex flex-col lg:flex-row gap-4 lg:items-start min-w-0 w-full">
+          <div className="min-w-0 w-full flex-1">
         <TabsContent
           value="profile"
-          className="mt-3 min-w-0 rounded-lg border bg-card p-4"
+          className="mt-0 min-w-0 rounded-lg border bg-card p-4"
         >
           <div className="text-sm text-muted-foreground pb-2">
             {props.email ?? "Email ещё не указан"} · Создан{" "}
@@ -1222,7 +1222,7 @@ export const PsychologistClientProfile = forwardRef<
             <TabsContent
               key={groupId}
               value={groupId}
-              className="mt-3 min-w-0 flex flex-col rounded-lg border bg-card p-4"
+              className="mt-0 min-w-0 flex flex-col rounded-lg border bg-card p-4"
             >
               <div className="flex-none space-y-1">
                 <h3 className="text-base font-semibold leading-none tracking-tight">
@@ -1793,7 +1793,7 @@ export const PsychologistClientProfile = forwardRef<
         {diagnosticsOn && (
           <TabsContent
             value="diagnostics"
-            className="mt-3 space-y-3 rounded-lg border bg-card p-4"
+            className="mt-0 space-y-3 rounded-lg border bg-card p-4"
           >
             {diagnosticsLoading ? (
               <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
@@ -1829,21 +1829,21 @@ export const PsychologistClientProfile = forwardRef<
         {schedulingOn && (
           <TabsContent
             value="appointments"
-            className="mt-3 space-y-3 rounded-lg border bg-card p-4"
+            className="mt-0 space-y-3 rounded-lg border bg-card p-4"
           >
             <ClientAppointments clientId={props.id} />
           </TabsContent>
         )}
 
-        <TabsContent value="history" className="mt-3 lg:hidden min-w-0">
+        <TabsContent value="history" className="mt-0 lg:hidden min-w-0">
           <ClientHistoryPanel clientId={props.id} refreshKey={historyTick} />
         </TabsContent>
+          </div>
+          <div className="hidden lg:block shrink-0 self-start lg:sticky lg:top-4 lg:w-[30rem] lg:max-w-[min(30rem,42vw)] min-w-0">
+            <ClientHistoryPanel className="w-full" clientId={props.id} refreshKey={historyTick} />
+          </div>
+        </div>
       </Tabs>
-        </div>
-        <div className="hidden lg:block w-full lg:w-80 shrink-0 lg:sticky lg:top-4 self-start min-w-0">
-          <ClientHistoryPanel clientId={props.id} refreshKey={historyTick} />
-        </div>
-      </div>
     </div>
   );
 });

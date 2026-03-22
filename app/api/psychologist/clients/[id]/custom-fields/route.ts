@@ -4,6 +4,10 @@ import type { Prisma } from "@prisma/client";
 
 import { safeLogAudit } from "@/lib/audit-log";
 import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
+import {
+  formatCustomFieldValueForHistory,
+  jsonValueEqual
+} from "@/lib/custom-field-history-format";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
@@ -69,15 +73,45 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       where: { psychologistId: ctx.psychologistId, target: "CLIENT" }
     });
     const allowedIds = new Set(defs.map((d) => d.id));
+    const defById = new Map(defs.map((d) => [d.id, d]));
+
+    const existingRows = await prisma.customFieldValue.findMany({
+      where: {
+        clientId: id,
+        definitionId: { in: Array.from(allowedIds) }
+      }
+    });
+    const existingByDef = new Map<string, Prisma.JsonValue>();
+    for (const row of existingRows) {
+      existingByDef.set(row.definitionId, row.value);
+    }
+    const snapshot = new Map(existingByDef);
+
+    const changes: { label: string; from: string; to: string }[] = [];
 
     for (const [definitionId, raw] of Object.entries(parsed)) {
       if (!allowedIds.has(definitionId)) continue;
+      const def = defById.get(definitionId);
+      if (!def) continue;
 
-      // пустое значение — просто удаляем все значения для этого поля/клиента
-      if (raw === null || raw === undefined || raw === "") {
+      const oldVal = snapshot.has(definitionId) ? snapshot.get(definitionId) : undefined;
+      const empty = raw === null || raw === undefined || raw === "";
+
+      if (empty) {
+        if (!existingByDef.has(definitionId)) continue;
         await prisma.customFieldValue.deleteMany({
           where: { clientId: id, definitionId }
         });
+        existingByDef.delete(definitionId);
+        changes.push({
+          label: def.label,
+          from: formatCustomFieldValueForHistory(oldVal, def),
+          to: "—"
+        });
+        continue;
+      }
+
+      if (jsonValueEqual(oldVal, raw)) {
         continue;
       }
 
@@ -99,10 +133,18 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
           data: { value: raw as Prisma.InputJsonValue }
         });
       }
+      existingByDef.set(definitionId, raw as unknown as Prisma.JsonValue);
+
+      changes.push({
+        label: def.label,
+        from: snapshot.has(definitionId)
+          ? formatCustomFieldValueForHistory(oldVal, def)
+          : "—",
+        to: formatCustomFieldValueForHistory(raw, def)
+      });
     }
 
-    const fieldKeys = Object.keys(parsed);
-    if (fieldKeys.length > 0) {
+    if (changes.length > 0) {
       await safeLogAudit({
         action: "CLIENT_CUSTOM_FIELDS_BULK_UPDATE",
         actorUserId: ctx.userId,
@@ -110,13 +152,19 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         targetType: "ClientProfile",
         targetId: id,
         ip: getClientIp(request),
-        meta: { fieldCount: fieldKeys.length }
+        meta: { fieldCount: changes.length, labels: changes.map((c) => c.label) }
       });
       await safeLogClientHistory({
         clientId: id,
         type: ClientHistoryType.CUSTOM_FIELDS_UPDATED,
         actorUserId: ctx.userId,
-        meta: { fieldCount: fieldKeys.length }
+        meta: {
+          changes: changes.map((c) => ({
+            label: c.label,
+            from: c.from,
+            to: c.to
+          }))
+        }
       });
     }
 
