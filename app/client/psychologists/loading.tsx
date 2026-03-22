@@ -11,9 +11,9 @@ function CatalogCardSkeleton() {
           <Skeleton className="h-5 w-20 rounded-full" />
           <Skeleton className="h-5 w-16 rounded-full" />
         </div>
-        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-[3.75rem] w-full" />
       </CardContent>
-      <CardFooter className="px-3 pb-4 pt-1">
+      <CardFooter className="border-t border-border/60 px-3 pb-4 pt-3">
         <Skeleton className="h-9 w-full" />
       </CardFooter>
     </Card>
@@ -24,18 +24,21 @@ export default function PsychologistsListLoading() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:py-10">
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <Skeleton className="h-20 w-full rounded-none" />
-        <div className="space-y-2 p-5 sm:p-7">
+        <Skeleton className="h-14 w-full rounded-none" />
+        <div className="space-y-2 p-5 pb-4 pt-2 sm:px-7">
           <Skeleton className="h-8 w-64 max-w-full" />
-          <Skeleton className="h-16 w-full max-w-2xl" />
+          <Skeleton className="h-12 w-full max-w-2xl" />
         </div>
       </div>
-      <div className="rounded-2xl border bg-card p-6 shadow-sm">
-        <Skeleton className="h-10 w-full" />
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Skeleton className="h-8 w-20 rounded-full" />
-          <Skeleton className="h-8 w-24 rounded-full" />
-          <Skeleton className="h-8 w-16 rounded-full" />
+      <div className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+          <Skeleton className="h-14 w-full max-w-xs rounded-md" />
+          <Skeleton className="h-14 w-full max-w-[14rem] rounded-md" />
+          <Skeleton className="h-14 w-full max-w-[14rem] rounded-md" />
+          <div className="flex flex-1 justify-end gap-2">
+            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-8 w-20" />
+          </div>
         </div>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

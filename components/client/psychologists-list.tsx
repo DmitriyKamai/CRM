@@ -11,6 +11,16 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+
+/** Значение «без фильтра» в Select (не должно совпадать с названием города/страны). */
+const FILTER_ANY = "__crm_filter_any__";
 
 const PROFESSION_LABELS: Record<string, string> = {
   psychologist: "Психолог",
@@ -59,14 +69,25 @@ export function PublicPsychologistsList({
 
   const allPsychologists = initialPsychologists;
 
+  /** Города только из выбранной страны; без страны — все города каталога. */
   const cityOptions = useMemo(() => {
+    const pool =
+      selectedCountry != null
+        ? allPsychologists.filter((p) => normalize(p.country) === selectedCountry)
+        : allPsychologists;
     const set = new Set<string>();
-    for (const p of allPsychologists) {
+    for (const p of pool) {
       const c = normalize(p.city);
       if (c) set.add(c);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "ru"));
-  }, [allPsychologists]);
+  }, [allPsychologists, selectedCountry]);
+
+  /** Город из состояния учитывается только если есть в текущем списке (после смены страны). */
+  const activeCityFilter =
+    selectedCity != null && cityOptions.includes(selectedCity)
+      ? selectedCity
+      : null;
 
   const countryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -79,12 +100,12 @@ export function PublicPsychologistsList({
 
   const filtered = useMemo(() => {
     return allPsychologists.filter((p) => {
-      if (selectedCity && normalize(p.city) !== selectedCity) return false;
+      if (activeCityFilter && normalize(p.city) !== activeCityFilter) return false;
       if (selectedCountry && normalize(p.country) !== selectedCountry) return false;
       if (!matchesSearchTokens(p, deferredSearch)) return false;
       return true;
     });
-  }, [allPsychologists, deferredSearch, selectedCity, selectedCountry]);
+  }, [allPsychologists, deferredSearch, activeCityFilter, selectedCountry]);
 
   const filtersActive =
     searchQuery.trim() !== "" || selectedCity !== null || selectedCountry !== null;
@@ -102,19 +123,18 @@ export function PublicPsychologistsList({
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div
-          className="h-16 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent sm:h-20"
+          className="h-12 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent sm:h-14"
           aria-hidden
         />
-        <div className="space-y-2 px-5 pb-5 pt-2 sm:px-7">
+        <div className="space-y-1.5 px-5 pb-4 pt-2 sm:px-7">
           <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Найти психолога
           </h1>
-          <p className="max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
+          <p className="max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">
             {schedulingEnabled ? (
               <>
-                Подберите специалиста: поиск по имени и месту, фильтры по городу и
-                стране. Затем можно записаться на удобное время на странице
-                профиля.
+                Поиск по имени и тексту анкеты; страна и город — в компактной
+                панели ниже. Запись — на странице профиля.
               </>
             ) : (
               <>
@@ -127,111 +147,150 @@ export function PublicPsychologistsList({
         </div>
       </section>
 
-      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="psych-search" className="text-foreground">
-              Поиск
-            </Label>
-            <div className="relative">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input
-                id="psych-search"
-                placeholder="Имя, фамилия, город, страна…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-                autoComplete="off"
-              />
+      <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:gap-x-3">
+            <div className="w-full min-w-0 max-w-[min(100%,20rem)]">
+              <Label
+                htmlFor="psych-search"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Поиск
+              </Label>
+              <div className="relative mt-1">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <Input
+                  id="psych-search"
+                  placeholder="Имя, город…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 pl-8 text-sm"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            {countryOptions.length > 1 && (
+              <div className="w-full min-w-[10rem] max-w-[14rem]">
+                <Label
+                  htmlFor="psych-country"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Страна
+                </Label>
+                <Select
+                  value={selectedCountry ?? FILTER_ANY}
+                  onValueChange={(v) =>
+                    setSelectedCountry(v === FILTER_ANY ? null : v)
+                  }
+                >
+                  <SelectTrigger
+                    id="psych-country"
+                    className="mt-1 h-9 text-sm"
+                    aria-label="Фильтр по стране"
+                  >
+                    <SelectValue placeholder="Страна" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[min(280px,50vh)]">
+                    <SelectItem value={FILTER_ANY}>Все страны</SelectItem>
+                    {countryOptions.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {total > 0 && (cityOptions.length > 0 || selectedCountry != null) && (
+              <div className="w-full min-w-[10rem] max-w-[14rem]">
+                <Label
+                  htmlFor="psych-city"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Город
+                </Label>
+                {cityOptions.length > 0 ? (
+                  <Select
+                    value={activeCityFilter ?? FILTER_ANY}
+                    onValueChange={(v) =>
+                      setSelectedCity(v === FILTER_ANY ? null : v)
+                    }
+                  >
+                    <SelectTrigger
+                      id="psych-city"
+                      className="mt-1 h-9 text-sm"
+                      aria-label="Фильтр по городу"
+                    >
+                      <SelectValue placeholder="Город" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[min(280px,50vh)]">
+                      <SelectItem value={FILTER_ANY}>
+                        {selectedCountry
+                          ? "Все города (страна)"
+                          : "Все города"}
+                      </SelectItem>
+                      {cityOptions.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                    Нет городов в анкетах для выбранной страны.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 lg:ml-auto">
+              <p
+                className="text-xs text-muted-foreground sm:text-sm"
+                aria-live="polite"
+              >
+                {total === 0 ? (
+                  <>Нет специалистов в каталоге.</>
+                ) : shown === total ? (
+                  <>
+                    Показано:{" "}
+                    <span className="font-medium text-foreground">{shown}</span>
+                  </>
+                ) : (
+                  <>
+                    Найдено:{" "}
+                    <span className="font-medium text-foreground">{shown}</span>{" "}
+                    из{" "}
+                    <span className="font-medium text-foreground">{total}</span>
+                  </>
+                )}
+              </p>
+              {filtersActive && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 shrink-0 gap-1 px-2 text-muted-foreground"
+                  onClick={resetFilters}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                  Сбросить
+                </Button>
+              )}
             </div>
           </div>
 
           {countryOptions.length > 1 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Страна
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {countryOptions.map((c) => {
-                  const active = selectedCountry === c;
-                  return (
-                    <Button
-                      key={c}
-                      type="button"
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      className="rounded-full"
-                      onClick={() =>
-                        setSelectedCountry((prev) => (prev === c ? null : c))
-                      }
-                    >
-                      {c}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {cityOptions.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Город
-              </p>
-              <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1 sm:max-h-none">
-                {cityOptions.map((c) => {
-                  const active = selectedCity === c;
-                  return (
-                    <Button
-                      key={c}
-                      type="button"
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      className="rounded-full"
-                      onClick={() =>
-                        setSelectedCity((prev) => (prev === c ? null : c))
-                      }
-                    >
-                      {c}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground" aria-live="polite">
-              {total === 0 ? (
-                <>В каталоге пока нет специалистов.</>
-              ) : shown === total ? (
-                <>
-                  Показано: <span className="font-medium text-foreground">{shown}</span>
-                </>
-              ) : (
-                <>
-                  Найдено:{" "}
-                  <span className="font-medium text-foreground">{shown}</span> из{" "}
-                  <span className="font-medium text-foreground">{total}</span>
-                </>
-              )}
+            <p className="text-[11px] leading-snug text-muted-foreground lg:max-w-3xl">
+              Города в списке соответствуют выбранной стране (или всему каталогу,
+              если страна «Все»). Длинный список прокручивается внутри поля.
             </p>
-            {filtersActive && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0 gap-1 text-muted-foreground"
-                onClick={resetFilters}
-              >
-                <X className="h-4 w-4" aria-hidden />
-                Сбросить фильтры
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </section>
 
@@ -327,13 +386,15 @@ export function PublicPsychologistsList({
                       </div>
                     </div>
                     {bioTrimmed ? (
-                      <p className="px-3 pb-2 text-left text-xs leading-snug text-muted-foreground line-clamp-2 sm:text-[13px]">
-                        {bioTrimmed}
-                      </p>
+                      <div className="px-3 pb-3 pt-0.5">
+                        <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                          {bioTrimmed}
+                        </p>
+                      </div>
                     ) : null}
                   </CardContent>
                   {schedulingEnabled ? (
-                    <CardFooter className="relative z-[2] mt-auto pointer-events-auto px-3 pb-4 pt-1">
+                    <CardFooter className="relative z-[2] mt-auto pointer-events-auto border-t border-border/60 bg-card px-3 pb-4 pt-3">
                       <Button className="w-full" size="sm" asChild>
                         <Link href={bookingHref}>Записаться</Link>
                       </Button>
