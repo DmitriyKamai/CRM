@@ -1,6 +1,6 @@
-import dynamic from "next/dynamic";
+"use client";
 
-import { getPlatformModuleFlags } from "@/lib/platform-modules";
+import dynamic from "next/dynamic";
 
 const PsychologistSettingsForm = dynamic(
   () =>
@@ -18,7 +18,10 @@ const PsychologistSettingsForm = dynamic(
   }
 );
 
-export async function SettingsLoader() {
-  const modules = await getPlatformModuleFlags();
-  return <PsychologistSettingsForm schedulingEnabled={modules.scheduling} />;
+export function PsychologistSettingsEntry({
+  schedulingEnabled
+}: {
+  schedulingEnabled: boolean;
+}) {
+  return <PsychologistSettingsForm schedulingEnabled={schedulingEnabled} />;
 }
