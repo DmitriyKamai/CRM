@@ -7,8 +7,9 @@ import { assertModuleEnabled } from "@/lib/platform-modules";
 const BOT_SECRET_HEADER = "x-bot-secret";
 
 /**
- * Список предстоящих записей пользователя (клиент или психолог).
- * POST, тело: { chatId: number }. Заголовок X-Bot-Secret.
+ * Список записей пользователя (клиент или психолог).
+ * POST, тело: { chatId: string, range?: "upcoming" | "history" }. По умолчанию range=upcoming (start >= сейчас).
+ * Заголовок X-Bot-Secret.
  */
 export async function POST(request: Request) {
   try {
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
     if (mod) return mod;
 
     const body = await request.json().catch(() => null);
+    /** Бот: только предстоящие (start >= сейчас). history — окно 90 дней назад как раньше. */
+    const range = body?.range === "history" ? "history" : "upcoming";
     // Строка целиком — без Number(), чтобы не терять точность у больших chat_id.
     const raw = body?.chatId;
     const chatIdStr =
@@ -48,8 +51,10 @@ export async function POST(request: Request) {
       );
     }
 
-    /** Не показываем отменённые. Учитываем COMPLETED и недавнее прошлое — иначе после приёма список «пустой». */
     const fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const startTimeFilter =
+      range === "upcoming" ? { gte: now } : { gte: fromDate };
     const activeStatuses = [
       "SCHEDULED",
       "PENDING_CONFIRMATION",
@@ -94,13 +99,12 @@ export async function POST(request: Request) {
     });
     const clientIds = [...new Set(clientProfiles.map((c) => c.id))];
 
+    // «Вы записаны к специалисту» — никогда не показывать приём, где врач — вы сами (чужой userId у PsychologistProfile).
     const clientAppointmentsWhere: Prisma.AppointmentWhereInput = {
       clientId: { in: clientIds },
       status: { in: [...activeStatuses] },
-      start: { gte: fromDate },
-      ...(ownPsychologistId
-        ? { NOT: { psychologistId: ownPsychologistId } }
-        : {})
+      start: startTimeFilter,
+      NOT: { psychologist: { userId: user.id } }
     };
 
     const clientAppointments =
@@ -131,7 +135,9 @@ export async function POST(request: Request) {
       where: {
         psychologist: { userId: user.id },
         status: { in: [...activeStatuses] },
-        start: { gte: fromDate }
+        start: startTimeFilter,
+        // Демо «я — свой же клиент» в своей практике (client.userId = врач).
+        NOT: { client: { userId: user.id } }
       },
       orderBy: { start: "asc" },
       include: {
@@ -169,6 +175,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       role,
+      range,
       /** Есть ли в БД PsychologistProfile у этого пользователя (для подсказки в боте) */
       hasPsychologistProfile: Boolean(psychProfile),
       /** Приёмы к вам как к специалисту — в строке имя клиента */

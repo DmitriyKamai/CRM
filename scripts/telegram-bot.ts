@@ -117,7 +117,7 @@ async function runMyAppointments(ctx: Context) {
         "Content-Type": "application/json",
         "X-Bot-Secret": secret!
       },
-      body: JSON.stringify({ chatId: String(chatId) })
+      body: JSON.stringify({ chatId: String(chatId), range: "upcoming" })
     });
 
     const data = await res.json().catch(() => ({}));
@@ -169,7 +169,7 @@ async function runMyAppointments(ctx: Context) {
           "\n\nℹ️ Раздел «к вам на приём» пуст: у этого аккаунта нет профиля специалиста в CRM. Если вы принимаете клиентов, привяжите Telegram в настройках того же пользователя, под которым заходите в кабинет психолога (не только в кабинет клиента).";
       } else if (data.hasPsychologistProfile === true) {
         hint =
-          "\n\nℹ️ За последние 90 дней к вам нет записей в статусах «ожидает / подтверждена / завершена» (или они отменены). Проверьте расписание на сайте.";
+          "\n\nℹ️ Нет предстоящих приёмов к вам (с сегодня и дальше по времени сервера). Проверьте расписание на сайте.";
       }
     }
 
