@@ -72,53 +72,53 @@
   }
 
   /*
-   * Тёмная тема — та же логика, что и светлая: тёплый фон (hue ~24–28), оранжевый primary,
-   * «ступени» поверхностей и читаемый контраст. Popover чуть светлее карточки.
+   * Тёмная тема: нейтрали в духе shadcn slate / пресет Blue (холодный сине-серый, hue ~217–222),
+   * см. реестр тем ui.shadcn.com (neutral + blue). Оранжевый primary/ring и стекло — без изменений.
    */
   .dark {
-    --background: 24 16% 9%;
-    --foreground: 28 12% 96%;
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 210 40% 98%;
 
-    --card: 24 14% 13%;
-    --card-foreground: 28 12% 96%;
+    --card: 217.2 32.6% 14%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 24 13% 16%;
-    --popover-foreground: 28 12% 96%;
+    --popover: 217.2 32.6% 17.5%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Тот же оранжевый акцент, чуть ярче на тёмном фоне */
+    /* Оранжевый акцент — как в светлой теме */
     --primary: 28 90% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 24 10% 20%;
-    --secondary-foreground: 28 10% 94%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 24 12% 17%;
-    --muted-foreground: 28 8% 62%;
+    --muted: 217.2 32.6% 16%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 28 28% 20%;
-    --accent-foreground: 28 12% 96%;
+    --accent: 217.2 32.6% 19%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 24 10% 24%;
-    --input: 24 10% 22%;
-    --input-bg: 24 14% 11%;
+    --border: 217.2 32.6% 22%;
+    --input: 217.2 32.6% 20%;
+    --input-bg: 222.2 42% 10%;
     --ring: 28 90% 54%;
 
-    /* Сайдбар чуть светлее холста, в одной тёплой гамме */
-    --sidebar-bg: 24 14% 11%;
-    --sidebar-border: 24 10% 22%;
+    --sidebar-bg: 217.2 30% 13%;
+    --sidebar-border: 217.2 32.6% 22%;
 
     --status-success: 142 45% 48%;
     --status-warning: 28 88% 56%;
     --status-free: 199 55% 52%;
 
+    /* chart-1 — оранжевый; остальное в холодной гамме (как blue theme charts в shadcn) */
     --chart-1: 28 90% 54%;
-    --chart-2: 199 55% 52%;
-    --chart-3: 28 10% 65%;
+    --chart-2: 215 70% 55%;
+    --chart-3: 250 50% 58%;
     --chart-4: 142 45% 48%;
-    --chart-5: 32 45% 58%;
+    --chart-5: 200 55% 48%;
   }
 
   * {
