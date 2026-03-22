@@ -7,29 +7,14 @@ import { Button } from "@/components/ui/button";
 import { HeaderNav } from "@/components/layout/header-nav";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+/** Next.js 16: `searchParams` на странице — только `Promise` (см. валидацию в `.next/types`). */
 type LandingPageProps = {
-  searchParams?:
-    | Promise<Record<string, string | string[] | undefined> | URLSearchParams>
-    | Record<string, string | string[] | undefined>
-    | URLSearchParams;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function LandingPage({ searchParams }: LandingPageProps) {
-  const resolvedParams = searchParams
-    ? await Promise.resolve(searchParams)
-    : undefined;
-
-  let forbiddenParam: string | string[] | null | undefined;
-  if (
-    resolvedParams &&
-    typeof resolvedParams === "object" &&
-    "get" in resolvedParams &&
-    typeof resolvedParams.get === "function"
-  ) {
-    forbiddenParam = resolvedParams.get("forbidden");
-  } else {
-    forbiddenParam = (resolvedParams as Record<string, string | string[] | undefined> | undefined)?.forbidden;
-  }
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const forbiddenParam = resolvedParams?.forbidden;
 
   const showForbiddenNotice =
     forbiddenParam === "1" ||

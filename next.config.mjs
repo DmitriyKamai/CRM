@@ -1,9 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Включаем React Compiler по новой схеме
-  reactCompiler: true,
+  /**
+   * React Compiler: по умолчанию выкл. (на Windows + тяжёлая сборка часто даёт 0xC0000005).
+   * Включить: NEXT_REACT_COMPILER=1
+   */
+  reactCompiler: process.env.NEXT_REACT_COMPILER === "1",
   poweredByHeader: false,
+  serverExternalPackages: ["country-state-city"],
+  /** Меньше шансов упасть в ESLint-воркере при сборке; полная проверка: npm run lint */
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   images: {
     remotePatterns: [
       {

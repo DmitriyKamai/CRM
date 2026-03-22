@@ -50,6 +50,25 @@ CRM для психологов и их клиентов:
 
 Если снова EPERM — антивирус / облачная синхронизация папки или перезагрузка ПК, затем повторите шаг 4.
 
+### Windows: сборка падает с кодом `3221225477` (или `0xC0000005`)
+
+Это **падение нативного процесса** (часто Turbopack / SWC / память), не обычная JS-ошибка.
+
+1. **`npm run build` уже вызывает `next build --webpack`** — в Next.js 16 дефолтная сборка через Turbopack на Windows нередко падает; Webpack стабильнее.
+2. Задан **`NODE_OPTIONS=--max-old-space-size=8192`**. При нехватке памяти поднимите, например:  
+   `$env:NODE_OPTIONS="--max-old-space-size=12288"`
+3. **React Compiler по умолчанию выключен** в `next.config.mjs`. Включать только при необходимости:  
+   `$env:NEXT_REACT_COMPILER="1"`
+4. Очистите кэш и пересоберите:
+   ```powershell
+   Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+   npm run build
+   ```
+5. Только Next (без миграций), чтобы проверить, что падает именно сборка: `npm run build:next`
+6. **Node 20/22 LTS**, проект вне OneDrive, по возможности исключение папки в антивирусе; при необходимости — сборка из **WSL**.
+
+Полный ESLint при сборке отключён (`eslint.ignoreDuringBuilds`); локально гоняйте **`npm run lint`**.
+
 ### Как запускать проект
 
 1. Установите зависимости:
