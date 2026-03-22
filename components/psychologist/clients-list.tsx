@@ -295,6 +295,10 @@ export function PsychologistClientsList({
   } | null>(null);
   const [importFileName, setImportFileName] = useState<string | null>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  /** После Google Picker не сбрасывать шаг импорта (иначе стирается выбранная ссылка). */
+  const resumeImportWithoutResetRef = useRef(false);
+  /** Не подставлять URL из профиля поверх только что выбранной в Picker таблицы. */
+  const skipGoogleSheetsProfileUrlOnceRef = useRef(false);
 
   useEffect(() => {
     const el = listContainerRef.current;
@@ -377,6 +381,24 @@ export function PsychologistClientsList({
 
   useEffect(() => {
     if (!importOpen) return;
+    if (resumeImportWithoutResetRef.current) {
+      resumeImportWithoutResetRef.current = false;
+      async function loadDefsOnly() {
+        try {
+          const res = await fetch("/api/psychologist/custom-fields");
+          if (!res.ok) return;
+          const data = await res.json().catch(() => null);
+          const items = data?.items ?? [];
+          setImportCustomDefs(
+            items.map((d: { id: string; label: string }) => ({ id: d.id, label: d.label }))
+          );
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      void loadDefsOnly();
+      return;
+    }
     setImportResult(null);
     setImportFileName(null);
     setImportHeaders([]);
@@ -418,7 +440,9 @@ export function PsychologistClientsList({
           typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
             ? data.spreadsheetId.trim()
             : "";
-        if (id) {
+        if (skipGoogleSheetsProfileUrlOnceRef.current) {
+          skipGoogleSheetsProfileUrlOnceRef.current = false;
+        } else if (id) {
           setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${id}/edit`);
         }
       } catch {
@@ -761,68 +785,89 @@ export function PsychologistClientsList({
     }
   }
 
-  async function handleImportFromGoogleSheets() {
-    setGoogleSheetsImportLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/psychologist/clients/import/google-sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spreadsheetUrlOrId: googleSheetsImportUrl.trim() || null
-        })
-      });
-      const data = (await res.json().catch(() => null)) as {
-        message?: string;
-        headers?: string[];
-        rows?: (string | number | boolean)[][];
-        spreadsheetId?: string;
-        sheetTitle?: string;
-      } | null;
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось прочитать таблицу");
+  const loadGoogleSheetsTableIntoImport = useCallback(
+    async (spreadsheetUrlOrId: string) => {
+      const trimmed = spreadsheetUrlOrId.trim();
+      if (!trimmed) {
+        toast.error("Укажите ссылку на таблицу");
+        return;
       }
-      const headers = data?.headers ?? [];
-      const rows = data?.rows ?? [];
-      if (headers.length === 0) {
-        throw new Error("В таблице нет строки заголовков");
-      }
-      const nextMapping: Record<string, number> = {};
-      headers.forEach((h, idx) => {
-        const base = IMPORT_FIELDS.find((f) => f.label === h);
-        if (base) nextMapping[base.key] = idx;
-        const custom = importCustomDefs.find((d) => d.label === h);
-        if (custom) nextMapping[`custom:${custom.label}`] = idx;
-      });
-      setImportHeaders(headers);
-      setImportRows(rows);
-      setImportMapping(nextMapping);
-      setImportFileName(
-        typeof data?.sheetTitle === "string"
-          ? `Google Sheets — ${data.sheetTitle}`
-          : "Google Sheets"
-      );
-      if (typeof data?.spreadsheetId === "string" && data.spreadsheetId) {
-        await fetch("/api/psychologist/google-sheets", {
-          method: "PATCH",
+      setGoogleSheetsImportLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/psychologist/clients/import/google-sheets", {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            spreadsheetId: `https://docs.google.com/spreadsheets/d/${data.spreadsheetId}/edit`
+            spreadsheetUrlOrId: trimmed
           })
-        }).catch(() => {});
+        });
+        const data = (await res.json().catch(() => null)) as {
+          message?: string;
+          headers?: string[];
+          rows?: (string | number | boolean)[][];
+          spreadsheetId?: string;
+          sheetTitle?: string;
+        } | null;
+        if (!res.ok) {
+          throw new Error(data?.message ?? "Не удалось прочитать таблицу");
+        }
+        const headers = data?.headers ?? [];
+        const rows = data?.rows ?? [];
+        if (headers.length === 0) {
+          throw new Error("В таблице нет строки заголовков");
+        }
+        const nextMapping: Record<string, number> = {};
+        headers.forEach((h, idx) => {
+          const base = IMPORT_FIELDS.find((f) => f.label === h);
+          if (base) nextMapping[base.key] = idx;
+          const custom = importCustomDefs.find((d) => d.label === h);
+          if (custom) nextMapping[`custom:${custom.label}`] = idx;
+        });
+        setImportHeaders(headers);
+        setImportRows(rows);
+        setImportMapping(nextMapping);
+        setImportFileName(
+          typeof data?.sheetTitle === "string"
+            ? `Google Sheets — ${data.sheetTitle}`
+            : "Google Sheets"
+        );
+        if (typeof data?.spreadsheetId === "string" && data.spreadsheetId) {
+          await fetch("/api/psychologist/google-sheets", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              spreadsheetId: `https://docs.google.com/spreadsheets/d/${data.spreadsheetId}/edit`
+            })
+          }).catch(() => {});
+        }
+        toast.success("Таблица загружена — проверьте сопоставление колонок и нажмите «Импортировать»");
+      } catch (err) {
+        console.error(err);
+        const msg = err instanceof Error ? err.message : "Ошибка загрузки из Google";
+        toast.error(msg);
+        setError(msg);
+      } finally {
+        setGoogleSheetsImportLoading(false);
       }
-      toast.success("Таблица загружена — проверьте сопоставление колонок и нажмите «Импортировать»");
-    } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error ? err.message : "Ошибка загрузки из Google";
-      toast.error(msg);
-      setError(msg);
-    } finally {
-      setGoogleSheetsImportLoading(false);
-    }
+    },
+    [importCustomDefs]
+  );
+
+  async function handleImportFromGoogleSheets() {
+    await loadGoogleSheetsTableIntoImport(googleSheetsImportUrl);
   }
 
   async function handleOpenGoogleSheetsPicker() {
+    setImportOpen(false);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 50);
+        });
+      });
+    });
+
     setGoogleSheetsPickerLoading(true);
     try {
       const res = await fetch("/api/psychologist/google-sheets/access-token");
@@ -838,17 +883,37 @@ export function PsychologistClientsList({
         throw new Error("Нет токена доступа — подключите Google ещё раз");
       }
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY?.trim();
+
+      function reopenImportDialog() {
+        resumeImportWithoutResetRef.current = true;
+        setImportOpen(true);
+      }
+
       openGoogleSheetsPicker({
         accessToken,
         developerKey: apiKey,
         onPicked: (id) => {
-          setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${id}/edit`);
-          toast.success("Таблица выбрана");
+          const url = `https://docs.google.com/spreadsheets/d/${id}/edit`;
+          skipGoogleSheetsProfileUrlOnceRef.current = true;
+          setGoogleSheetsImportUrl(url);
+          resumeImportWithoutResetRef.current = true;
+          setImportOpen(true);
+          window.setTimeout(() => {
+            void loadGoogleSheetsTableIntoImport(url);
+          }, 0);
         },
-        onError: (msg) => toast.error(msg)
+        onCancel: () => {
+          reopenImportDialog();
+        },
+        onError: (msg) => {
+          toast.error(msg);
+          reopenImportDialog();
+        }
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Ошибка");
+      resumeImportWithoutResetRef.current = true;
+      setImportOpen(true);
     } finally {
       setGoogleSheetsPickerLoading(false);
     }
