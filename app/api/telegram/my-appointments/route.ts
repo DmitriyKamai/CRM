@@ -8,7 +8,8 @@ const BOT_SECRET_HEADER = "x-bot-secret";
 
 /**
  * Список записей пользователя (клиент или психолог).
- * POST, тело: { chatId: string, range?: "upcoming" | "history" }. По умолчанию range=upcoming (start >= сейчас).
+ * POST, тело: { chatId: string, range?: "upcoming" | "history" }.
+ * По умолчанию history: start за последние 90 дней (как в CRM). upcoming — только start >= сейчас (часовой пояс сервера).
  * Заголовок X-Bot-Secret.
  */
 export async function POST(request: Request) {
@@ -23,8 +24,7 @@ export async function POST(request: Request) {
     if (mod) return mod;
 
     const body = await request.json().catch(() => null);
-    /** Бот: только предстоящие (start >= сейчас). history — окно 90 дней назад как раньше. */
-    const range = body?.range === "history" ? "history" : "upcoming";
+    const range = body?.range === "upcoming" ? "upcoming" : "history";
     // Строка целиком — без Number(), чтобы не терять точность у больших chat_id.
     const raw = body?.chatId;
     const chatIdStr =
@@ -135,9 +135,7 @@ export async function POST(request: Request) {
       where: {
         psychologist: { userId: user.id },
         status: { in: [...activeStatuses] },
-        start: startTimeFilter,
-        // Демо «я — свой же клиент» в своей практике (client.userId = врач).
-        NOT: { client: { userId: user.id } }
+        start: startTimeFilter
       },
       orderBy: { start: "asc" },
       include: {

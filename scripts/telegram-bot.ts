@@ -117,7 +117,7 @@ async function runMyAppointments(ctx: Context) {
         "Content-Type": "application/json",
         "X-Bot-Secret": secret!
       },
-      body: JSON.stringify({ chatId: String(chatId), range: "upcoming" })
+      body: JSON.stringify({ chatId: String(chatId), range: "history" })
     });
 
     const data = await res.json().catch(() => ({}));
@@ -138,7 +138,10 @@ async function runMyAppointments(ctx: Context) {
     const outgoing = (data.appointmentsAsClient ?? []) as ApptRow[];
 
     if (incoming.length === 0 && outgoing.length === 0) {
-      await ctx.reply("У вас нет записей за выбранный период.", mainKeyboard).catch(() => {});
+      await ctx.reply(
+        "За последние 90 дней нет записей в подходящих статусах или аккаунт Telegram не совпадает с тем, где вы смотрите расписание.",
+        mainKeyboard
+      ).catch(() => {});
       return;
     }
 
@@ -169,7 +172,7 @@ async function runMyAppointments(ctx: Context) {
           "\n\nℹ️ Раздел «к вам на приём» пуст: у этого аккаунта нет профиля специалиста в CRM. Если вы принимаете клиентов, привяжите Telegram в настройках того же пользователя, под которым заходите в кабинет психолога (не только в кабинет клиента).";
       } else if (data.hasPsychologistProfile === true) {
         hint =
-          "\n\nℹ️ Нет предстоящих приёмов к вам (с сегодня и дальше по времени сервера). Проверьте расписание на сайте.";
+          "\n\nℹ️ В блоке «к вам» пусто: за выбранный период нет приёмов в статусах ожидание / подтверждена / завершена. Проверьте расписание на сайте.";
       }
     }
 
