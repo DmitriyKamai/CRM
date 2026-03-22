@@ -2,7 +2,20 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ArrowUpDown, UserCheck, Users, Plus, Trash2, Pencil, Download, ChevronDown, Upload } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  ArrowUpDown,
+  UserCheck,
+  Users,
+  Plus,
+  Trash2,
+  Pencil,
+  Download,
+  ChevronDown,
+  Upload,
+  FileSpreadsheet
+} from "lucide-react";
+import { toast } from "sonner";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -35,6 +48,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
@@ -207,6 +221,16 @@ export function PsychologistClientsList({
   const [singleDeleting, setSingleDeleting] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [googleSheetsOpen, setGoogleSheetsOpen] = useState(false);
+  const [googleSheetsLoading, setGoogleSheetsLoading] = useState(false);
+  const [googleSheetsSaving, setGoogleSheetsSaving] = useState(false);
+  const [googleSheetsServerConfigured, setGoogleSheetsServerConfigured] = useState<
+    boolean | null
+  >(null);
+  const [googleSheetsSpreadsheetId, setGoogleSheetsSpreadsheetId] = useState<string | null>(
+    null
+  );
+  const [googleSheetsInput, setGoogleSheetsInput] = useState("");
 
   const IMPORT_FIELDS: { key: string; label: string }[] = [
     { key: "firstName", label: "Имя" },
@@ -663,6 +687,98 @@ export function PsychologistClientsList({
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Ошибка экспорта");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function loadGoogleSheetsStatus() {
+    setGoogleSheetsLoading(true);
+    try {
+      const res = await fetch("/api/psychologist/google-sheets");
+      const data = (await res.json().catch(() => null)) as {
+        serverConfigured?: boolean;
+        spreadsheetId?: string | null;
+        message?: string;
+      } | null;
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось загрузить настройки Google Таблиц");
+      }
+      setGoogleSheetsServerConfigured(Boolean(data?.serverConfigured));
+      const id =
+        typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
+          ? data.spreadsheetId.trim()
+          : null;
+      setGoogleSheetsSpreadsheetId(id);
+      setGoogleSheetsInput(
+        id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : ""
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Ошибка загрузки настроек");
+    } finally {
+      setGoogleSheetsLoading(false);
+    }
+  }
+
+  async function saveGoogleSheetsConfig() {
+    setGoogleSheetsSaving(true);
+    try {
+      const res = await fetch("/api/psychologist/google-sheets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spreadsheetId: googleSheetsInput.trim() || null
+        })
+      });
+      const data = (await res.json().catch(() => null)) as {
+        spreadsheetId?: string | null;
+        message?: string;
+      } | null;
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось сохранить таблицу");
+      }
+      const id =
+        typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
+          ? data.spreadsheetId.trim()
+          : null;
+      setGoogleSheetsSpreadsheetId(id);
+      toast.success("Таблица для экспорта сохранена");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Ошибка сохранения");
+    } finally {
+      setGoogleSheetsSaving(false);
+    }
+  }
+
+  async function exportToGoogleSheets() {
+    setExporting(true);
+    try {
+      const body: { statusId?: string } = {};
+      if (statusFilter !== "ALL") body.statusId = statusFilter;
+      const res = await fetch("/api/psychologist/clients/export/google-sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = (await res.json().catch(() => null)) as {
+        message?: string;
+        exportedCount?: number;
+      } | null;
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицы");
+      }
+      toast.success(
+        data?.message ??
+          (typeof data?.exportedCount === "number"
+            ? `Выгружено строк: ${data.exportedCount}`
+            : "Готово")
+      );
+      setGoogleSheetsOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Ошибка экспорта");
     } finally {
       setExporting(false);
     }
@@ -1230,6 +1346,18 @@ export function PsychologistClientsList({
                     >
                       Скачать XLSX
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setGoogleSheetsOpen(true);
+                        void loadGoogleSheetsStatus();
+                      }}
+                      disabled={exporting || clients.length === 0}
+                    >
+                      <FileSpreadsheet className="h-4 w-4 mr-2 shrink-0" />
+                      Google Таблицы…
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
@@ -1241,6 +1369,79 @@ export function PsychologistClientsList({
                 </Button>
               </div>
             </div>
+
+            <Dialog
+              open={googleSheetsOpen}
+              onOpenChange={(open) => {
+                setGoogleSheetsOpen(open);
+                if (!open) {
+                  setGoogleSheetsServerConfigured(null);
+                }
+              }}
+            >
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Экспорт в Google Таблицы</DialogTitle>
+                  <DialogDescription>
+                    Укажите таблицу и выдайте сервисному аккаунту доступ «Редактор». Данные
+                    записываются на лист «Клиенты CRM» (лист создаётся при первом экспорте).
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                  {googleSheetsLoading ? (
+                    <p className="text-sm text-muted-foreground">Загрузка…</p>
+                  ) : googleSheetsServerConfigured === false ? (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        На сервере не задан GOOGLE_SERVICE_ACCOUNT_JSON — экспорт в Google
+                        Таблицы недоступен. Обратитесь к администратору.
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  <div className="space-y-2">
+                    <Label htmlFor="google-sheets-url">Ссылка на таблицу или ID</Label>
+                    <Input
+                      id="google-sheets-url"
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      value={googleSheetsInput}
+                      onChange={(e) => setGoogleSheetsInput(e.target.value)}
+                      disabled={googleSheetsLoading}
+                    />
+                    {googleSheetsSpreadsheetId ? (
+                      <p className="text-xs text-muted-foreground">
+                        Сохранён ID: {googleSheetsSpreadsheetId}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void saveGoogleSheetsConfig()}
+                    disabled={
+                      googleSheetsLoading ||
+                      googleSheetsSaving ||
+                      googleSheetsServerConfigured === false
+                    }
+                  >
+                    {googleSheetsSaving ? "Сохранение…" : "Сохранить таблицу"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void exportToGoogleSheets()}
+                    disabled={
+                      exporting ||
+                      googleSheetsLoading ||
+                      !googleSheetsSpreadsheetId ||
+                      googleSheetsServerConfigured === false
+                    }
+                  >
+                    {exporting ? "Выгрузка…" : "Выгрузить сейчас"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Импорт */}
             <Dialog
