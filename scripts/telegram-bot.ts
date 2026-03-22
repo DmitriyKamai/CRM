@@ -135,13 +135,26 @@ async function runMyAppointments(ctx: Context) {
       return;
     }
 
-    const lines = appointments.map((a: { start: string; clientName?: string; psychologistName?: string; status: string }, i: number) => {
-      const d = new Date(a.start);
-      const dateStr = d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
-      const who = role === "psychologist" ? a.clientName : a.psychologistName;
-      const statusLabel = a.status === "PENDING_CONFIRMATION" ? " (ожидает подтверждения)" : "";
-      return `${i + 1}. ${dateStr} — ${who}${statusLabel}`;
-    });
+    const lines = appointments.map(
+      (
+        a: {
+          start: string;
+          counterpartyName?: string;
+          clientName?: string;
+          psychologistName?: string;
+          status: string;
+        },
+        i: number
+      ) => {
+        const d = new Date(a.start);
+        const dateStr = d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+        const who =
+          a.counterpartyName ??
+          (role === "psychologist" ? a.clientName : a.psychologistName);
+        const statusLabel = a.status === "PENDING_CONFIRMATION" ? " (ожидает подтверждения)" : "";
+        return `${i + 1}. ${dateStr} — ${who}${statusLabel}`;
+      }
+    );
 
     const text = "Мои записи:\n\n" + lines.join("\n") + "\n\nДля записей «ожидает подтверждения» можно нажать «Подтвердить» или «Отменить». Для подтверждённых — только «Отменить».";
 

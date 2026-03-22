@@ -56,39 +56,6 @@ export async function POST(request: Request) {
       "COMPLETED"
     ] as const;
 
-    if (user.role === "PSYCHOLOGIST") {
-      const profile = await prisma.psychologistProfile.findUnique({
-        where: { userId: user.id },
-        select: { id: true }
-      });
-      if (profile) {
-        const appointments = await prisma.appointment.findMany({
-          where: {
-            psychologistId: profile.id,
-            status: { in: [...activeStatuses] },
-            start: { gte: fromDate }
-          },
-          orderBy: { start: "asc" },
-          include: {
-            client: { select: { firstName: true, lastName: true } }
-          }
-        });
-
-        return NextResponse.json({
-          role: "psychologist",
-          appointments: appointments.map((a) => ({
-            id: a.id,
-            start: a.start.toISOString(),
-            end: a.end.toISOString(),
-            status: a.status,
-            clientName: [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент"
-          }))
-        });
-      }
-    }
-
-    // Записи как клиент: не только role=CLIENT — иначе UNSPECIFIED/прочие с карточкой видят пустой список.
-    // Фильтр по связи client — надёжнее, чем отдельный find по clientProfile (регистр email в БД может отличаться).
     const emailNorm = user.email?.trim().toLowerCase() ?? "";
     const clientOr: Prisma.ClientProfileWhereInput[] = [{ userId: user.id }];
     if (emailNorm.length > 0) {
@@ -97,6 +64,7 @@ export async function POST(request: Request) {
       });
     }
 
+    // Записи как клиент (все роли): не обрезаем только по role=CLIENT.
     const clientAppointments = await prisma.appointment.findMany({
       where: {
         status: { in: [...activeStatuses] },
@@ -109,15 +77,81 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json({
-      role: "client",
-      appointments: clientAppointments.map((a) => ({
+    // Записи как психолог: раньше при наличии профиля возвращали только их — без блока «как клиент»
+    // у специалиста с пустым расписанием пропадали все записи, если он смотрит приёмы как клиент.
+    type Row = {
+      id: string;
+      start: string;
+      end: string;
+      status: string;
+      clientName?: string;
+      psychologistName?: string;
+      /** Удобно для бота: всегда «второе лицо» в приёме */
+      counterpartyName: string;
+    };
+
+    const asClient: Row[] = clientAppointments.map((a) => {
+      const psychologistName =
+        [a.psychologist.lastName, a.psychologist.firstName].filter(Boolean).join(" ").trim() || "Психолог";
+      return {
         id: a.id,
         start: a.start.toISOString(),
         end: a.end.toISOString(),
         status: a.status,
-        psychologistName: [a.psychologist.lastName, a.psychologist.firstName].filter(Boolean).join(" ").trim() || "Психолог"
-      }))
+        psychologistName,
+        counterpartyName: psychologistName
+      };
+    });
+
+    let asPsychologist: Row[] = [];
+    if (user.role === "PSYCHOLOGIST") {
+      const profile = await prisma.psychologistProfile.findUnique({
+        where: { userId: user.id },
+        select: { id: true }
+      });
+      if (profile) {
+        const psychRows = await prisma.appointment.findMany({
+          where: {
+            psychologistId: profile.id,
+            status: { in: [...activeStatuses] },
+            start: { gte: fromDate }
+          },
+          orderBy: { start: "asc" },
+          include: {
+            client: { select: { firstName: true, lastName: true } }
+          }
+        });
+        asPsychologist = psychRows.map((a) => {
+          const clientName =
+            [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент";
+          return {
+            id: a.id,
+            start: a.start.toISOString(),
+            end: a.end.toISOString(),
+            status: a.status,
+            clientName,
+            counterpartyName: clientName
+          };
+        });
+      }
+    }
+
+    const byId = new Map<string, Row>();
+    for (const r of [...asPsychologist, ...asClient]) {
+      if (!byId.has(r.id)) byId.set(r.id, r);
+    }
+    const merged = [...byId.values()].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+    );
+
+    const hasPsych = asPsychologist.length > 0;
+    const hasClient = asClient.length > 0;
+    const role =
+      hasPsych && hasClient ? "mixed" : hasPsych ? "psychologist" : "client";
+
+    return NextResponse.json({
+      role,
+      appointments: merged
     });
   } catch (err) {
     console.error("[POST /api/telegram/my-appointments]", err);
