@@ -41,7 +41,7 @@ export async function POST(
 
     const user = await prisma.user.findFirst({
       where: { telegramChatId: chatIdStr },
-      select: { id: true, role: true }
+      select: { id: true, email: true }
     });
 
     if (!user) {
@@ -68,24 +68,24 @@ export async function POST(
       );
     }
 
-    let isClient = false;
-    let isPsychologist = false;
+    const emailNorm = user.email?.trim().toLowerCase() ?? "";
+    const clientOr = [
+      { userId: user.id },
+      ...(emailNorm.length > 0
+        ? [{ email: { equals: emailNorm, mode: "insensitive" as const } }]
+        : [])
+    ] as const;
 
-    if (user.role === "CLIENT") {
-      const clientProfile = await prisma.clientProfile.findFirst({
-        where: { userId: user.id, id: appt.clientId },
-        select: { id: true }
-      });
-      isClient = !!clientProfile;
-    }
+    const isClient = !!(await prisma.clientProfile.findFirst({
+      where: { id: appt.clientId, OR: [...clientOr] },
+      select: { id: true }
+    }));
 
-    if (user.role === "PSYCHOLOGIST" && appt.psychologistId === appt.psychologist?.id) {
-      const profile = await prisma.psychologistProfile.findUnique({
-        where: { userId: user.id },
-        select: { id: true }
-      });
-      isPsychologist = profile?.id === appt.psychologistId;
-    }
+    const profile = await prisma.psychologistProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true }
+    });
+    const isPsychologist = profile?.id === appt.psychologistId;
 
     if (!isClient && !isPsychologist) {
       return NextResponse.json(

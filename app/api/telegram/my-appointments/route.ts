@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
@@ -60,76 +61,64 @@ export async function POST(request: Request) {
         where: { userId: user.id },
         select: { id: true }
       });
-      if (!profile) {
-        return NextResponse.json({ appointments: [] });
+      if (profile) {
+        const appointments = await prisma.appointment.findMany({
+          where: {
+            psychologistId: profile.id,
+            status: { in: [...activeStatuses] },
+            start: { gte: fromDate }
+          },
+          orderBy: { start: "asc" },
+          include: {
+            client: { select: { firstName: true, lastName: true } }
+          }
+        });
+
+        return NextResponse.json({
+          role: "psychologist",
+          appointments: appointments.map((a) => ({
+            id: a.id,
+            start: a.start.toISOString(),
+            end: a.end.toISOString(),
+            status: a.status,
+            clientName: [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент"
+          }))
+        });
       }
+    }
 
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          psychologistId: profile.id,
-          status: { in: [...activeStatuses] },
-          start: { gte: fromDate }
-        },
-        orderBy: { start: "asc" },
-        include: {
-          client: { select: { firstName: true, lastName: true } }
-        }
-      });
-
-      return NextResponse.json({
-        role: "psychologist",
-        appointments: appointments.map((a) => ({
-          id: a.id,
-          start: a.start.toISOString(),
-          end: a.end.toISOString(),
-          status: a.status,
-          clientName: [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент"
-        }))
+    // Записи как клиент: не только role=CLIENT — иначе UNSPECIFIED/прочие с карточкой видят пустой список.
+    // Фильтр по связи client — надёжнее, чем отдельный find по clientProfile (регистр email в БД может отличаться).
+    const emailNorm = user.email?.trim().toLowerCase() ?? "";
+    const clientOr: Prisma.ClientProfileWhereInput[] = [{ userId: user.id }];
+    if (emailNorm.length > 0) {
+      clientOr.push({
+        email: { equals: emailNorm, mode: "insensitive" }
       });
     }
 
-    if (user.role === "CLIENT") {
-      const emailNorm = user.email?.trim().toLowerCase() ?? "";
-      const clientProfiles = await prisma.clientProfile.findMany({
-        where: {
-          OR: [
-            { userId: user.id },
-            ...(emailNorm.length > 0 ? [{ email: emailNorm }] : [])
-          ]
-        },
-        select: { id: true }
-      });
-      const clientIds = [...new Set(clientProfiles.map((c) => c.id))];
-
-      if (clientIds.length === 0) {
-        return NextResponse.json({ role: "client", appointments: [] });
+    const clientAppointments = await prisma.appointment.findMany({
+      where: {
+        status: { in: [...activeStatuses] },
+        start: { gte: fromDate },
+        client: { OR: clientOr }
+      },
+      orderBy: { start: "asc" },
+      include: {
+        psychologist: { select: { firstName: true, lastName: true } }
       }
+    });
 
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          clientId: { in: clientIds },
-          status: { in: [...activeStatuses] },
-          start: { gte: fromDate }
-        },
-        orderBy: { start: "asc" },
-        include: {
-          psychologist: { select: { firstName: true, lastName: true } }
-        }
-      });
-
-      return NextResponse.json({
-        role: "client",
-        appointments: appointments.map((a) => ({
-          id: a.id,
-          start: a.start.toISOString(),
-          end: a.end.toISOString(),
-          status: a.status,
-          psychologistName: [a.psychologist.lastName, a.psychologist.firstName].filter(Boolean).join(" ").trim() || "Психолог"
-        }))
-      });
-    }
-
-    return NextResponse.json({ appointments: [] });
+    return NextResponse.json({
+      role: "client",
+      appointments: clientAppointments.map((a) => ({
+        id: a.id,
+        start: a.start.toISOString(),
+        end: a.end.toISOString(),
+        status: a.status,
+        psychologistName: [a.psychologist.lastName, a.psychologist.firstName].filter(Boolean).join(" ").trim() || "Психолог"
+      }))
+    });
   } catch (err) {
     console.error("[POST /api/telegram/my-appointments]", err);
     return NextResponse.json(
