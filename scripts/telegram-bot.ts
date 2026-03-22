@@ -162,8 +162,20 @@ async function runMyAppointments(ctx: Context) {
       outgoing.forEach((a, i) => blocks.push(formatLine(a, i + 1)));
     }
 
+    let hint = "";
+    if (incoming.length === 0 && outgoing.length > 0) {
+      if (data.hasPsychologistProfile === false) {
+        hint =
+          "\n\nℹ️ Раздел «к вам на приём» пуст: у этого аккаунта нет профиля специалиста в CRM. Если вы принимаете клиентов, привяжите Telegram в настройках того же пользователя, под которым заходите в кабинет психолога (не только в кабинет клиента).";
+      } else if (data.hasPsychologistProfile === true) {
+        hint =
+          "\n\nℹ️ За последние 90 дней к вам нет записей в статусах «ожидает / подтверждена / завершена» (или они отменены). Проверьте расписание на сайте.";
+      }
+    }
+
     const text =
       blocks.join("\n") +
+      hint +
       "\n\nДля записей «ожидает подтверждения» можно нажать «Подтвердить» или «Отменить». Для подтверждённых — только «Отменить».";
 
     const forButtons: ApptRow[] = [...incoming, ...outgoing];

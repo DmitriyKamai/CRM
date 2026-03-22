@@ -125,31 +125,30 @@ export async function POST(request: Request) {
       counterpartyName: string;
     };
 
-    let appointmentsAsPsychologist: Item[] = [];
-    if (psychProfile) {
-      const psychRows = await prisma.appointment.findMany({
-        where: {
-          psychologistId: psychProfile.id,
-          status: { in: [...activeStatuses] },
-          start: { gte: fromDate }
-        },
-        orderBy: { start: "asc" },
-        include: {
-          client: { select: { firstName: true, lastName: true } }
-        }
-      });
-      appointmentsAsPsychologist = psychRows.map((a) => {
-        const clientName =
-          [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент";
-        return {
-          id: a.id,
-          start: a.start.toISOString(),
-          end: a.end.toISOString(),
-          status: a.status,
-          counterpartyName: clientName
-        };
-      });
-    }
+    // «К вам»: по связи psychologist.userId — эквивалент psychologistId, но не зависит от лишнего шага;
+    // если PsychologistProfile есть, записи всё равно матчятся по владельцу профиля.
+    const psychRows = await prisma.appointment.findMany({
+      where: {
+        psychologist: { userId: user.id },
+        status: { in: [...activeStatuses] },
+        start: { gte: fromDate }
+      },
+      orderBy: { start: "asc" },
+      include: {
+        client: { select: { firstName: true, lastName: true } }
+      }
+    });
+    const appointmentsAsPsychologist: Item[] = psychRows.map((a) => {
+      const clientName =
+        [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент";
+      return {
+        id: a.id,
+        start: a.start.toISOString(),
+        end: a.end.toISOString(),
+        status: a.status,
+        counterpartyName: clientName
+      };
+    });
 
     const appointmentsAsClient: Item[] = clientAppointments.map((a) => {
       const psychologistName =
@@ -170,6 +169,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       role,
+      /** Есть ли в БД PsychologistProfile у этого пользователя (для подсказки в боте) */
+      hasPsychologistProfile: Boolean(psychProfile),
       /** Приёмы к вам как к специалисту — в строке имя клиента */
       appointmentsAsPsychologist,
       /** Ваши записи к другим специалистам — в строке имя психолога */
