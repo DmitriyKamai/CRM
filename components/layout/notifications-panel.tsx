@@ -110,7 +110,7 @@ export function NotificationsPanel() {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 p-0 shadow-lg"
+        className="w-80 p-0"
         align="end"
         sideOffset={8}
       >

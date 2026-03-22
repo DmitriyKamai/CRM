@@ -972,11 +972,11 @@ export function PsychologistSchedule() {
                                             </div>
                                             <button
                                               type="button"
-                                              className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted"
+                                              className="ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/90 bg-background/95 text-foreground shadow-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                               onClick={() => setOpenSlotId(null)}
                                               aria-label="Закрыть"
                                             >
-                                              <X className="h-3 w-3 text-muted-foreground" />
+                                              <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                                             </button>
                                           </div>
 
