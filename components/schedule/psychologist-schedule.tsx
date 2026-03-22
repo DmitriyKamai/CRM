@@ -649,7 +649,7 @@ export function PsychologistSchedule() {
           </div>
           <div className="min-w-0 flex-1 space-y-2">
             <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
-            <div className="overflow-x-auto pb-1 md:overflow-visible">
+            <div className="overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0">
               <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
                 <CardContent className="space-y-2 px-4 py-3">
                   <ScheduleGridSkeleton />
@@ -784,7 +784,7 @@ export function PsychologistSchedule() {
             </div>
           </div>
 
-          <div className="touch-pan-x overflow-x-auto pb-2 md:overflow-visible md:pb-0">
+          <div className="overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0">
           <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
             <CardContent className="space-y-2 px-4 py-3">
           {error && (
@@ -840,7 +840,7 @@ export function PsychologistSchedule() {
                             const isLastCol = dayIndex === weekDays.length - 1;
 
                             const cellClass =
-                              "border-t border-l border-border/40 px-1" +
+                              "border-t border-l border-border/40 px-1 touch-manipulation" +
                               (isLastCol ? " border-r border-border/40" : "") +
                               (isLastRow ? " pb-2" : "");
 
@@ -934,7 +934,7 @@ export function PsychologistSchedule() {
                                         <PopoverTrigger asChild>
                                           <div
                                             className={
-                                              "absolute left-0 right-0 z-10 rounded-md border px-2 py-1.5 shadow-sm cursor-pointer text-white " +
+                                              "absolute left-0 right-0 z-10 touch-manipulation rounded-md border px-2 py-1.5 shadow-sm cursor-pointer text-white " +
                                               slotBgClass +
                                               " " +
                                               slotBorderClass

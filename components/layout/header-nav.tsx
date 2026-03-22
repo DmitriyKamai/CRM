@@ -134,7 +134,7 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
           : mounted ? "Пользователь" : "—";
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] px-4">
+    <header className="surface-glass relative z-40 flex h-14 shrink-0 items-center justify-between gap-2 rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] px-4">
       <div className="flex items-center gap-2 min-w-0">
         {onMenuClick && (
           <Button

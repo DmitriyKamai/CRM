@@ -328,7 +328,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       )}
 
       {bookingEnabled && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md supports-[backdrop-filter]:bg-background/85 sm:hidden">
+        <div className="surface-glass-dock fixed bottom-0 left-0 right-0 z-40 rounded-t-2xl p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_-8px_32px_rgba(0,0,0,0.45)] sm:hidden">
           <Button className="w-full shadow-md" size="lg" asChild>
             <a href="#booking">Записаться на приём</a>
           </Button>

@@ -33,7 +33,7 @@ export function AppShell({ role, children, modules }: AppShellProps) {
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent
           side="left"
-          className="w-[280px] p-0 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))]"
+          className="surface-glass w-[280px] rounded-none border-l-0 border-t-0 border-b-0 border-r border-r-[hsl(var(--sidebar-border))] p-0 shadow-2xl"
         >
           <div className="flex h-full flex-col pt-2">
             <SidebarNavContent

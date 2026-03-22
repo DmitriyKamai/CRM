@@ -1151,10 +1151,10 @@ export function PsychologistClientsList({
                 </TabsList>
               </Tabs>
             )}
-            {/* Header */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">
+            {/* Header: на узких экранах — колонка, чтобы подсказка не сжималась в одну линию с кнопками */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+              <div className="min-w-0 w-full flex flex-col gap-1 sm:max-w-xl sm:pr-2">
+                <p className="text-pretty text-sm leading-snug text-muted-foreground">
                   Нажмите на строку, чтобы открыть профиль клиента.
                 </p>
                 {multiSelectMode && selectedIds.size > 0 && (
@@ -1163,7 +1163,7 @@ export function PsychologistClientsList({
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
                 {multiSelectMode ? (
                   <>
                     <Button

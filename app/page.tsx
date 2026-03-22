@@ -75,7 +75,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           brand={{ href: "/", label: "Empatix" }}
         />
       ) : (
-        <header className="border-b bg-background/80 backdrop-blur">
+        <header className="surface-glass rounded-none border-x-0 border-t-0 border-b">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
             <Link
               href="/"

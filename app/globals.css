@@ -144,12 +144,23 @@
     background-size: 18px 18px;
   }
 
-  /** Лёгкое «стекло» (blur) — по желанию на карточках и модалках. */
+  /** Лёгкое «стекло» (blur) — шапки, плавающие панели, листы. */
   .surface-glass {
     border: 1px solid hsl(var(--border) / 0.85);
-    background-color: hsl(var(--card) / 0.75);
+    background-color: hsl(var(--card) / 0.78);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
+  }
+
+  /** Нижняя плашка (только верхняя граница + скругление). */
+  .surface-glass-dock {
+    border: 1px solid hsl(var(--border) / 0.85);
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    background-color: hsl(var(--card) / 0.82);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
 
   .field-label {
