@@ -57,38 +57,64 @@ export async function POST(request: Request) {
     ] as const;
 
     const emailNorm = user.email?.trim().toLowerCase() ?? "";
-    const clientOr: Prisma.ClientProfileWhereInput[] = [{ userId: user.id }];
-    if (emailNorm.length > 0) {
-      clientOr.push({
-        email: { equals: emailNorm, mode: "insensitive" }
-      });
-    }
 
-    // Как в /api/client/dashboard: сначала все карточки клиента по userId и email, затем по clientId.
-    // Вложенный фильтр client: { OR } в findMany иногда ведёт себя иначе на части связей.
+    /** Нужен раньше запроса карточек «как клиент», чтобы отсечь «я — клиент у самого себя». */
+    const psychProfile = await prisma.psychologistProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true }
+    });
+    const ownPsychologistId = psychProfile?.id;
+
+    // Карточки для визитов К ДРУГИМ специалистам: не берём ClientProfile с psychologistId = свой профиль
+    // при том же userId/email — иначе записи «к вам на приём» дублируются в «вы записаны» с вашим же ФИО.
+    const clientProfileWhere: Prisma.ClientProfileWhereInput = {
+      OR: [
+        ownPsychologistId
+          ? {
+              userId: user.id,
+              NOT: { psychologistId: ownPsychologistId }
+            }
+          : { userId: user.id },
+        ...(emailNorm.length > 0
+          ? [
+              {
+                email: { equals: emailNorm, mode: "insensitive" },
+                ...(ownPsychologistId
+                  ? { NOT: { psychologistId: ownPsychologistId } }
+                  : {})
+              }
+            ]
+          : [])
+      ]
+    };
+
     const clientProfiles = await prisma.clientProfile.findMany({
-      where: { OR: clientOr },
+      where: clientProfileWhere,
       select: { id: true }
     });
     const clientIds = [...new Set(clientProfiles.map((c) => c.id))];
+
+    const clientAppointmentsWhere: Prisma.AppointmentWhereInput = {
+      clientId: { in: clientIds },
+      status: { in: [...activeStatuses] },
+      start: { gte: fromDate },
+      ...(ownPsychologistId
+        ? { NOT: { psychologistId: ownPsychologistId } }
+        : {})
+    };
 
     const clientAppointments =
       clientIds.length === 0
         ? []
         : await prisma.appointment.findMany({
-            where: {
-              clientId: { in: clientIds },
-              status: { in: [...activeStatuses] },
-              start: { gte: fromDate }
-            },
+            where: clientAppointmentsWhere,
             orderBy: { start: "asc" },
             include: {
               psychologist: { select: { firstName: true, lastName: true } }
             }
           });
 
-    // Записи как психолог: смотрим по наличию PsychologistProfile, а не только по role=PSYCHOLOGIST
-    // (иначе «ко мне» не видны при UNSPECIFIED/ADMIN с карточкой специалиста).
+    // Записи как психолог: по PsychologistProfile, не только по role=PSYCHOLOGIST
     /** Одна запись для бота: без слияния «к вам» / «вы идёте» в один список — иначе путаются имена. */
     type Item = {
       id: string;
@@ -98,11 +124,6 @@ export async function POST(request: Request) {
       /** К вам на приём — имя клиента; ваш визит — имя специалиста */
       counterpartyName: string;
     };
-
-    const psychProfile = await prisma.psychologistProfile.findUnique({
-      where: { userId: user.id },
-      select: { id: true }
-    });
 
     let appointmentsAsPsychologist: Item[] = [];
     if (psychProfile) {
