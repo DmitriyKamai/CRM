@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
@@ -105,6 +106,13 @@ export async function POST(request: Request, { params }: ParamsPromise) {
         mimeType: file.type || "application/octet-stream",
         size: file.size
       }
+    });
+
+    await safeLogClientHistory({
+      clientId: id,
+      type: ClientHistoryType.FILE_UPLOADED,
+      actorUserId: ctx.userId,
+      meta: { fileId: created.id, filename: safeName }
     });
 
     return NextResponse.json(created, { status: 201 });

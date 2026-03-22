@@ -89,6 +89,8 @@ model User {
 
   // Обратная связь для AuditLog.actor
   auditLogs AuditLog[] @relation("AuditLogActor")
+
+  clientHistoryEventsAuthored ClientHistoryEvent[] @relation("ClientHistoryActor")
 }
 
 /// Одноразовые токены для привязки Telegram (ссылка с сайта → бот).
@@ -281,6 +283,25 @@ model ClientProfile {
   recommendationsReceived Recommendation[]
   diagnosticLinks         DiagnosticLink[]
   clientRegistrationInvites ClientRegistrationInvite[]
+  historyEvents           ClientHistoryEvent[]
+}
+
+/// События по клиенту для ленты «История» (отдельно от глобального AuditLog).
+model ClientHistoryEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  type String
+
+  actorUserId String?
+  actor       User?   @relation("ClientHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  meta Json?
+
+  @@index([clientId, createdAt(sort: Desc)])
 }
 
 model ClientStatus {

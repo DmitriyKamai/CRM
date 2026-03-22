@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { safeLogAudit } from "@/lib/audit-log";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
@@ -31,6 +32,12 @@ export async function DELETE(req: Request, { params }: ParamsPromise) {
         targetId: fileId,
         ip: getClientIp(req),
         meta: { clientId: id }
+      });
+      await safeLogClientHistory({
+        clientId: id,
+        type: ClientHistoryType.FILE_DELETED,
+        actorUserId: ctx.userId,
+        meta: { fileId }
       });
     }
 

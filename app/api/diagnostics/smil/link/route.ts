@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { TestType } from "@prisma/client";
 
 import { safeLogAudit } from "@/lib/audit-log";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -137,6 +138,15 @@ export async function POST(request: Request) {
           maxUses
         }
       });
+
+      if (clientId) {
+        await safeLogClientHistory({
+          clientId,
+          type: ClientHistoryType.DIAGNOSTIC_LINK_CREATED,
+          actorUserId: userId,
+          meta: { testType: "SMIL", linkId: link.id, maxUses }
+        });
+      }
 
       return NextResponse.json(
         {

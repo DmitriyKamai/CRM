@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 
 import { safeLogAudit } from "@/lib/audit-log";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
@@ -109,6 +110,12 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         targetType: "ClientProfile",
         targetId: id,
         ip: getClientIp(request),
+        meta: { fieldCount: fieldKeys.length }
+      });
+      await safeLogClientHistory({
+        clientId: id,
+        type: ClientHistoryType.CUSTOM_FIELDS_UPDATED,
+        actorUserId: ctx.userId,
         meta: { fieldCount: fieldKeys.length }
       });
     }

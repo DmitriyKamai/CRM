@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
@@ -107,8 +108,8 @@ export async function POST(request: Request) {
         );
       }
 
-      await prisma.$transaction([
-        prisma.testResult.create({
+      const testResult = await prisma.$transaction(async (tx) => {
+        const tr = await tx.testResult.create({
           data: {
             testId: link.testId,
             clientId: link.clientId ?? null,
@@ -117,15 +118,29 @@ export async function POST(request: Request) {
             scaleScores: scores,
             interpretation
           }
-        }),
-        prisma.diagnosticLink.update({
+        });
+        await tx.diagnosticLink.update({
           where: { id: link.id },
           data: { usedCount: { increment: 1 } }
-        }),
-        prisma.diagnosticProgress.deleteMany({
+        });
+        await tx.diagnosticProgress.deleteMany({
           where: { diagnosticLinkId: link.id }
-        })
-      ]);
+        });
+        return tr;
+      });
+
+      if (link.clientId) {
+        await safeLogClientHistory({
+          clientId: link.clientId,
+          type: ClientHistoryType.DIAGNOSTIC_COMPLETED,
+          actorUserId: null,
+          meta: {
+            testType: "PAVLOVA_SHMISHEK",
+            testTitle: link.test.title,
+            resultId: testResult.id
+          }
+        });
+      }
 
       return NextResponse.json(
         {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 import { safeLogAudit } from "@/lib/audit-log";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
@@ -135,6 +136,19 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         clientAddedToList
       },
       ip: getClientIp(request)
+    });
+
+    await safeLogClientHistory({
+      clientId: appt.clientId,
+      type: ClientHistoryType.APPOINTMENT_STATUS_CHANGED,
+      actorUserId: ctx.userId,
+      meta: {
+        appointmentId: id,
+        fromStatus: appt.status,
+        toStatus: status,
+        start: appt.start.toISOString(),
+        clientAddedToList
+      }
     });
 
     // Уведомление клиенту в Telegram при подтверждении или отмене

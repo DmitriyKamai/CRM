@@ -18,7 +18,17 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Mail, Pencil, UserCheck, Paperclip, Download, Trash, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Mail,
+  Pencil,
+  UserCheck,
+  Paperclip,
+  Download,
+  Trash,
+  ChevronLeft,
+  ChevronRight,
+  History
+} from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
@@ -59,6 +69,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CountryAutocomplete, CityAutocomplete } from "@/components/ui/location-autocomplete";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
+import { ClientHistoryPanel } from "@/components/psychologist/client-history-panel";
 import { cn } from "@/lib/utils";
 
 const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
@@ -281,6 +292,7 @@ export const PsychologistClientProfile = forwardRef<
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [historyTick, setHistoryTick] = useState(0);
   const schedulingOn = props.schedulingEnabled !== false;
   const diagnosticsOn = props.diagnosticsEnabled !== false;
 
@@ -288,6 +300,16 @@ export const PsychologistClientProfile = forwardRef<
     if (!diagnosticsOn && activeTab === "diagnostics") setActiveTab("profile");
     if (!schedulingOn && activeTab === "appointments") setActiveTab("profile");
   }, [diagnosticsOn, schedulingOn, activeTab]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const syncTab = () => {
+      if (mq.matches && activeTab === "history") setActiveTab("profile");
+    };
+    syncTab();
+    mq.addEventListener("change", syncTab);
+    return () => mq.removeEventListener("change", syncTab);
+  }, [activeTab]);
 
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
@@ -445,6 +467,7 @@ export const PsychologistClientProfile = forwardRef<
           statusColor: appliedColor
         });
       }
+      setHistoryTick((t) => t + 1);
     } catch (err) {
       console.error(err);
       setError(
@@ -530,6 +553,7 @@ export const PsychologistClientProfile = forwardRef<
           statusColor: statusColor ?? null
         });
       }
+      setHistoryTick((t) => t + 1);
     } catch (err) {
       console.error(err);
       setError(
@@ -559,6 +583,7 @@ export const PsychologistClientProfile = forwardRef<
         setError(msg);
         throw new Error(msg);
       }
+      setHistoryTick((t) => t + 1);
     } finally {
       setCustomFieldsSaving(false);
     }
@@ -794,6 +819,8 @@ export const PsychologistClientProfile = forwardRef<
         </Select>
       </div>
 
+      <div className="flex flex-col lg:flex-row gap-4 lg:items-start min-w-0 w-full">
+        <div className="min-w-0 flex-1">
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
@@ -831,6 +858,7 @@ export const PsychologistClientProfile = forwardRef<
                 <SelectItem value="diagnostics">Психологическая диагностика</SelectItem>
               )}
               {schedulingOn && <SelectItem value="appointments">Записи</SelectItem>}
+              <SelectItem value="history">История</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -882,6 +910,13 @@ export const PsychologistClientProfile = forwardRef<
                   Записи
                 </TabsTrigger>
               )}
+              <TabsTrigger
+                value="history"
+                className="whitespace-nowrap shrink-0 lg:hidden inline-flex items-center gap-1.5"
+              >
+                <History className="h-4 w-4 shrink-0" aria-hidden />
+                История
+              </TabsTrigger>
             </TabsList>
             </div>
             {tabsHaveOverflow && (
@@ -1645,6 +1680,7 @@ export const PsychologistClientProfile = forwardRef<
                           } else {
                             setFiles((prev) => [data, ...prev]);
                             if (input) input.value = "";
+                            setHistoryTick((t) => t + 1);
                           }
                         } catch (err) {
                           console.error(err);
@@ -1734,6 +1770,7 @@ export const PsychologistClientProfile = forwardRef<
                                     setFiles((prev) =>
                                       prev.filter((file) => file.id !== f.id)
                                     );
+                                    setHistoryTick((t) => t + 1);
                                   }
                                 } catch (err) {
                                   console.error(err);
@@ -1797,7 +1834,16 @@ export const PsychologistClientProfile = forwardRef<
             <ClientAppointments clientId={props.id} />
           </TabsContent>
         )}
+
+        <TabsContent value="history" className="mt-3 lg:hidden min-w-0">
+          <ClientHistoryPanel clientId={props.id} refreshKey={historyTick} />
+        </TabsContent>
       </Tabs>
+        </div>
+        <div className="hidden lg:block w-full lg:w-80 shrink-0 lg:sticky lg:top-4 self-start min-w-0">
+          <ClientHistoryPanel clientId={props.id} refreshKey={historyTick} />
+        </div>
+      </div>
     </div>
   );
 });

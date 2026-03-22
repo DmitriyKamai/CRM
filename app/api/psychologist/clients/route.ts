@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { requirePsychologist, requireRoles } from "@/lib/security/api-guards";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
@@ -266,6 +267,12 @@ export async function POST(request: Request) {
             statusId: statusIdToUse
           }
         });
+        await safeLogClientHistory({
+          clientId: clientProfile.id,
+          type: ClientHistoryType.CLIENT_CREATED,
+          actorUserId: ctx.userId,
+          meta: { source: "manual" }
+        });
         return NextResponse.json(clientProfile, { status: 201 });
       }
 
@@ -297,6 +304,12 @@ export async function POST(request: Request) {
           statusId: statusIdToUse
         }
       });
+      await safeLogClientHistory({
+        clientId: clientProfile.id,
+        type: ClientHistoryType.CLIENT_CREATED,
+        actorUserId: ctx.userId,
+        meta: { source: "manual" }
+      });
       return NextResponse.json(clientProfile, { status: 201 });
     }
 
@@ -315,6 +328,12 @@ export async function POST(request: Request) {
         notes: parsed.notes,
         statusId: statusIdToUse
       }
+    });
+    await safeLogClientHistory({
+      clientId: clientProfile.id,
+      type: ClientHistoryType.CLIENT_CREATED,
+      actorUserId: ctx.userId,
+      meta: { source: "manual" }
     });
     return NextResponse.json(clientProfile, { status: 201 });
   } catch (error) {
@@ -342,6 +361,23 @@ export async function DELETE(request: Request) {
 
     const json = await request.json().catch(() => null);
     const data = bulkDeleteSchema.parse(json ?? {});
+
+    const toDetach = await prisma.clientProfile.findMany({
+      where: {
+        id: { in: data.ids },
+        psychologistId: psych.id
+      },
+      select: { id: true }
+    });
+
+    for (const row of toDetach) {
+      await safeLogClientHistory({
+        clientId: row.id,
+        type: ClientHistoryType.REMOVED_FROM_LIST,
+        actorUserId: ctx.userId,
+        meta: { mode: "bulk_detach" }
+      });
+    }
 
     const result = await prisma.clientProfile.updateMany({
       where: {

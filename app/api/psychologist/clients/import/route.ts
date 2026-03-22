@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { safeLogAudit } from "@/lib/audit-log";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
@@ -296,6 +297,12 @@ export async function POST(request: Request) {
           }
         });
         created++;
+        await safeLogClientHistory({
+          clientId: client.id,
+          type: ClientHistoryType.CLIENT_CREATED,
+          actorUserId: ctx.userId,
+          meta: { source: "import" }
+        });
         await upsertCustomFieldsForClient(client.id);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Ошибка создания";
