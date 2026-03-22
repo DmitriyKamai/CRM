@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
 
 const PROFESSION_LABELS: Record<string, string> = {
@@ -134,7 +135,7 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
           : mounted ? "Пользователь" : "—";
 
   return (
-    <header className="surface-glass relative z-40 flex h-14 shrink-0 items-center justify-between gap-2 rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] px-4">
+    <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-2 rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] px-4">
       <div className="flex items-center gap-2 min-w-0">
         {onMenuClick && (
           <Button
@@ -185,7 +186,11 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="min-w-72 w-max max-w-[min(22rem,95vw)]"
+            className={cn(
+              "min-w-72 w-max max-w-[min(22rem,95vw)] surface-glass shadow-lg",
+              /* поверх дефолтного bg-popover из ui/dropdown-menu */
+              "bg-[hsl(0_0%_100%/0.42)] dark:bg-[hsl(0_0%_100%/0.1)]"
+            )}
             forceMount
           >
             <div className="flex items-center gap-3 p-2">
