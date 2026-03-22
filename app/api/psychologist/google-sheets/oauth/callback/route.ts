@@ -11,21 +11,33 @@ function appBaseUrl(request: Request): string {
   return host ? `${proto}://${host}` : "http://localhost:3000";
 }
 
+function redirectToClients(
+  base: string,
+  params: { sheet_oauth?: string; openImport?: boolean }
+): NextResponse {
+  const q = new URLSearchParams();
+  if (params.sheet_oauth) q.set("sheet_oauth", params.sheet_oauth);
+  if (params.openImport) q.set("openImport", "1");
+  const qs = q.toString();
+  return NextResponse.redirect(`${base}/psychologist/clients${qs ? `?${qs}` : ""}`);
+}
+
 /** Обмен code → refresh_token, сохранение в профиле психолога. */
 export async function GET(request: Request) {
   const base = appBaseUrl(request);
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
-  const err = searchParams.get("error");
+  const oauthErr = searchParams.get("error");
 
-  if (err) {
-    return NextResponse.redirect(`${base}/psychologist/clients?sheet_oauth=denied`);
+  if (oauthErr) {
+    const errParam = oauthErr === "access_denied" ? "access_denied" : "error";
+    return redirectToClients(base, { sheet_oauth: errParam, openImport: true });
   }
 
   const psychologistId = state ? verifyGoogleSheetsOAuthState(state) : null;
   if (!code || !psychologistId) {
-    return NextResponse.redirect(`${base}/psychologist/clients?sheet_oauth=invalid`);
+    return redirectToClients(base, { sheet_oauth: "invalid", openImport: true });
   }
 
   try {
@@ -37,12 +49,12 @@ export async function GET(request: Request) {
       select: { googleSheetsRefreshToken: true }
     });
     if (!existing) {
-      return NextResponse.redirect(`${base}/psychologist/clients?sheet_oauth=invalid`);
+      return redirectToClients(base, { sheet_oauth: "invalid", openImport: true });
     }
 
     const refreshToken = tokens.refresh_token ?? existing.googleSheetsRefreshToken;
     if (!refreshToken) {
-      return NextResponse.redirect(`${base}/psychologist/clients?sheet_oauth=norefresh`);
+      return redirectToClients(base, { sheet_oauth: "norefresh", openImport: true });
     }
 
     await prisma.psychologistProfile.update({
@@ -50,9 +62,9 @@ export async function GET(request: Request) {
       data: { googleSheetsRefreshToken: refreshToken }
     });
 
-    return NextResponse.redirect(`${base}/psychologist/clients?sheet_oauth=ok`);
+    return redirectToClients(base, { sheet_oauth: "ok", openImport: true });
   } catch (e) {
     console.error("[GET /api/psychologist/google-sheets/oauth/callback]", e);
-    return NextResponse.redirect(`${base}/psychologist/clients?sheet_oauth=error`);
+    return redirectToClients(base, { sheet_oauth: "error", openImport: true });
   }
 }

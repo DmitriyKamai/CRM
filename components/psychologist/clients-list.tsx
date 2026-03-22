@@ -77,6 +77,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { cn } from "@/lib/utils";
+import { openGoogleSheetsPicker } from "@/lib/google-sheet-picker-client";
 
 type ClientDto = {
   id: string;
@@ -194,9 +195,18 @@ export function PsychologistClientsList({
 
   useEffect(() => {
     const v = searchParams.get("sheet_oauth");
-    if (!v) return;
+    const openImport = searchParams.get("openImport") === "1";
+    if (!v && !openImport) return;
+
+    if (openImport) setImportOpen(true);
+
     if (v === "ok") {
-      toast.success("Google подключён — можно подтягивать таблицы для импорта");
+      toast.success("Google подключён: можно загружать данные из Google Таблицы для импорта");
+    } else if (v === "access_denied") {
+      toast.error(
+        "Доступ не выдан (часто это режим «Тестирование» в Google Cloud). Добавьте этот Google-аккаунт в список тестовых пользователей: APIs & Services → OAuth consent screen → Test users, либо опубликуйте приложение.",
+        { duration: 12000 }
+      );
     } else if (v === "denied") {
       toast.error("Доступ к Google не выдан");
     } else if (v === "norefresh") {
@@ -205,11 +215,13 @@ export function PsychologistClientsList({
       );
     } else if (v === "invalid") {
       toast.error("Ошибка авторизации");
-    } else {
+    } else if (v) {
       toast.error("Не удалось подключить Google");
     }
+
     const q = new URLSearchParams(searchParams.toString());
     q.delete("sheet_oauth");
+    q.delete("openImport");
     const qs = q.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, pathname, router]);
@@ -244,6 +256,7 @@ export function PsychologistClientsList({
   const [exporting, setExporting] = useState(false);
   const [googleSheetsImportUrl, setGoogleSheetsImportUrl] = useState("");
   const [googleSheetsImportLoading, setGoogleSheetsImportLoading] = useState(false);
+  const [googleSheetsPickerLoading, setGoogleSheetsPickerLoading] = useState(false);
   const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
     null
   );
@@ -806,6 +819,38 @@ export function PsychologistClientsList({
       setError(msg);
     } finally {
       setGoogleSheetsImportLoading(false);
+    }
+  }
+
+  async function handleOpenGoogleSheetsPicker() {
+    setGoogleSheetsPickerLoading(true);
+    try {
+      const res = await fetch("/api/psychologist/google-sheets/access-token");
+      const data = (await res.json().catch(() => null)) as {
+        accessToken?: string;
+        message?: string;
+      } | null;
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Не удалось получить доступ к Google");
+      }
+      const accessToken = data?.accessToken;
+      if (!accessToken) {
+        throw new Error("Нет токена доступа — подключите Google ещё раз");
+      }
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY?.trim();
+      openGoogleSheetsPicker({
+        accessToken,
+        developerKey: apiKey,
+        onPicked: (id) => {
+          setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${id}/edit`);
+          toast.success("Таблица выбрана");
+        },
+        onError: (msg) => toast.error(msg)
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setGoogleSheetsPickerLoading(false);
     }
   }
 
@@ -1417,7 +1462,7 @@ export function PsychologistClientsList({
                   <DialogTitle>Импорт клиентов</DialogTitle>
                   <DialogDescription>
                     {importHeaders.length === 0
-                      ? "Загрузите CSV, XLSX, JSON или подтяните первый лист из Google Таблицы (заголовки — в первой строке листа)."
+                      ? "Загрузите CSV, XLSX, JSON или импортируйте данные с первого листа Google Таблицы (заголовки — в первой строке листа)."
                       : "Сопоставьте колонки с полями и нажмите «Импортировать»."}
                   </DialogDescription>
                 </DialogHeader>
@@ -1533,17 +1578,45 @@ export function PsychologistClientsList({
                           </Button>
                         </div>
                       ) : null}
+                      {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
+                        <div className="space-y-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full sm:w-auto"
+                            disabled={googleSheetsPickerLoading || googleSheetsImportLoading}
+                            onClick={() => void handleOpenGoogleSheetsPicker()}
+                          >
+                            {googleSheetsPickerLoading ? "Открываем выбор…" : "Выбрать таблицу…"}
+                          </Button>
+                          {!process.env.NEXT_PUBLIC_GOOGLE_API_KEY ? (
+                            <p className="text-xs text-amber-800 dark:text-amber-200/90">
+                              Чтобы открывалось стандартное окно Google, задайте в настройках сервера
+                              переменную{" "}
+                              <code className="rounded bg-muted px-1">NEXT_PUBLIC_GOOGLE_API_KEY</code>{" "}
+                              (ключ API в Google Cloud → ограничение по HTTP referrer). Иначе вставьте
+                              ссылку на таблицу ниже.
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Откроется окно Google: выберите файл таблицы или укажите ссылку вручную
+                              ниже.
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                         <div className="min-w-0 flex-1 space-y-1">
                           <Label htmlFor="google-import-url" className="text-xs">
-                            Ссылка на таблицу
+                            Ссылка на таблицу (если не выбирали выше)
                           </Label>
                           <Input
                             id="google-import-url"
                             placeholder="https://docs.google.com/spreadsheets/d/..."
                             value={googleSheetsImportUrl}
                             onChange={(e) => setGoogleSheetsImportUrl(e.target.value)}
-                            disabled={googleSheetsImportLoading}
+                            disabled={googleSheetsImportLoading || googleSheetsPickerLoading}
                           />
                         </div>
                         <Button
@@ -1552,12 +1625,13 @@ export function PsychologistClientsList({
                           className="shrink-0"
                           disabled={
                             googleSheetsImportLoading ||
+                            googleSheetsPickerLoading ||
                             !googleSheetsOAuthConfigured ||
                             !googleSheetsGoogleConnected
                           }
                           onClick={() => void handleImportFromGoogleSheets()}
                         >
-                          {googleSheetsImportLoading ? "Загрузка…" : "Подтянуть из таблицы"}
+                          {googleSheetsImportLoading ? "Загрузка…" : "Загрузить из Google Таблицы"}
                         </Button>
                       </div>
                     </div>
