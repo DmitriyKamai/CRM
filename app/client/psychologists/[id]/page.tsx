@@ -210,7 +210,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                 />
               ) : (
                 <div
-                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500/30 via-primary/25 to-sky-500/25"
+                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 via-primary/20 to-muted/80"
                   aria-hidden
                 >
                   <span className="text-3xl font-semibold tracking-tight text-primary/90 sm:text-4xl">

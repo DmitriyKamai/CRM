@@ -27,31 +27,33 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 16% 16%;
 
-    /* Розово-красный акцент */
-    --primary: 350 45% 55%;
+    /* Акцент: чуть спокойнее по насыщенности */
+    --primary: 350 38% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 13% 91%;
+    /* secondary — чуть плотнее, чем muted (кнопки/чипы vs фоны блоков) */
+    --secondary: 220 15% 88%;
     --secondary-foreground: 224 16% 16%;
 
-    --accent: 220 13% 91%;
+    --accent: 220 14% 91%;
     --accent-foreground: 224 16% 16%;
 
-    --muted: 220 13% 91%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 220 11% 93%;
+    --muted-foreground: 220 10% 40%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
+    /* Границы чуть заметнее на карточках */
+    --border: 220 13% 84%;
+    --input: 220 13% 84%;
     --input-bg: 0 0% 100%;
-    --ring: 350 45% 55%;
+    --ring: 350 38% 54%;
     --radius: 0.625rem;
 
     /* Фон сайдбара */
     --sidebar-bg: 220 20% 98%;
-    --sidebar-border: 220 13% 88%;
+    --sidebar-border: 220 13% 84%;
 
     /* Маркеры статусов */
     --status-success: 142 45% 42%;
@@ -59,41 +61,48 @@
     --status-free: 199 89% 48%;
 
     /* Палитра для графиков */
-    --chart-1: 350 45% 55%;
+    --chart-1: 350 38% 54%;
     --chart-2: 270 32% 65%;
     --chart-3: 199 60% 50%;
     --chart-4: 142 45% 42%;
     --chart-5: 38 88% 48%;
   }
 
+  /* Тёмная тема: мягкий «антрацит»; popover чуть светлее карточки */
   .dark {
-    --background: var(--gray-950);
-    --foreground: var(--gray-50);
-    --card: 0 0% 6%;
-    --card-foreground: var(--gray-50);
-    --popover: var(--gray-950);
-    --popover-foreground: var(--gray-50);
-    --primary: 350 45% 60%;
+    --background: 220 14% 20%;
+    --foreground: 220 12% 96%;
+    --card: 220 13% 27%;
+    --card-foreground: 220 12% 96%;
+    --popover: 220 13% 30%;
+    --popover-foreground: 220 12% 96%;
+    --primary: 350 38% 56%;
     --primary-foreground: 0 0% 100%;
-    --secondary: var(--gray-800);
-    --secondary-foreground: var(--gray-50);
-    --muted: var(--gray-800);
-    --muted-foreground: var(--gray-400);
-    --accent: var(--gray-800);
-    --accent-foreground: var(--gray-50);
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: var(--gray-50);
-    --border: var(--gray-800);
-    --input: var(--gray-800);
-    --input-bg: var(--gray-900);
-    --ring: 350 45% 60%;
+    --secondary: 220 11% 34%;
+    --secondary-foreground: 220 12% 96%;
+    --muted: 220 11% 30%;
+    --muted-foreground: 220 9% 70%;
+    --accent: 220 11% 36%;
+    --accent-foreground: 220 12% 96%;
+    --destructive: 0 58% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 38%;
+    --input: 220 10% 36%;
+    --input-bg: 220 13% 22%;
+    --ring: 350 38% 56%;
 
-    --sidebar-bg: 0 0% 6%;
-    --sidebar-border: var(--gray-800);
+    --sidebar-bg: 220 14% 17%;
+    --sidebar-border: 220 10% 34%;
 
-    --status-success: 142 40% 45%;
-    --status-warning: 38 75% 50%;
-    --status-free: 199 80% 52%;
+    --status-success: 142 38% 48%;
+    --status-warning: 38 78% 52%;
+    --status-free: 199 75% 54%;
+
+    --chart-1: 350 38% 56%;
+    --chart-2: 270 30% 62%;
+    --chart-3: 199 55% 52%;
+    --chart-4: 142 38% 48%;
+    --chart-5: 38 78% 52%;
   }
 
   * {

@@ -352,7 +352,7 @@ export function PublicPsychologistsList({
                           alt=""
                           className="rounded-none rounded-t-2xl object-cover"
                         />
-                        <AvatarFallback className="rounded-none rounded-t-2xl bg-gradient-to-br from-violet-500/30 via-primary/25 to-sky-500/25 text-2xl font-semibold tracking-tight text-primary/90">
+                        <AvatarFallback className="rounded-none rounded-t-2xl bg-gradient-to-br from-primary/30 via-primary/20 to-muted/80 text-2xl font-semibold tracking-tight text-primary/90">
                           {initials || "?"}
                         </AvatarFallback>
                       </Avatar>
