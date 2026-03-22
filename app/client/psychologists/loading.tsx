@@ -4,18 +4,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 function CatalogCardSkeleton() {
   return (
     <Card className="flex h-full flex-col overflow-hidden rounded-2xl shadow-sm">
-      <Skeleton className="aspect-square w-full rounded-t-2xl rounded-b-none" />
-      <CardContent className="space-y-3 p-4">
-        <Skeleton className="mx-auto h-5 w-3/4" />
-        <div className="flex justify-center gap-2">
-          <Skeleton className="h-5 w-24 rounded-full" />
+      <Skeleton className="aspect-[4/3] w-full rounded-t-2xl rounded-b-none" />
+      <CardContent className="space-y-2 p-3">
+        <Skeleton className="mx-auto h-4 w-2/3 sm:h-5" />
+        <div className="flex justify-center gap-1.5">
           <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
         </div>
-        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-8 w-full" />
       </CardContent>
-      <CardFooter className="flex flex-col gap-2 px-4 pb-6 pt-0">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <CardFooter className="px-3 pb-4 pt-1">
+        <Skeleton className="h-9 w-full" />
       </CardFooter>
     </Card>
   );

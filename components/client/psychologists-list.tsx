@@ -258,7 +258,6 @@ export function PublicPsychologistsList({
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p) => {
-            const fullName = `${p.firstName} ${p.lastName}`.trim() || "Специалист";
             const nameId = `psych-name-${p.id}`;
             const initials = [p.firstName, p.lastName]
               .filter(Boolean)
@@ -280,82 +279,66 @@ export function PublicPsychologistsList({
                 aria-labelledby={nameId}
                 className="h-full"
               >
-                <Card className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-colors hover:border-primary/50">
-                  <CardContent className="flex flex-col p-0">
-                    <Link
-                      href={profileHref}
-                      className="block text-left outline-none transition-colors hover:bg-muted/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
-                    >
-                      <div className="relative aspect-square w-full overflow-hidden rounded-t-2xl bg-muted">
-                        <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-2xl">
-                          <AvatarImage
-                            src={p.profilePhotoUrl ?? undefined}
-                            alt={fullName}
-                            className="rounded-none rounded-t-2xl object-cover"
-                          />
-                          <AvatarFallback
-                            className="rounded-none rounded-t-2xl bg-gradient-to-br from-violet-500/30 via-primary/25 to-sky-500/25 text-3xl font-semibold tracking-tight text-primary/90 sm:text-4xl"
+                <Card className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-colors hover:border-primary/50">
+                  <Link
+                    href={profileHref}
+                    aria-labelledby={nameId}
+                    className="absolute inset-0 z-[1] rounded-2xl outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                  <CardContent className="pointer-events-none relative z-0 flex flex-col p-0">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl bg-muted">
+                      <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-2xl">
+                        <AvatarImage
+                          src={p.profilePhotoUrl ?? undefined}
+                          alt=""
+                          className="rounded-none rounded-t-2xl object-cover"
+                        />
+                        <AvatarFallback className="rounded-none rounded-t-2xl bg-gradient-to-br from-violet-500/30 via-primary/25 to-sky-500/25 text-2xl font-semibold tracking-tight text-primary/90">
+                          {initials || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="space-y-2 px-3 pb-2 pt-2.5 text-center">
+                      <p
+                        id={nameId}
+                        className="text-sm font-semibold leading-tight text-foreground sm:text-base"
+                      >
+                        {p.firstName} {p.lastName}
+                      </p>
+                      <div className="flex flex-col items-center gap-1.5">
+                        <Badge
+                          variant="secondary"
+                          className="max-w-full px-2 py-0 text-xs font-medium"
+                        >
+                          {professionLabel}
+                        </Badge>
+                        {locationLine ? (
+                          <Badge
+                            variant="outline"
+                            className="max-w-full gap-1 px-2 py-0 text-xs font-normal text-muted-foreground"
                           >
-                            {initials || "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                      <div className="space-y-3 p-4 pb-3 text-center">
-                        <p
-                          id={nameId}
-                          className="font-semibold text-foreground"
-                        >
-                          {p.firstName} {p.lastName}
-                        </p>
-                        <div className="flex flex-col items-center gap-2">
-                          <Badge variant="secondary" className="font-medium">
-                            {professionLabel}
+                            <MapPin
+                              className="h-3 w-3 shrink-0"
+                              aria-hidden
+                            />
+                            <span className="truncate">{locationLine}</span>
                           </Badge>
-                          {locationLine ? (
-                            <Badge
-                              variant="outline"
-                              className="max-w-full gap-1 font-normal text-muted-foreground"
-                            >
-                              <MapPin
-                                className="h-3 w-3 shrink-0"
-                                aria-hidden
-                              />
-                              <span className="truncate">{locationLine}</span>
-                            </Badge>
-                          ) : null}
-                        </div>
+                        ) : null}
                       </div>
-                    </Link>
+                    </div>
                     {bioTrimmed ? (
-                      <div className="px-4 pb-4">
-                        <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
-                          {bioTrimmed}
-                        </p>
-                        <Link
-                          href={profileHref}
-                          className="mt-2 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
-                        >
-                          Читать профиль
-                        </Link>
-                      </div>
+                      <p className="px-3 pb-2 text-left text-xs leading-snug text-muted-foreground line-clamp-2 sm:text-[13px]">
+                        {bioTrimmed}
+                      </p>
                     ) : null}
                   </CardContent>
-                  <CardFooter className="mt-auto flex flex-col gap-2 px-4 pb-6 pt-2">
-                    {schedulingEnabled ? (
-                      <>
-                        <Button className="w-full" asChild>
-                          <Link href={bookingHref}>Записаться</Link>
-                        </Button>
-                        <Button variant="outline" className="w-full" asChild>
-                          <Link href={profileHref}>Подробнее</Link>
-                        </Button>
-                      </>
-                    ) : (
-                      <Button className="w-full" asChild>
-                        <Link href={profileHref}>Подробнее</Link>
+                  {schedulingEnabled ? (
+                    <CardFooter className="relative z-[2] mt-auto pointer-events-auto px-3 pb-4 pt-1">
+                      <Button className="w-full" size="sm" asChild>
+                        <Link href={bookingHref}>Записаться</Link>
                       </Button>
-                    )}
-                  </CardFooter>
+                    </CardFooter>
+                  ) : null}
                 </Card>
               </article>
             );
