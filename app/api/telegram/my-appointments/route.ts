@@ -64,21 +64,31 @@ export async function POST(request: Request) {
       });
     }
 
-    // Записи как клиент (все роли): не обрезаем только по role=CLIENT.
-    const clientAppointments = await prisma.appointment.findMany({
-      where: {
-        status: { in: [...activeStatuses] },
-        start: { gte: fromDate },
-        client: { OR: clientOr }
-      },
-      orderBy: { start: "asc" },
-      include: {
-        psychologist: { select: { firstName: true, lastName: true } }
-      }
+    // Как в /api/client/dashboard: сначала все карточки клиента по userId и email, затем по clientId.
+    // Вложенный фильтр client: { OR } в findMany иногда ведёт себя иначе на части связей.
+    const clientProfiles = await prisma.clientProfile.findMany({
+      where: { OR: clientOr },
+      select: { id: true }
     });
+    const clientIds = [...new Set(clientProfiles.map((c) => c.id))];
 
-    // Записи как психолог: раньше при наличии профиля возвращали только их — без блока «как клиент»
-    // у специалиста с пустым расписанием пропадали все записи, если он смотрит приёмы как клиент.
+    const clientAppointments =
+      clientIds.length === 0
+        ? []
+        : await prisma.appointment.findMany({
+            where: {
+              clientId: { in: clientIds },
+              status: { in: [...activeStatuses] },
+              start: { gte: fromDate }
+            },
+            orderBy: { start: "asc" },
+            include: {
+              psychologist: { select: { firstName: true, lastName: true } }
+            }
+          });
+
+    // Записи как психолог: смотрим по наличию PsychologistProfile, а не только по role=PSYCHOLOGIST
+    // (иначе «ко мне» не видны при UNSPECIFIED/ADMIN с карточкой специалиста).
     type Row = {
       id: string;
       start: string;
@@ -104,36 +114,34 @@ export async function POST(request: Request) {
     });
 
     let asPsychologist: Row[] = [];
-    if (user.role === "PSYCHOLOGIST") {
-      const profile = await prisma.psychologistProfile.findUnique({
-        where: { userId: user.id },
-        select: { id: true }
+    const psychProfile = await prisma.psychologistProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true }
+    });
+    if (psychProfile) {
+      const psychRows = await prisma.appointment.findMany({
+        where: {
+          psychologistId: psychProfile.id,
+          status: { in: [...activeStatuses] },
+          start: { gte: fromDate }
+        },
+        orderBy: { start: "asc" },
+        include: {
+          client: { select: { firstName: true, lastName: true } }
+        }
       });
-      if (profile) {
-        const psychRows = await prisma.appointment.findMany({
-          where: {
-            psychologistId: profile.id,
-            status: { in: [...activeStatuses] },
-            start: { gte: fromDate }
-          },
-          orderBy: { start: "asc" },
-          include: {
-            client: { select: { firstName: true, lastName: true } }
-          }
-        });
-        asPsychologist = psychRows.map((a) => {
-          const clientName =
-            [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент";
-          return {
-            id: a.id,
-            start: a.start.toISOString(),
-            end: a.end.toISOString(),
-            status: a.status,
-            clientName,
-            counterpartyName: clientName
-          };
-        });
-      }
+      asPsychologist = psychRows.map((a) => {
+        const clientName =
+          [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент";
+        return {
+          id: a.id,
+          start: a.start.toISOString(),
+          end: a.end.toISOString(),
+          status: a.status,
+          clientName,
+          counterpartyName: clientName
+        };
+      });
     }
 
     const byId = new Map<string, Row>();
