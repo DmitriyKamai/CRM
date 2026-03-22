@@ -25,6 +25,9 @@
 *.pem
 /docs
 
+# Cursor — локальная конфигурация MCP (секреты/пути на машине)
+.cursor/mcp.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*
