@@ -18,53 +18,57 @@
     --gray-950: 0 0% 3.9%;
 
     /*
-     * Светлая тема — палитра из style-dist.css (Нити Дружбы / niti-d.by):
-     * #272932 текст, #f79127 CTA, #d37c21 hover, #798086 вторичный текст,
-     * #e9e9ea бордеры, #f6f0ed / #feeddc / #f8f8f8 фоны, #556f7a акцент.
+     * Светлая тема: тёплый фон, оранжевый акцент, усиленный контраст и «ступени» оттенков
+     * (основной текст, бордеры, secondary/muted/accent).
      */
-    --background: 23 33% 95%;
-    --foreground: 228 12% 18%;
+    --background: 24 38% 92%;
+    --foreground: 228 16% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 228 12% 18%;
+    --card-foreground: 228 16% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 228 12% 18%;
+    --popover-foreground: 228 16% 13%;
 
-    --primary: 29 93% 56%;
+    /* Чуть глубже оранжевый — лучше на белом и рядом с серым текстом */
+    --primary: 28 94% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 60 5% 89%;
-    --secondary-foreground: 228 12% 18%;
+    /* Тёплый серо-беж для вторичных кнопок — отличается и от muted, и от фона */
+    --secondary: 28 14% 86%;
+    --secondary-foreground: 228 16% 13%;
 
-    --accent: 28 55% 94%;
-    --accent-foreground: 228 12% 18%;
+    /* Ховер/подсветка — заметнее персик */
+    --accent: 30 48% 90%;
+    --accent-foreground: 228 16% 13%;
 
-    --muted: 25 22% 93%;
-    --muted-foreground: 210 5% 50%;
+    /* Панели под текст/формы — темнее фона страницы */
+    --muted: 26 30% 89%;
+    --muted-foreground: 215 9% 38%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 74% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 3% 92%;
-    --input: 240 3% 92%;
+    /* Границы ближе к «чернильно-синему», не едва заметные */
+    --border: 228 12% 82%;
+    --input: 228 11% 84%;
     --input-bg: 0 0% 100%;
-    --ring: 29 93% 56%;
+    --ring: 28 94% 50%;
     --radius: 0.625rem;
 
-    --sidebar-bg: 0 0% 97%;
-    --sidebar-border: 240 3% 92%;
+    /* Сайдбар — отдельная ступень от холста и карточки */
+    --sidebar-bg: 26 26% 90%;
+    --sidebar-border: 228 10% 80%;
 
-    /* #556f7a, #f79127, оранжевый hover */
-    --status-success: 142 45% 42%;
-    --status-warning: 29 93% 56%;
-    --status-free: 199 18% 41%;
+    --status-success: 142 48% 36%;
+    --status-warning: 28 94% 50%;
+    --status-free: 199 22% 36%;
 
-    --chart-1: 29 93% 56%;
-    --chart-2: 199 18% 41%;
-    --chart-3: 210 5% 50%;
-    --chart-4: 28 73% 48%;
-    --chart-5: 28 70% 93%;
+    --chart-1: 28 94% 50%;
+    --chart-2: 199 22% 36%;
+    --chart-3: 215 9% 38%;
+    --chart-4: 26 70% 42%;
+    --chart-5: 32 55% 88%;
   }
 
   /* Тёмная тема: мягкий «антрацит»; popover чуть светлее карточки */
@@ -121,15 +125,13 @@
     background-color: hsl(var(--muted));
     background-image: radial-gradient(
       circle at center,
-      hsl(var(--foreground) / 0.07) 1px,
+      hsl(var(--foreground) / 0.1) 1px,
       transparent 1px
     );
     background-size: 18px 18px;
   }
 
-  /**
-   * Лёгкое «стекло» (blur) — по желанию на карточках/модалках, в духе мягких слоёв сайта-референса.
-   */
+  /** Лёгкое «стекло» (blur) — по желанию на карточках и модалках. */
   .surface-glass {
     border: 1px solid hsl(var(--border) / 0.85);
     background-color: hsl(var(--card) / 0.75);
