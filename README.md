@@ -67,7 +67,9 @@ CRM для психологов и их клиентов:
 5. Только Next (без миграций), чтобы проверить, что падает именно сборка: `npm run build:next`
 6. **Node 20/22 LTS**, проект вне OneDrive, по возможности исключение папки в антивирусе; при необходимости — сборка из **WSL**.
 
-Полный ESLint при сборке отключён (`eslint.ignoreDuringBuilds`); локально гоняйте **`npm run lint`**.
+ESLint при **`next build`** в Next.js 16 не настраивается через `next.config` — перед деплоем гоняйте **`npm run lint`**.
+
+На Windows при **0xC0000005** после сборки в `next.config.mjs` для **win32** включено: **`experimental.cpus`** (по умолчанию 2, переопределение **`NEXT_BUILD_CPUS=1`**), **`workerThreads: true`**, **`webpackBuildWorker: false`**. После обновления конфига снова выполните **`npm run build`**.
 
 ### Как запускать проект
 

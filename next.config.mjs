@@ -8,9 +8,21 @@ const nextConfig = {
   reactCompiler: process.env.NEXT_REACT_COMPILER === "1",
   poweredByHeader: false,
   serverExternalPackages: ["country-state-city"],
-  /** Меньше шансов упасть в ESLint-воркере при сборке; полная проверка: npm run lint */
-  eslint: {
-    ignoreDuringBuilds: true
+  /**
+   * Windows / 0xC0000005 после этапов сборки:
+   * - cpus — меньше дочерних процессов при «Collecting page data» (NEXT_BUILD_CPUS=1).
+   * - workerThreads — static/analysis воркеры через worker_threads вместо child_process (меньше падений при fork).
+   * - webpackBuildWorker: false — компиляция webpack в основном процессе, без отдельного jest-worker child.
+   */
+  experimental: {
+    ...(process.platform === "win32"
+      ? {
+          cpus:
+            Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "", 10) || 2,
+          workerThreads: true,
+          webpackBuildWorker: false
+        }
+      : {})
   },
   images: {
     remotePatterns: [
