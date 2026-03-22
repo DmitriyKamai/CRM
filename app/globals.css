@@ -72,52 +72,52 @@
   }
 
   /*
-   * Тёмная тема: семантика собрана из палитры Tailwind «blue»
-   * (https://ui.shadcn.com/colors#blue — те же шаги 50–950, что и `tailwindcss/colors` blue).
+   * Тёмная тема: палитра Tailwind «neutral» (achromatic)
+   * https://ui.shadcn.com/colors#neutral — шаги 50–950 из `tailwindcss/colors` neutral.
    * Оранжевый primary/ring и стекло — без изменений.
    */
   .dark {
-    --background: 226 57% 21%; /* blue-950 #172554 */
-    --foreground: 214 100% 97%; /* blue-50 #eff6ff */
+    --background: 0 0% 4%; /* neutral-950 #0a0a0a */
+    --foreground: 0 0% 98%; /* neutral-50 #fafafa */
 
-    --card: 224 64% 33%; /* blue-900 #1e3a8a */
-    --card-foreground: 214 100% 97%;
+    --card: 0 0% 9%; /* neutral-900 #171717 */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 226 71% 40%; /* blue-800 #1e40af — чуть выше карточки */
-    --popover-foreground: 214 100% 97%;
+    --popover: 0 0% 15%; /* neutral-800 #262626 */
+    --popover-foreground: 0 0% 98%;
 
     --primary: 28 90% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 226 71% 40%; /* blue-800 */
-    --secondary-foreground: 214 100% 97%;
+    --secondary: 0 0% 15%; /* neutral-800 */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 225 62% 27%; /* между blue-950 и blue-900 */
-    --muted-foreground: 213 94% 68%; /* blue-400 #60a5fa */
+    --muted: 0 0% 12%; /* между 950 и 900 */
+    --muted-foreground: 0 0% 64%; /* neutral-400 #a3a3a3 */
 
-    --accent: 226 71% 40%; /* blue-800 */
-    --accent-foreground: 214 100% 97%;
+    --accent: 0 0% 15%; /* neutral-800 */
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 224 55% 28%; /* ~blue-900, темнее карточки */
-    --input: 224 64% 33%; /* blue-900 */
-    --input-bg: 226 58% 19%; /* чуть глубже blue-950 */
+    --border: 0 0% 18%; /* ~neutral-800, чуть темнее popover */
+    --input: 0 0% 18%;
+    --input-bg: 0 0% 6%;
     --ring: 28 90% 54%;
 
-    --sidebar-bg: 224 63% 31%; /* около blue-900 */
-    --sidebar-border: 224 50% 28%;
+    --sidebar-bg: 0 0% 8%;
+    --sidebar-border: 0 0% 18%;
 
     --status-success: 142 45% 48%;
     --status-warning: 28 88% 56%;
-    --status-free: 217 91% 60%; /* blue-500 #3b82f6 */
+    --status-free: 199 55% 52%;
 
     --chart-1: 28 90% 54%;
-    --chart-2: 213 94% 68%; /* blue-400 */
-    --chart-3: 217 91% 60%; /* blue-500 */
-    --chart-4: 221 83% 53%; /* blue-600 */
-    --chart-5: 212 96% 78%; /* blue-300 */
+    --chart-2: 199 55% 52%;
+    --chart-3: 0 0% 64%;
+    --chart-4: 142 45% 48%;
+    --chart-5: 32 45% 58%;
   }
 
   * {
