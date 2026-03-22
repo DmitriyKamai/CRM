@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 
+/**
+ * Глобальные флаги модулей (админка → /admin/modules).
+ *
+ * scheduling: записи, слоты, календарь ICS, телеграм-записи, POST/PATCH appointments,
+ *   GET/POST /api/schedule/slots, PATCH/DELETE slots/[id], schedule/psychologists(+slots),
+ *   вкладка «Записи» в профиле клиента (пропсы с сервера обязательны везде, где ренерится профиль).
+ * diagnostics: все /api/diagnostics/*, GET психолога …/diagnostics, админ-тесты, страница /diagnostics/[token].
+ *
+ * Каталог психологов для клиента (/client/psychologists) не зависит от scheduling; запись на слоты — зависит.
+ */
 /** Единственная строка настроек инстанса CRM */
 export const PLATFORM_SETTINGS_ID = "default";
 

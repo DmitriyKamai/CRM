@@ -8,6 +8,8 @@ import { requireRoles } from "@/lib/security/api-guards";
 export async function GET() {
   try {
     return await withPrismaLock(async () => {
+  const mod = await assertModuleEnabled("scheduling");
+  if (mod) return mod;
   const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
   if (!psychAuth.ok) return psychAuth.response;
   const userId = psychAuth.userId;

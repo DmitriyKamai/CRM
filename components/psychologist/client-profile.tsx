@@ -146,9 +146,11 @@ function SortableFieldWrap({
 
 type ClientProfileProps = {
   id: string;
-  /** false — скрыть записи (модуль расписания выключен админом) */
+  /**
+   * Передавайте явно с сервера (страница клиента и встроенный профиль в списке клиентов).
+   * Если не передать, вкладки считаются включёнными (обратная совместимость).
+   */
   schedulingEnabled?: boolean;
-  /** false — скрыть диагностику */
   diagnosticsEnabled?: boolean;
   email: string | null;
   hasAccount?: boolean;

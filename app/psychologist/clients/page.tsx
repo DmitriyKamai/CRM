@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
+import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { PsychologistClientsList } from "@/components/psychologist/clients-list";
 
 export default async function PsychologistClientsPage() {
@@ -15,6 +16,13 @@ export default async function PsychologistClientsPage() {
     redirect("/");
   }
 
-  return <PsychologistClientsList />;
+  const modules = await getPlatformModuleFlags();
+
+  return (
+    <PsychologistClientsList
+      schedulingEnabled={modules.scheduling}
+      diagnosticsEnabled={modules.diagnostics}
+    />
+  );
 }
 

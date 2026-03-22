@@ -146,7 +146,13 @@ function ClientAvatar({ client, size = "md" }: { client: ClientDto; size?: "sm" 
   );
 }
 
-export function PsychologistClientsList() {
+export function PsychologistClientsList({
+  schedulingEnabled,
+  diagnosticsEnabled
+}: {
+  schedulingEnabled: boolean;
+  diagnosticsEnabled: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1010,6 +1016,8 @@ export function PsychologistClientsList() {
           </div>
           <PsychologistClientProfile
             id={profileClient.id}
+            schedulingEnabled={schedulingEnabled}
+            diagnosticsEnabled={diagnosticsEnabled}
             email={profileClient.email ?? null}
             hasAccount={profileClient.hasAccount}
             firstName={profileClient.firstName}
