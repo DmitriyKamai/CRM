@@ -6,7 +6,15 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SlotDto {
   id: string;
@@ -16,6 +24,7 @@ interface SlotDto {
 
 interface Props {
   psychologistId: string;
+  /** Имя для редких подсказок / ошибок; в заголовке не дублируем */
   psychologistName: string;
 }
 
@@ -99,74 +108,76 @@ export function ClientBooking({ psychologistId, psychologistName }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Запись к психологу {psychologistName}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+    <Card id="booking" className="overflow-hidden rounded-2xl shadow-sm">
+      <CardHeader className="space-y-1 pb-2">
+        <CardTitle className="text-xl font-semibold tracking-tight">
+          Запись на приём
+        </CardTitle>
+        <CardDescription>
+          Выберите свободный слот. После выбора система предложит войти в аккаунт,
+          если вы ещё не авторизованы.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            Выберите удобный свободный слот для записи на приём.
+            Свободные окна у <span className="font-medium text-foreground">{psychologistName}</span>
           </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-sm">Свободные слоты</CardTitle>
-          <Button variant="ghost" size="sm" onClick={loadSlots}>
-            Обновить
+          <Button variant="outline" size="sm" onClick={loadSlots} className="shrink-0">
+            Обновить список
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {error && (
-            <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-              {error}
-            </div>
-          )}
+        </div>
 
-          {loading ? (
-            <div className="text-sm text-muted-foreground">
-              Загружаем слоты...
-            </div>
-          ) : slots.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              Свободных слотов пока нет. Попробуйте позже или свяжитесь с
-              психологом напрямую.
-            </div>
-          ) : (
-            <div className="space-y-2 text-xs text-foreground">
-              {slots.map(slot => (
-                <div
-                  key={slot.id}
-                  className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2"
-                >
-                  <div>
-                    {new Date(slot.start).toLocaleString("ru-RU", {
-                      dateStyle: "short",
-                      timeStyle: "short"
-                    })}{" "}
-                    —{" "}
-                    {new Date(slot.end).toLocaleTimeString("ru-RU", {
-                      timeStyle: "short"
-                    })}
-                  </div>
-                  <Button
-                    size="sm"
-                    disabled={bookingId === slot.id}
-                    onClick={() => handleBookClick(slot.id)}
-                  >
-                    {bookingId === slot.id ? "Записываем..." : "Записаться"}
-                  </Button>
+        <Separator />
+
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-14 w-full rounded-lg sm:max-w-md" />
+          </div>
+        ) : slots.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Свободных слотов пока нет. Попробуйте позже или свяжитесь с психологом
+            напрямую.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {slots.map(slot => (
+              <li
+                key={slot.id}
+                className="flex flex-col gap-3 rounded-xl border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="text-sm font-medium tabular-nums text-foreground">
+                  {new Date(slot.start).toLocaleString("ru-RU", {
+                    dateStyle: "short",
+                    timeStyle: "short"
+                  })}{" "}
+                  <span className="font-normal text-muted-foreground">—</span>{" "}
+                  {new Date(slot.end).toLocaleTimeString("ru-RU", {
+                    timeStyle: "short"
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  disabled={bookingId === slot.id}
+                  onClick={() => handleBookClick(slot.id)}
+                >
+                  {bookingId === slot.id ? "Записываем..." : "Записаться"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

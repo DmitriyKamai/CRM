@@ -1,8 +1,20 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import {
+  ChevronLeft,
+  MessageCircle,
+  MessageSquare,
+  Phone,
+  Send
+} from "lucide-react";
+
 import { ClientBooking } from "@/components/schedule/client-booking";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { prisma } from "@/lib/db";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
+import { cn } from "@/lib/utils";
 
 type ParamsPromise = { params: Promise<{ id: string }> };
 
@@ -139,143 +151,195 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
     ? buildViberLink(psychologist.contactViber)
     : "";
 
+  const hasContacts =
+    !!(phoneHref || telegramHref || whatsappHref || viberHref);
+
+  const specializationLabel =
+    psychologist.specialization === "psychotherapist"
+      ? "Врач-психотерапевт"
+      : psychologist.specialization === "psychiatrist"
+        ? "Психиатр"
+        : psychologist.specialization
+          ? "Психолог"
+          : null;
+
+  const initials = fullName
+    .split(" ")
+    .filter(Boolean)
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="space-y-8">
-      {/* Верхний блок‑профиль с большим фото из профессионального профиля */}
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div className="flex flex-col gap-6 p-6 lg:flex-row">
-          <div className="mx-auto max-h-[520px] max-w-full shrink-0 overflow-hidden rounded-2xl bg-muted lg:mx-0 lg:w-[380px] flex items-center justify-center">
-            {psychologist.profilePhotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={psychologist.profilePhotoUrl}
-                alt={fullName || "Психолог"}
-                className="h-auto max-h-[520px] w-auto max-w-full object-contain"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted">
-                <span className="text-5xl font-semibold text-muted-foreground">
-                  {fullName
-                    .split(" ")
-                    .filter(Boolean)
-                    .map((p) => p[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </span>
-              </div>
-            )}
+    <div
+      className={cn(
+        "relative mx-auto max-w-4xl space-y-8 px-4 py-6 sm:px-6 sm:py-8",
+        bookingEnabled && "pb-24 sm:pb-8"
+      )}
+    >
+      <Link
+        href="/client/psychologists"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+        К списку психологов
+      </Link>
+
+      <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div
+          className="h-24 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent sm:h-28"
+          aria-hidden
+        />
+
+        <div className="flex flex-col gap-8 p-6 pt-2 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
+          <div className="mx-auto flex shrink-0 justify-center lg:mx-0 lg:-mt-16 lg:pt-0">
+            <div
+              className={cn(
+                "relative overflow-hidden border-4 border-background shadow-lg ring-1 ring-border/50",
+                "h-36 w-36 rounded-full sm:h-40 sm:w-40",
+                "lg:h-[22rem] lg:w-[17rem] lg:rounded-3xl lg:border-2"
+              )}
+            >
+              {psychologist.profilePhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={psychologist.profilePhotoUrl}
+                  alt={fullName || "Психолог"}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div
+                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500/30 via-primary/25 to-sky-500/25"
+                  aria-hidden
+                >
+                  <span className="text-3xl font-semibold tracking-tight text-primary/90 sm:text-4xl">
+                    {initials || "—"}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex-1 space-y-4">
-            <div>
-              <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">
+          <div className="min-w-0 flex-1 space-y-6 lg:pt-2">
+            <header className="space-y-3 text-center lg:text-left">
+              <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                 {fullName || "Психолог"}
               </h1>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                {psychologist.specialization && (
-                  <span>
-                    {psychologist.specialization === "psychotherapist"
-                      ? "Врач-психотерапевт"
-                      : psychologist.specialization === "psychiatrist"
-                      ? "Психиатр"
-                      : "Психолог"}
-                  </span>
-                )}
-                {cityLine && (
-                  <>
-                    <span className="text-xs">•</span>
-                    <span>{cityLine}</span>
-                  </>
-                )}
-              </div>
-            </div>
+              {(specializationLabel || cityLine) && (
+                <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                  {specializationLabel && (
+                    <Badge variant="secondary" className="font-medium">
+                      {specializationLabel}
+                    </Badge>
+                  )}
+                  {cityLine && (
+                    <Badge variant="outline" className="font-normal text-muted-foreground">
+                      {cityLine}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </header>
 
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                О себе
-              </h2>
-              <div className="rounded-lg border bg-background/60 px-4 py-3 text-sm text-foreground/90 whitespace-pre-line">
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-foreground">О себе</h2>
+              <div className="rounded-xl bg-muted/50 px-4 py-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
                 {psychologist.bio
                   ? psychologist.bio
                   : "Психолог ещё не заполнил информацию о себе."}
               </div>
             </section>
-          </div>
-        </div>
-      </div>
 
-      {(phoneHref || telegramHref || whatsappHref || viberHref) && (
-        <div className="rounded-2xl border bg-card p-6 shadow-sm">
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
-            Контакты
-          </h2>
-          <div className="mt-3 grid gap-4 text-sm md:grid-cols-2">
-            {phoneHref && psychologist.contactPhone && (
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground">Телефон</p>
-                <a
-                  href={phoneHref}
-                  className="text-sm text-primary underline-offset-2 hover:underline"
-                >
-                  {psychologist.contactPhone}
-                </a>
-              </div>
-            )}
-            {telegramHref && psychologist.contactTelegram && (
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground">Telegram</p>
-                <a
-                  href={telegramHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary underline-offset-2 hover:underline break-all"
-                >
-                  {psychologist.contactTelegram}
-                </a>
-              </div>
-            )}
-            {whatsappHref && psychologist.contactWhatsapp && (
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground">WhatsApp</p>
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary underline-offset-2 hover:underline break-all"
-                >
-                  {psychologist.contactWhatsapp}
-                </a>
-              </div>
-            )}
-            {viberHref && psychologist.contactViber && (
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground">Viber</p>
-                <a
-                  href={viberHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary underline-offset-2 hover:underline break-all"
-                >
-                  {psychologist.contactViber}
-                </a>
-              </div>
+            {hasContacts && (
+              <>
+                <Separator className="opacity-60" />
+                <section className="space-y-3">
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Связаться
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {phoneHref && psychologist.contactPhone && (
+                      <Button variant="outline" size="sm" className="gap-2" asChild>
+                        <a href={phoneHref}>
+                          <Phone className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="max-w-[200px] truncate sm:max-w-none">
+                            {psychologist.contactPhone}
+                          </span>
+                        </a>
+                      </Button>
+                    )}
+                    {telegramHref && psychologist.contactTelegram && (
+                      <Button variant="outline" size="sm" className="gap-2" asChild>
+                        <a
+                          href={telegramHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={psychologist.contactTelegram}
+                        >
+                          <Send className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="max-w-[160px] truncate sm:max-w-[220px]">
+                            {psychologist.contactTelegram}
+                          </span>
+                        </a>
+                      </Button>
+                    )}
+                    {whatsappHref && psychologist.contactWhatsapp && (
+                      <Button variant="outline" size="sm" className="gap-2" asChild>
+                        <a
+                          href={whatsappHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={psychologist.contactWhatsapp}
+                        >
+                          <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
+                          WhatsApp
+                        </a>
+                      </Button>
+                    )}
+                    {viberHref && psychologist.contactViber && (
+                      <Button variant="outline" size="sm" className="gap-2" asChild>
+                        <a
+                          href={viberHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={psychologist.contactViber}
+                        >
+                          <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="max-w-[140px] truncate sm:max-w-none">
+                            Viber
+                          </span>
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </section>
+              </>
             )}
           </div>
         </div>
-      )}
+      </article>
 
       {!bookingEnabled && (
-        <p className="text-center text-sm text-muted-foreground">
-          Онлайн-запись через сервис сейчас недоступна. Свяжитесь с психологом по контактам выше.
+        <p className="text-balance text-center text-sm text-muted-foreground">
+          Онлайн-запись через сервис сейчас недоступна. Свяжитесь с психологом
+          по контактам выше.
         </p>
       )}
 
       {bookingEnabled && (
         <ClientBooking
           psychologistId={psychologist.id}
-          psychologistName={fullName}
+          psychologistName={fullName || "Психолог"}
         />
+      )}
+
+      {bookingEnabled && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md supports-[backdrop-filter]:bg-background/85 sm:hidden">
+          <Button className="w-full shadow-md" size="lg" asChild>
+            <a href="#booking">Записаться на приём</a>
+          </Button>
+        </div>
       )}
     </div>
   );
