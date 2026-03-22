@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Upload,
   FileSpreadsheet,
-  UploadCloud
+  UploadCloud,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { ru } from "date-fns/locale";
@@ -854,6 +855,15 @@ export function PsychologistClientsList({
     [importCustomDefs]
   );
 
+  const resetImportSourceSelection = useCallback(() => {
+    setImportHeaders([]);
+    setImportRows([]);
+    setImportMapping({});
+    setImportFileName(null);
+    setImportResult(null);
+    if (importFileInputRef.current) importFileInputRef.current.value = "";
+  }, []);
+
   async function handleImportFromGoogleSheets() {
     await loadGoogleSheetsTableIntoImport(googleSheetsImportUrl);
   }
@@ -1538,179 +1548,204 @@ export function PsychologistClientsList({
                       : "space-y-4"
                   }
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <Label className="text-sm">Файл</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Поддерживаются CSV, XLSX и JSON. Для корректного распознавания дат
-                          используйте формат из шаблона.
-                        </p>
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Шаблон
-                      </Button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => importFileInputRef.current?.click()}
-                      className="group w-full flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
-                    >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <UploadCloud className="h-5 w-5" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="text-sm font-medium text-foreground">
-                          Перетащите файл сюда или нажмите, чтобы выбрать
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          CSV, XLSX или JSON, размером до 10 МБ.
-                        </p>
-                      </div>
-                      {importFileName && (
-                        <p className="mt-1 text-xs text-muted-foreground break-all">
-                          Выбран файл: <span className="font-medium">{importFileName}</span>
-                        </p>
-                      )}
-                      <Input
-                        ref={importFileInputRef}
-                        type="file"
-                        accept=".csv,.xlsx,.json"
-                        className="sr-only"
-                        onChange={handleImportFile}
-                      />
-                    </button>
-
-                    <div className="relative py-2">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
-                        <span className="bg-background px-2">или</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <Label className="text-sm font-medium">Google Таблицы</Label>
-                        </div>
-                        {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-muted-foreground"
-                            onClick={() => void handleDisconnectGoogleSheets()}
-                          >
-                            Отключить Google
-                          </Button>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Читается первый лист таблицы; первая строка — заголовки колонок (как в шаблоне
-                        CSV). Доступ к файлам — с вашего Google-аккаунта, без расшаривания на
-                        технические email.
-                      </p>
-                      {googleSheetsOAuthConfigured === false ? (
-                        <Alert variant="destructive" className="py-2">
-                          <AlertDescription className="text-xs">
-                            На сервере не заданы{" "}
-                            <code className="rounded bg-muted px-1">GOOGLE_CLIENT_ID</code>,{" "}
-                            <code className="rounded bg-muted px-1">GOOGLE_CLIENT_SECRET</code> и{" "}
-                            <code className="rounded bg-muted px-1">NEXTAUTH_URL</code> — обратитесь к
-                            администратору.
-                          </AlertDescription>
-                        </Alert>
-                      ) : null}
-                      {googleSheetsOAuthConfigured && !googleSheetsGoogleConnected ? (
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  {importHeaders.length === 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <Label className="text-sm">Файл</Label>
                           <p className="text-xs text-muted-foreground">
-                            Один раз разрешите приложению чтение таблиц — как обычный вход через Google.
+                            Поддерживаются CSV, XLSX и JSON. Для корректного распознавания дат
+                            используйте формат из шаблона.
                           </p>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="shrink-0 w-fit"
-                            onClick={() => {
-                              window.location.href = "/api/psychologist/google-sheets/oauth/start";
-                            }}
-                          >
-                            Подключить Google
-                          </Button>
                         </div>
-                      ) : null}
-                      {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
-                        <div className="space-y-1.5">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto"
-                            disabled={googleSheetsPickerLoading || googleSheetsImportLoading}
-                            onClick={() => void handleOpenGoogleSheetsPicker()}
-                          >
-                            {googleSheetsPickerLoading ? "Открываем выбор…" : "Выбрать таблицу…"}
-                          </Button>
-                          {!process.env.NEXT_PUBLIC_GOOGLE_API_KEY ? (
-                            <p className="text-xs text-amber-800 dark:text-amber-200/90">
-                              Чтобы открывалось стандартное окно Google, задайте в настройках сервера
-                              переменную{" "}
-                              <code className="rounded bg-muted px-1">NEXT_PUBLIC_GOOGLE_API_KEY</code>{" "}
-                              (ключ API в Google Cloud → ограничение по HTTP referrer). Иначе вставьте
-                              ссылку на таблицу ниже.
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">
-                              Откроется окно Google: выберите файл таблицы или укажите ссылку вручную
-                              ниже.
-                            </p>
-                          )}
-                        </div>
-                      ) : null}
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <Label htmlFor="google-import-url" className="text-xs">
-                            Ссылка на таблицу (если не выбирали выше)
-                          </Label>
-                          <Input
-                            id="google-import-url"
-                            placeholder="https://docs.google.com/spreadsheets/d/..."
-                            value={googleSheetsImportUrl}
-                            onChange={(e) => setGoogleSheetsImportUrl(e.target.value)}
-                            disabled={googleSheetsImportLoading || googleSheetsPickerLoading}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="shrink-0"
-                          disabled={
-                            googleSheetsImportLoading ||
-                            googleSheetsPickerLoading ||
-                            !googleSheetsOAuthConfigured ||
-                            !googleSheetsGoogleConnected
-                          }
-                          onClick={() => void handleImportFromGoogleSheets()}
-                        >
-                          {googleSheetsImportLoading ? "Загрузка…" : "Загрузить из Google Таблицы"}
+                        <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Шаблон
                         </Button>
                       </div>
-                    </div>
 
-                    <p className="text-xs text-muted-foreground">
-                      Файлы CSV/XLSX/JSON разбираются в браузере. Импорт из Google выполняется на сервере
-                      с вашего разрешения (OAuth).
-                    </p>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => importFileInputRef.current?.click()}
+                        className="group w-full flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <UploadCloud className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium text-foreground">
+                            Перетащите файл сюда или нажмите, чтобы выбрать
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            CSV, XLSX или JSON, размером до 10 МБ.
+                          </p>
+                        </div>
+                        {importFileName && (
+                          <p className="mt-1 text-xs text-muted-foreground break-all">
+                            Выбран файл: <span className="font-medium">{importFileName}</span>
+                          </p>
+                        )}
+                        <Input
+                          ref={importFileInputRef}
+                          type="file"
+                          accept=".csv,.xlsx,.json"
+                          className="sr-only"
+                          onChange={handleImportFile}
+                        />
+                      </button>
+
+                      <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-border" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
+                          <span className="bg-background px-2">или</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <Label className="text-sm font-medium">Google Таблицы</Label>
+                          </div>
+                          {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-muted-foreground"
+                              onClick={() => void handleDisconnectGoogleSheets()}
+                            >
+                              Отключить Google
+                            </Button>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Читается первый лист таблицы; первая строка — заголовки колонок (как в шаблоне
+                          CSV). Доступ к файлам — с вашего Google-аккаунта, без расшаривания на
+                          технические email.
+                        </p>
+                        {googleSheetsOAuthConfigured === false ? (
+                          <Alert variant="destructive" className="py-2">
+                            <AlertDescription className="text-xs">
+                              На сервере не заданы{" "}
+                              <code className="rounded bg-muted px-1">GOOGLE_CLIENT_ID</code>,{" "}
+                              <code className="rounded bg-muted px-1">GOOGLE_CLIENT_SECRET</code> и{" "}
+                              <code className="rounded bg-muted px-1">NEXTAUTH_URL</code> — обратитесь к
+                              администратору.
+                            </AlertDescription>
+                          </Alert>
+                        ) : null}
+                        {googleSheetsOAuthConfigured && !googleSheetsGoogleConnected ? (
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <p className="text-xs text-muted-foreground">
+                              Один раз разрешите приложению чтение таблиц — как обычный вход через Google.
+                            </p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="shrink-0 w-fit"
+                              onClick={() => {
+                                window.location.href = "/api/psychologist/google-sheets/oauth/start";
+                              }}
+                            >
+                              Подключить Google
+                            </Button>
+                          </div>
+                        ) : null}
+                        {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
+                          <div className="space-y-1.5">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto"
+                              disabled={googleSheetsPickerLoading || googleSheetsImportLoading}
+                              onClick={() => void handleOpenGoogleSheetsPicker()}
+                            >
+                              {googleSheetsPickerLoading ? "Открываем выбор…" : "Выбрать таблицу…"}
+                            </Button>
+                            {!process.env.NEXT_PUBLIC_GOOGLE_API_KEY ? (
+                              <p className="text-xs text-amber-800 dark:text-amber-200/90">
+                                Чтобы открывалось стандартное окно Google, задайте в настройках сервера
+                                переменную{" "}
+                                <code className="rounded bg-muted px-1">NEXT_PUBLIC_GOOGLE_API_KEY</code>{" "}
+                                (ключ API в Google Cloud → ограничение по HTTP referrer). Иначе вставьте
+                                ссылку на таблицу ниже.
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Откроется окно Google: выберите файл таблицы или укажите ссылку вручную
+                                ниже.
+                              </p>
+                            )}
+                          </div>
+                        ) : null}
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <Label htmlFor="google-import-url" className="text-xs">
+                              Ссылка на таблицу (если не выбирали выше)
+                            </Label>
+                            <Input
+                              id="google-import-url"
+                              placeholder="https://docs.google.com/spreadsheets/d/..."
+                              value={googleSheetsImportUrl}
+                              onChange={(e) => setGoogleSheetsImportUrl(e.target.value)}
+                              disabled={googleSheetsImportLoading || googleSheetsPickerLoading}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="shrink-0"
+                            disabled={
+                              googleSheetsImportLoading ||
+                              googleSheetsPickerLoading ||
+                              !googleSheetsOAuthConfigured ||
+                              !googleSheetsGoogleConnected
+                            }
+                            onClick={() => void handleImportFromGoogleSheets()}
+                          >
+                            {googleSheetsImportLoading ? "Загрузка…" : "Загрузить из Google Таблицы"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        Файлы CSV/XLSX/JSON разбираются в браузере. Импорт из Google выполняется на сервере
+                        с вашего разрешения (OAuth).
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-b border-border pb-3">
+                      <div className="min-w-0 space-y-1">
+                        {importFileName ? (
+                          <p
+                            className="text-xs text-muted-foreground truncate"
+                            title={importFileName}
+                          >
+                            <span className="font-medium text-foreground">{importFileName}</span>
+                          </p>
+                        ) : null}
+                        <p className="text-sm text-muted-foreground">
+                          Найдено колонок: {importHeaders.length}, строк: {importRows.length}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={resetImportSourceSelection}
+                      >
+                        <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                        Другой файл или таблица
+                      </Button>
+                    </div>
+                  )}
                   {importHeaders.length > 0 && (
                     <>
-                      <p className="text-sm text-muted-foreground shrink-0">
-                        Найдено колонок: {importHeaders.length}, строк: {importRows.length}
-                      </p>
                       <div className="space-y-2 flex-1 min-h-0 flex flex-col">
                         <Label className="text-sm shrink-0">Сопоставление полей</Label>
                         <div className="overflow-auto rounded-md border flex-1 min-h-0">
