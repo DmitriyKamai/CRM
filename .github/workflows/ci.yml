@@ -30,5 +30,6 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      # Прод-зависимости; падаем только при high/critical (moderate в транзитивах часто лечится апстримом).
       - name: npm audit
         run: npm run security:audit

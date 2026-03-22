@@ -20,12 +20,15 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null);
     const token =
       typeof body?.token === "string" ? body.token.trim() : null;
-    const chatId =
-      typeof body?.chatId === "number" ? body.chatId : typeof body?.chatId === "string" ? Number(body.chatId) : null;
+    const rawChat = body?.chatId;
+    const chatIdStr =
+      rawChat !== null && rawChat !== undefined && String(rawChat).trim() !== ""
+        ? String(rawChat).trim()
+        : null;
     const username =
       typeof body?.username === "string" ? body.username.trim() || null : null;
 
-    if (!token || chatId == null || Number.isNaN(chatId)) {
+    if (!token || !chatIdStr || !/^-?\d+$/.test(chatIdStr)) {
       return NextResponse.json(
         { message: "Нужны token и chatId" },
         { status: 400 }
@@ -46,7 +49,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Токен истёк" }, { status: 410 });
     }
 
-    const chatIdStr = String(chatId);
     const otherUser = await prisma.user.findFirst({
       where: {
         telegramChatId: chatIdStr,
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
       prisma.user.update({
         where: { id: linkToken.userId },
         data: {
-          telegramChatId: String(chatId),
+          telegramChatId: chatIdStr,
           telegramUsername: username
         }
       }),

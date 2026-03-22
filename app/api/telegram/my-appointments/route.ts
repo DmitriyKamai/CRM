@@ -21,14 +21,14 @@ export async function POST(request: Request) {
     if (mod) return mod;
 
     const body = await request.json().catch(() => null);
-    const chatId =
-      typeof body?.chatId === "number"
-        ? body.chatId
-        : typeof body?.chatId === "string"
-          ? Number(body.chatId)
-          : null;
+    // Строка целиком — без Number(), чтобы не терять точность у больших chat_id.
+    const raw = body?.chatId;
+    const chatIdStr =
+      raw !== null && raw !== undefined && String(raw).trim() !== ""
+        ? String(raw).trim()
+        : null;
 
-    if (chatId == null || Number.isNaN(chatId)) {
+    if (!chatIdStr || !/^-?\d+$/.test(chatIdStr)) {
       return NextResponse.json(
         { message: "Нужен chatId" },
         { status: 400 }
@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.findFirst({
-      where: { telegramChatId: String(chatId) },
-      select: { id: true, role: true }
+      where: { telegramChatId: chatIdStr },
+      select: { id: true, role: true, email: true }
     });
 
     if (!user) {
@@ -47,8 +47,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const now = new Date();
-    const statuses = ["SCHEDULED", "PENDING_CONFIRMATION"] as const;
+    /** Не показываем отменённые. Учитываем COMPLETED и недавнее прошлое — иначе после приёма список «пустой». */
+    const fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const activeStatuses = [
+      "SCHEDULED",
+      "PENDING_CONFIRMATION",
+      "COMPLETED"
+    ] as const;
 
     if (user.role === "PSYCHOLOGIST") {
       const profile = await prisma.psychologistProfile.findUnique({
@@ -62,8 +67,8 @@ export async function POST(request: Request) {
       const appointments = await prisma.appointment.findMany({
         where: {
           psychologistId: profile.id,
-          status: { in: [...statuses] },
-          start: { gte: now }
+          status: { in: [...activeStatuses] },
+          start: { gte: fromDate }
         },
         orderBy: { start: "asc" },
         include: {
@@ -84,17 +89,27 @@ export async function POST(request: Request) {
     }
 
     if (user.role === "CLIENT") {
+      const emailNorm = user.email?.trim().toLowerCase() ?? "";
       const clientProfiles = await prisma.clientProfile.findMany({
-        where: { userId: user.id },
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(emailNorm.length > 0 ? [{ email: emailNorm }] : [])
+          ]
+        },
         select: { id: true }
       });
-      const clientIds = clientProfiles.map((c) => c.id);
+      const clientIds = [...new Set(clientProfiles.map((c) => c.id))];
+
+      if (clientIds.length === 0) {
+        return NextResponse.json({ role: "client", appointments: [] });
+      }
 
       const appointments = await prisma.appointment.findMany({
         where: {
           clientId: { in: clientIds },
-          status: { in: [...statuses] },
-          start: { gte: now }
+          status: { in: [...activeStatuses] },
+          start: { gte: fromDate }
         },
         orderBy: { start: "asc" },
         include: {

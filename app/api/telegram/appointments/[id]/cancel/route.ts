@@ -26,14 +26,13 @@ export async function POST(
 
     const { id: appointmentId } = await params;
     const body = await request.json().catch(() => null);
-    const chatId =
-      typeof body?.chatId === "number"
-        ? body.chatId
-        : typeof body?.chatId === "string"
-          ? Number(body.chatId)
-          : null;
+    const rawChat = body?.chatId;
+    const chatIdStr =
+      rawChat !== null && rawChat !== undefined && String(rawChat).trim() !== ""
+        ? String(rawChat).trim()
+        : null;
 
-    if (chatId == null || Number.isNaN(chatId)) {
+    if (!chatIdStr || !/^-?\d+$/.test(chatIdStr)) {
       return NextResponse.json(
         { message: "Нужен chatId" },
         { status: 400 }
@@ -41,7 +40,7 @@ export async function POST(
     }
 
     const user = await prisma.user.findFirst({
-      where: { telegramChatId: String(chatId) },
+      where: { telegramChatId: chatIdStr },
       select: { id: true, role: true }
     });
 

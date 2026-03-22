@@ -27,14 +27,13 @@ export async function POST(
     const { id: appointmentId } = await params;
     const body = await request.json().catch(() => null);
     const action = body?.action === "confirm" ? "confirm" : body?.action === "cancel" ? "cancel" : null;
-    const chatId =
-      typeof body?.chatId === "number"
-        ? body.chatId
-        : typeof body?.chatId === "string"
-          ? Number(body.chatId)
-          : null;
+    const rawChat = body?.chatId;
+    const chatIdStr =
+      rawChat !== null && rawChat !== undefined && String(rawChat).trim() !== ""
+        ? String(rawChat).trim()
+        : null;
 
-    if (!action || chatId == null || Number.isNaN(chatId)) {
+    if (!action || !chatIdStr || !/^-?\d+$/.test(chatIdStr)) {
       return NextResponse.json(
         { message: "Нужны action (confirm|cancel) и chatId" },
         { status: 400 }
@@ -42,7 +41,7 @@ export async function POST(
     }
 
     const user = await prisma.user.findFirst({
-      where: { telegramChatId: String(chatId) },
+      where: { telegramChatId: chatIdStr },
       select: { id: true }
     });
     if (!user) {

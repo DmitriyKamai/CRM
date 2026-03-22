@@ -6,7 +6,23 @@
  */
 
 import "dotenv/config";
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
+import type { Context } from "telegraf";
+
+/** Постоянные кнопки над полем ввода (reply keyboard, не путать с inline под сообщением). */
+const mainKeyboard = Markup.keyboard([
+  [Markup.button.text("📅 Мои записи")],
+  [Markup.button.text("ℹ️ Помощь")]
+])
+  .resize()
+  .persistent(true);
+
+const HELP_TEXT =
+  "Команды:\n" +
+  "/start — привязать Telegram к аккаунту (откройте ссылку из настроек на сайте)\n" +
+  "/myappointments или кнопка «Мои записи» — предстоящие записи\n" +
+  "/help — эта справка\n\n" +
+  "Уведомления о новых записях приходят сюда же, если аккаунт привязан.";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const secret = process.env.TELEGRAM_BOT_SECRET;
@@ -28,7 +44,8 @@ bot.start(async (ctx) => {
   const payload = ctx.startPayload?.trim() || "";
   if (!payload) {
     await ctx.reply(
-      "Чтобы привязать аккаунт, откройте ссылку из настроек на сайте: Настройки → Аккаунты → Привязать Telegram."
+      "Чтобы привязать аккаунт, откройте ссылку из настроек на сайте: Настройки → Аккаунты → Привязать Telegram.",
+      mainKeyboard
     );
     return;
   }
@@ -37,7 +54,7 @@ bot.start(async (ctx) => {
   const username = ctx.from?.username ?? undefined;
 
   if (!chatId) {
-    await ctx.reply("Не удалось определить чат.");
+    await ctx.reply("Не удалось определить чат.", mainKeyboard);
     return;
   }
 
@@ -50,7 +67,7 @@ bot.start(async (ctx) => {
       },
       body: JSON.stringify({
         token: payload,
-        chatId,
+        chatId: String(chatId),
         username
       })
     });
@@ -58,7 +75,10 @@ bot.start(async (ctx) => {
     const data = await res.json().catch(() => ({}));
 
     if (res.ok && data.ok) {
-      await ctx.reply("Телеграм успешно привязан к вашему аккаунту. Можно вернуться на сайт.");
+      await ctx.reply(
+        "Телеграм успешно привязан к вашему аккаунту. Можно вернуться на сайт.",
+        mainKeyboard
+      );
       return;
     }
 
@@ -72,17 +92,21 @@ bot.start(async (ctx) => {
             : res.status === 403
               ? "Ошибка доступа. Проверьте настройки сервера."
               : (data?.message as string) || "Не удалось привязать. Попробуйте ещё раз или создайте новую ссылку на сайте.";
-    await ctx.reply(msg);
+    await ctx.reply(msg, mainKeyboard);
   } catch (e) {
     console.error("Claim link error:", e);
     await ctx.reply(
-      "Сервер недоступен. Убедитесь, что приложение запущено (например, npm run dev) и CRM_APP_URL указан верно."
+      "Сервер недоступен. Убедитесь, что приложение запущено (например, npm run dev) и CRM_APP_URL указан верно.",
+      mainKeyboard
     );
   }
 });
 
-// Команда «Мои записи»
-bot.command("myappointments", async (ctx) => {
+async function runHelp(ctx: Context) {
+  await ctx.reply(HELP_TEXT, mainKeyboard).catch(() => {});
+}
+
+async function runMyAppointments(ctx: Context) {
   const chatId = ctx.chat?.id;
   if (!chatId) return;
 
@@ -93,13 +117,13 @@ bot.command("myappointments", async (ctx) => {
         "Content-Type": "application/json",
         "X-Bot-Secret": secret!
       },
-      body: JSON.stringify({ chatId })
+      body: JSON.stringify({ chatId: String(chatId) })
     });
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      await ctx.reply(data?.message || "Не удалось загрузить записи.").catch(() => {});
+      await ctx.reply(data?.message || "Не удалось загрузить записи.", mainKeyboard).catch(() => {});
       return;
     }
 
@@ -107,7 +131,7 @@ bot.command("myappointments", async (ctx) => {
     const role = data.role;
 
     if (appointments.length === 0) {
-      await ctx.reply("У вас нет предстоящих записей.").catch(() => {});
+      await ctx.reply("У вас нет предстоящих записей.", mainKeyboard).catch(() => {});
       return;
     }
 
@@ -129,30 +153,31 @@ bot.command("myappointments", async (ctx) => {
           { text: `Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` }
         ];
       }
-      return [
-        { text: `Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` }
-      ];
+      return [{ text: `Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` }];
     });
 
-    await ctx.reply(text, {
-      reply_markup: { inline_keyboard: buttons }
-    }).catch(() => {});
+    // Inline-клавиатура не сочетается с reply keyboard в одном сообщении — сначала закрепляем нижние кнопки, затем список с inline.
+    await ctx.reply("Ваши предстоящие записи:", mainKeyboard).catch(() => {});
+    await ctx
+      .reply(text, {
+        reply_markup: { inline_keyboard: buttons }
+      })
+      .catch(() => {});
   } catch (e) {
     console.error("My appointments error:", e);
-    await ctx.reply("Сервер недоступен. Попробуйте позже.").catch(() => {});
+    await ctx.reply("Сервер недоступен. Попробуйте позже.", mainKeyboard).catch(() => {});
   }
-});
+}
+
+bot.command("help", runHelp);
+bot.hears(["ℹ️ Помощь", "Помощь"], runHelp);
+
+bot.command("myappointments", runMyAppointments);
+bot.hears(["📅 Мои записи", "Мои записи"], runMyAppointments);
 
 // Кнопки «Подтвердить» / «Отменить» из «Мои записи» (confirm_my:id, cancel_my:id)
 async function handleMyAppointmentAction(
-  ctx: {
-    match: string[];
-    chat?: { id: number };
-    callbackQuery?: { message?: unknown };
-    answerCbQuery: () => Promise<unknown>;
-    telegram: { editMessageText: (a: number, b: number | undefined, c: undefined, d: string) => Promise<unknown> };
-    reply: (t: string) => Promise<unknown>;
-  },
+  ctx: Context,
   appointmentId: string,
   action: "confirm" | "cancel"
 ) {
@@ -171,7 +196,7 @@ async function handleMyAppointmentAction(
   await ctx.answerCbQuery();
 
   const endpoint = `${baseUrl}/api/telegram/appointments/${encodeURIComponent(appointmentId)}/action`;
-  const body = { chatId, action: action === "confirm" ? "confirm" : "cancel" };
+  const body = { chatId: String(chatId), action: action === "confirm" ? "confirm" : "cancel" };
 
   try {
     const res = await fetch(endpoint, {
@@ -190,7 +215,7 @@ async function handleMyAppointmentAction(
       if (messageId) {
         await ctx.telegram.editMessageText(chatId, messageId, undefined, newText).catch(() => {});
       } else {
-        await ctx.reply(newText).catch(() => {});
+        await ctx.reply(newText, mainKeyboard).catch(() => {});
       }
       return;
     }
@@ -199,7 +224,7 @@ async function handleMyAppointmentAction(
     if (messageId) {
       await ctx.telegram.editMessageText(chatId, messageId, undefined, `Ошибка: ${errMsg}`).catch(() => {});
     } else {
-      await ctx.reply(`Ошибка: ${errMsg}`).catch(() => {});
+      await ctx.reply(`Ошибка: ${errMsg}`, mainKeyboard).catch(() => {});
     }
   } catch (e) {
     console.error("My appointment action error:", e);
@@ -207,7 +232,7 @@ async function handleMyAppointmentAction(
     if (messageId) {
       await ctx.telegram.editMessageText(chatId, messageId, undefined, msg).catch(() => {});
     } else {
-      await ctx.reply(msg).catch(() => {});
+      await ctx.reply(msg, mainKeyboard).catch(() => {});
     }
   }
 }
@@ -246,7 +271,7 @@ bot.action(/^(confirm|cancel):(.+)$/, async (ctx) => {
         "Content-Type": "application/json",
         "X-Bot-Secret": secret!
       },
-      body: JSON.stringify({ action, chatId })
+      body: JSON.stringify({ action, chatId: String(chatId) })
     });
 
     const result = await res.json().catch(() => ({}));
@@ -265,7 +290,7 @@ bot.action(/^(confirm|cancel):(.+)$/, async (ctx) => {
     if (messageId) {
       await ctx.telegram.editMessageText(chatId, messageId, undefined, `Ошибка: ${errMsg}`).catch(() => {});
     } else {
-      await ctx.reply(`Ошибка: ${errMsg}`).catch(() => {});
+      await ctx.reply(`Ошибка: ${errMsg}`, mainKeyboard).catch(() => {});
     }
   } catch (e) {
     console.error("Appointment action error:", e);
@@ -273,7 +298,7 @@ bot.action(/^(confirm|cancel):(.+)$/, async (ctx) => {
     if (messageId) {
       await ctx.telegram.editMessageText(chatId, messageId, undefined, msg).catch(() => {});
     } else {
-      await ctx.reply(msg).catch(() => {});
+      await ctx.reply(msg, mainKeyboard).catch(() => {});
     }
   }
 });
@@ -281,7 +306,8 @@ bot.action(/^(confirm|cancel):(.+)$/, async (ctx) => {
 bot.launch({ dropPendingUpdates: true }).then(async () => {
   await bot.telegram.setMyCommands([
     { command: "start", description: "Привязать аккаунт" },
-    { command: "myappointments", description: "Мои записи" }
+    { command: "myappointments", description: "Мои записи" },
+    { command: "help", description: "Справка" }
   ]).catch(() => {});
   console.log("Telegram bot running (long polling). Stop with Ctrl+C.");
 });
