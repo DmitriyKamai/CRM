@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         ...(emailNorm.length > 0
           ? [
               {
-                email: { equals: emailNorm, mode: "insensitive" },
+                email: { equals: emailNorm, mode: "insensitive" as const },
                 ...(ownPsychologistId
                   ? { NOT: { psychologistId: ownPsychologistId } }
                   : {})
