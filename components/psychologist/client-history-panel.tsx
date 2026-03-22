@@ -204,7 +204,7 @@ export function ClientHistoryPanel({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border bg-card min-h-[12rem] max-h-[min(70vh,520px)]",
+        "flex flex-col rounded-lg border bg-card min-h-[12rem] max-h-[calc(100dvh-2rem)]",
         className
       )}
     >

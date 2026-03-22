@@ -186,11 +186,7 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className={cn(
-              "min-w-72 w-max max-w-[min(22rem,95vw)] surface-glass shadow-lg",
-              /* поверх дефолтного bg-popover из ui/dropdown-menu */
-              "bg-[hsl(0_0%_100%/0.42)] dark:bg-[hsl(0_0%_100%/0.1)]"
-            )}
+            className="min-w-72 w-max max-w-[min(22rem,95vw)]"
             forceMount
           >
             <div className="flex items-center gap-3 p-2">

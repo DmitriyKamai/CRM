@@ -109,7 +109,11 @@ export function NotificationsPanel() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
+      <PopoverContent
+        className="w-80 p-0 shadow-lg"
+        align="end"
+        sideOffset={8}
+      >
         <div className="border-b px-3 py-2 flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">Уведомления</h3>
           {list.length > 0 && (

@@ -154,11 +154,12 @@
     backdrop-filter: blur(6px) saturate(1.2);
   }
 
+  /* Тёмная тема: сильнее вуаль и размытие — иначе на тёмном хедере/панелях стекло почти не видно */
   .dark .surface-glass {
-    border-color: hsl(0 0% 100% / 0.14);
-    background-color: hsl(0 0% 100% / 0.1);
-    -webkit-backdrop-filter: blur(6px) saturate(1.2);
-    backdrop-filter: blur(6px) saturate(1.2);
+    border-color: hsl(0 0% 100% / 0.24);
+    background-color: hsl(0 0% 100% / 0.16);
+    -webkit-backdrop-filter: blur(10px) saturate(1.35);
+    backdrop-filter: blur(10px) saturate(1.35);
   }
 
   /** Нижняя плашка — чуть плотнее белого, читаемость кнопки. */
