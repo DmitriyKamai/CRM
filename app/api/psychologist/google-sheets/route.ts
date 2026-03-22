@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import {
+  getGoogleSheetsCredentialsStatus,
   getSpreadsheetIdFromProfileSettings,
   isGoogleSheetsConfigured,
   parseSpreadsheetId
-} from "@/lib/google-sheets-export";
+} from "@/lib/google-sheets";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
-/** Статус интеграции и сохранённый ID таблицы. */
+/** Статус ключа API и сохранённая таблица для импорта (подстановка ссылки). */
 export async function GET() {
   try {
     const ctx = await requirePsychologist();
@@ -19,8 +20,10 @@ export async function GET() {
       select: { settingsJson: true }
     });
 
+    const credentialsStatus = getGoogleSheetsCredentialsStatus();
     return NextResponse.json({
       serverConfigured: isGoogleSheetsConfigured(),
+      credentialsStatus,
       spreadsheetId: getSpreadsheetIdFromProfileSettings(p?.settingsJson)
     });
   } catch (err) {

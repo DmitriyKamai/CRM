@@ -13,7 +13,8 @@ import {
   Download,
   ChevronDown,
   Upload,
-  FileSpreadsheet
+  FileSpreadsheet,
+  UploadCloud
 } from "lucide-react";
 import { toast } from "sonner";
 import { ru } from "date-fns/locale";
@@ -48,7 +49,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
@@ -76,7 +76,6 @@ import { PhoneInput, formatPhoneDisplay } from "@/components/ui/phone-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
-import { UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ClientDto = {
@@ -221,16 +220,11 @@ export function PsychologistClientsList({
   const [singleDeleting, setSingleDeleting] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [googleSheetsOpen, setGoogleSheetsOpen] = useState(false);
-  const [googleSheetsLoading, setGoogleSheetsLoading] = useState(false);
-  const [googleSheetsSaving, setGoogleSheetsSaving] = useState(false);
-  const [googleSheetsServerConfigured, setGoogleSheetsServerConfigured] = useState<
-    boolean | null
+  const [googleSheetsImportUrl, setGoogleSheetsImportUrl] = useState("");
+  const [googleSheetsImportLoading, setGoogleSheetsImportLoading] = useState(false);
+  const [googleSheetsImportCredStatus, setGoogleSheetsImportCredStatus] = useState<
+    "missing" | "invalid" | "ok" | null
   >(null);
-  const [googleSheetsSpreadsheetId, setGoogleSheetsSpreadsheetId] = useState<string | null>(
-    null
-  );
-  const [googleSheetsInput, setGoogleSheetsInput] = useState("");
 
   const IMPORT_FIELDS: { key: string; label: string }[] = [
     { key: "firstName", label: "Имя" },
@@ -350,6 +344,8 @@ export function PsychologistClientsList({
     setImportHeaders([]);
     setImportRows([]);
     setImportMapping({});
+    setGoogleSheetsImportUrl("");
+    setGoogleSheetsImportCredStatus(null);
     async function load() {
       try {
         const res = await fetch("/api/psychologist/custom-fields");
@@ -362,6 +358,38 @@ export function PsychologistClientsList({
       }
     }
     void load();
+  }, [importOpen]);
+
+  useEffect(() => {
+    if (!importOpen) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/psychologist/google-sheets");
+        if (!res.ok || cancelled) return;
+        const data = (await res.json().catch(() => null)) as {
+          credentialsStatus?: "missing" | "invalid" | "ok";
+          spreadsheetId?: string | null;
+        } | null;
+        if (cancelled) return;
+        const cs = data?.credentialsStatus;
+        setGoogleSheetsImportCredStatus(
+          cs === "ok" || cs === "missing" || cs === "invalid" ? cs : "missing"
+        );
+        const id =
+          typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
+            ? data.spreadsheetId.trim()
+            : "";
+        if (id) {
+          setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${id}/edit`);
+        }
+      } catch {
+        if (!cancelled) setGoogleSheetsImportCredStatus("missing");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [importOpen]);
 
   useEffect(() => {
@@ -692,95 +720,64 @@ export function PsychologistClientsList({
     }
   }
 
-  async function loadGoogleSheetsStatus() {
-    setGoogleSheetsLoading(true);
+  async function handleImportFromGoogleSheets() {
+    setGoogleSheetsImportLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/psychologist/google-sheets");
-      const data = (await res.json().catch(() => null)) as {
-        serverConfigured?: boolean;
-        spreadsheetId?: string | null;
-        message?: string;
-      } | null;
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось загрузить настройки Google Таблиц");
-      }
-      setGoogleSheetsServerConfigured(Boolean(data?.serverConfigured));
-      const id =
-        typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
-          ? data.spreadsheetId.trim()
-          : null;
-      setGoogleSheetsSpreadsheetId(id);
-      setGoogleSheetsInput(
-        id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : ""
-      );
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Ошибка загрузки настроек");
-    } finally {
-      setGoogleSheetsLoading(false);
-    }
-  }
-
-  async function saveGoogleSheetsConfig() {
-    setGoogleSheetsSaving(true);
-    try {
-      const res = await fetch("/api/psychologist/google-sheets", {
-        method: "PATCH",
+      const res = await fetch("/api/psychologist/clients/import/google-sheets", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          spreadsheetId: googleSheetsInput.trim() || null
+          spreadsheetUrlOrId: googleSheetsImportUrl.trim() || null
         })
       });
       const data = (await res.json().catch(() => null)) as {
-        spreadsheetId?: string | null;
         message?: string;
+        headers?: string[];
+        rows?: (string | number | boolean)[][];
+        spreadsheetId?: string;
+        sheetTitle?: string;
       } | null;
       if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось сохранить таблицу");
+        throw new Error(data?.message ?? "Не удалось прочитать таблицу");
       }
-      const id =
-        typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
-          ? data.spreadsheetId.trim()
-          : null;
-      setGoogleSheetsSpreadsheetId(id);
-      toast.success("Таблица для экспорта сохранена");
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Ошибка сохранения");
-    } finally {
-      setGoogleSheetsSaving(false);
-    }
-  }
-
-  async function exportToGoogleSheets() {
-    setExporting(true);
-    try {
-      const body: { statusId?: string } = {};
-      if (statusFilter !== "ALL") body.statusId = statusFilter;
-      const res = await fetch("/api/psychologist/clients/export/google-sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+      const headers = data?.headers ?? [];
+      const rows = data?.rows ?? [];
+      if (headers.length === 0) {
+        throw new Error("В таблице нет строки заголовков");
+      }
+      const nextMapping: Record<string, number> = {};
+      headers.forEach((h, idx) => {
+        const base = IMPORT_FIELDS.find((f) => f.label === h);
+        if (base) nextMapping[base.key] = idx;
+        const custom = importCustomDefs.find((d) => d.label === h);
+        if (custom) nextMapping[`custom:${custom.label}`] = idx;
       });
-      const data = (await res.json().catch(() => null)) as {
-        message?: string;
-        exportedCount?: number;
-      } | null;
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицы");
-      }
-      toast.success(
-        data?.message ??
-          (typeof data?.exportedCount === "number"
-            ? `Выгружено строк: ${data.exportedCount}`
-            : "Готово")
+      setImportHeaders(headers);
+      setImportRows(rows);
+      setImportMapping(nextMapping);
+      setImportFileName(
+        typeof data?.sheetTitle === "string"
+          ? `Google Sheets — ${data.sheetTitle}`
+          : "Google Sheets"
       );
-      setGoogleSheetsOpen(false);
+      if (typeof data?.spreadsheetId === "string" && data.spreadsheetId) {
+        await fetch("/api/psychologist/google-sheets", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            spreadsheetId: `https://docs.google.com/spreadsheets/d/${data.spreadsheetId}/edit`
+          })
+        }).catch(() => {});
+      }
+      toast.success("Таблица загружена — проверьте сопоставление колонок и нажмите «Импортировать»");
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Ошибка экспорта");
+      const msg = err instanceof Error ? err.message : "Ошибка загрузки из Google";
+      toast.error(msg);
+      setError(msg);
     } finally {
-      setExporting(false);
+      setGoogleSheetsImportLoading(false);
     }
   }
 
@@ -1346,18 +1343,6 @@ export function PsychologistClientsList({
                     >
                       Скачать XLSX
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        setGoogleSheetsOpen(true);
-                        void loadGoogleSheetsStatus();
-                      }}
-                      disabled={exporting || clients.length === 0}
-                    >
-                      <FileSpreadsheet className="h-4 w-4 mr-2 shrink-0" />
-                      Google Таблицы…
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
@@ -1369,79 +1354,6 @@ export function PsychologistClientsList({
                 </Button>
               </div>
             </div>
-
-            <Dialog
-              open={googleSheetsOpen}
-              onOpenChange={(open) => {
-                setGoogleSheetsOpen(open);
-                if (!open) {
-                  setGoogleSheetsServerConfigured(null);
-                }
-              }}
-            >
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Экспорт в Google Таблицы</DialogTitle>
-                  <DialogDescription>
-                    Укажите таблицу и выдайте сервисному аккаунту доступ «Редактор». Данные
-                    записываются на лист «Клиенты CRM» (лист создаётся при первом экспорте).
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 py-2">
-                  {googleSheetsLoading ? (
-                    <p className="text-sm text-muted-foreground">Загрузка…</p>
-                  ) : googleSheetsServerConfigured === false ? (
-                    <Alert variant="destructive">
-                      <AlertDescription>
-                        На сервере не задан GOOGLE_SERVICE_ACCOUNT_JSON — экспорт в Google
-                        Таблицы недоступен. Обратитесь к администратору.
-                      </AlertDescription>
-                    </Alert>
-                  ) : null}
-                  <div className="space-y-2">
-                    <Label htmlFor="google-sheets-url">Ссылка на таблицу или ID</Label>
-                    <Input
-                      id="google-sheets-url"
-                      placeholder="https://docs.google.com/spreadsheets/d/..."
-                      value={googleSheetsInput}
-                      onChange={(e) => setGoogleSheetsInput(e.target.value)}
-                      disabled={googleSheetsLoading}
-                    />
-                    {googleSheetsSpreadsheetId ? (
-                      <p className="text-xs text-muted-foreground">
-                        Сохранён ID: {googleSheetsSpreadsheetId}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-                <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void saveGoogleSheetsConfig()}
-                    disabled={
-                      googleSheetsLoading ||
-                      googleSheetsSaving ||
-                      googleSheetsServerConfigured === false
-                    }
-                  >
-                    {googleSheetsSaving ? "Сохранение…" : "Сохранить таблицу"}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => void exportToGoogleSheets()}
-                    disabled={
-                      exporting ||
-                      googleSheetsLoading ||
-                      !googleSheetsSpreadsheetId ||
-                      googleSheetsServerConfigured === false
-                    }
-                  >
-                    {exporting ? "Выгрузка…" : "Выгрузить сейчас"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
 
             {/* Импорт */}
             <Dialog
@@ -1465,7 +1377,7 @@ export function PsychologistClientsList({
                   <DialogTitle>Импорт клиентов</DialogTitle>
                   <DialogDescription>
                     {importHeaders.length === 0
-                      ? "Загрузите CSV, XLSX или JSON (массив объектов)."
+                      ? "Загрузите CSV, XLSX, JSON или подтяните первый лист из Google Таблицы (заголовки — в первой строке листа)."
                       : "Сопоставьте колонки с полями и нажмите «Импортировать»."}
                   </DialogDescription>
                 </DialogHeader>
@@ -1521,8 +1433,71 @@ export function PsychologistClientsList({
                       />
                     </button>
 
+                    <div className="relative py-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
+                        <span className="bg-background px-2">или</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                      <div className="flex items-center gap-2">
+                        <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Label className="text-sm font-medium">Google Таблицы</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Читается первый лист таблицы. Первая строка — названия колонок (как в шаблоне
+                        CSV). Таблицу расшарьте на email из <code className="rounded bg-muted px-1">client_email</code> в
+                        JSON ключа (достаточно «Читатель»).
+                      </p>
+                      {googleSheetsImportCredStatus === "missing" ? (
+                        <Alert variant="destructive" className="py-2">
+                          <AlertDescription className="text-xs">
+                            На сервере не задан ключ сервисного аккаунта (см.{" "}
+                            <code className="rounded bg-muted px-1">GOOGLE_SERVICE_ACCOUNT_JSON</code> в .env).
+                          </AlertDescription>
+                        </Alert>
+                      ) : googleSheetsImportCredStatus === "invalid" ? (
+                        <Alert variant="destructive" className="py-2">
+                          <AlertDescription className="text-xs">
+                            JSON ключа не парсится — проверьте переменную окружения или используйте
+                            Base64 одной строкой.
+                          </AlertDescription>
+                        </Alert>
+                      ) : null}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <Label htmlFor="google-import-url" className="text-xs">
+                            Ссылка на таблицу
+                          </Label>
+                          <Input
+                            id="google-import-url"
+                            placeholder="https://docs.google.com/spreadsheets/d/..."
+                            value={googleSheetsImportUrl}
+                            onChange={(e) => setGoogleSheetsImportUrl(e.target.value)}
+                            disabled={googleSheetsImportLoading}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="shrink-0"
+                          disabled={
+                            googleSheetsImportLoading ||
+                            googleSheetsImportCredStatus !== "ok"
+                          }
+                          onClick={() => void handleImportFromGoogleSheets()}
+                        >
+                          {googleSheetsImportLoading ? "Загрузка…" : "Подтянуть из таблицы"}
+                        </Button>
+                      </div>
+                    </div>
+
                     <p className="text-xs text-muted-foreground">
-                      Файл не отправляется на сторонние сервисы — разбор выполняется внутри системы.
+                      Файлы CSV/XLSX/JSON разбираются в браузере. Google Таблицы читаются на сервере по
+                      API.
                     </p>
                   </div>
                   {importHeaders.length > 0 && (
