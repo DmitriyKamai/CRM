@@ -46,11 +46,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const now = new Date();
     const statusFilter = [
       "SCHEDULED",
-      "PENDING_CONFIRMATION",
-      "COMPLETED"
+      "PENDING_CONFIRMATION"
     ] as const;
 
     type Item = {
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
       where: {
         psychologist: { userId: user.id },
         status: { in: [...statusFilter] },
-        start: { gte: fromDate }
+        start: { gte: now }
       },
       orderBy: { start: "asc" },
       include: {
@@ -108,7 +107,7 @@ export async function POST(request: Request) {
         where: {
           clientId: { in: clientIds },
           status: { in: [...statusFilter] },
-          start: { gte: fromDate }
+          start: { gte: now }
         },
         orderBy: { start: "asc" },
         include: {
