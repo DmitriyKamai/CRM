@@ -133,14 +133,14 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2">
+      {/* Toolbar: поиск слева, колонки — у правого края строки */}
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
         {filterColumn && (
           <Input
             placeholder={filterPlaceholder ?? "Поиск..."}
             value={(filterColumn.getFilterValue() as string) ?? ""}
             onChange={e => filterColumn.setFilterValue(e.target.value)}
-            className="h-8 max-w-sm"
+            className="h-8 min-w-0 flex-1 max-w-sm"
           />
         )}
         {hideableColumns.length > 0 && (
@@ -149,7 +149,7 @@ export function DataTable<TData, TValue>({
               <Button
                 variant="outline"
                 size="icon"
-                className="ml-auto h-8 w-8 p-0"
+                className="ml-auto h-8 w-8 shrink-0 p-0"
                 aria-label="Настройка колонок"
               >
                 <Settings2 className="h-4 w-4" />
@@ -179,7 +179,11 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map(header => (
-                  <TableHead key={header.id} colSpan={header.colSpan} className="whitespace-nowrap align-top">
+                  <TableHead
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    className="whitespace-nowrap align-middle"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}

@@ -119,6 +119,10 @@ function formatCustomFieldValue(value: unknown): string {
   return String(value);
 }
 
+/** Кнопка сортировки в шапке: без min-width, иначе ghost-hover тянется на ширину колонки (как у Email). */
+const CLIENTS_TABLE_SORT_HEADER_BTN_CLASS =
+  "inline-flex h-8 w-max max-w-full shrink-0 items-center justify-start gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground";
+
 function ClientAvatar({ client, size = "md" }: { client: ClientDto; size?: "sm" | "md" }) {
   const initials = `${client.firstName[0] ?? ""}${client.lastName[0] ?? ""}`.toUpperCase();
   const color = getClientColor(client.id);
@@ -765,15 +769,19 @@ export function PsychologistClientsList({
         id: "name",
         accessorFn: row => `${row.lastName} ${row.firstName}`,
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 pl-10 pr-0 text-xs font-medium text-muted-foreground justify-start"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Имя
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          <div className="flex min-w-[14rem] items-center gap-2">
+            {/* как в ячейке: аватар h-8 w-8 + gap-2 */}
+            <span className="h-8 w-8 shrink-0" aria-hidden />
+            <Button
+              variant="ghost"
+              size="sm"
+              className={CLIENTS_TABLE_SORT_HEADER_BTN_CLASS}
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            >
+              Имя
+              <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />
+            </Button>
+          </div>
         ),
         cell: ({ row }) => {
           const c = row.original;
@@ -883,11 +891,11 @@ export function PsychologistClientsList({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 min-w-[14rem] px-0 text-xs font-medium text-muted-foreground justify-start whitespace-nowrap"
+            className={cn(CLIENTS_TABLE_SORT_HEADER_BTN_CLASS, "whitespace-nowrap")}
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Email
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />
           </Button>
         ),
         cell: ({ row }) => (
@@ -912,11 +920,11 @@ export function PsychologistClientsList({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 min-w-[8rem] px-0 text-xs font-medium text-muted-foreground justify-start whitespace-nowrap"
+            className={cn(CLIENTS_TABLE_SORT_HEADER_BTN_CLASS, "whitespace-nowrap")}
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Создан
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />
           </Button>
         ),
         cell: ({ row }) => (
@@ -1097,7 +1105,7 @@ export function PsychologistClientsList({
       : clients.filter((c) => c.statusId === statusFilter);
 
   return (
-    <div className="px-6 py-4">
+    <div className="px-3 py-4 sm:px-6">
       <div ref={listContainerRef} className="w-full min-w-0 space-y-4">
         <div
           style={{
@@ -1124,7 +1132,7 @@ export function PsychologistClientsList({
                 onValueChange={setStatusFilter}
                 className="w-full"
               >
-                <TabsList className="inline-flex h-9 rounded-full bg-muted px-1 py-0.5">
+                <TabsList className="inline-flex h-9 max-w-full overflow-x-auto rounded-full bg-muted px-1 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <TabsTrigger
                     value="ALL"
                     className="rounded-full px-3 data-[state=active]:bg-background data-[state=active]:text-foreground"
@@ -1567,6 +1575,7 @@ export function PsychologistClientsList({
                   ...Object.fromEntries(tableCustomFieldDefs.map(d => [`custom:${d.label}`, d.label]))
                 }}
                 initialColumnVisibility={{
+                  search: false,
                   dateOfBirth: false,
                   country: false,
                   city: false,
@@ -1576,7 +1585,7 @@ export function PsychologistClientsList({
                   ...Object.fromEntries(tableCustomFieldDefs.map(d => [`custom:${d.label}`, false]))
                 }}
                 visibilityStorageKey="psychologist-clients-table-columns"
-                minTableWidthClassName="min-w-[1500px]"
+                minTableWidthClassName="min-w-[56rem] xl:min-w-[1500px]"
                 onRowClick={
                   multiSelectMode
                     ? client => toggleOne(client.id)

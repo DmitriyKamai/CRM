@@ -509,18 +509,30 @@ export function PsychologistSchedule() {
   const [scale, setScale] = useState(1);
   const [innerHeight, setInnerHeight] = useState(0);
 
+  /** На узких экранах не масштабируем весь блок (становится нечитаемо) — сетка недели в горизонтальном скролле. */
   useEffect(() => {
+    if (!mounted) return;
     const el = containerRef.current;
     if (!el) return;
+    const mq = window.matchMedia("(min-width: 768px)");
     const updateScale = () => {
+      const mdUp = mq.matches;
       const w = el.offsetWidth;
-      setScale(w >= 1008 ? 1 : Math.max(0.25, w / 1008));
+      if (!mdUp) {
+        setScale(1);
+        return;
+      }
+      setScale(w >= 1008 ? 1 : Math.max(0.35, w / 1008));
     };
     updateScale();
     const ro = new ResizeObserver(updateScale);
     ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+    mq.addEventListener("change", updateScale);
+    return () => {
+      ro.disconnect();
+      mq.removeEventListener("change", updateScale);
+    };
+  }, [mounted]);
 
   useEffect(() => {
     if (scale >= 1) return;
@@ -625,8 +637,8 @@ export function PsychologistSchedule() {
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="flex gap-1 items-start">
-          <div className="w-72 shrink-0 flex flex-col">
+        <div className="flex flex-col gap-4 md:flex-row md:gap-1 md:items-start">
+          <div className="mx-auto flex w-full max-w-[20rem] shrink-0 flex-col md:mx-0 md:w-72 md:max-w-none">
             <div className="h-10 shrink-0" aria-hidden />
             <div
               className="h-[360px] rounded-md border border-border bg-muted/30 animate-pulse"
@@ -635,13 +647,15 @@ export function PsychologistSchedule() {
             />
             <div className="mt-3 h-24 rounded-md bg-muted/30 animate-pulse" aria-hidden />
           </div>
-          <div className="flex-1 min-w-0 space-y-2">
+          <div className="min-w-0 flex-1 space-y-2">
             <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
-            <Card className="overflow-hidden border border-border rounded-lg">
-              <CardContent className="space-y-2 px-4 py-3">
-                <ScheduleGridSkeleton />
-              </CardContent>
-            </Card>
+            <div className="overflow-x-auto pb-1 md:overflow-visible">
+              <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
+                <CardContent className="space-y-2 px-4 py-3">
+                  <ScheduleGridSkeleton />
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
@@ -662,14 +676,14 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="flex gap-1 items-start"
+            className="flex w-full flex-col items-stretch gap-4 md:flex-row md:items-start md:gap-1"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-        <div className="w-72 shrink-0 flex flex-col">
+        <div className="mx-auto flex w-full max-w-[20rem] shrink-0 flex-col md:mx-0 md:w-72 md:max-w-none">
           <div className="h-10 shrink-0" aria-hidden />
           <Calendar
             mode="single"
@@ -725,13 +739,13 @@ export function PsychologistSchedule() {
           )}
         </div>
 
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+        <div className="min-w-0 w-full flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 shrink-0"
                 onClick={() => {
                   const next = addDays(currentDate, -7);
                   setCurrentDate(next);
@@ -740,7 +754,7 @@ export function PsychologistSchedule() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <div className="px-1 text-sm font-medium">
+              <div className="min-w-0 truncate px-1 text-center text-sm font-medium sm:text-left">
                 {weekStart.toLocaleDateString("ru-RU", {
                   day: "2-digit",
                   month: "short"
@@ -758,7 +772,7 @@ export function PsychologistSchedule() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 shrink-0"
                 onClick={() => {
                   const next = addDays(currentDate, 7);
                   setCurrentDate(next);
@@ -770,7 +784,8 @@ export function PsychologistSchedule() {
             </div>
           </div>
 
-          <Card className="overflow-hidden border border-border rounded-lg">
+          <div className="touch-pan-x overflow-x-auto pb-2 md:overflow-visible md:pb-0">
+          <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
             <CardContent className="space-y-2 px-4 py-3">
           {error && (
             <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
@@ -1086,6 +1101,7 @@ export function PsychologistSchedule() {
           )}
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
         </div>
