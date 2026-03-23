@@ -27,6 +27,7 @@
 
 # Cursor — локальная конфигурация MCP (секреты/пути на машине)
 .cursor/mcp.json
+.cursor/worktrees.json
 
 # debug
 npm-debug.log*
