@@ -53,6 +53,67 @@ type ClientOption = {
   hasAccount?: boolean;
 };
 
+function SlotTimeEditor({
+  initialTime,
+  durationMinutes,
+  isUpdating,
+  onSave,
+  onDelete
+}: {
+  initialTime: string;
+  durationMinutes: number;
+  isUpdating: boolean;
+  onSave: (time: string, duration: number) => void;
+  onDelete: () => void;
+}) {
+  const [timeValue, setTimeValue] = useState(initialTime);
+  const [durValue, setDurValue] = useState(String(durationMinutes));
+
+  return (
+    <div className="space-y-2">
+      <div className="space-y-1">
+        <Label className="text-sm">Время</Label>
+        <TimeInput value={timeValue} onChange={setTimeValue} />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-sm">Длительность, минут</Label>
+        <Select value={durValue} onValueChange={setDurValue}>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="30">30</SelectItem>
+            <SelectItem value="50">50</SelectItem>
+            <SelectItem value="60">60</SelectItem>
+            <SelectItem value="90">90</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex justify-end gap-2 pt-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          className="h-7 px-2 text-sm"
+          disabled={isUpdating}
+          onClick={onDelete}
+        >
+          Удалить слот
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="h-7 px-2 text-sm"
+          disabled={isUpdating}
+          onClick={() => onSave(timeValue, Number(durValue))}
+        >
+          Сохранить
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const HOLIDAYS_BY_MONTH_DAY: Record<string, string> = {
   "01-01": "Новый год",
   "01-02": "Новый год",
@@ -996,95 +1057,15 @@ export function PsychologistSchedule() {
                                           </div>
 
                                           {!hasAppointment && (
-                                            <form
-                                              className="space-y-2"
-                                              onSubmit={e => {
-                                                e.preventDefault();
-                                                const form = e.currentTarget;
-                                                const hInput = form.elements
-                                                  .namedItem("time-h") as HTMLInputElement | null;
-                                                const mInput = form.elements
-                                                  .namedItem("time-m") as HTMLInputElement | null;
-                                                const durationSelect = form.elements
-                                                  .namedItem("duration") as HTMLSelectElement | null;
-                                                const hVal = Math.min(23, Math.max(0, parseInt(hInput?.value ?? initialTime.split(":")[0], 10) || 0));
-                                                const mVal = Math.min(59, Math.max(0, parseInt(mInput?.value ?? initialTime.split(":")[1], 10) || 0));
-                                                const timeValue = `${String(hVal).padStart(2, "0")}:${String(mVal).padStart(2, "0")}`;
-                                                const durationValue =
-                                                  durationSelect?.value ||
-                                                  String(durationMinutes);
-                                                void handleUpdateSlotTime(
-                                                  slot,
-                                                  timeValue,
-                                                  Number(durationValue)
-                                                );
-                                              }}
-                                            >
-                                              <div className="space-y-1">
-                                                <Label className="text-sm">Время</Label>
-                                                <div className="flex items-center gap-1">
-                                                  <input
-                                                    type="number"
-                                                    name="time-h"
-                                                    min={0}
-                                                    max={23}
-                                                    defaultValue={parseInt(initialTime.split(":")[0], 10)}
-                                                    className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                    aria-label="Часы"
-                                                  />
-                                                  <span className="select-none text-xs font-medium text-muted-foreground">:</span>
-                                                  <input
-                                                    type="number"
-                                                    name="time-m"
-                                                    min={0}
-                                                    max={59}
-                                                    step={10}
-                                                    defaultValue={parseInt(initialTime.split(":")[1], 10)}
-                                                    className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                    aria-label="Минуты"
-                                                  />
-                                                </div>
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-sm">
-                                                  Длительность, минут
-                                                </Label>
-                                                <Select
-                                                  defaultValue={String(durationMinutes)}
-                                                  name="duration"
-                                                >
-                                                  <SelectTrigger className="h-8 text-xs">
-                                                    <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    <SelectItem value="30">30</SelectItem>
-                                                    <SelectItem value="50">50</SelectItem>
-                                                    <SelectItem value="60">60</SelectItem>
-                                                    <SelectItem value="90">90</SelectItem>
-                                                  </SelectContent>
-                                                </Select>
-                                              </div>
-                                              <div className="flex justify-end gap-2 pt-1">
-                                                <Button
-                                                  type="button"
-                                                  size="sm"
-                                                  variant="destructive"
-                                                  className="h-7 px-2 text-sm"
-                                                  disabled={updatingId === slot.id}
-                                                  onClick={() => void handleDeleteSlot(slot.id)}
-                                                >
-                                                  Удалить слот
-                                                </Button>
-                                                <Button
-                                                  type="submit"
-                                                  size="sm"
-                                                  className="h-7 px-2 text-sm"
-                                                  disabled={updatingId === slot.id}
-                                                >
-                                                  Сохранить
-                                                </Button>
-                                              </div>
-                                            </form>
+                                            <SlotTimeEditor
+                                              initialTime={initialTime}
+                                              durationMinutes={durationMinutes}
+                                              isUpdating={updatingId === slot.id}
+                                              onSave={(time, dur) =>
+                                                void handleUpdateSlotTime(slot, time, dur)
+                                              }
+                                              onDelete={() => void handleDeleteSlot(slot.id)}
+                                            />
                                           )}
 
                                           {hasAppointment && (
