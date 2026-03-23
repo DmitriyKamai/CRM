@@ -755,11 +755,12 @@ export function PsychologistSchedule() {
           {/* Spacer: выравнивает верх календаря с заголовком сетки на десктопе */}
           <div className="hidden h-10 shrink-0 md:block" aria-hidden />
 
-          {/* На мобильных — строка: календарь слева, инфо справа.
-              На md+ — столбец: всё вертикально. */}
-          <div className="flex items-start gap-3 md:flex-col md:gap-0">
+          {/* < sm  — столбец (оба на полную ширину → одинаковый размер).
+              sm–md — строка: календарь слева, инфо справа.
+              md+   — столбец в боковой панели. */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start md:flex-col md:gap-0">
             {/* Календарь */}
-            <div className="shrink-0">
+            <div className="mx-auto sm:mx-0 sm:shrink-0">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -826,7 +827,7 @@ export function PsychologistSchedule() {
           </div>
         </div>
 
-        <div className="min-w-0 w-full flex-1 space-y-2">
+        <div className="min-w-[260px] w-full flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
