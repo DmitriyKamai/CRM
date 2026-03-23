@@ -869,15 +869,9 @@ export function PsychologistSchedule() {
           <div className="overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0">
           <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
             <CardContent className="space-y-2 px-4 py-3">
-          {error && (
-            <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-              {error}
-            </div>
-          )}
-
           {loading ? (
             <ScheduleGridSkeleton />
-          ) : error ? null : (
+          ) : (
             <>
                 <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] border-b border-border pb-2 text-xs text-muted-foreground">
                   <div />
@@ -1205,11 +1199,6 @@ export function PsychologistSchedule() {
                 </SelectContent>
               </Select>
             </div>
-            {error && (
-              <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
-                {error}
-              </div>
-            )}
             <DialogFooter className="flex justify-end gap-2">
               <Button
                 type="button"
