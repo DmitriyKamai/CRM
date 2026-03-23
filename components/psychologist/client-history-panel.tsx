@@ -204,15 +204,16 @@ export function ClientHistoryPanel({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border bg-card min-h-[12rem] max-h-[calc(100dvh-2rem)]",
+        "flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card",
+        "min-h-[12rem] max-h-[calc(100dvh-9rem)]",
         className
       )}
     >
-      <div className="flex items-center gap-2 border-b px-3 py-2.5 shrink-0">
+      <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2.5">
         <History className="h-4 w-4 text-muted-foreground" aria-hidden />
         <span className="text-sm font-medium">История</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 min-h-0">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 [-webkit-overflow-scrolling:touch]">
         {loading ? (
           <p className="text-sm text-muted-foreground">Загрузка…</p>
         ) : error ? (

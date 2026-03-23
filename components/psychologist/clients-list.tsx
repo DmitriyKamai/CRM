@@ -1529,11 +1529,13 @@ export function PsychologistClientsList({
               <DialogContent
                 className={
                   importHeaders.length > 0
-                    ? "max-w-[100vw] max-h-[100vh] w-screen h-screen overflow-hidden flex flex-col"
+                    ? "max-w-none w-full h-[100dvh] max-h-[100dvh] min-h-0 left-0 top-0 translate-x-0 translate-y-0 rounded-none flex flex-col overflow-hidden gap-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:p-6"
                     : "max-w-2xl max-h-[90vh] overflow-y-auto"
                 }
               >
-                <DialogHeader>
+                <DialogHeader
+                  className={importHeaders.length > 0 ? "shrink-0 text-left" : undefined}
+                >
                   <DialogTitle>Импорт клиентов</DialogTitle>
                   <DialogDescription>
                     {importHeaders.length === 0
@@ -1544,7 +1546,7 @@ export function PsychologistClientsList({
                 <div
                   className={
                     importHeaders.length > 0
-                      ? "space-y-4 flex-1 min-h-0 flex flex-col"
+                      ? "space-y-4 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
                       : "space-y-4"
                   }
                 >
@@ -1746,9 +1748,9 @@ export function PsychologistClientsList({
                   )}
                   {importHeaders.length > 0 && (
                     <>
-                      <div className="space-y-2 flex-1 min-h-0 flex flex-col">
+                      <div className="flex shrink-0 flex-col space-y-2">
                         <Label className="text-sm shrink-0">Сопоставление полей</Label>
-                        <div className="overflow-auto rounded-md border flex-1 min-h-0">
+                        <div className="max-w-full overflow-x-auto rounded-md border">
                           <table className="w-full min-w-max border-collapse text-xs">
                             <thead>
                               <tr>
@@ -1886,7 +1888,9 @@ export function PsychologistClientsList({
                     </>
                   )}
                 </div>
-                <DialogFooter>
+                <DialogFooter
+                  className={importHeaders.length > 0 ? "shrink-0 gap-2 border-t border-border pt-4 sm:justify-end" : undefined}
+                >
                   <Button variant="outline" onClick={() => setImportOpen(false)}>
                     Закрыть
                   </Button>
