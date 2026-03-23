@@ -2082,7 +2082,9 @@ export function PsychologistSettingsForm({
             onPublishChange={handlePublishProfileChange}
             publishSaving={savingPublish}
           />
-          <form onSubmit={handleSaveProfessional} className="space-y-4">
+          <form onSubmit={handleSaveProfessional} className="space-y-5 max-w-2xl">
+
+            {/* О себе */}
             <div className="space-y-2">
               <Label htmlFor="bio">О себе</Label>
               <Textarea
@@ -2098,6 +2100,8 @@ export function PsychologistSettingsForm({
                 {bio.length} / {BIO_MAX_LENGTH}
               </p>
             </div>
+
+            {/* Профессия */}
             <div className="space-y-2">
               <Label>Профессия</Label>
               <RadioGroup
@@ -2108,61 +2112,95 @@ export function PsychologistSettingsForm({
                 {PROFESSION_OPTIONS.map((opt) => (
                   <div key={opt.value} className="flex items-center gap-2">
                     <RadioGroupItem value={opt.value} id={`prof-${opt.value}`} />
-                    <Label
-                      htmlFor={`prof-${opt.value}`}
-                      className="font-normal cursor-pointer"
-                    >
+                    <Label htmlFor={`prof-${opt.value}`} className="font-normal cursor-pointer">
                       {opt.label}
                     </Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-phone">Контактный телефон для клиентов</Label>
-              <Input
-                id="contact-phone"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="+7 999 123-45-67"
-                maxLength={32}
-              />
-              <p className="text-xs text-muted-foreground">
-                Этот номер будет виден клиентам в вашем профиле.
-              </p>
+
+            {/* Контакты для клиентов */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium">Контакты для клиентов</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Будут видны клиентам в вашем профиле
+                </p>
+              </div>
+
+              {/* Телефон и Telegram */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="contact-phone" className="flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground" aria-hidden>
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.55a16 16 0 0 0 6.29 6.29l.77-1.38a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    Телефон
+                  </Label>
+                  <Input
+                    id="contact-phone"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="+7 999 123-45-67"
+                    maxLength={32}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-telegram" className="flex items-center gap-1.5">
+                    {/* Telegram */}
+                    <svg viewBox="0 0 24 24" width="15" height="15" className="shrink-0" aria-hidden>
+                      <path fill="#229ED9" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/>
+                    </svg>
+                    Telegram
+                  </Label>
+                  <Input
+                    id="contact-telegram"
+                    value={contactTelegram}
+                    onChange={(e) => setContactTelegram(e.target.value)}
+                    placeholder="@username или ссылка"
+                    maxLength={128}
+                  />
+                </div>
+              </div>
+
+              {/* Viber и WhatsApp */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="contact-viber" className="flex items-center gap-1.5">
+                    {/* Viber */}
+                    <svg viewBox="0 0 24 24" width="15" height="15" className="shrink-0" aria-hidden>
+                      <path fill="#7360f2" d="M11.4 2C6.23 2 2.09 6.04 2.01 11.2c-.04 2.2.69 4.32 2.06 6.02L2.7 21.5l4.37-1.35c1.62.84 3.43 1.27 5.27 1.27 5.17 0 9.32-4.04 9.4-9.2C21.82 6.17 17.6 2 11.4 2zm3.87 12.38c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-1.8-.9-2.97-1.6-4.15-3.63-.31-.54.32-.5.91-1.66.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.8.37-.27.3-1.05 1.02-1.05 2.5 0 1.48 1.07 2.9 1.22 3.1.15.2 2.1 3.2 5.09 4.49 1.9.82 2.64.89 3.59.75.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.34z"/>
+                    </svg>
+                    Viber
+                  </Label>
+                  <Input
+                    id="contact-viber"
+                    value={contactViber}
+                    onChange={(e) => setContactViber(e.target.value)}
+                    placeholder="Номер или ссылка"
+                    maxLength={128}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-whatsapp" className="flex items-center gap-1.5">
+                    {/* WhatsApp */}
+                    <svg viewBox="0 0 24 24" width="15" height="15" className="shrink-0" aria-hidden>
+                      <path fill="#25D366" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.79L2.05 22l5.46-1.43c1.36.74 2.9 1.16 4.53 1.16 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.85 13.96c-.25.69-1.47 1.32-2.03 1.41-.52.08-1.18.11-1.9-.12-.44-.14-1.01-.33-1.73-.64-3.04-1.31-5.02-4.35-5.17-4.55-.15-.2-1.22-1.62-1.22-3.1 0-1.48.78-2.2 1.05-2.5.28-.3.6-.37.8-.37.2 0 .4 0 .57.01.18.01.43-.07.67.51.25.6.84 2.05.92 2.2.07.15.12.32.02.52-.59 1.16-1.22 1.12-.91 1.66 1.18 2.03 2.35 2.73 4.15 3.63.3.15.48.13.65-.07.18-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.74.82 2.04.97.3.15.5.22.57.34.08.12.08.72-.17 1.42z"/>
+                    </svg>
+                    WhatsApp
+                  </Label>
+                  <Input
+                    id="contact-whatsapp"
+                    value={contactWhatsapp}
+                    onChange={(e) => setContactWhatsapp(e.target.value)}
+                    placeholder="Номер или ссылка"
+                    maxLength={128}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="contact-telegram">Telegram</Label>
-                <Input
-                  id="contact-telegram"
-                  value={contactTelegram}
-                  onChange={(e) => setContactTelegram(e.target.value)}
-                  placeholder="@username или ссылка"
-                  maxLength={128}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-viber">Viber</Label>
-                <Input
-                  id="contact-viber"
-                  value={contactViber}
-                  onChange={(e) => setContactViber(e.target.value)}
-                  placeholder="Номер или ссылка"
-                  maxLength={128}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-whatsapp">WhatsApp</Label>
-                <Input
-                  id="contact-whatsapp"
-                  value={contactWhatsapp}
-                  onChange={(e) => setContactWhatsapp(e.target.value)}
-                  placeholder="Номер или ссылка"
-                  maxLength={128}
-                />
-              </div>
-            </div>
+
             <Button
               type="submit"
               disabled={savingProfessional || !hasProfessionalChanges}
