@@ -6,13 +6,30 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+
+type AppointmentStatus =
+  | "PENDING_CONFIRMATION"
+  | "SCHEDULED"
+  | "COMPLETED"
+  | "CANCELED"
+  | "NO_SHOW";
 
 type AppointmentItem = {
   id: string;
   start: string;
   end: string;
   psychologistName: string;
-  status: "PENDING_CONFIRMATION" | "SCHEDULED";
+  status: AppointmentStatus;
   proposedByPsychologist?: boolean;
 };
 
@@ -91,6 +108,11 @@ export function ClientDashboardClient({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
+  const [cancelPendingId, setCancelPendingId] = useState<string | null>(null);
+
+  // История прошедших записей — загружается лениво
+  const [history, setHistory] = useState<AppointmentItem[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +192,22 @@ export function ClientDashboardClient({
       setError(err instanceof Error ? err.message : "Не удалось обновить запись");
     } finally {
       setUpdatingAppointmentId(null);
+    }
+  }
+
+  async function loadHistory() {
+    if (history !== null || historyLoading) return;
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/client/appointments?filter=past");
+      const body = await res.json().catch(() => null);
+      if (res.ok && Array.isArray(body)) {
+        setHistory(body as AppointmentItem[]);
+      }
+    } catch {
+      // best-effort
+    } finally {
+      setHistoryLoading(false);
     }
   }
 
@@ -348,7 +386,7 @@ export function ClientDashboardClient({
                             variant="outline"
                             className="h-8 text-sm"
                             disabled={updatingAppointmentId === apt.id}
-                            onClick={() => updateAppointment(apt.id, "CANCELED")}
+                            onClick={() => setCancelPendingId(apt.id)}
                           >
                             Отменить
                           </Button>
@@ -360,6 +398,93 @@ export function ClientDashboardClient({
               </CardContent>
             </Card>
           )}
+          {/* История прошедших записей */}
+          <div>
+            {history === null ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => void loadHistory()}
+                disabled={historyLoading}
+              >
+                {historyLoading ? "Загрузка…" : "Показать историю записей"}
+              </Button>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-muted-foreground">История записей пуста.</p>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">История записей</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <ul className="space-y-2">
+                    {history.map(apt => {
+                      const statusLabel: Record<AppointmentStatus, string> = {
+                        SCHEDULED: "Запланирована",
+                        COMPLETED: "Состоялась",
+                        CANCELED: "Отменена",
+                        NO_SHOW: "Не пришёл",
+                        PENDING_CONFIRMATION: "Ожидала подтверждения"
+                      };
+                      const statusColor: Record<AppointmentStatus, string> = {
+                        SCHEDULED: "text-foreground",
+                        COMPLETED: "text-emerald-600 dark:text-emerald-400",
+                        CANCELED: "text-muted-foreground line-through",
+                        NO_SHOW: "text-destructive",
+                        PENDING_CONFIRMATION: "text-muted-foreground"
+                      };
+                      return (
+                        <li
+                          key={apt.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"
+                        >
+                          <div className="space-y-0.5">
+                            <span className="font-medium text-foreground">
+                              {apt.psychologistName}
+                            </span>
+                            <div className="text-xs text-muted-foreground">
+                              {formatAppointmentDateTime(apt.start, apt.end)}
+                            </div>
+                          </div>
+                          <span className={`text-xs ${statusColor[apt.status]}`}>
+                            {statusLabel[apt.status]}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <AlertDialog
+            open={!!cancelPendingId}
+            onOpenChange={open => { if (!open) setCancelPendingId(null); }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Отменить запись?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Запись будет отменена. Слот освободится.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Нет</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (cancelPendingId) {
+                      void updateAppointment(cancelPendingId, "CANCELED");
+                      setCancelPendingId(null);
+                    }
+                  }}
+                >
+                  Да, отменить
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </TabsContent>
         )}
 
