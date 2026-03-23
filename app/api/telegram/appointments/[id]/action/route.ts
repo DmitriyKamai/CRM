@@ -201,55 +201,9 @@ export async function POST(
       return NextResponse.json({ ok: true, status: "CANCELED" });
     }
 
-    if (!isPsychologist) {
-      if (appt.client?.userId === user.id && action === "cancel") {
-        await prisma.$transaction(async (tx) => {
-          const slotIdToFree = appt.slotId;
-          await tx.appointment.update({
-            where: { id: appointmentId },
-            data: { status: "CANCELED", slotId: null }
-          });
-          if (slotIdToFree) {
-            await tx.scheduleSlot.update({ where: { id: slotIdToFree }, data: { status: "FREE" } });
-          }
-          const psychUserId = appt.psychologist?.userId;
-          if (psychUserId) {
-            const cp = await tx.clientProfile.findUnique({
-              where: { id: appt.clientId },
-              select: { firstName: true, lastName: true }
-            });
-            const clientName = cp ? `${(cp.lastName ?? "").trim()} ${(cp.firstName ?? "").trim()}`.trim() || "Клиент" : "Клиент";
-            const dateStr = appt.start.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
-            await tx.notification.create({
-              data: { userId: psychUserId, title: "Запись отменена", body: `Клиент ${clientName} отменил(а) запись на приём ${dateStr}.` }
-            });
-          }
-        });
-        const psychUserId = appt.psychologist?.userId;
-        if (psychUserId) {
-          const psychUser = await prisma.user.findUnique({ where: { id: psychUserId }, select: { telegramChatId: true } });
-          if (psychUser?.telegramChatId) {
-            const cp = await prisma.clientProfile.findUnique({ where: { id: appt.clientId }, select: { firstName: true, lastName: true } });
-            const clientName = cp ? `${(cp.lastName ?? "").trim()} ${(cp.firstName ?? "").trim()}`.trim() || "Клиент" : "Клиент";
-            const dateStr = appt.start.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
-            sendTelegramMessage(psychUser.telegramChatId, `Запись отменена.\n\nКлиент ${clientName} отменил(а) запись на приём ${dateStr}.`).catch(console.error);
-          }
-        }
-        return NextResponse.json({ ok: true, status: "CANCELED" });
-      }
-      if (appt.client?.userId === user.id && action === "confirm" && appt.status === "PENDING_CONFIRMATION") {
-        await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "SCHEDULED" } });
-        return NextResponse.json({ ok: true, status: "SCHEDULED" });
-      }
-      return NextResponse.json(
-        { message: "Запись уже обработана" },
-        { status: 409 }
-      );
-    }
-
     await prisma.$transaction(async tx => {
       const slotIdToFree = appt.slotId;
-      const wasPending = true;
+      const wasPending = appt.status === "PENDING_CONFIRMATION";
 
       await tx.appointment.update({
         where: { id: appointmentId },
