@@ -705,14 +705,14 @@ export function PsychologistSchedule() {
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="grid w-full min-w-0 grid-cols-2 gap-3 md:gap-4">
+        <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 md:gap-4">
           <div
-            className="min-w-0 rounded-md border border-border bg-muted/30 animate-pulse"
+            className="min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
             style={{ minHeight: 320 }}
             aria-busy="true"
             aria-label="Загрузка календаря"
           />
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 max-w-full space-y-2 overflow-x-clip">
             <div className="h-4 w-[75%] rounded-md bg-muted/30 animate-pulse" aria-hidden />
             <div className="h-20 rounded-md bg-muted/30 animate-pulse" aria-hidden />
             <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
@@ -746,15 +746,15 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="grid w-full min-w-0 grid-cols-2 grid-rows-[auto_minmax(0,1fr)] gap-3 md:gap-4"
+            className="isolate grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] gap-3 md:gap-4"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-            {/* Верх: календарь и легенда — по 1fr (равные колонки) */}
-            <div className="min-w-0 justify-self-start">
+            {/* Верх: календарь и легенда — равные дорожки minmax(0,1fr), без вылезания в соседнюю ячейку */}
+            <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -764,10 +764,11 @@ export function PsychologistSchedule() {
                 locale={ru}
                 initialFocus
                 components={{ DayButton: ScheduleDayButton }}
+                className="max-w-full min-w-0 max-sm:[--cell-size:1.3rem]"
               />
             </div>
 
-            <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex min-w-0 max-w-full flex-col gap-3 overflow-x-clip break-words">
               {holidaysThisMonth.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">
