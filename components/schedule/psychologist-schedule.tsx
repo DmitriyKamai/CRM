@@ -135,6 +135,12 @@ for (let h = 0; h <= 23; h += 1) {
 
 const HOUR_ROW_HEIGHT = 56;
 
+/**
+ * Мин. ширина суточного плана = 2× ширина календаря (7×--cell-size + гориз. p-3), см. calendar.tsx.
+ * Не даёт flex сжимать колонку с легендой/праздниками на узких экранах.
+ */
+const DAY_PLAN_MIN_WIDTH_CLASS = "min-w-[31rem]";
+
 /** Сетка недели, точки под датами и легенда — одни и те же цвета (не --status-* из темы). */
 const SLOT_STYLE_FREE =
   "bg-sky-600 border-sky-700 dark:bg-sky-500 dark:border-sky-400";
@@ -827,7 +833,7 @@ export function PsychologistSchedule() {
           </div>
         </div>
 
-        <div className="min-w-[260px] w-full flex-1 space-y-2">
+        <div className={cn("w-full flex-1 space-y-2", DAY_PLAN_MIN_WIDTH_CLASS)}>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
