@@ -2,15 +2,15 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 import { google } from "googleapis";
 
-/** Чтение ячеек при импорте. */
-const SHEETS_READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+/** Чтение и запись таблиц (импорт + экспорт клиентов). */
+const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 /**
  * Просмотр файлов в Drive — нужен для Google Picker (окно «выбрать таблицу»).
  * Без этого после выбора файла Google может отвечать 403.
  */
 const DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
-const SHEETS_OAUTH_SCOPES = [SHEETS_READONLY_SCOPE, DRIVE_READONLY_SCOPE];
+const SHEETS_OAUTH_SCOPES = [SHEETS_SCOPE, DRIVE_READONLY_SCOPE];
 
 export function getGoogleSheetsOAuthRedirectUri(): string {
   const base = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
@@ -130,6 +130,51 @@ export async function readSpreadsheetAsAoA(
   }
 
   return { sheetTitle: title, values };
+}
+
+/**
+ * Полностью перезаписывает указанный лист: очищает A:ZZ, затем пишет values с A1.
+ * Первая строка — заголовки (как в CSV/XLSX).
+ */
+export async function writeSpreadsheetAoA(
+  spreadsheetId: string,
+  sheetTitle: string | null | undefined,
+  values: string[][],
+  refreshToken: string
+): Promise<{ sheetTitle: string; spreadsheetUrl: string }> {
+  const oauth2 = createSheetsOAuth2Client();
+  oauth2.setCredentials({ refresh_token: refreshToken });
+  const sheets = google.sheets({ version: "v4", auth: oauth2 });
+
+  let title = sheetTitle?.trim() || null;
+  if (!title) {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const first = meta.data.sheets?.[0]?.properties?.title;
+    if (!first) {
+      throw new Error("В таблице нет листов");
+    }
+    title = first;
+  }
+
+  const escaped = escapeSheetTitle(title);
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: `${escaped}!A:ZZ`
+  });
+
+  if (values.length > 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${escaped}!A1`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
+  }
+
+  return {
+    sheetTitle: title,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
+  };
 }
 
 export function buildGoogleSheetsAuthorizeUrl(psychologistId: string): string {

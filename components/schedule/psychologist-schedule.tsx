@@ -72,6 +72,14 @@ for (let h = 0; h <= 23; h += 1) {
 
 const HOUR_ROW_HEIGHT = 56;
 
+/** Сетка недели, точки под датами и легенда — одни и те же цвета (не --status-* из темы). */
+const SLOT_STYLE_FREE =
+  "bg-sky-600 border-sky-700 dark:bg-sky-500 dark:border-sky-400";
+const SLOT_STYLE_PENDING =
+  "bg-amber-500 border-amber-600 dark:bg-amber-400 dark:border-amber-500";
+const SLOT_STYLE_CONFIRMED =
+  "bg-emerald-600 border-emerald-700 dark:bg-emerald-500 dark:border-emerald-400";
+
 function startOfWeek(date: Date): Date {
   const d = new Date(date.getTime());
   const day = d.getDay();
@@ -570,7 +578,9 @@ export function PsychologistSchedule() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle ? "bg-sky-300" : "bg-sky-500"
+                      isSelectedSingle
+                        ? "bg-sky-300 dark:bg-sky-400"
+                        : "bg-sky-600 dark:bg-sky-500"
                     )}
                     title="Свободный слот"
                   />
@@ -579,7 +589,9 @@ export function PsychologistSchedule() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle ? "bg-amber-300" : "bg-amber-400"
+                      isSelectedSingle
+                        ? "bg-amber-300 dark:bg-amber-300"
+                        : "bg-amber-500 dark:bg-amber-400"
                     )}
                     title="Ожидает подтверждения"
                   />
@@ -588,7 +600,9 @@ export function PsychologistSchedule() {
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle ? "bg-emerald-400" : "bg-emerald-500"
+                      isSelectedSingle
+                        ? "bg-emerald-400 dark:bg-emerald-300"
+                        : "bg-emerald-600 dark:bg-emerald-500"
                     )}
                     title="Подтверждённая запись"
                   />
@@ -696,47 +710,53 @@ export function PsychologistSchedule() {
             components={{ DayButton: ScheduleDayButton }}
           />
           {holidaysThisMonth.length > 0 && (
-            <div className="mt-3 space-y-3 text-xs text-muted-foreground">
-              <div className="space-y-1">
-                <div className="text-sm font-semibold text-foreground">
-                  Праздничные дни месяца
-                </div>
-                <ul className="space-y-0.5">
-                  {holidaysThisMonth.map(([md, title]) => {
-                    const day = md.slice(3, 5);
-                    return (
-                      <li key={md} className="flex gap-2">
-                        <span className="w-8 text-left font-medium text-foreground">
-                          {day}.{currentMonthKey}
-                        </span>
-                        <span className="flex-1">{title}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
+            <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+              <div className="text-sm font-semibold text-foreground">
+                Праздничные дни месяца
               </div>
-
-              <div className="space-y-1">
-                <div className="text-sm font-semibold text-foreground">
-                  Условные обозначения
-                </div>
-                <ul className="space-y-0.5">
-                  <li className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-sm bg-sky-500 border border-sky-600" />
-                    <span>Свободный слот</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-sm bg-amber-400 border border-amber-500" />
-                    <span>Запись, ожидающая подтверждения</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-sm bg-emerald-500 border border-emerald-600" />
-                    <span>Подтверждённая запись</span>
-                  </li>
-                </ul>
-              </div>
+              <ul className="space-y-0.5">
+                {holidaysThisMonth.map(([md, title]) => {
+                  const day = md.slice(3, 5);
+                  return (
+                    <li key={md} className="flex gap-2">
+                      <span className="w-8 text-left font-medium text-foreground">
+                        {day}.{currentMonthKey}
+                      </span>
+                      <span className="flex-1">{title}</span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
+          <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+            <div className="text-sm font-semibold text-foreground">
+              Условные обозначения
+            </div>
+            <ul className="space-y-0.5">
+              <li className="flex items-center gap-2">
+                <span
+                  className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)}
+                  aria-hidden
+                />
+                <span>Свободный слот</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)}
+                  aria-hidden
+                />
+                <span>Запись, ожидающая подтверждения</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)}
+                  aria-hidden
+                />
+                <span>Подтверждённая запись</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div className="min-w-0 w-full flex-1 space-y-2">
@@ -904,19 +924,15 @@ export function PsychologistSchedule() {
 
                                     const tooltipTitle = popupStatusText;
 
-                                    let slotBgClass = "";
-                                    let slotBorderClass = "";
+                                    let slotToneClass = "";
                                     if (!hasAppointment) {
-                                      slotBgClass = "bg-[hsl(var(--status-free))]";
-                                      slotBorderClass = "border-[hsl(var(--status-free))]";
+                                      slotToneClass = SLOT_STYLE_FREE;
                                     } else if (
                                       slot.appointmentStatus === "PENDING_CONFIRMATION"
                                     ) {
-                                      slotBgClass = "bg-[hsl(var(--status-warning))]";
-                                      slotBorderClass = "border-[hsl(var(--status-warning))]";
+                                      slotToneClass = SLOT_STYLE_PENDING;
                                     } else {
-                                      slotBgClass = "bg-[hsl(var(--status-success))]";
-                                      slotBorderClass = "border-[hsl(var(--status-success))]";
+                                      slotToneClass = SLOT_STYLE_CONFIRMED;
                                     }
 
                                     const initialTime = startDate
@@ -933,12 +949,10 @@ export function PsychologistSchedule() {
                                       >
                                         <PopoverTrigger asChild>
                                           <div
-                                            className={
-                                              "absolute left-0 right-0 z-10 touch-manipulation rounded-md border px-2 py-1.5 shadow-sm cursor-pointer text-white " +
-                                              slotBgClass +
-                                              " " +
-                                              slotBorderClass
-                                            }
+                                            className={cn(
+                                              "absolute left-0 right-0 z-10 cursor-pointer touch-manipulation rounded-md border px-2 py-1.5 text-white shadow-sm",
+                                              slotToneClass
+                                            )}
                                             title={tooltipTitle}
                                             style={{
                                               top: topOffsetPx,

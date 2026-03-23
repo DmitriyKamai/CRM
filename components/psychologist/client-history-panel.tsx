@@ -207,7 +207,8 @@ export function ClientHistoryPanel({
     <div
       className={cn(
         "flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card",
-        "min-h-[12rem] max-h-[calc(100dvh-9rem)]",
+        /* Не 100dvh «с нуля»: панель внутри main ниже хедера/вкладок — иначе низ уезжает за край окна */
+        "min-h-[12rem] max-h-[calc(100svh-11rem)] lg:max-h-[calc(100svh-3rem)]",
         className
       )}
     >

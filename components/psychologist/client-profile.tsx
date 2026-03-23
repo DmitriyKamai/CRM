@@ -1837,7 +1837,7 @@ export const PsychologistClientProfile = forwardRef<
 
         <TabsContent
           value="history"
-          className="mt-0 flex min-h-0 flex-col overflow-hidden lg:hidden min-w-0"
+          className="mt-0 flex min-h-0 max-h-[calc(100svh-11rem)] flex-col overflow-hidden lg:hidden min-w-0"
         >
           <ClientHistoryPanel
             className="min-h-0 w-full flex-1"
@@ -1846,8 +1846,12 @@ export const PsychologistClientProfile = forwardRef<
           />
         </TabsContent>
           </div>
-          <div className="hidden min-h-0 shrink-0 self-start overflow-hidden lg:sticky lg:top-4 lg:block lg:max-h-[calc(100dvh-6rem)] lg:w-[30rem] lg:max-w-[min(30rem,42vw)] min-w-0">
-            <ClientHistoryPanel className="w-full" clientId={props.id} refreshKey={historyTick} />
+          <div className="hidden min-h-0 shrink-0 self-start overflow-hidden lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100svh-3rem)] lg:w-[30rem] lg:max-w-[min(30rem,42vw)] lg:flex-col min-w-0">
+            <ClientHistoryPanel
+              className="w-full min-h-0 flex-1"
+              clientId={props.id}
+              refreshKey={historyTick}
+            />
           </div>
         </div>
       </Tabs>
