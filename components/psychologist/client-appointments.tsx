@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { TimeInput } from "@/components/ui/time-input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger
@@ -106,6 +116,7 @@ export function ClientAppointments({ clientId }: Props) {
   const [createDate, setCreateDate] = useState<Date | undefined>(undefined);
   const [createTime, setCreateTime] = useState<string>("09:00");
   const [duration, setDuration] = useState(50);
+  const [cancelPending, setCancelPending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -319,7 +330,7 @@ export function ClientAppointments({ clientId }: Props) {
                           size="sm"
                           className="text-sm"
                           variant="outline"
-                          onClick={() => handleStatusChange(item.id, "CANCELED")}
+                          onClick={() => setCancelPending(item.id)}
                         >
                           Отменить
                         </Button>
@@ -333,7 +344,7 @@ export function ClientAppointments({ clientId }: Props) {
                         size="sm"
                         className="text-sm"
                         variant="outline"
-                        onClick={() => handleStatusChange(item.id, "CANCELED")}
+                        onClick={() => setCancelPending(item.id)}
                       >
                         Отменить
                       </Button>
@@ -345,9 +356,9 @@ export function ClientAppointments({ clientId }: Props) {
                       size="sm"
                       className="text-sm"
                       variant="outline"
-                      onClick={() => handleStatusChange(item.id, "CANCELED")}
+                      onClick={() => setCancelPending(item.id)}
                     >
-                      {isNow ? "Отменить" : "Отменить"}
+                      Отменить
                     </Button>
                   )}
 
@@ -379,7 +390,7 @@ export function ClientAppointments({ clientId }: Props) {
                       size="sm"
                       variant="ghost"
                       className="text-xs text-muted-foreground"
-                      onClick={() => handleStatusChange(item.id, "CANCELED")}
+                      onClick={() => setCancelPending(item.id)}
                     >
                       Отменить (ошибка)
                     </Button>
@@ -402,6 +413,33 @@ export function ClientAppointments({ clientId }: Props) {
           })}
         </ul>
       )}
+
+      <AlertDialog
+        open={!!cancelPending}
+        onOpenChange={open => { if (!open) setCancelPending(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Отменить запись?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Запись будет отменена. Слот освободится для других клиентов.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Нет</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cancelPending) {
+                  void handleStatusChange(cancelPending, "CANCELED");
+                  setCancelPending(null);
+                }
+              }}
+            >
+              Да, отменить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

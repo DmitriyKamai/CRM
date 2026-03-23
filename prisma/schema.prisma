@@ -455,16 +455,17 @@ model ScheduleSlot {
 }
 
 model Appointment {
-  id             String            @id @default(cuid())
-  slotId         String?           @unique
-  psychologistId String
-  clientId       String
-  start          DateTime
-  end            DateTime
-  status         AppointmentStatus @default(SCHEDULED)
-  notes          String?           @db.Text
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id                     String            @id @default(cuid())
+  slotId                 String?           @unique
+  psychologistId         String
+  clientId               String
+  start                  DateTime
+  end                    DateTime
+  status                 AppointmentStatus @default(SCHEDULED)
+  notes                  String?           @db.Text
+  proposedByPsychologist Boolean           @default(false)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
   slot         ScheduleSlot?       @relation(fields: [slotId], references: [id])
   psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id])

@@ -78,9 +78,7 @@ export async function GET() {
         clientName: appointment?.client
           ? `${appointment.client.lastName} ${appointment.client.firstName}`
           : null,
-        proposedByPsychologist:
-          typeof appointment?.notes === "string" &&
-          appointment.notes.includes("PROPOSED_BY_PSYCHOLOGIST")
+        proposedByPsychologist: appointment?.proposedByPsychologist ?? false
       };
     })
   );

@@ -92,9 +92,7 @@ async function handleGet(): Promise<Response> {
             end: a.end.toISOString(),
             psychologistName: `${a.psychologist.lastName} ${a.psychologist.firstName}`.trim(),
             status: a.status as "PENDING_CONFIRMATION" | "SCHEDULED",
-            proposedByPsychologist:
-              typeof a.notes === "string" &&
-              a.notes.includes("PROPOSED_BY_PSYCHOLOGIST")
+            proposedByPsychologist: a.proposedByPsychologist
           }));
         }
 

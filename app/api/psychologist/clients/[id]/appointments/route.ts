@@ -64,9 +64,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
       start: a.start.toISOString(),
       end: a.end.toISOString(),
       status: a.status,
-      proposedByPsychologist:
-        typeof a.notes === "string" &&
-        a.notes.includes("PROPOSED_BY_PSYCHOLOGIST")
+      proposedByPsychologist: a.proposedByPsychologist
     }))
   );
 }
@@ -119,6 +117,14 @@ export async function POST(request: Request, { params }: ParamsPromise) {
         { status: 400 }
       );
     }
+
+    if (start <= new Date()) {
+      return NextResponse.json(
+        { message: "Нельзя создать запись на прошедшее время" },
+        { status: 400 }
+      );
+    }
+
     const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
 
     // Нельзя создать запись, если интервал пересекается с любым существующим слотом.
@@ -161,7 +167,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
           start,
           end,
           status: hasAccount ? "PENDING_CONFIRMATION" : "SCHEDULED",
-          notes: hasAccount ? "PROPOSED_BY_PSYCHOLOGIST" : null
+          proposedByPsychologist: hasAccount
         }
       });
 

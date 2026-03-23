@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
-import { requireClientOrPsychologist } from "@/lib/security/api-guards";
+import { getClientIp, requireClientOrPsychologist } from "@/lib/security/api-guards";
+import { safeLogAudit } from "@/lib/audit-log";
+import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
@@ -50,9 +52,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       );
     }
 
-    const proposedByPsychologist =
-      typeof appt.notes === "string" &&
-      appt.notes.includes("PROPOSED_BY_PSYCHOLOGIST");
+    const proposedByPsychologist = appt.proposedByPsychologist;
 
     if (status === "SCHEDULED") {
       if (appt.status !== "PENDING_CONFIRMATION" || !proposedByPsychologist) {
@@ -128,6 +128,28 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       }
 
       return updated;
+    });
+
+    void safeLogAudit({
+      action: status === "CANCELED" ? "APPOINTMENT_CLIENT_CANCELED" : "APPOINTMENT_CLIENT_CONFIRMED",
+      actorUserId: userId,
+      actorRole: "CLIENT",
+      targetType: "Appointment",
+      targetId: id,
+      meta: { previousStatus: appt.status, newStatus: status },
+      ip: getClientIp(request)
+    });
+
+    void safeLogClientHistory({
+      clientId: appt.clientId,
+      type: ClientHistoryType.APPOINTMENT_STATUS_CHANGED,
+      actorUserId: userId,
+      meta: {
+        appointmentId: id,
+        previousStatus: appt.status,
+        newStatus: status,
+        initiatedBy: "client"
+      }
     });
 
     // Telegram психологу

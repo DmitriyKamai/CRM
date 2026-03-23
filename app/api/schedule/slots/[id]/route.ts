@@ -43,6 +43,13 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     );
   }
 
+  if (existing.psychologistId !== ctx.psychologistId) {
+    return NextResponse.json(
+      { message: "Слот не найден" },
+      { status: 404 }
+    );
+  }
+
   let nextStart = existing.start;
   if (start) {
     const parsed = new Date(start);
@@ -101,6 +108,20 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const slot = await prisma.scheduleSlot.update({
     where: { id },
     data: updateData
+  });
+
+  await safeLogAudit({
+    action: "SCHEDULE_SLOT_UPDATE",
+    actorUserId: ctx.userId,
+    actorRole: ctx.user.role ?? "PSYCHOLOGIST",
+    targetType: "ScheduleSlot",
+    targetId: id,
+    meta: {
+      start: slot.start.toISOString(),
+      end: slot.end.toISOString(),
+      status: slot.status
+    },
+    ip: getClientIp(request)
   });
 
   return NextResponse.json(slot);
