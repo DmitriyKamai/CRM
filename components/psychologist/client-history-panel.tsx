@@ -198,7 +198,9 @@ export function ClientHistoryPanel({
   }, [clientId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      load();
+    });
   }, [load, refreshKey]);
 
   return (

@@ -15,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
 
 const PROFESSION_LABELS: Record<string, string> = {

@@ -120,6 +120,20 @@ function getClientColor(id: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
+const IMPORT_FIELDS: { key: string; label: string }[] = [
+  { key: "firstName", label: "Имя" },
+  { key: "lastName", label: "Фамилия" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Телефон" },
+  { key: "dateOfBirth", label: "Дата рождения" },
+  { key: "country", label: "Страна" },
+  { key: "city", label: "Город" },
+  { key: "gender", label: "Пол" },
+  { key: "maritalStatus", label: "Семейное положение" },
+  { key: "status", label: "Статус" },
+  { key: "notes", label: "Заметки" }
+];
+
 function formatCustomFieldValue(value: unknown): string {
   if (value == null) return "—";
   if (typeof value === "boolean") return value ? "Да" : "Нет";
@@ -264,20 +278,6 @@ export function PsychologistClientsList({
   const [googleSheetsGoogleConnected, setGoogleSheetsGoogleConnected] = useState<boolean | null>(
     null
   );
-
-  const IMPORT_FIELDS: { key: string; label: string }[] = [
-    { key: "firstName", label: "Имя" },
-    { key: "lastName", label: "Фамилия" },
-    { key: "email", label: "Email" },
-    { key: "phone", label: "Телефон" },
-    { key: "dateOfBirth", label: "Дата рождения" },
-    { key: "country", label: "Страна" },
-    { key: "city", label: "Город" },
-    { key: "gender", label: "Пол" },
-    { key: "maritalStatus", label: "Семейное положение" },
-    { key: "status", label: "Статус" },
-    { key: "notes", label: "Заметки" }
-  ];
 
   const [importOpen, setImportOpen] = useState(false);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
