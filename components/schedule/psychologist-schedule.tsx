@@ -1063,6 +1063,7 @@ export function PsychologistSchedule() {
                                           side={isMobileView ? "bottom" : "right"}
                                           align="start"
                                           className="w-72 space-y-3 text-xs"
+                                          onOpenAutoFocus={e => e.preventDefault()}
                                         >
                                           <div className="flex items-start justify-between gap-2">
                                             <div>
