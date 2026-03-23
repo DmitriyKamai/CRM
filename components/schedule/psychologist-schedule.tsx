@@ -633,50 +633,50 @@ export function PsychologistSchedule() {
       );
       return (
         <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
-          <span className="flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit]">
-            <span className="flex flex-col items-center">
-              <span className={dayNumberClass}>{children}</span>
-              {hasDots && (
-                <div
-                  className="mt-[5px] flex shrink-0 justify-center gap-0.5"
-                  aria-hidden
-                >
-                  {dots!.free && (
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 shrink-0 rounded-full",
-                        isSelectedSingle
-                          ? "bg-sky-300 dark:bg-sky-400"
-                          : "bg-sky-600 dark:bg-sky-500"
-                      )}
-                      title="Свободный слот"
-                    />
-                  )}
-                  {dots!.pending && (
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 shrink-0 rounded-full",
-                        isSelectedSingle
-                          ? "bg-amber-300 dark:bg-amber-300"
-                          : "bg-amber-500 dark:bg-amber-400"
-                      )}
-                      title="Ожидает подтверждения"
-                    />
-                  )}
-                  {dots!.scheduled && (
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 shrink-0 rounded-full",
-                        isSelectedSingle
-                          ? "bg-emerald-400 dark:bg-emerald-300"
-                          : "bg-emerald-600 dark:bg-emerald-500"
-                      )}
-                      title="Подтверждённая запись"
-                    />
-                  )}
-                </div>
-              )}
+          <span className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit] pb-1">
+            <span className={cn("block w-full text-center leading-none", dayNumberClass)}>
+              {children}
             </span>
+            {hasDots && (
+              <div
+                className="absolute bottom-0 left-0 right-0 flex translate-y-[5px] justify-center gap-0.5 py-0.5"
+                aria-hidden
+              >
+                {dots!.free && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      isSelectedSingle
+                        ? "bg-sky-300 dark:bg-sky-400"
+                        : "bg-sky-600 dark:bg-sky-500"
+                    )}
+                    title="Свободный слот"
+                  />
+                )}
+                {dots!.pending && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      isSelectedSingle
+                        ? "bg-amber-300 dark:bg-amber-300"
+                        : "bg-amber-500 dark:bg-amber-400"
+                    )}
+                    title="Ожидает подтверждения"
+                  />
+                )}
+                {dots!.scheduled && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      isSelectedSingle
+                        ? "bg-emerald-400 dark:bg-emerald-300"
+                        : "bg-emerald-600 dark:bg-emerald-500"
+                    )}
+                    title="Подтверждённая запись"
+                  />
+                )}
+              </div>
+            )}
           </span>
         </CalendarDayButton>
       );
@@ -786,7 +786,8 @@ export function PsychologistSchedule() {
               {holidaysThisMonth.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">
-                    Праздничные дни месяца
+                    Праздничные дни
+                    <span className="hidden sm:inline"> месяца</span>
                   </div>
                   <ul className="space-y-0.5">
                     {holidaysThisMonth.map(([md, title]) => {
