@@ -5,8 +5,8 @@ import { NextResponse } from "next/server";
  * Базовые security headers для всех подходящих маршрутов.
  * CSP включаем в режиме Report-Only, чтобы собирать отчёты и не ломать фронт.
  */
-export function middleware(request: NextRequest) {
-  void request;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function middleware(_request: NextRequest) {
   const res = NextResponse.next();
 
   res.headers.set("X-Content-Type-Options", "nosniff");

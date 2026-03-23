@@ -4,13 +4,20 @@
  */
 
 const BASE = "https://api.telegram.org/bot";
+const FETCH_TIMEOUT_MS = 8_000;
 
+let _tokenWarnedOnce = false;
 function getToken(): string | null {
   const token = process.env.TELEGRAM_BOT_TOKEN ?? null;
-  if (!token) {
+  if (!token && !_tokenWarnedOnce) {
+    _tokenWarnedOnce = true;
     console.warn("[telegram] TELEGRAM_BOT_TOKEN не задан — уведомления в Telegram не отправляются.");
   }
   return token;
+}
+
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }
 
 export type InlineButton = { text: string; callback_data: string };
@@ -26,7 +33,7 @@ export async function sendTelegramMessage(
   const token = getToken();
   if (!token) return false;
 
-  const res = await fetch(`${BASE}${token}/sendMessage`, {
+  const res = await fetchWithTimeout(`${BASE}${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -56,7 +63,7 @@ export async function sendTelegramMessageWithButtons(
   const token = getToken();
   if (!token) return false;
 
-  const res = await fetch(`${BASE}${token}/sendMessage`, {
+  const res = await fetchWithTimeout(`${BASE}${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -109,7 +116,7 @@ export async function editTelegramMessage(
   const token = getToken();
   if (!token) return false;
 
-  const res = await fetch(`${BASE}${token}/editMessageText`, {
+  const res = await fetchWithTimeout(`${BASE}${token}/editMessageText`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

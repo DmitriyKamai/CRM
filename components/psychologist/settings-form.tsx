@@ -2,8 +2,7 @@
 
 import React, { Component, useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { signIn } from "next-auth/react";
-import { useSession, signOut } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";

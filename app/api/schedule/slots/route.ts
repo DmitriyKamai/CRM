@@ -14,20 +14,9 @@ export async function GET() {
   if (!psychAuth.ok) return psychAuth.response;
   const userId = psychAuth.userId;
 
-  // Находим или создаём профиль психолога для текущего пользователя
-  let profile = await prisma.psychologistProfile.findUnique({
-    where: { userId }
-  });
-
+  const profile = await prisma.psychologistProfile.findUnique({ where: { userId } });
   if (!profile) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    profile = await prisma.psychologistProfile.create({
-      data: {
-        userId,
-        firstName: user?.name ?? "Психолог",
-        lastName: ""
-      }
-    });
+    return NextResponse.json({ message: "Профиль психолога не найден" }, { status: 404 });
   }
 
   const now = new Date();
@@ -113,19 +102,9 @@ export async function POST(request: Request) {
   if (!psychAuth.ok) return psychAuth.response;
   const userId = psychAuth.userId;
 
-  let profile = await prisma.psychologistProfile.findUnique({
-    where: { userId }
-  });
-
+  const profile = await prisma.psychologistProfile.findUnique({ where: { userId } });
   if (!profile) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    profile = await prisma.psychologistProfile.create({
-      data: {
-        userId,
-        firstName: user?.name ?? "Психолог",
-        lastName: ""
-      }
-    });
+    return NextResponse.json({ message: "Профиль психолога не найден" }, { status: 404 });
   }
 
   const body = await request.json().catch(() => null);

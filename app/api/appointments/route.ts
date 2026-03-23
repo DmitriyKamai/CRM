@@ -22,6 +22,20 @@ export async function POST(request: Request) {
     );
   }
   const slotId = body.slotId as string;
+  const ip = getClientIp(request);
+
+  // Rate limiting на уровне userId:ip — до любых записей в БД.
+  const allowed = await checkRateLimit({
+    key: `appointment:${userId}:${ip}`,
+    windowMs: 10 * 60 * 1000,
+    max: 30
+  });
+  if (!allowed) {
+    return NextResponse.json(
+      { message: "Слишком много попыток записи, попробуйте позже" },
+      { status: 429 }
+    );
+  }
 
   const slot = await prisma.scheduleSlot.findUnique({
     where: { id: slotId },
@@ -84,21 +98,6 @@ export async function POST(request: Request) {
     }
   }
   const clientId = clientProfile.id;
-
-  const ip = getClientIp(request);
-
-  const allowed = await checkRateLimit({
-    key: `appointment:${clientId}:${ip}`,
-    windowMs: 10 * 60 * 1000,
-    max: 30
-  });
-
-  if (!allowed) {
-    return NextResponse.json(
-      { message: "Слишком много попыток записи, попробуйте позже" },
-      { status: 429 }
-    );
-  }
 
   try {
     const result = await prisma.$transaction(async tx => {

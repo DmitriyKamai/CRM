@@ -86,7 +86,10 @@ export async function POST(request: Request, { params }: ParamsPromise) {
       );
     }
 
-    const safeName = file.name || "file";
+    const safeName = (file.name || "file")
+      .replace(/[/\\:*?"<>|]/g, "_")
+      .replace(/\.{2,}/g, "_")
+      .slice(0, 200);
     const ext = safeName.includes(".") ? safeName.split(".").pop() : "bin";
     const pathname = `client-files/${ctx.psychologistId}/${id}/${Date.now()}-${Math.random()
       .toString(36)

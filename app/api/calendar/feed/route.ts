@@ -94,10 +94,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("[GET /api/calendar/feed]", err);
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { message: message ? `Ошибка сервера: ${message}` : "Ошибка сервера" },
-      { status: 500 }
-    );
+    return new NextResponse("Внутренняя ошибка сервера", { status: 500 });
   }
 }

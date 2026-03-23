@@ -7,7 +7,6 @@ async function wrappedHandler(
   req: NextRequest,
   context: { params: Promise<{ nextauth: string[] }> }
 ) {
-  const url = req.url;
   const pathname = req.nextUrl.pathname;
 
   // Простое rate limiting для входа по паролю (credentials).
@@ -37,14 +36,8 @@ async function wrappedHandler(
     }
   }
 
-  const m0 = process.memoryUsage();
-  console.log(`[DBG] nextauth-start ${url} heap=${Math.round(m0.heapUsed/1024/1024)}/${Math.round(m0.heapTotal/1024/1024)}MB rss=${Math.round(m0.rss/1024/1024)}MB`);
   try {
     const result = await NextAuth(req, context, getAuthOptions(req));
-    // #region agent log
-    const m1 = process.memoryUsage();
-    console.log(`[DBG] nextauth-end ${url} heap=${Math.round(m1.heapUsed/1024/1024)}/${Math.round(m1.heapTotal/1024/1024)}MB rss=${Math.round(m1.rss/1024/1024)}MB`);
-    // #endregion
     return result;
   } catch (err) {
     console.error("[NextAuth] handler error:", err);

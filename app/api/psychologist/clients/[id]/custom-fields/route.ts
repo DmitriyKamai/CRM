@@ -89,59 +89,50 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
     const changes: { label: string; from: string; to: string }[] = [];
 
+    // Разбиваем изменения на три группы: удалить / обновить / создать — и применяем транзакцией.
+    const toDelete: string[] = [];
+    const toUpdate: { id: string; value: Prisma.InputJsonValue }[] = [];
+    const toCreate: { definitionId: string; value: Prisma.InputJsonValue }[] = [];
+
     for (const [definitionId, raw] of Object.entries(parsed)) {
       if (!allowedIds.has(definitionId)) continue;
       const def = defById.get(definitionId);
       if (!def) continue;
-
       const oldVal = snapshot.has(definitionId) ? snapshot.get(definitionId) : undefined;
       const empty = raw === null || raw === undefined || raw === "";
+      const existingRow = existingRows.find(r => r.definitionId === definitionId);
 
       if (empty) {
-        if (!existingByDef.has(definitionId)) continue;
-        await prisma.customFieldValue.deleteMany({
-          where: { clientId: id, definitionId }
-        });
-        existingByDef.delete(definitionId);
-        changes.push({
-          label: def.label,
-          from: formatCustomFieldValueForHistory(oldVal, def),
-          to: "—"
-        });
+        if (!existingRow) continue;
+        toDelete.push(definitionId);
+        changes.push({ label: def.label, from: formatCustomFieldValueForHistory(oldVal, def), to: "—" });
         continue;
       }
-
-      if (jsonValueEqual(oldVal, raw)) {
-        continue;
-      }
-
-      const existing = await prisma.customFieldValue.findFirst({
-        where: { clientId: id, definitionId }
-      });
-
-      if (!existing) {
-        await prisma.customFieldValue.create({
-          data: {
-            definitionId,
-            clientId: id,
-            value: raw as Prisma.InputJsonValue
-          }
-        });
+      if (jsonValueEqual(oldVal, raw)) continue;
+      if (existingRow) {
+        toUpdate.push({ id: existingRow.id, value: raw as Prisma.InputJsonValue });
       } else {
-        await prisma.customFieldValue.update({
-          where: { id: existing.id },
-          data: { value: raw as Prisma.InputJsonValue }
-        });
+        toCreate.push({ definitionId, value: raw as Prisma.InputJsonValue });
       }
-      existingByDef.set(definitionId, raw as unknown as Prisma.JsonValue);
-
       changes.push({
         label: def.label,
-        from: snapshot.has(definitionId)
-          ? formatCustomFieldValueForHistory(oldVal, def)
-          : "—",
+        from: snapshot.has(definitionId) ? formatCustomFieldValueForHistory(oldVal, def) : "—",
         to: formatCustomFieldValueForHistory(raw, def)
       });
+    }
+
+    if (toDelete.length > 0 || toUpdate.length > 0 || toCreate.length > 0) {
+      await prisma.$transaction([
+        ...(toDelete.length > 0
+          ? [prisma.customFieldValue.deleteMany({ where: { clientId: id, definitionId: { in: toDelete } } })]
+          : []),
+        ...toUpdate.map(({ id: rowId, value }) =>
+          prisma.customFieldValue.update({ where: { id: rowId }, data: { value } })
+        ),
+        ...toCreate.map(({ definitionId, value }) =>
+          prisma.customFieldValue.create({ data: { definitionId, clientId: id, value } })
+        )
+      ]);
     }
 
     if (changes.length > 0) {

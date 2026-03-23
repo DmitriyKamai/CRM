@@ -48,49 +48,48 @@ const updateClientSchema = z.object({
 });
 
 export async function GET(_req: Request, { params }: ParamsPromise) {
-  const { id } = await params;
-  const ctx = await requirePsychologist();
-  if (!ctx.ok) return ctx.response;
+  try {
+    const { id } = await params;
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
-  const client = await prisma.clientProfile.findFirst({
-    where: {
-      id,
-      psychologistId: ctx.psychologistId
-    },
-    include: {
-      user: {
-        select: {
-          email: true
-        }
+    const client = await prisma.clientProfile.findFirst({
+      where: {
+        id,
+        psychologistId: ctx.psychologistId
       },
-      status: {
-        select: { id: true, label: true, color: true }
+      include: {
+        user: { select: { email: true } },
+        status: { select: { id: true, label: true, color: true } }
       }
+    });
+
+    if (!client) {
+      return NextResponse.json({ message: "Клиент не найден" }, { status: 404 });
     }
-  });
 
-  if (!client) {
-    return NextResponse.json({ message: "Клиент не найден" }, { status: 404 });
+    return NextResponse.json({
+      id: client.id,
+      firstName: client.firstName,
+      lastName: client.lastName,
+      dateOfBirth: client.dateOfBirth,
+      phone: client.phone,
+      country: client.country,
+      city: client.city,
+      gender: client.gender,
+      maritalStatus: client.maritalStatus,
+      notes: client.notes,
+      createdAt: client.createdAt,
+      email: client.user?.email ?? client.email ?? null,
+      hasAccount: !!client.userId,
+      statusId: client.status?.id ?? null,
+      statusLabel: client.status?.label ?? null,
+      statusColor: client.status?.color ?? null
+    });
+  } catch (error) {
+    console.error("[GET /api/psychologist/clients/[id]]", error);
+    return NextResponse.json({ message: "Внутренняя ошибка сервера" }, { status: 500 });
   }
-
-  return NextResponse.json({
-    id: client.id,
-    firstName: client.firstName,
-    lastName: client.lastName,
-    dateOfBirth: client.dateOfBirth,
-    phone: client.phone,
-    country: client.country,
-    city: client.city,
-    gender: client.gender,
-    maritalStatus: client.maritalStatus,
-    notes: client.notes,
-    createdAt: client.createdAt,
-    email: client.user?.email ?? client.email ?? null,
-    hasAccount: !!client.userId,
-    statusId: client.status?.id ?? null,
-    statusLabel: client.status?.label ?? null,
-    statusColor: client.status?.color ?? null
-  });
 }
 
 export async function PATCH(request: Request, { params }: ParamsPromise) {
@@ -306,11 +305,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     }
 
     console.error("Update client error", error);
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { message: message ? `Внутренняя ошибка сервера: ${message}` : "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }
 

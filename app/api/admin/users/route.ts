@@ -37,23 +37,21 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  const [totalCount, users] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true
-      }
-    })
-  ]);
-
-  return NextResponse.json({ rows: users, totalCount });
+  try {
+    const [totalCount, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+        select: { id: true, email: true, name: true, role: true, createdAt: true }
+      })
+    ]);
+    return NextResponse.json({ rows: users, totalCount });
+  } catch (err) {
+    console.error("[GET /api/admin/users]", err);
+    return NextResponse.json({ message: "Внутренняя ошибка сервера" }, { status: 500 });
+  }
 }
 

@@ -14,6 +14,13 @@ const store: Store =
 
 if (!globalForRateLimit.__rateLimitStore) {
   globalForRateLimit.__rateLimitStore = store;
+  // Периодически удаляем устаревшие записи, чтобы Map не рос бесконечно.
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, counter] of store) {
+      if (counter.expiresAt < now) store.delete(key);
+    }
+  }, 5 * 60 * 1000).unref();
 }
 
 export interface RateLimitOptions {

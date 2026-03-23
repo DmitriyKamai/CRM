@@ -75,34 +75,17 @@ export async function GET() {
         maritalStatus?: string | null;
       };
 
-      let clients: ClientRow[];
-      try {
-        clients = await prisma.clientProfile.findMany({
-          where: { psychologistId: profile.id },
-          orderBy: { createdAt: "desc" },
-          select: {
-            ...selectBase,
-            country: true,
-            city: true,
-            gender: true,
-            maritalStatus: true
-          }
-        }) as ClientRow[];
-      } catch {
-        // Колонки country, city, gender, maritalStatus могут отсутствовать, если миграция не применена
-        clients = (await prisma.clientProfile.findMany({
-          where: { psychologistId: profile.id },
-          orderBy: { createdAt: "desc" },
-          select: selectBase
-        })) as ClientRow[];
-        clients = clients.map((c) => ({
-          ...c,
-          country: null,
-          city: null,
-          gender: null,
-          maritalStatus: null
-        }));
-      }
+      const clients = (await prisma.clientProfile.findMany({
+        where: { psychologistId: profile.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          ...selectBase,
+          country: true,
+          city: true,
+          gender: true,
+          maritalStatus: true
+        }
+      })) as ClientRow[];
 
       const clientIds = clients.map((c) => c.id);
       const customDefs = await prisma.customFieldDefinition.findMany({

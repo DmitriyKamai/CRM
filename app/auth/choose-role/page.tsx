@@ -30,8 +30,6 @@ export default async function ChooseRolePage() {
     redirect("/auth/login");
   }
 
-  console.log("[choose-role] userId:", userId, "user.role:", user.role, "psychologistProfile:", !!user.psychologistProfile, "clientProfiles:", user.clientProfiles.length);
-
   // Если роль уже выбрана — сразу ведём в соответствующий кабинет.
   // Новый соц-пользователь после первого логина имеет role=CLIENT, но без профилей —
   // в этом случае выбор роли ещё не сделан, и мы показываем экран выбора.
@@ -39,16 +37,11 @@ export default async function ChooseRolePage() {
     redirect("/admin");
   }
   if (user.role === "PSYCHOLOGIST" || user.psychologistProfile) {
-    console.log("[choose-role] redirect to /psychologist (role or profile)");
     redirect("/psychologist");
   }
   if (user.role === "CLIENT" && user.clientProfiles.length > 0) {
-    console.log("[choose-role] redirect to /client (role + profiles)");
     redirect("/client");
   }
-
-  // Новый пользователь по соцлогину: просим выбрать роль.
-  console.log("[choose-role] showing role selection form");
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
       <div className="w-full max-w-md space-y-4 rounded-lg border bg-card p-6 shadow-sm">

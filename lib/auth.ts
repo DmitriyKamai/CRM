@@ -170,62 +170,66 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      // При первом входе — сохраняем id и роль в JWT.
       if (user) {
-        token.id = (user as unknown as { id: string }).id;
-        return token;
+        const u = user as unknown as { id: string; role?: string };
+        token.id = u.id;
+        token.role = u.role ?? null;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image ?? null;
+      }
+      // При явном обновлении токена (signIn, update) — обновляем данные из БД.
+      if (trigger === "update" || (!token.role && token.id)) {
+        const userId = (token.id ?? token.sub) as string | undefined;
+        if (userId) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { name: true, email: true, image: true, role: true }
+            });
+            if (dbUser) {
+              const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+              const isInitialAdmin = initialAdminEmail && dbUser.email.toLowerCase() === initialAdminEmail;
+              if (isInitialAdmin && dbUser.role !== "ADMIN") {
+                await prisma.user.update({ where: { id: userId }, data: { role: "ADMIN" } });
+                token.role = "ADMIN";
+              } else {
+                token.role = dbUser.role;
+              }
+              token.email = dbUser.email;
+              token.picture = dbUser.image ?? null;
+              if (dbUser.role === "PSYCHOLOGIST") {
+                const profile = await prisma.psychologistProfile.findUnique({
+                  where: { userId },
+                  select: { firstName: true, lastName: true }
+                });
+                if (profile) {
+                  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
+                  if (fullName) token.name = fullName;
+                } else {
+                  token.name = dbUser.name ?? null;
+                }
+              } else {
+                token.name = dbUser.name ?? null;
+              }
+            }
+          } catch (e) {
+            console.error("[auth] jwt callback:", e);
+          }
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (!session.user || !token) return session;
-      const tokenId = (token as unknown as { id?: unknown }).id;
-      (session.user as unknown as { id?: string | undefined }).id =
-        tokenId as string | undefined;
-      const userId = (token.id ?? token.sub) as string | undefined;
-      if (!userId) return session;
-      try {
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { name: true, email: true, image: true, role: true }
-        });
-        if (user) {
-          const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
-          const isInitialAdmin =
-            initialAdminEmail &&
-            user.email.toLowerCase() === initialAdminEmail;
-          let effectiveRole = user.role;
-          if (isInitialAdmin && user.role !== "ADMIN") {
-            await prisma.user.update({
-              where: { id: userId },
-              data: { role: "ADMIN" }
-            });
-            effectiveRole = "ADMIN";
-          }
-          session.user.email = user.email;
-          session.user.image = user.image ?? undefined;
-          (session.user as unknown as { role?: string }).role = effectiveRole;
-          if (effectiveRole === "PSYCHOLOGIST") {
-            const profile = await prisma.psychologistProfile.findUnique({
-              where: { userId },
-              select: { firstName: true, lastName: true }
-            });
-            if (profile) {
-              const fullName = [profile.firstName, profile.lastName]
-                .filter(Boolean)
-                .join(" ")
-                .trim();
-              if (fullName) session.user.name = fullName;
-            } else if (user.name) {
-              session.user.name = user.name;
-            }
-          } else {
-            if (user.name) session.user.name = user.name;
-          }
-        }
-      } catch (e) {
-        console.error("[auth] session callback:", e);
-      }
+      const tok = token as unknown as { id?: string; role?: string; name?: string; email?: string; picture?: string };
+      if (tok.id) (session.user as unknown as { id?: string }).id = tok.id;
+      if (tok.role) (session.user as unknown as { role?: string }).role = tok.role;
+      if (tok.name) session.user.name = tok.name;
+      if (tok.email) session.user.email = tok.email;
+      if (tok.picture) session.user.image = tok.picture;
       return session;
     }
   };
