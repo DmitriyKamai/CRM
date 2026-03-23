@@ -621,48 +621,50 @@ export function PsychologistSchedule() {
         !modifiers?.range_middle;
       return (
         <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
-          <span className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit]">
-            <span className="block w-full text-center leading-none">{children}</span>
-            {hasDots && (
-              <div
-                className="absolute bottom-0 left-0 right-0 flex justify-center gap-0.5 py-0.5"
-                aria-hidden
-              >
-                {dots!.free && (
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle
-                        ? "bg-sky-300 dark:bg-sky-400"
-                        : "bg-sky-600 dark:bg-sky-500"
-                    )}
-                    title="Свободный слот"
-                  />
-                )}
-                {dots!.pending && (
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle
-                        ? "bg-amber-300 dark:bg-amber-300"
-                        : "bg-amber-500 dark:bg-amber-400"
-                    )}
-                    title="Ожидает подтверждения"
-                  />
-                )}
-                {dots!.scheduled && (
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
-                      isSelectedSingle
-                        ? "bg-emerald-400 dark:bg-emerald-300"
-                        : "bg-emerald-600 dark:bg-emerald-500"
-                    )}
-                    title="Подтверждённая запись"
-                  />
-                )}
-              </div>
-            )}
+          <span className="flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit]">
+            <span className="flex flex-col items-center">
+              <span className="block text-center leading-none">{children}</span>
+              {hasDots && (
+                <div
+                  className="mt-[5px] flex shrink-0 justify-center gap-0.5"
+                  aria-hidden
+                >
+                  {dots!.free && (
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        isSelectedSingle
+                          ? "bg-sky-300 dark:bg-sky-400"
+                          : "bg-sky-600 dark:bg-sky-500"
+                      )}
+                      title="Свободный слот"
+                    />
+                  )}
+                  {dots!.pending && (
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        isSelectedSingle
+                          ? "bg-amber-300 dark:bg-amber-300"
+                          : "bg-amber-500 dark:bg-amber-400"
+                      )}
+                      title="Ожидает подтверждения"
+                    />
+                  )}
+                  {dots!.scheduled && (
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        isSelectedSingle
+                          ? "bg-emerald-400 dark:bg-emerald-300"
+                          : "bg-emerald-600 dark:bg-emerald-500"
+                      )}
+                      title="Подтверждённая запись"
+                    />
+                  )}
+                </div>
+              )}
+            </span>
           </span>
         </CalendarDayButton>
       );
@@ -779,7 +781,7 @@ export function PsychologistSchedule() {
                       const day = md.slice(3, 5);
                       return (
                         <li key={md} className="flex gap-2">
-                          <span className="w-8 shrink-0 text-left font-medium text-foreground">
+                          <span className="shrink-0 whitespace-nowrap tabular-nums text-left font-medium text-foreground">
                             {day}.{currentMonthKey}
                           </span>
                           <span className="min-w-0 break-words">{title}</span>
