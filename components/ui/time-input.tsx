@@ -10,25 +10,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-// 00:00 – 23:50 с шагом 10 минут
-const TIME_OPTIONS: string[] = [];
-for (let h = 0; h < 24; h++) {
-  for (let m = 0; m < 60; m += 10) {
-    TIME_OPTIONS.push(
-      `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-    );
-  }
-}
-
-// Округление до ближайшего 10-минутного слота
-function snapToSlot(value: string): string {
-  const [h, m] = value.split(":").map(v => parseInt(v, 10) || 0);
-  const snappedM = Math.round(m / 10) * 10;
-  if (snappedM >= 60) {
-    return `${String(Math.min(23, h + 1)).padStart(2, "0")}:00`;
-  }
-  return `${String(h).padStart(2, "0")}:${String(snappedM).padStart(2, "0")}`;
-}
+const HOURS = Array.from({ length: 24 }, (_, i) =>
+  String(i).padStart(2, "0")
+);
+const MINUTES = ["00", "10", "20", "30", "40", "50"];
 
 type TimeInputProps = {
   value: string; // "HH:MM"
@@ -37,13 +22,20 @@ type TimeInputProps = {
 };
 
 export function TimeInput({ value, onChange, className }: TimeInputProps) {
-  // На сервере рендерим десктопный вариант — меняем после монтирования
+  // После монтирования определяем тип устройства
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMobile(window.matchMedia("(pointer: coarse)").matches);
   }, []);
 
+  const parts = value.split(":");
+  const hour = (parts[0] ?? "09").padStart(2, "0");
+  const rawMin = parseInt(parts[1] ?? "0", 10) || 0;
+  const snapped = Math.round(rawMin / 10) * 10;
+  const minute = String(snapped >= 60 ? 0 : snapped).padStart(2, "0");
+
+  // Мобильные — нативный пикер (на iOS = барабан как в будильнике)
   if (isMobile) {
     return (
       <input
@@ -61,18 +53,38 @@ export function TimeInput({ value, onChange, className }: TimeInputProps) {
     );
   }
 
+  // Десктоп — два отдельных Select: часы и минуты
   return (
-    <Select value={snapToSlot(value)} onValueChange={onChange}>
-      <SelectTrigger className={cn("h-9 text-sm", className)}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="max-h-60 overflow-y-auto">
-        {TIME_OPTIONS.map(t => (
-          <SelectItem key={t} value={t}>
-            {t}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className={cn("flex items-center gap-1", className)}>
+      <Select value={hour} onValueChange={h => onChange(`${h}:${minute}`)}>
+        <SelectTrigger className="h-9 w-[4.5rem] text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="max-h-60 overflow-y-auto">
+          {HOURS.map(h => (
+            <SelectItem key={h} value={h}>
+              {h}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <span className="select-none text-sm font-semibold text-muted-foreground">
+        :
+      </span>
+
+      <Select value={minute} onValueChange={m => onChange(`${hour}:${m}`)}>
+        <SelectTrigger className="h-9 w-[4.5rem] text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {MINUTES.map(m => (
+            <SelectItem key={m} value={m}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
