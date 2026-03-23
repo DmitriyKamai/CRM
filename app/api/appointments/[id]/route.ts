@@ -13,7 +13,24 @@ type ParamsPromise = {
   }>;
 };
 
-// Изменение статуса записи (например, отмена)
+type AppointmentStatus =
+  | "PENDING_CONFIRMATION"
+  | "SCHEDULED"
+  | "COMPLETED"
+  | "CANCELED"
+  | "NO_SHOW";
+
+// Допустимые переходы статусов для психолога
+const ALLOWED_TRANSITIONS: Partial<Record<AppointmentStatus, AppointmentStatus[]>> = {
+  PENDING_CONFIRMATION: ["SCHEDULED", "CANCELED"],
+  SCHEDULED: ["CANCELED", "COMPLETED", "NO_SHOW"],
+  COMPLETED: ["CANCELED"],
+  NO_SHOW: ["COMPLETED"],
+};
+
+// Эти статусы можно выставить только для прошедших записей (end < now)
+const PAST_ONLY_STATUSES: AppointmentStatus[] = ["COMPLETED", "NO_SHOW"];
+
 export async function PATCH(request: Request, { params }: ParamsPromise) {
   try {
     const { id } = await params;
@@ -23,7 +40,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     if (mod) return mod;
 
     const body = await request.json().catch(() => null);
-    const status = body?.status as "PENDING_CONFIRMATION" | "SCHEDULED" | "COMPLETED" | "CANCELED" | undefined;
+    const status = body?.status as AppointmentStatus | undefined;
 
     if (!status) {
       return NextResponse.json(
@@ -52,6 +69,23 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       );
     }
 
+    // Валидация перехода по матрице
+    const allowedTargets = ALLOWED_TRANSITIONS[appt.status as AppointmentStatus] ?? [];
+    if (!allowedTargets.includes(status)) {
+      return NextResponse.json(
+        { message: `Нельзя перевести запись из статуса «${appt.status}» в «${status}»` },
+        { status: 400 }
+      );
+    }
+
+    // COMPLETED и NO_SHOW — только для прошедших записей
+    if (PAST_ONLY_STATUSES.includes(status) && appt.end > new Date()) {
+      return NextResponse.json(
+        { message: "Отметить завершение можно только для прошедших записей" },
+        { status: 400 }
+      );
+    }
+
     const wasPendingBefore = appt.status === "PENDING_CONFIRMATION";
     const alreadyInListBefore = appt.client?.psychologistId === ctx.psychologistId;
     const clientAddedToList =
@@ -61,64 +95,65 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       const slotIdToFree = appt.slotId;
       const wasPending = appt.status === "PENDING_CONFIRMATION";
 
-    const updated = await tx.appointment.update({
-      where: { id },
-      data:
-        status === "CANCELED"
+      // При отмене (из любого статуса) и при NO_SHOW — слот освобождаем если привязан
+      const shouldFreeSlot = status === "CANCELED";
+
+      const updated = await tx.appointment.update({
+        where: { id },
+        data: shouldFreeSlot
           ? { status: "CANCELED", slotId: null }
           : { status }
-    });
-
-    if (status === "CANCELED" && slotIdToFree) {
-      await tx.scheduleSlot.update({
-        where: { id: slotIdToFree },
-        data: { status: "FREE" }
       });
-    }
 
-    // При подтверждении записи (PENDING → SCHEDULED) добавляем клиента в список только если его там ещё нет, уведомление о добавлении — только в этом случае
-    if (status === "SCHEDULED" && wasPending) {
-      const alreadyInList = appt.client?.psychologistId === ctx.psychologistId;
-      if (!alreadyInList) {
-        await tx.clientProfile.update({
-          where: { id: appt.clientId },
-          data: { psychologistId: ctx.psychologistId }
+      if (shouldFreeSlot && slotIdToFree) {
+        await tx.scheduleSlot.update({
+          where: { id: slotIdToFree },
+          data: { status: "FREE" }
         });
       }
-      const clientUserId = appt.client?.userId;
-      if (clientUserId) {
-        const dateStr = appt.start.toLocaleString("ru-RU", {
-          dateStyle: "short",
-          timeStyle: "short"
-        });
-        const bodyText = `Психолог ${psychologistName} подтвердил(а) вашу запись на приём ${dateStr}.`;
-        await tx.notification.create({
-          data: {
-            userId: clientUserId,
-            title: "Запись подтверждена",
-            body: bodyText
-          }
-        });
-      }
-    }
 
-    // При отмене записи психологом — уведомление клиенту
-    if (status === "CANCELED") {
-      const clientUserId = appt.client?.userId;
-      if (clientUserId) {
-        const dateStr = appt.start.toLocaleString("ru-RU", {
-          dateStyle: "short",
-          timeStyle: "short"
-        });
-        await tx.notification.create({
-          data: {
-            userId: clientUserId,
-            title: "Запись отменена",
-            body: `Психолог ${psychologistName} отменил(а) вашу запись на приём ${dateStr}.`
-          }
-        });
+      // PENDING_CONFIRMATION → SCHEDULED: добавить клиента в список и уведомить
+      if (status === "SCHEDULED" && wasPending) {
+        const alreadyInList = appt.client?.psychologistId === ctx.psychologistId;
+        if (!alreadyInList) {
+          await tx.clientProfile.update({
+            where: { id: appt.clientId },
+            data: { psychologistId: ctx.psychologistId }
+          });
+        }
+        const clientUserId = appt.client?.userId;
+        if (clientUserId) {
+          const dateStr = appt.start.toLocaleString("ru-RU", {
+            dateStyle: "short",
+            timeStyle: "short"
+          });
+          await tx.notification.create({
+            data: {
+              userId: clientUserId,
+              title: "Запись подтверждена",
+              body: `Психолог ${psychologistName} подтвердил(а) вашу запись на приём ${dateStr}.`
+            }
+          });
+        }
       }
-    }
+
+      // CANCELED из будущей записи — уведомить клиента
+      if (status === "CANCELED" && appt.start > new Date()) {
+        const clientUserId = appt.client?.userId;
+        if (clientUserId) {
+          const dateStr = appt.start.toLocaleString("ru-RU", {
+            dateStyle: "short",
+            timeStyle: "short"
+          });
+          await tx.notification.create({
+            data: {
+              userId: clientUserId,
+              title: "Запись отменена",
+              body: `Психолог ${psychologistName} отменил(а) вашу запись на приём ${dateStr}.`
+            }
+          });
+        }
+      }
 
       return updated;
     });
@@ -151,9 +186,12 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       }
     });
 
-    // Уведомление клиенту в Telegram при подтверждении или отмене
+    // Telegram-уведомление клиенту при подтверждении или отмене будущей записи
     const clientUserId = appt.client?.userId;
-    if (clientUserId && (status === "SCHEDULED" || status === "CANCELED")) {
+    if (
+      clientUserId &&
+      (status === "SCHEDULED" || (status === "CANCELED" && appt.start > new Date()))
+    ) {
       const clientUser = await prisma.user.findUnique({
         where: { id: clientUserId },
         select: { telegramChatId: true }
@@ -183,4 +221,3 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     );
   }
 }
-

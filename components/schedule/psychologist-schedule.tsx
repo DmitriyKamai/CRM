@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
+import { TimeInput } from "@/components/ui/time-input";
 import {
   Select,
   SelectContent,
@@ -1000,11 +1001,15 @@ export function PsychologistSchedule() {
                                               onSubmit={e => {
                                                 e.preventDefault();
                                                 const form = e.currentTarget;
-                                                const timeSelect = form.elements
-                                                  .namedItem("time") as HTMLSelectElement | null;
+                                                const hInput = form.elements
+                                                  .namedItem("time-h") as HTMLInputElement | null;
+                                                const mInput = form.elements
+                                                  .namedItem("time-m") as HTMLInputElement | null;
                                                 const durationSelect = form.elements
                                                   .namedItem("duration") as HTMLSelectElement | null;
-                                                const timeValue = timeSelect?.value || initialTime;
+                                                const hVal = Math.min(23, Math.max(0, parseInt(hInput?.value ?? initialTime.split(":")[0], 10) || 0));
+                                                const mVal = Math.min(59, Math.max(0, parseInt(mInput?.value ?? initialTime.split(":")[1], 10) || 0));
+                                                const timeValue = `${String(hVal).padStart(2, "0")}:${String(mVal).padStart(2, "0")}`;
                                                 const durationValue =
                                                   durationSelect?.value ||
                                                   String(durationMinutes);
@@ -1017,21 +1022,28 @@ export function PsychologistSchedule() {
                                             >
                                               <div className="space-y-1">
                                                 <Label className="text-sm">Время</Label>
-                                                <Select defaultValue={initialTime} name="time">
-                                                  <SelectTrigger className="h-8 text-xs">
-                                                    <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    {HOURS.flatMap(h => [
-                                                      `${String(h).padStart(2, "0")}:00`,
-                                                      `${String(h).padStart(2, "0")}:30`
-                                                    ]).map(t => (
-                                                      <SelectItem key={t} value={t}>
-                                                        {t}
-                                                      </SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
+                                                <div className="flex items-center gap-1">
+                                                  <input
+                                                    type="number"
+                                                    name="time-h"
+                                                    min={0}
+                                                    max={23}
+                                                    defaultValue={parseInt(initialTime.split(":")[0], 10)}
+                                                    className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    aria-label="Часы"
+                                                  />
+                                                  <span className="select-none text-xs font-medium text-muted-foreground">:</span>
+                                                  <input
+                                                    type="number"
+                                                    name="time-m"
+                                                    min={0}
+                                                    max={59}
+                                                    step={10}
+                                                    defaultValue={parseInt(initialTime.split(":")[1], 10)}
+                                                    className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    aria-label="Минуты"
+                                                  />
+                                                </div>
                                               </div>
                                               <div className="space-y-1">
                                                 <Label className="text-sm">
@@ -1136,17 +1148,32 @@ export function PsychologistSchedule() {
           </DialogHeader>
           <form onSubmit={handleCreateAppointment} className="space-y-4 text-sm">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Время</Label>
+              <Label className="text-xs text-muted-foreground">Дата</Label>
               <p className="text-sm font-medium">
                 {createDateTime
-                  ? formatHumanRange(
-                      createDateTime.toISOString(),
-                      new Date(
-                        createDateTime.getTime() + createDuration * 60 * 1000
-                      ).toISOString()
-                    )
-                  : "Не выбрано"}
+                  ? createDateTime.toLocaleDateString("ru-RU", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long"
+                    })
+                  : "Не выбрана"}
               </p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Время начала</Label>
+              <TimeInput
+                value={
+                  createDateTime
+                    ? `${String(createDateTime.getHours()).padStart(2, "0")}:${String(createDateTime.getMinutes()).padStart(2, "0")}`
+                    : "09:00"
+                }
+                onChange={timeStr => {
+                  const [h, m] = timeStr.split(":").map(Number);
+                  const dt = new Date(createDateTime ?? Date.now());
+                  dt.setHours(h ?? 0, m ?? 0, 0, 0);
+                  setCreateDateTime(dt);
+                }}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Клиент (необязательно)</Label>

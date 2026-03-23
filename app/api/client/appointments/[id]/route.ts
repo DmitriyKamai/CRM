@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requireClientOrPsychologist } from "@/lib/security/api-guards";
+import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
   params: Promise<{
@@ -37,11 +38,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     const appt = await prisma.appointment.findUnique({
       where: { id },
       include: {
-        client: {
-          select: {
-            userId: true
-          }
-        }
+        client: { select: { userId: true, firstName: true, lastName: true } },
+        psychologist: { select: { userId: true, firstName: true, lastName: true } }
       }
     });
 
@@ -56,14 +54,8 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       typeof appt.notes === "string" &&
       appt.notes.includes("PROPOSED_BY_PSYCHOLOGIST");
 
-    // Клиент может:
-    // - подтвердить только предложенную психологом запись (PENDING_CONFIRMATION -> SCHEDULED)
-    // - отменить свою будущую запись (PENDING_CONFIRMATION или SCHEDULED -> CANCELED)
     if (status === "SCHEDULED") {
-      if (
-        appt.status !== "PENDING_CONFIRMATION" ||
-        !proposedByPsychologist
-      ) {
+      if (appt.status !== "PENDING_CONFIRMATION" || !proposedByPsychologist) {
         return NextResponse.json(
           { message: "Эту запись нельзя подтвердить клиенту" },
           { status: 400 }
@@ -86,6 +78,15 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       );
     }
 
+    const clientName = appt.client
+      ? `${(appt.client.lastName ?? "").trim()} ${(appt.client.firstName ?? "").trim()}`.trim() || "Клиент"
+      : "Клиент";
+
+    const dateStr = appt.start.toLocaleString("ru-RU", {
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+
     const result = await prisma.$transaction(async tx => {
       const slotIdToFree = appt.slotId;
 
@@ -104,8 +105,46 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         });
       }
 
+      // Уведомление психологу в БД
+      const psychUserId = appt.psychologist?.userId;
+      if (psychUserId) {
+        if (status === "CANCELED") {
+          await tx.notification.create({
+            data: {
+              userId: psychUserId,
+              title: "Запись отменена клиентом",
+              body: `Клиент ${clientName} отменил(а) запись на приём ${dateStr}.`
+            }
+          });
+        } else if (status === "SCHEDULED") {
+          await tx.notification.create({
+            data: {
+              userId: psychUserId,
+              title: "Клиент подтвердил запись",
+              body: `Клиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`
+            }
+          });
+        }
+      }
+
       return updated;
     });
+
+    // Telegram психологу
+    const psychUserId = appt.psychologist?.userId;
+    if (psychUserId && (status === "CANCELED" || status === "SCHEDULED")) {
+      const psychUser = await prisma.user.findUnique({
+        where: { id: psychUserId },
+        select: { telegramChatId: true }
+      });
+      if (psychUser?.telegramChatId) {
+        const text =
+          status === "CANCELED"
+            ? `Запись отменена.\n\nКлиент ${clientName} отменил(а) запись на приём ${dateStr}.`
+            : `Клиент подтвердил запись.\n\nКлиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`;
+        sendTelegramMessage(psychUser.telegramChatId, text).catch(console.error);
+      }
+    }
 
     return NextResponse.json(result);
   } catch (err) {
@@ -116,4 +155,3 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     );
   }
 }
-

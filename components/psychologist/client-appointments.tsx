@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { TimeInput } from "@/components/ui/time-input";
 import {
   Popover,
   PopoverContent,
@@ -20,11 +21,19 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
+
+type AppointmentStatus =
+  | "PENDING_CONFIRMATION"
+  | "SCHEDULED"
+  | "COMPLETED"
+  | "CANCELED"
+  | "NO_SHOW";
+
 type AppointmentDto = {
   id: string;
   start: string;
   end: string;
-  status: "PENDING_CONFIRMATION" | "SCHEDULED" | "COMPLETED" | "CANCELED";
+  status: AppointmentStatus;
   proposedByPsychologist?: boolean;
 };
 
@@ -60,27 +69,28 @@ function statusLabel(appointment: AppointmentDto) {
 
   switch (appointment.status) {
     case "PENDING_CONFIRMATION":
-      return "Ожидает подтверждения";
+      return appointment.proposedByPsychologist
+        ? "Ожидает подтверждения клиентом"
+        : "Ожидает подтверждения";
     case "SCHEDULED":
-      if (isPast) {
-        return "Состоялся";
-      }
-      if (isNow) {
-        return "Идёт сейчас";
-      }
+      if (isPast) return "Состоялся";
+      if (isNow) return "Идёт сейчас";
       return "Запланирован";
     case "COMPLETED":
       return "Состоялся";
+    case "NO_SHOW":
+      return "Клиент не пришёл";
     case "CANCELED":
       return isPast ? "Не состоялся (отменён)" : "Отменён";
   }
 }
 
-function statusMarkerClasses(status: AppointmentDto["status"]) {
+function statusMarkerClasses(status: AppointmentStatus) {
   switch (status) {
     case "PENDING_CONFIRMATION":
       return "border-l-4 border-l-[hsl(var(--status-warning))]";
     case "CANCELED":
+    case "NO_SHOW":
       return "border-l-4 border-l-destructive";
     default:
       return "border-l-4 border-l-[hsl(var(--status-success))]";
@@ -94,7 +104,7 @@ export function ClientAppointments({ clientId }: Props) {
 
   const [creating, setCreating] = useState(false);
   const [createDate, setCreateDate] = useState<Date | undefined>(undefined);
-  const [createTime, setCreateTime] = useState<string | undefined>(undefined);
+  const [createTime, setCreateTime] = useState<string>("09:00");
   const [duration, setDuration] = useState(50);
 
   const load = useCallback(async () => {
@@ -121,14 +131,12 @@ export function ClientAppointments({ clientId }: Props) {
     void load();
   }, [load]);
 
-  async function handleStatusChange(id: string, status: AppointmentDto["status"]) {
+  async function handleStatusChange(id: string, status: AppointmentStatus) {
     setError(null);
     try {
       const res = await fetch(`/api/appointments/${id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
       });
       const data = await res.json().catch(() => null);
@@ -150,7 +158,7 @@ export function ClientAppointments({ clientId }: Props) {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!createDate || !createTime) return;
+    if (!createDate) return;
     setCreating(true);
     setError(null);
     try {
@@ -159,9 +167,7 @@ export function ClientAppointments({ clientId }: Props) {
       start.setHours(hours ?? 0, minutes ?? 0, 0, 0);
       const res = await fetch(`/api/psychologist/clients/${clientId}/appointments`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           start: start.toISOString(),
           durationMinutes: duration
@@ -177,7 +183,7 @@ export function ClientAppointments({ clientId }: Props) {
         )
       );
       setCreateDate(undefined);
-      setCreateTime(undefined);
+      setCreateTime("09:00");
     } catch (err) {
       console.error(err);
       setError(
@@ -230,45 +236,9 @@ export function ClientAppointments({ clientId }: Props) {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="space-y-1 w-full md:w-32">
+        <div className="space-y-1">
           <Label className="text-sm">Время</Label>
-          <Select
-            value={createTime}
-            onValueChange={value => setCreateTime(value)}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Выбрать" />
-            </SelectTrigger>
-            <SelectContent>
-              {[
-                "08:00",
-                "08:30",
-                "09:00",
-                "09:30",
-                "10:00",
-                "10:30",
-                "11:00",
-                "11:30",
-                "12:00",
-                "12:30",
-                "13:00",
-                "13:30",
-                "14:00",
-                "14:30",
-                "15:00",
-                "15:30",
-                "16:00",
-                "16:30",
-                "17:00",
-                "17:30",
-                "18:00"
-              ].map(t => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <TimeInput value={createTime} onChange={setCreateTime} />
         </div>
         <div className="space-y-1 w-full md:w-32">
           <Label className="text-sm">Длительность, минут</Label>
@@ -291,7 +261,7 @@ export function ClientAppointments({ clientId }: Props) {
           type="submit"
           size="sm"
           className="mt-1 h-9 md:mt-0"
-          disabled={creating || !createDate || !createTime}
+          disabled={creating || !createDate}
         >
           {creating ? "Отправляем..." : "Предложить запись"}
         </Button>
@@ -312,8 +282,12 @@ export function ClientAppointments({ clientId }: Props) {
       ) : (
         <ul className="space-y-2 text-xs">
           {items.map(item => {
-            const start = new Date(item.start);
-            const isFuture = start.getTime() > Date.now();
+            const now = Date.now();
+            const endTime = new Date(item.end).getTime();
+            const startTime = new Date(item.start).getTime();
+            const isPast = endTime < now;
+            const isNow = startTime <= now && now <= endTime;
+            const isFutureOrNow = !isPast;
 
             return (
               <li
@@ -328,10 +302,11 @@ export function ClientAppointments({ clientId }: Props) {
                     {statusLabel(item)}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {item.status === "PENDING_CONFIRMATION" && (
-                    <>
-                      {!item.proposedByPsychologist && (
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {/* Ожидает подтверждения — клиент записался сам */}
+                  {item.status === "PENDING_CONFIRMATION" &&
+                    !item.proposedByPsychologist && (
+                      <>
                         <Button
                           size="sm"
                           className="text-sm"
@@ -340,7 +315,20 @@ export function ClientAppointments({ clientId }: Props) {
                         >
                           Подтвердить
                         </Button>
-                      )}
+                        <Button
+                          size="sm"
+                          className="text-sm"
+                          variant="outline"
+                          onClick={() => handleStatusChange(item.id, "CANCELED")}
+                        >
+                          Отменить
+                        </Button>
+                      </>
+                    )}
+
+                  {/* Ожидает подтверждения — психолог предложил, ждём клиента */}
+                  {item.status === "PENDING_CONFIRMATION" &&
+                    item.proposedByPsychologist && (
                       <Button
                         size="sm"
                         className="text-sm"
@@ -349,16 +337,63 @@ export function ClientAppointments({ clientId }: Props) {
                       >
                         Отменить
                       </Button>
-                    </>
-                  )}
-                  {item.status === "SCHEDULED" && isFuture && (
+                    )}
+
+                  {/* Запланирован, будущий или идёт сейчас */}
+                  {item.status === "SCHEDULED" && isFutureOrNow && (
                     <Button
                       size="sm"
                       className="text-sm"
                       variant="outline"
                       onClick={() => handleStatusChange(item.id, "CANCELED")}
                     >
-                      Отменить
+                      {isNow ? "Отменить" : "Отменить"}
+                    </Button>
+                  )}
+
+                  {/* Запланирован, но уже прошёл — отмечаем факт */}
+                  {item.status === "SCHEDULED" && isPast && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="text-sm"
+                        variant="default"
+                        onClick={() => handleStatusChange(item.id, "COMPLETED")}
+                      >
+                        Состоялся
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="text-sm"
+                        variant="outline"
+                        onClick={() => handleStatusChange(item.id, "NO_SHOW")}
+                      >
+                        Не пришёл
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Состоялся — возможность исправить ошибку */}
+                  {item.status === "COMPLETED" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-muted-foreground"
+                      onClick={() => handleStatusChange(item.id, "CANCELED")}
+                    >
+                      Отменить (ошибка)
+                    </Button>
+                  )}
+
+                  {/* Клиент не пришёл — возможность исправить */}
+                  {item.status === "NO_SHOW" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-muted-foreground"
+                      onClick={() => handleStatusChange(item.id, "COMPLETED")}
+                    >
+                      Пришёл (исправить)
                     </Button>
                   )}
                 </div>
@@ -370,4 +405,3 @@ export function ClientAppointments({ clientId }: Props) {
     </div>
   );
 }
-

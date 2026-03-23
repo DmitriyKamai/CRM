@@ -101,10 +101,47 @@ export async function POST(
       : "Психолог";
 
     if (isClient && action === "confirm") {
-      await prisma.appointment.update({
-        where: { id: appointmentId },
-        data: { status: "SCHEDULED" }
+      const clientProfileForNotif = await prisma.clientProfile.findUnique({
+        where: { id: appt.clientId },
+        select: { firstName: true, lastName: true }
       });
+      const clientName = clientProfileForNotif
+        ? `${(clientProfileForNotif.lastName ?? "").trim()} ${(clientProfileForNotif.firstName ?? "").trim()}`.trim() || "Клиент"
+        : "Клиент";
+      const dateStr = appt.start.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+
+      await prisma.$transaction(async tx => {
+        await tx.appointment.update({
+          where: { id: appointmentId },
+          data: { status: "SCHEDULED" }
+        });
+        const psychUserId = appt.psychologist?.userId;
+        if (psychUserId) {
+          await tx.notification.create({
+            data: {
+              userId: psychUserId,
+              title: "Клиент подтвердил запись",
+              body: `Клиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`
+            }
+          });
+        }
+      });
+
+      // Telegram психологу
+      const psychUserId = appt.psychologist?.userId;
+      if (psychUserId) {
+        const psychUser = await prisma.user.findUnique({
+          where: { id: psychUserId },
+          select: { telegramChatId: true }
+        });
+        if (psychUser?.telegramChatId) {
+          sendTelegramMessage(
+            psychUser.telegramChatId,
+            `Клиент подтвердил запись.\n\nКлиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`
+          ).catch(console.error);
+        }
+      }
+
       return NextResponse.json({ ok: true, status: "SCHEDULED" });
     }
 

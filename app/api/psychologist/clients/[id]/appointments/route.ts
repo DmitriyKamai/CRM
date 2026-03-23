@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requirePsychologist } from "@/lib/security/api-guards";
+import { sendTelegramMessage } from "@/lib/telegram";
 
 type ParamsPromise = {
   params: Promise<{
@@ -38,6 +39,24 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
       start: "desc"
     }
   });
+
+  // Ленивое автозавершение: прошедшие SCHEDULED → COMPLETED прямо при чтении
+  const now = new Date();
+  const pastScheduledIds = appointments
+    .filter(a => a.status === "SCHEDULED" && a.end < now)
+    .map(a => a.id);
+
+  if (pastScheduledIds.length > 0) {
+    await prisma.appointment.updateMany({
+      where: { id: { in: pastScheduledIds } },
+      data: { status: "COMPLETED" }
+    });
+    for (const a of appointments) {
+      if (pastScheduledIds.includes(a.id)) {
+        a.status = "COMPLETED";
+      }
+    }
+  }
 
   return NextResponse.json(
     appointments.map(a => ({
@@ -165,6 +184,27 @@ export async function POST(request: Request, { params }: ParamsPromise) {
 
       return appointment;
     });
+
+    // Telegram клиенту если запись предложена (есть аккаунт → есть userId → может быть chatId)
+    if (hasAccount && client.userId) {
+      const clientUser = await prisma.user.findUnique({
+        where: { id: client.userId },
+        select: { telegramChatId: true }
+      });
+      if (clientUser?.telegramChatId) {
+        const psychologistName = psychProfile
+          ? `${psychProfile.lastName} ${psychProfile.firstName}`.trim() || "Психолог"
+          : "Психолог";
+        const dateStr = result.start.toLocaleString("ru-RU", {
+          dateStyle: "short",
+          timeStyle: "short"
+        });
+        sendTelegramMessage(
+          clientUser.telegramChatId,
+          `Предложена запись на приём.\n\nПсихолог ${psychologistName} предлагает вам запись на приём ${dateStr}.\n\nПодтвердите или отмените её в личном кабинете.`
+        ).catch(console.error);
+      }
+    }
 
     return NextResponse.json(
       {
