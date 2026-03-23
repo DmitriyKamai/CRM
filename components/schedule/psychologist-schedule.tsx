@@ -44,6 +44,7 @@ type SlotDto = {
   appointmentId?: string | null;
   appointmentStatus?: AppointmentStatus;
   clientName?: string | null;
+  proposedByPsychologist?: boolean;
 };
 
 type ClientOption = {
@@ -972,14 +973,21 @@ export function PsychologistSchedule() {
                                     const heightPx =
                                       (durationMinutes / 60) * HOUR_ROW_HEIGHT;
 
+                                    const isPendingByPsychologist =
+                                      slot.appointmentStatus === "PENDING_CONFIRMATION" &&
+                                      slot.proposedByPsychologist === true;
+                                    const pendingLabel = isPendingByPsychologist
+                                      ? "ожидает подтверждения клиента"
+                                      : "ожидает вашего подтверждения";
+
                                     const popupStatusText = (() => {
                                       if (!hasAppointment) {
                                         return "Свободный слот";
                                       }
                                       if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
                                         return slot.clientName
-                                          ? `${slot.clientName} (ожидает подтверждения)`
-                                          : "Ожидает подтверждения";
+                                          ? `${slot.clientName} (${pendingLabel})`
+                                          : pendingLabel.charAt(0).toUpperCase() + pendingLabel.slice(1);
                                       }
                                       return slot.clientName || "Занято";
                                     })();
@@ -993,7 +1001,9 @@ export function PsychologistSchedule() {
                                       statusText = "";
                                     } else if (hasAppointment) {
                                       if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
-                                        statusText = "Ожидает подтверждения";
+                                        statusText = isPendingByPsychologist
+                                          ? "Ждёт подтверждения клиента"
+                                          : "Ждёт вашего подтверждения";
                                       } else {
                                         statusText = slot.clientName || "";
                                       }
@@ -1052,7 +1062,7 @@ export function PsychologistSchedule() {
                                         <PopoverContent
                                           side={isMobileView ? "bottom" : "right"}
                                           align="start"
-                                          className="w-64 space-y-3 text-xs"
+                                          className="w-72 space-y-3 text-xs"
                                         >
                                           <div className="flex items-start justify-between gap-2">
                                             <div>
@@ -1086,25 +1096,34 @@ export function PsychologistSchedule() {
                                           )}
 
                                           {hasAppointment && (
-                                            <div className="flex items-center justify-end gap-2">
+                                            <div className="flex flex-col gap-2">
                                               {slot.appointmentStatus === "PENDING_CONFIRMATION" && (
-                                                <Button
-                                                  size="sm"
-                                                  className="h-8 min-h-8 px-3 text-sm"
-                                                  disabled={updatingId === slot.id}
-                                                  onClick={() => void handleConfirmAppointment(slot)}
-                                                >
-                                                  Подтвердить запись
-                                                </Button>
+                                                <>
+                                                  <p className="text-xs text-muted-foreground">
+                                                    {isPendingByPsychologist
+                                                      ? "Клиент получил уведомление. Вы можете подтвердить вместо него, если клиент устно согласился."
+                                                      : "Клиент запросил эту запись. Подтвердите или отмените её."}
+                                                  </p>
+                                                  <Button
+                                                    size="sm"
+                                                    className="h-8 w-full px-3 text-sm"
+                                                    disabled={updatingId === slot.id}
+                                                    onClick={() => void handleConfirmAppointment(slot)}
+                                                  >
+                                                    {isPendingByPsychologist
+                                                      ? "Клиент подтвердил"
+                                                      : "Подтвердить запись"}
+                                                  </Button>
+                                                </>
                                               )}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-8 min-h-8 px-3 text-sm"
+                                                className="h-8 w-full px-3 text-sm"
                                                 disabled={updatingId === slot.id}
                                                 onClick={() => void handleCancelAppointment(slot)}
                                               >
-                                                Отменить
+                                                Отменить запись
                                               </Button>
                                             </div>
                                           )}

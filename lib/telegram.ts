@@ -106,6 +106,29 @@ export async function sendNewAppointmentToPsychologist(
 }
 
 /**
+ * Уведомление клиенту о предложенной записи с кнопками «Подтвердить» / «Отменить».
+ * Отправляется когда психолог предлагает клиенту запись (proposedByPsychologist = true).
+ */
+export async function sendAppointmentProposalToClient(
+  chatId: string,
+  appointmentId: string,
+  psychologistName: string,
+  dateStr: string
+): Promise<boolean> {
+  const text = `📅 Предложена запись на приём\n\nПсихолог: ${psychologistName}\nДата и время: ${dateStr}\n\nПодтвердите или отмените запись:`;
+  const confirmData = `confirm:${appointmentId}`;
+  const cancelData = `cancel:${appointmentId}`;
+  if (confirmData.length > 64 || cancelData.length > 64) return false;
+
+  return sendTelegramMessageWithButtons(chatId, text, [
+    [
+      { text: "✅ Подтвердить", callback_data: confirmData },
+      { text: "❌ Отменить", callback_data: cancelData }
+    ]
+  ]);
+}
+
+/**
  * Редактировать текст сообщения (после нажатия кнопки).
  */
 export async function editTelegramMessage(

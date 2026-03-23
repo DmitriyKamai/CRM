@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requirePsychologist } from "@/lib/security/api-guards";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { sendAppointmentProposalToClient } from "@/lib/telegram";
 
 type ParamsPromise = {
   params: Promise<{
@@ -191,7 +191,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
       return appointment;
     });
 
-    // Telegram клиенту если запись предложена (есть аккаунт → есть userId → может быть chatId)
+    // Telegram клиенту если запись предложена: отправляем сообщение с inline-кнопками Подтвердить/Отменить
     if (hasAccount && client.userId) {
       const clientUser = await prisma.user.findUnique({
         where: { id: client.userId },
@@ -205,9 +205,11 @@ export async function POST(request: Request, { params }: ParamsPromise) {
           dateStyle: "short",
           timeStyle: "short"
         });
-        sendTelegramMessage(
+        sendAppointmentProposalToClient(
           clientUser.telegramChatId,
-          `Предложена запись на приём.\n\nПсихолог ${psychologistName} предлагает вам запись на приём ${dateStr}.\n\nПодтвердите или отмените её в личном кабинете.`
+          result.id,
+          psychologistName,
+          dateStr
         ).catch(console.error);
       }
     }
