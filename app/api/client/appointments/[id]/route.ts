@@ -162,9 +162,9 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       if (psychUser?.telegramChatId) {
         const text =
           status === "CANCELED"
-            ? `Запись отменена.\n\nКлиент ${clientName} отменил(а) запись на приём ${dateStr}.`
-            : `Клиент подтвердил запись.\n\nКлиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`;
-        sendTelegramMessage(psychUser.telegramChatId, text).catch(console.error);
+            ? `❌ Клиент отменил запись.\n\nКлиент ${clientName} отменил(а) запись на приём ${dateStr}.`
+            : `✅ Клиент подтвердил запись.\n\nКлиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`;
+        await sendTelegramMessage(psychUser.telegramChatId, text).catch(console.error);
       }
     }
 

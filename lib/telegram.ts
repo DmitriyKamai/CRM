@@ -99,8 +99,8 @@ export async function sendNewAppointmentToPsychologist(
 
   return sendTelegramMessageWithButtons(chatId, text, [
     [
-      { text: "Подтвердить", callback_data: confirmData },
-      { text: "Отменить", callback_data: cancelData }
+      { text: "✅ Подтвердить", callback_data: confirmData },
+      { text: "❌ Отменить", callback_data: cancelData }
     ]
   ]);
 }

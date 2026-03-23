@@ -132,6 +132,7 @@ async function runMyAppointments(ctx: Context) {
       start: string;
       status: string;
       counterpartyName?: string;
+      proposedByPsychologist?: boolean;
     };
 
     const incoming = (data.appointmentsAsPsychologist ?? []) as ApptRow[];
@@ -145,24 +146,37 @@ async function runMyAppointments(ctx: Context) {
       return;
     }
 
-    const statusSuffix = (s: string) =>
-      s === "PENDING_CONFIRMATION" ? " (ожидает подтверждения)" : "";
+    /** Суффикс статуса для записей «к вам» (вы — психолог). */
+    const incomingSuffix = (a: ApptRow): string => {
+      if (a.status !== "PENDING_CONFIRMATION") return "";
+      return a.proposedByPsychologist
+        ? " ⏳ ожидает подтверждения клиента"
+        : " ⏳ ожидает вашего подтверждения";
+    };
 
-    const formatLine = (a: ApptRow, n: number) => {
+    /** Суффикс статуса для записей «вы — клиент». */
+    const outgoingSuffix = (a: ApptRow): string => {
+      if (a.status !== "PENDING_CONFIRMATION") return "";
+      return a.proposedByPsychologist
+        ? " ⏳ ожидает вашего подтверждения"
+        : " ⏳ ожидает подтверждения психолога";
+    };
+
+    const formatLine = (a: ApptRow, n: number, suffix: string) => {
       const d = new Date(a.start);
       const dateStr = d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
       const name = a.counterpartyName ?? "—";
-      return `${n}. ${dateStr} — ${name}${statusSuffix(a.status)}`;
+      return `${n}. ${dateStr} — ${name}${suffix}`;
     };
 
     const blocks: string[] = ["Мои записи:\n"];
     if (incoming.length > 0) {
       blocks.push("\n📥 К вам на приём (клиент):");
-      incoming.forEach((a, i) => blocks.push(formatLine(a, i + 1)));
+      incoming.forEach((a, i) => blocks.push(formatLine(a, i + 1, incomingSuffix(a))));
     }
     if (outgoing.length > 0) {
       blocks.push("\n📤 Вы записаны к специалисту:");
-      outgoing.forEach((a, i) => blocks.push(formatLine(a, i + 1)));
+      outgoing.forEach((a, i) => blocks.push(formatLine(a, i + 1, outgoingSuffix(a))));
     }
 
     let hint = "";
@@ -176,22 +190,47 @@ async function runMyAppointments(ctx: Context) {
       }
     }
 
-    const text =
-      blocks.join("\n") +
-      hint +
-      "\n\nДля записей «ожидает подтверждения» можно нажать «Подтвердить» или «Отменить». Для подтверждённых — только «Отменить».";
+    const text = blocks.join("\n") + hint;
 
-    const forButtons: ApptRow[] = [...incoming, ...outgoing];
-    const buttons = forButtons.map((a: { id: string; start: string; status: string }) => {
-      const timeStr = new Date(a.start).toLocaleString("ru-RU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    /** Кнопки для одной записи с учётом роли. */
+    const makeButtons = (a: ApptRow, isAsClient: boolean) => {
+      const timeStr = new Date(a.start).toLocaleString("ru-RU", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
       if (a.status === "PENDING_CONFIRMATION") {
-        return [
-          { text: `Подтвердить ${timeStr}`, callback_data: `confirm_my:${a.id}` },
-          { text: `Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` }
-        ];
+        const cancelBtn = { text: `❌ Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` };
+        if (isAsClient) {
+          // Клиент подтверждает если психолог предложил
+          if (a.proposedByPsychologist) {
+            return [
+              { text: `✅ Подтвердить ${timeStr}`, callback_data: `confirm_my:${a.id}` },
+              cancelBtn
+            ];
+          }
+          // Ждёт подтверждения психолога — клиент может только отменить
+          return [cancelBtn];
+        } else {
+          // Психолог: если он предложил — подтверждает «за клиента»; если клиент запросил — подтверждает сам
+          const confirmText = a.proposedByPsychologist
+            ? `👤 Клиент подтвердил ${timeStr}`
+            : `✅ Подтвердить ${timeStr}`;
+          return [
+            { text: confirmText, callback_data: `confirm_my:${a.id}` },
+            cancelBtn
+          ];
+        }
       }
-      return [{ text: `Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` }];
-    });
+      // SCHEDULED — только отмена
+      return [{ text: `❌ Отменить ${timeStr}`, callback_data: `cancel_my:${a.id}` }];
+    };
+
+    const buttons = [
+      ...incoming.map(a => makeButtons(a, false)),
+      ...outgoing.map(a => makeButtons(a, true))
+    ];
 
     // Inline-клавиатура не сочетается с reply keyboard в одном сообщении — сначала закрепляем нижние кнопки, затем список с inline.
     await ctx.reply("Ваши предстоящие записи:", mainKeyboard).catch(() => {});

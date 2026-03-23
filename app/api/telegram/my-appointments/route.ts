@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       end: string;
       status: string;
       counterpartyName: string;
+      proposedByPsychologist: boolean;
     };
 
     // ---- Шаг 1: записи «к вам» (вы — психолог, клиенты записаны к вам) ----
@@ -82,7 +83,8 @@ export async function POST(request: Request) {
       end: a.end.toISOString(),
       status: a.status,
       counterpartyName:
-        [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент"
+        [a.client.lastName, a.client.firstName].filter(Boolean).join(" ").trim() || "Клиент",
+      proposedByPsychologist: a.proposedByPsychologist
     }));
 
     // ---- Шаг 2: записи «вы — клиент» (вы записаны к кому-то) ----
@@ -134,7 +136,8 @@ export async function POST(request: Request) {
             [a.psychologist.lastName, a.psychologist.firstName]
               .filter(Boolean)
               .join(" ")
-              .trim() || "Психолог"
+              .trim() || "Психолог",
+          proposedByPsychologist: a.proposedByPsychologist
         }));
     }
 

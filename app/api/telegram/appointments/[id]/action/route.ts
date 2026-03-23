@@ -135,9 +135,9 @@ export async function POST(
           select: { telegramChatId: true }
         });
         if (psychUser?.telegramChatId) {
-          sendTelegramMessage(
+          await sendTelegramMessage(
             psychUser.telegramChatId,
-            `Клиент подтвердил запись.\n\nКлиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`
+            `✅ Клиент подтвердил запись.\n\nКлиент ${clientName} подтвердил(а) запись на приём ${dateStr}.`
           ).catch(console.error);
         }
       }
@@ -192,9 +192,9 @@ export async function POST(
             ? `${(clientProfileForNotif.lastName ?? "").trim()} ${(clientProfileForNotif.firstName ?? "").trim()}`.trim() || "Клиент"
             : "Клиент";
           const dateStr = appt.start.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
-          sendTelegramMessage(
+          await sendTelegramMessage(
             psychUser.telegramChatId,
-            `Запись отменена.\n\nКлиент ${clientName} отменил(а) запись на приём ${dateStr}.`
+            `❌ Клиент отменил запись.\n\nКлиент ${clientName} отменил(а) запись на приём ${dateStr}.`
           ).catch(console.error);
         }
       }
@@ -279,7 +279,7 @@ export async function POST(
           status === "SCHEDULED"
             ? `Запись подтверждена.\n\nПсихолог ${psychologistName} подтвердил(а) вашу запись на приём ${dateStr}.`
             : `Запись отменена.\n\nПсихолог ${psychologistName} отменил(а) вашу запись на приём ${dateStr}.`;
-        sendTelegramMessage(clientUser.telegramChatId, text).catch(console.error);
+        await sendTelegramMessage(clientUser.telegramChatId, text).catch(console.error);
       }
     }
 
