@@ -619,11 +619,23 @@ export function PsychologistSchedule() {
         !modifiers?.range_start &&
         !modifiers?.range_end &&
         !modifiers?.range_middle;
+      const dow = day.date.getDay();
+      const isWeekend = dow === 0 || dow === 6;
+      const isHoliday = Boolean(HOLIDAYS_BY_MONTH_DAY[monthDayKey(day.date)]);
+      const dayNumberClass = cn(
+        "block text-center leading-none tabular-nums",
+        !isSelectedSingle &&
+          (isHoliday
+            ? "font-medium text-destructive"
+            : isWeekend
+              ? "font-medium text-orange-600 dark:text-orange-400"
+              : "")
+      );
       return (
         <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
           <span className="flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit]">
             <span className="flex flex-col items-center">
-              <span className="block text-center leading-none">{children}</span>
+              <span className={dayNumberClass}>{children}</span>
               {hasDots && (
                 <div
                   className="mt-[5px] flex shrink-0 justify-center gap-0.5"
