@@ -751,65 +751,78 @@ export function PsychologistSchedule() {
               transformOrigin: "0 0"
             }}
           >
-        <div className="mx-auto flex w-full max-w-[20rem] shrink-0 flex-col md:mx-0 md:w-72 md:max-w-none">
-          <div className="h-10 shrink-0" aria-hidden />
-          <Calendar
-            mode="single"
-            selected={currentDate}
-            month={displayedMonth}
-            onSelect={handleCalendarSelect}
-            onMonthChange={handleCalendarMonthChange}
-            locale={ru}
-            initialFocus
-            components={{ DayButton: ScheduleDayButton }}
-          />
-          {holidaysThisMonth.length > 0 && (
-            <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-              <div className="text-sm font-semibold text-foreground">
-                Праздничные дни месяца
+        <div className="w-full shrink-0 md:w-72">
+          {/* Spacer: выравнивает верх календаря с заголовком сетки на десктопе */}
+          <div className="hidden h-10 shrink-0 md:block" aria-hidden />
+
+          {/* На мобильных — строка: календарь слева, инфо справа.
+              На md+ — столбец: всё вертикально. */}
+          <div className="flex items-start gap-3 md:flex-col md:gap-0">
+            {/* Календарь */}
+            <div className="shrink-0">
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                month={displayedMonth}
+                onSelect={handleCalendarSelect}
+                onMonthChange={handleCalendarMonthChange}
+                locale={ru}
+                initialFocus
+                components={{ DayButton: ScheduleDayButton }}
+              />
+            </div>
+
+            {/* Праздники + Легенда */}
+            <div className="flex min-w-0 flex-1 flex-col gap-3 md:mt-3">
+              {holidaysThisMonth.length > 0 && (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="text-sm font-semibold text-foreground">
+                    Праздничные дни месяца
+                  </div>
+                  <ul className="space-y-0.5">
+                    {holidaysThisMonth.map(([md, title]) => {
+                      const day = md.slice(3, 5);
+                      return (
+                        <li key={md} className="flex gap-2">
+                          <span className="w-8 text-left font-medium text-foreground">
+                            {day}.{currentMonthKey}
+                          </span>
+                          <span className="flex-1">{title}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <div className="text-sm font-semibold text-foreground">
+                  Условные обозначения
+                </div>
+                <ul className="space-y-0.5">
+                  <li className="flex items-center gap-2">
+                    <span
+                      className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)}
+                      aria-hidden
+                    />
+                    <span>Свободный слот</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span
+                      className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)}
+                      aria-hidden
+                    />
+                    <span>Запись, ожидающая подтверждения</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span
+                      className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)}
+                      aria-hidden
+                    />
+                    <span>Подтверждённая запись</span>
+                  </li>
+                </ul>
               </div>
-              <ul className="space-y-0.5">
-                {holidaysThisMonth.map(([md, title]) => {
-                  const day = md.slice(3, 5);
-                  return (
-                    <li key={md} className="flex gap-2">
-                      <span className="w-8 text-left font-medium text-foreground">
-                        {day}.{currentMonthKey}
-                      </span>
-                      <span className="flex-1">{title}</span>
-                    </li>
-                  );
-                })}
-              </ul>
             </div>
-          )}
-          <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-            <div className="text-sm font-semibold text-foreground">
-              Условные обозначения
-            </div>
-            <ul className="space-y-0.5">
-              <li className="flex items-center gap-2">
-                <span
-                  className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)}
-                  aria-hidden
-                />
-                <span>Свободный слот</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span
-                  className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)}
-                  aria-hidden
-                />
-                <span>Запись, ожидающая подтверждения</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span
-                  className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)}
-                  aria-hidden
-                />
-                <span>Подтверждённая запись</span>
-              </li>
-            </ul>
           </div>
         </div>
 
