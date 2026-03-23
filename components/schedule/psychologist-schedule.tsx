@@ -896,33 +896,35 @@ export function PsychologistSchedule() {
             <ScheduleGridSkeleton />
           ) : (
             <>
-                <div className={cn(
-                  "grid border-b border-border pb-2 text-xs text-muted-foreground",
-                  isMobileView
-                    ? "grid-cols-[48px,1fr]"
-                    : "grid-cols-[64px,repeat(7,minmax(0,1fr))]"
-                )}>
-                  <div />
-                  {displayDays.map(day => {
-                    const isToday = isSameDay(day, new Date());
-                    const mdKey = monthDayKey(day);
-                    const holiday = HOLIDAYS_BY_MONTH_DAY[mdKey];
-                    return (
-                      <div key={day.toISOString()} className="px-2">
-                        <div className={isToday ? "font-semibold text-foreground" : ""}>
-                          {day.toLocaleDateString("ru-RU", {
-                            weekday: isMobileView ? "long" : "short",
-                            day: "2-digit",
-                            month: "2-digit"
-                          })}
+                {!isMobileView && (
+                  <div
+                    className={cn(
+                      "grid border-b border-border pb-2 text-xs text-muted-foreground",
+                      "grid-cols-[64px,repeat(7,minmax(0,1fr))]"
+                    )}
+                  >
+                    <div />
+                    {displayDays.map(day => {
+                      const isToday = isSameDay(day, new Date());
+                      const mdKey = monthDayKey(day);
+                      const holiday = HOLIDAYS_BY_MONTH_DAY[mdKey];
+                      return (
+                        <div key={day.toISOString()} className="px-2">
+                          <div className={isToday ? "font-semibold text-foreground" : ""}>
+                            {day.toLocaleDateString("ru-RU", {
+                              weekday: "short",
+                              day: "2-digit",
+                              month: "2-digit"
+                            })}
+                          </div>
+                          {holiday ? (
+                            <div className="text-sm text-destructive">{holiday}</div>
+                          ) : null}
                         </div>
-                        {holiday ? (
-                          <div className="text-sm text-destructive">{holiday}</div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div ref={timeScrollRef}>
                   <div className={cn(
