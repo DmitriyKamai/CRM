@@ -610,7 +610,7 @@ export function PsychologistSchedule() {
 
   const ScheduleDayButton = useCallback(
     (props: React.ComponentProps<typeof CalendarDayButton>) => {
-      const { day, children, modifiers, className, ...rest } = props;
+      const { day, children, modifiers, ...rest } = props;
       const key = dayKey(day.date);
       const dots = dayDotsMap[key];
       const hasDots =
@@ -623,7 +623,6 @@ export function PsychologistSchedule() {
       const dow = day.date.getDay();
       const isWeekend = dow === 0 || dow === 6;
       const isHoliday = Boolean(HOLIDAYS_BY_MONTH_DAY[monthDayKey(day.date)]);
-      const isToday = Boolean(modifiers?.today);
       const dayNumberClass = cn(
         "block text-center leading-none tabular-nums",
         !isSelectedSingle &&
@@ -634,19 +633,7 @@ export function PsychologistSchedule() {
               : "")
       );
       return (
-        <CalendarDayButton
-          day={day}
-          modifiers={modifiers ?? {}}
-          className={cn(
-            className,
-            isToday &&
-              !isSelectedSingle &&
-              "box-border border-x-0 border-y-[3px] border-solid border-primary",
-            isSelectedSingle &&
-              "box-border border-x-0 border-y-[3px] border-solid border-primary-foreground/45"
-          )}
-          {...rest}
-        >
+        <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
           <span className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit] pb-1">
             <span className={cn("block w-full text-center leading-none", dayNumberClass)}>
               {children}
