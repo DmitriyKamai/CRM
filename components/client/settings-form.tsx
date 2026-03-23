@@ -426,14 +426,16 @@ export function ClientSettingsForm() {
         <TabsContent value="profile" className="mt-4">
           {activeTab === "profile" && (
             <Section title="Личные данные">
-              <form onSubmit={handleSaveProfile} className="space-y-4">
+              <form onSubmit={handleSaveProfile} className="space-y-5 max-w-2xl">
                 <AvatarUploadBlock
                   image={image}
                   initials={initials}
                   alt={displayName}
                   onSuccess={() => updateSession?.()}
                 />
-                <div className="grid gap-4 sm:grid-cols-2 max-w-sm">
+
+                {/* Имя и фамилия */}
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="client-firstName">Имя</Label>
                     <Input
@@ -457,64 +459,90 @@ export function ClientSettingsForm() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2 max-w-sm">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@example.com"
-                    autoComplete="email"
-                    maxLength={64}
-                  />
+
+                {/* Email и телефон */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      autoComplete="email"
+                      maxLength={64}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-settings-phone">Телефон</Label>
+                    <PhoneInput
+                      id="client-settings-phone"
+                      value={phone}
+                      onChange={setPhone}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2 max-w-xs">
-                  <Label>Дата рождения</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        type="button"
-                        className="w-full justify-start text-left font-normal text-foreground bg-[hsl(var(--input-bg))] data-[empty=true]:text-muted-foreground hover:bg-[hsl(var(--input-bg))]/90"
-                        data-empty={!dateOfBirth}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
-                        {dateOfBirth ? (
-                          format(new Date(dateOfBirth), "d MMMM yyyy", { locale: ru })
-                        ) : (
-                          <span>Выберите дату</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dateOfBirth ? new Date(dateOfBirth) : undefined}
-                        onSelect={(d) =>
-                          setDateOfBirth(d ? format(d, "yyyy-MM-dd") : "")
-                        }
-                        locale={ru}
-                        initialFocus
-                        defaultMonth={dateOfBirth ? new Date(dateOfBirth) : new Date()}
-                        captionLayout="dropdown"
-                        startMonth={new Date(1920, 0)}
-                        endMonth={new Date()}
-                        reverseYears
-                        hideNavigation
-                      />
-                    </PopoverContent>
-                  </Popover>
+
+                {/* Дата рождения и пол */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Дата рождения</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="w-full justify-start text-left font-normal text-foreground bg-[hsl(var(--input-bg))] data-[empty=true]:text-muted-foreground hover:bg-[hsl(var(--input-bg))]/90"
+                          data-empty={!dateOfBirth}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
+                          {dateOfBirth ? (
+                            format(new Date(dateOfBirth), "d MMMM yyyy", { locale: ru })
+                          ) : (
+                            <span>Выберите дату</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateOfBirth ? new Date(dateOfBirth) : undefined}
+                          onSelect={(d) =>
+                            setDateOfBirth(d ? format(d, "yyyy-MM-dd") : "")
+                          }
+                          locale={ru}
+                          initialFocus
+                          defaultMonth={dateOfBirth ? new Date(dateOfBirth) : new Date()}
+                          captionLayout="dropdown"
+                          startMonth={new Date(1920, 0)}
+                          endMonth={new Date()}
+                          reverseYears
+                          hideNavigation
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-gender">Пол</Label>
+                    <Select
+                      value={gender || "unspecified"}
+                      onValueChange={value => setGender(value === "unspecified" ? "" : value)}
+                    >
+                      <SelectTrigger id="client-gender">
+                        <SelectValue placeholder="Выберите" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Мужской</SelectItem>
+                        <SelectItem value="female">Женский</SelectItem>
+                        <SelectItem value="unspecified">Не указано</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2 max-w-sm">
-                  <Label htmlFor="client-settings-phone">Телефон</Label>
-                  <PhoneInput
-                    id="client-settings-phone"
-                    value={phone}
-                    onChange={setPhone}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 max-w-sm">
+
+                {/* Страна, город и семейное положение */}
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="client-settings-country">Страна</Label>
                     <CountryAutocomplete
@@ -525,7 +553,7 @@ export function ClientSettingsForm() {
                         setCountryCode(code || null);
                         if (!name) setCity("");
                       }}
-                      placeholder="Начните вводить страну"
+                      placeholder="Страна"
                     />
                   </div>
                   <div className="space-y-2">
@@ -535,41 +563,26 @@ export function ClientSettingsForm() {
                       value={city}
                       onChange={setCity}
                       countryCode={countryCode}
-                      placeholder="Начните вводить город"
+                      placeholder="Город"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-marital">Семейное положение</Label>
+                    <Select value={maritalStatus || "unspecified"} onValueChange={setMaritalStatus}>
+                      <SelectTrigger id="client-marital">
+                        <SelectValue placeholder="Выберите" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MARITAL_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2 max-w-xs">
-                  <Label htmlFor="client-gender">Пол</Label>
-                  <Select
-                    value={gender || "unspecified"}
-                    onValueChange={value => setGender(value === "unspecified" ? "" : value)}
-                  >
-                    <SelectTrigger id="client-gender">
-                      <SelectValue placeholder="Выберите" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Мужской</SelectItem>
-                      <SelectItem value="female">Женский</SelectItem>
-                      <SelectItem value="unspecified">Не указано</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 max-w-xs">
-                  <Label htmlFor="client-marital">Семейное положение</Label>
-                  <Select value={maritalStatus || "unspecified"} onValueChange={setMaritalStatus}>
-                    <SelectTrigger id="client-marital">
-                      <SelectValue placeholder="Выберите" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MARITAL_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 <Button type="submit" disabled={saving || !hasProfileChanges}>
                   {saving ? "Сохранение…" : "Сохранить"}
                 </Button>
