@@ -44,16 +44,27 @@ function oauthStateSecret(): string {
   return process.env.NEXTAUTH_SECRET?.trim() || "fallback-secret-change-me";
 }
 
-/** Подпись state для OAuth callback (привязка к psychologistId). */
-export function signGoogleSheetsOAuthState(psychologistId: string): string {
-  const payload = Buffer.from(
-    JSON.stringify({ p: psychologistId, exp: Date.now() + 10 * 60 * 1000 })
-  ).toString("base64url");
+export type GoogleSheetsOAuthIntent = "export";
+
+/** Подпись state для OAuth callback (привязка к psychologistId, опционально intent). */
+export function signGoogleSheetsOAuthState(
+  psychologistId: string,
+  options?: { intent?: GoogleSheetsOAuthIntent }
+): string {
+  const body: { p: string; exp: number; i?: GoogleSheetsOAuthIntent } = {
+    p: psychologistId,
+    exp: Date.now() + 10 * 60 * 1000
+  };
+  if (options?.intent === "export") body.i = "export";
+  const payload = Buffer.from(JSON.stringify(body)).toString("base64url");
   const sig = createHmac("sha256", oauthStateSecret()).update(payload).digest("base64url");
   return `${payload}.${sig}`;
 }
 
-export function verifyGoogleSheetsOAuthState(state: string): string | null {
+export function verifyGoogleSheetsOAuthState(state: string): {
+  psychologistId: string;
+  intent?: GoogleSheetsOAuthIntent;
+} | null {
   const dot = state.lastIndexOf(".");
   if (dot <= 0) return null;
   const payload = state.slice(0, dot);
@@ -71,10 +82,15 @@ export function verifyGoogleSheetsOAuthState(state: string): string | null {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
       p?: string;
       exp?: number;
+      i?: GoogleSheetsOAuthIntent;
     };
     if (typeof data.p !== "string" || typeof data.exp !== "number") return null;
     if (data.exp < Date.now()) return null;
-    return data.p;
+    const out: { psychologistId: string; intent?: GoogleSheetsOAuthIntent } = {
+      psychologistId: data.p
+    };
+    if (data.i === "export") out.intent = "export";
+    return out;
   } catch {
     return null;
   }
@@ -177,9 +193,72 @@ export async function writeSpreadsheetAoA(
   };
 }
 
-export function buildGoogleSheetsAuthorizeUrl(psychologistId: string): string {
+const EXPORT_SHEET_TAB = "Клиенты";
+
+/**
+ * Создаёт новую таблицу в Drive пользователя и записывает данные на первый лист.
+ * Не трогает таблицу, привязанную к импорту в профиле.
+ */
+export async function createSpreadsheetWithAoA(
+  documentTitle: string,
+  values: string[][],
+  refreshToken: string
+): Promise<{ spreadsheetId: string; sheetTitle: string; spreadsheetUrl: string }> {
+  const title = documentTitle.trim().slice(0, 200) || "Клиенты CRM";
   const oauth2 = createSheetsOAuth2Client();
-  const state = signGoogleSheetsOAuthState(psychologistId);
+  oauth2.setCredentials({ refresh_token: refreshToken });
+  const sheets = google.sheets({ version: "v4", auth: oauth2 });
+
+  const colCount = Math.max(2, ...values.map((r) => r.length), 32);
+  const rowCount = Math.max(values.length + 100, 500);
+
+  const createRes = await sheets.spreadsheets.create({
+    requestBody: {
+      properties: { title },
+      sheets: [
+        {
+          properties: {
+            title: EXPORT_SHEET_TAB,
+            gridProperties: {
+              rowCount,
+              columnCount: colCount
+            }
+          }
+        }
+      ]
+    }
+  });
+
+  const spreadsheetId = createRes.data.spreadsheetId;
+  if (!spreadsheetId) {
+    throw new Error("Google не вернул идентификатор новой таблицы");
+  }
+
+  const sheetTitle =
+    createRes.data.sheets?.[0]?.properties?.title?.trim() || EXPORT_SHEET_TAB;
+
+  if (values.length > 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${escapeSheetTitle(sheetTitle)}!A1`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
+  }
+
+  return {
+    spreadsheetId,
+    sheetTitle,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
+  };
+}
+
+export function buildGoogleSheetsAuthorizeUrl(
+  psychologistId: string,
+  options?: { intent?: GoogleSheetsOAuthIntent }
+): string {
+  const oauth2 = createSheetsOAuth2Client();
+  const state = signGoogleSheetsOAuthState(psychologistId, options);
   return oauth2.generateAuthUrl({
     access_type: "offline",
     scope: SHEETS_OAUTH_SCOPES,

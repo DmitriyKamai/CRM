@@ -211,11 +211,14 @@ export function PsychologistClientsList({
   useEffect(() => {
     const v = searchParams.get("sheet_oauth");
     const openImport = searchParams.get("openImport") === "1";
+    const sheetIntent = searchParams.get("sheet_intent");
     if (!v && !openImport) return;
 
     if (openImport) setImportOpen(true);
 
-    if (v === "ok") {
+    if (v === "ok" && sheetIntent === "export") {
+      toast.success("Google подключён. Снова нажмите «Экспорт» → «В Google Таблицу».");
+    } else if (v === "ok") {
       toast.success("Google подключён: можно загружать данные из Google Таблицы для импорта");
     } else if (v === "access_denied") {
       toast.error(
@@ -237,6 +240,7 @@ export function PsychologistClientsList({
     const q = new URLSearchParams(searchParams.toString());
     q.delete("sheet_oauth");
     q.delete("openImport");
+    q.delete("sheet_intent");
     const qs = q.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, pathname, router]);
@@ -278,10 +282,6 @@ export function PsychologistClientsList({
   const [googleSheetsGoogleConnected, setGoogleSheetsGoogleConnected] = useState<boolean | null>(
     null
   );
-  /** ID таблицы из профиля — для пункта «Экспорт в Google» без открытия диалога импорта. */
-  const [googleSheetsProfileSpreadsheetId, setGoogleSheetsProfileSpreadsheetId] = useState<
-    string | null
-  >(null);
 
   const [importOpen, setImportOpen] = useState(false);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
@@ -315,16 +315,16 @@ export function PsychologistClientsList({
         spreadsheetId?: string | null;
       } | null;
       setGoogleSheetsOAuthConfigured(Boolean(data?.oauthConfigured));
-      setGoogleSheetsGoogleConnected(Boolean(data?.googleConnected));
+      const connected = Boolean(data?.googleConnected);
+      setGoogleSheetsGoogleConnected(connected);
       const sid =
         typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
           ? data.spreadsheetId.trim()
           : null;
-      setGoogleSheetsProfileSpreadsheetId(sid);
       if (fillImportUrl) {
         if (skipGoogleSheetsProfileUrlOnceRef.current) {
           skipGoogleSheetsProfileUrlOnceRef.current = false;
-        } else if (sid) {
+        } else if (connected && sid) {
           setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${sid}/edit`);
         }
       }
@@ -765,19 +765,60 @@ export function PsychologistClientsList({
   }
 
   async function handleExportGoogleSheets() {
-    if (!googleSheetsGoogleConnected || clients.length === 0) return;
-    if (!googleSheetsProfileSpreadsheetId && !googleSheetsImportUrl.trim()) {
+    if (clients.length === 0) return;
+
+    type GsJson = {
+      oauthConfigured?: boolean;
+      googleConnected?: boolean;
+      spreadsheetId?: string | null;
+    };
+
+    let oauthOk = googleSheetsOAuthConfigured;
+    let connected = googleSheetsGoogleConnected;
+
+    if (oauthOk === null || connected === null) {
+      let data: GsJson | null = null;
+      try {
+        const res = await fetch("/api/psychologist/google-sheets");
+        if (res.ok) data = (await res.json().catch(() => null)) as GsJson | null;
+      } catch {
+        toast.error("Не удалось проверить настройки Google. Обновите страницу и попробуйте снова.");
+        return;
+      }
+      if (!data) {
+        toast.error("Не удалось проверить настройки Google. Обновите страницу и попробуйте снова.");
+        return;
+      }
+      oauthOk = Boolean(data.oauthConfigured);
+      connected = Boolean(data.googleConnected);
+      setGoogleSheetsOAuthConfigured(oauthOk);
+      setGoogleSheetsGoogleConnected(connected);
+      const sid =
+        typeof data.spreadsheetId === "string" && data.spreadsheetId.trim()
+          ? data.spreadsheetId.trim()
+          : null;
+      if (connected && sid) {
+        setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${sid}/edit`);
+      }
+    }
+
+    if (!oauthOk) {
       toast.error(
-        "Сохраните ссылку на таблицу в диалоге «Импорт» (блок Google Таблицы) или выберите таблицу через «Выбрать таблицу…»."
+        "Google для таблиц не настроен на сервере. Нужны GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET — обратитесь к администратору."
       );
       return;
     }
+
+    if (!connected) {
+      window.location.assign("/api/psychologist/google-sheets/oauth/start?intent=export");
+      return;
+    }
+
     setExporting(true);
     try {
-      const body: { statusId?: string; spreadsheetUrlOrId?: string } = {};
+      const body: { statusId?: string } = {};
       if (statusFilter !== "ALL") body.statusId = statusFilter;
-      const url = googleSheetsImportUrl.trim();
-      if (url) body.spreadsheetUrlOrId = url;
+
       const res = await fetch("/api/psychologist/clients/export/google-sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -789,13 +830,18 @@ export function PsychologistClientsList({
         exportedCount?: number;
       } | null;
       if (!res.ok) {
+        if (res.status === 403) {
+          setGoogleSheetsGoogleConnected(false);
+          void syncGoogleSheetsFromServer(false);
+        }
         throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицу");
       }
+      void syncGoogleSheetsFromServer(false);
       const n = data?.exportedCount ?? 0;
       toast.success(
         n > 0
-          ? `Выгружено строк: ${n}. Открываем таблицу…`
-          : "Таблица очищена (нет клиентов по фильтру)."
+          ? `Создана новая таблица, выгружено строк: ${n}. Открываем…`
+          : "Создана новая таблица (только заголовки — нет клиентов по фильтру). Открываем…"
       );
       if (data?.spreadsheetUrl) {
         window.open(data.spreadsheetUrl, "_blank", "noopener,noreferrer");
@@ -883,7 +929,6 @@ export function PsychologistClientsList({
             : "Google Sheets"
         );
         if (typeof data?.spreadsheetId === "string" && data.spreadsheetId) {
-          setGoogleSheetsProfileSpreadsheetId(data.spreadsheetId);
           await fetch("/api/psychologist/google-sheets", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -985,7 +1030,6 @@ export function PsychologistClientsList({
       const data = (await res.json().catch(() => null)) as { message?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? "Не удалось отключить Google");
       setGoogleSheetsGoogleConnected(false);
-      setGoogleSheetsProfileSpreadsheetId(null);
       toast.success("Доступ Google к таблицам отключён");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось отключить");
@@ -1559,8 +1603,7 @@ export function PsychologistClientsList({
                       disabled={
                         exporting ||
                         clients.length === 0 ||
-                        !googleSheetsGoogleConnected ||
-                        (!googleSheetsProfileSpreadsheetId && !googleSheetsImportUrl.trim())
+                        googleSheetsOAuthConfigured === false
                       }
                     >
                       <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />

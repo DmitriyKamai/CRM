@@ -13,11 +13,12 @@ function appBaseUrl(request: Request): string {
 
 function redirectToClients(
   base: string,
-  params: { sheet_oauth?: string; openImport?: boolean }
+  params: { sheet_oauth?: string; openImport?: boolean; sheet_intent?: "export" }
 ): NextResponse {
   const q = new URLSearchParams();
   if (params.sheet_oauth) q.set("sheet_oauth", params.sheet_oauth);
   if (params.openImport) q.set("openImport", "1");
+  if (params.sheet_intent) q.set("sheet_intent", params.sheet_intent);
   const qs = q.toString();
   return NextResponse.redirect(`${base}/psychologist/clients${qs ? `?${qs}` : ""}`);
 }
@@ -35,7 +36,10 @@ export async function GET(request: Request) {
     return redirectToClients(base, { sheet_oauth: errParam, openImport: true });
   }
 
-  const psychologistId = state ? verifyGoogleSheetsOAuthState(state) : null;
+  const verified = state ? verifyGoogleSheetsOAuthState(state) : null;
+  const psychologistId = verified?.psychologistId ?? null;
+  const fromExportFlow = verified?.intent === "export";
+
   if (!code || !psychologistId) {
     return redirectToClients(base, { sheet_oauth: "invalid", openImport: true });
   }
@@ -62,6 +66,13 @@ export async function GET(request: Request) {
       data: { googleSheetsRefreshToken: refreshToken }
     });
 
+    if (fromExportFlow) {
+      return redirectToClients(base, {
+        sheet_oauth: "ok",
+        openImport: false,
+        sheet_intent: "export"
+      });
+    }
     return redirectToClients(base, { sheet_oauth: "ok", openImport: true });
   } catch (e) {
     console.error("[GET /api/psychologist/google-sheets/oauth/callback]", e);
