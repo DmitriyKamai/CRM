@@ -71,11 +71,11 @@ function SlotTimeEditor({
 
   return (
     <div className="space-y-2">
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <Label className="text-sm">Время</Label>
         <TimeInput value={timeValue} onChange={setTimeValue} />
       </div>
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <Label className="text-sm">Длительность, минут</Label>
         <Select value={durValue} onValueChange={setDurValue}>
           <SelectTrigger className="h-8 text-xs">
@@ -223,6 +223,7 @@ export function PsychologistSchedule() {
   const [createDuration, setCreateDuration] = useState<number>(50);
   const [creating, setCreating] = useState<boolean>(false);
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   const currentMonthKey = String(displayedMonth.getMonth() + 1).padStart(2, "0");
   const holidaysThisMonth = Object.entries(HOLIDAYS_BY_MONTH_DAY)
@@ -538,6 +539,8 @@ export function PsychologistSchedule() {
   for (let i = 0; i < 7; i += 1) {
     weekDays.push(addDays(weekStart, i));
   }
+  // На мобильном — только выбранный день, без горизонтального скролла.
+  const displayDays = isMobileView ? [currentDate] : weekDays;
 
   const slotsByDay: Record<string, SlotDto[]> = {};
   for (const slot of slots) {
@@ -579,7 +582,7 @@ export function PsychologistSchedule() {
   const [scale, setScale] = useState(1);
   const [innerHeight, setInnerHeight] = useState(0);
 
-  /** На узких экранах не масштабируем весь блок (становится нечитаемо) — сетка недели в горизонтальном скролле. */
+  /** На узких экранах показываем один день без горизонтального скролла. */
   useEffect(() => {
     if (!mounted) return;
     const el = containerRef.current;
@@ -587,6 +590,7 @@ export function PsychologistSchedule() {
     const mq = window.matchMedia("(min-width: 768px)");
     const updateScale = () => {
       const mdUp = mq.matches;
+      setIsMobileView(!mdUp);
       const w = el.offsetWidth;
       if (!mdUp) {
         setScale(1);
@@ -725,8 +729,8 @@ export function PsychologistSchedule() {
           </div>
           <div className="min-w-0 flex-1 space-y-2">
             <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
-            <div className="overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0">
-              <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
+            <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
+              <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
                 <CardContent className="space-y-2 px-4 py-3">
                   <ScheduleGridSkeleton />
                 </CardContent>
@@ -829,7 +833,7 @@ export function PsychologistSchedule() {
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => {
-                  const next = addDays(currentDate, -7);
+                  const next = addDays(currentDate, isMobileView ? -1 : -7);
                   setCurrentDate(next);
                   setDisplayedMonth(toFirstOfMonth(next));
                 }}
@@ -837,26 +841,35 @@ export function PsychologistSchedule() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <div className="min-w-0 truncate px-1 text-center text-sm font-medium sm:text-left">
-                {weekStart.toLocaleDateString("ru-RU", {
-                  day: "2-digit",
-                  month: "short"
-                })}{" "}
-                –{" "}
-                {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
-                  day: "2-digit",
-                  month: "short",
-                  year:
-                    weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
-                      ? "numeric"
-                      : undefined
-                })}
+                {isMobileView
+                  ? currentDate.toLocaleDateString("ru-RU", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "long"
+                    })
+                  : <>
+                      {weekStart.toLocaleDateString("ru-RU", {
+                        day: "2-digit",
+                        month: "short"
+                      })}{" "}
+                      –{" "}
+                      {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
+                        day: "2-digit",
+                        month: "short",
+                        year:
+                          weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
+                            ? "numeric"
+                            : undefined
+                      })}
+                    </>
+                }
               </div>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => {
-                  const next = addDays(currentDate, 7);
+                  const next = addDays(currentDate, isMobileView ? 1 : 7);
                   setCurrentDate(next);
                   setDisplayedMonth(toFirstOfMonth(next));
                 }}
@@ -866,16 +879,21 @@ export function PsychologistSchedule() {
             </div>
           </div>
 
-          <div className="overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0">
-          <Card className="min-w-[1008px] overflow-hidden rounded-lg border border-border md:min-w-0">
+          <div className={isMobileView ? "" : "overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0"}>
+          <Card className={cn("overflow-hidden rounded-lg border border-border", !isMobileView && "min-w-[1008px] md:min-w-0")}>
             <CardContent className="space-y-2 px-4 py-3">
           {loading ? (
             <ScheduleGridSkeleton />
           ) : (
             <>
-                <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] border-b border-border pb-2 text-xs text-muted-foreground">
+                <div className={cn(
+                  "grid border-b border-border pb-2 text-xs text-muted-foreground",
+                  isMobileView
+                    ? "grid-cols-[48px,1fr]"
+                    : "grid-cols-[64px,repeat(7,minmax(0,1fr))]"
+                )}>
                   <div />
-                  {weekDays.map(day => {
+                  {displayDays.map(day => {
                     const isToday = isSameDay(day, new Date());
                     const mdKey = monthDayKey(day);
                     const holiday = HOLIDAYS_BY_MONTH_DAY[mdKey];
@@ -883,7 +901,7 @@ export function PsychologistSchedule() {
                       <div key={day.toISOString()} className="px-2">
                         <div className={isToday ? "font-semibold text-foreground" : ""}>
                           {day.toLocaleDateString("ru-RU", {
-                            weekday: "short",
+                            weekday: isMobileView ? "long" : "short",
                             day: "2-digit",
                             month: "2-digit"
                           })}
@@ -897,7 +915,12 @@ export function PsychologistSchedule() {
                 </div>
 
                 <div ref={timeScrollRef}>
-                  <div className="grid grid-cols-[64px,repeat(7,minmax(0,1fr))] text-xs">
+                  <div className={cn(
+                    "grid text-xs",
+                    isMobileView
+                      ? "grid-cols-[48px,1fr]"
+                      : "grid-cols-[64px,repeat(7,minmax(0,1fr))]"
+                  )}>
                     {HOURS.map((hour, index) => {
                       const hourLabel = formatTimeLabel(hour);
                       const isLastRow = index === HOURS.length - 1;
@@ -907,13 +930,13 @@ export function PsychologistSchedule() {
                             {hourLabel}
                           </div>
 
-                          {weekDays.map((day, dayIndex) => {
+                          {displayDays.map((day, dayIndex) => {
                             const key = dayKey(day);
                             const daySlots = (slotsByDay[key] || []).filter(slot => {
                               const d = new Date(slot.start);
                               return d.getHours() === hour;
                             });
-                            const isLastCol = dayIndex === weekDays.length - 1;
+                            const isLastCol = dayIndex === displayDays.length - 1;
 
                             const cellClass =
                               "border-t border-l border-border/40 px-1 touch-manipulation" +
@@ -1027,7 +1050,7 @@ export function PsychologistSchedule() {
                                           </div>
                                         </PopoverTrigger>
                                         <PopoverContent
-                                          side="right"
+                                          side={isMobileView ? "bottom" : "right"}
                                           align="start"
                                           className="w-64 space-y-3 text-xs"
                                         >
@@ -1134,7 +1157,7 @@ export function PsychologistSchedule() {
                   : "Не выбрана"}
               </p>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <Label className="text-xs">Время начала</Label>
               <TimeInput
                 value={

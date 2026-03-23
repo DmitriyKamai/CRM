@@ -46,7 +46,7 @@ export function TimeInput({ value, onChange, className }: TimeInputProps) {
           if (e.target.value) onChange(e.target.value);
         }}
         className={cn(
-          "h-9 w-auto min-w-[120px] rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring",
+          "block h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring",
           className
         )}
       />
@@ -55,9 +55,9 @@ export function TimeInput({ value, onChange, className }: TimeInputProps) {
 
   // Десктоп — два отдельных Select: часы и минуты
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex w-full items-center gap-1", className)}>
       <Select value={hour} onValueChange={h => onChange(`${h}:${minute}`)}>
-        <SelectTrigger className="h-9 w-[4.5rem] text-sm">
+        <SelectTrigger className="h-9 flex-1 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="max-h-60 overflow-y-auto">
@@ -74,7 +74,7 @@ export function TimeInput({ value, onChange, className }: TimeInputProps) {
       </span>
 
       <Select value={minute} onValueChange={m => onChange(`${hour}:${m}`)}>
-        <SelectTrigger className="h-9 w-[4.5rem] text-sm">
+        <SelectTrigger className="h-9 flex-1 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
