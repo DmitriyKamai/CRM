@@ -46,7 +46,7 @@ export function TimeInput({ value, onChange, className }: TimeInputProps) {
           if (e.target.value) onChange(e.target.value);
         }}
         className={cn(
-          "h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring",
+          "h-9 w-auto min-w-[120px] rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring",
           className
         )}
       />
