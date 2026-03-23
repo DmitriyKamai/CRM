@@ -640,7 +640,7 @@ export function PsychologistSchedule() {
             </span>
             {hasDots && (
               <div
-                className="absolute bottom-0 left-0 right-0 flex translate-y-[2px] justify-center gap-0.5 py-0.5"
+                className="absolute bottom-0 left-0 right-0 flex translate-y-px justify-center gap-0.5 py-0.5"
                 aria-hidden
               >
                 {dots!.free && (
