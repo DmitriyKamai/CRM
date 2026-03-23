@@ -774,7 +774,7 @@ export function PsychologistSchedule() {
             </div>
 
             {/* Праздники + Легенда */}
-            <div className="flex min-w-0 flex-1 flex-col gap-3 md:mt-3">
+            <div className="flex min-w-0 flex-1 flex-row flex-wrap gap-3 md:mt-3 md:flex-col md:flex-nowrap">
               {holidaysThisMonth.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">
