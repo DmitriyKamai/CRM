@@ -751,17 +751,16 @@ export function PsychologistSchedule() {
               transformOrigin: "0 0"
             }}
           >
-        {/* xs: w-fit mx-auto → ширина = ширине календаря; sm+: w-full */}
-        <div className="mx-auto w-fit shrink-0 sm:mx-0 sm:w-full md:w-72">
+        {/* Узкие экраны: строка [календарь | праздники+легенда]; md+: боковая колонка */}
+        <div className="w-full shrink-0 md:w-72">
           {/* Spacer: выравнивает верх календаря с заголовком сетки на десктопе */}
           <div className="hidden h-10 shrink-0 md:block" aria-hidden />
 
-          {/* < sm  — столбец: оба ребёнка stretch до ширины контейнера = ширине календаря.
-              sm–md — строка: календарь слева, инфо справа.
-              md+   — столбец в боковой панели. */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start md:flex-col md:gap-0">
+          {/* < md — одна строка: календарь слева, справа колонка (праздники, затем легенда).
+              md+ — столбец в боковой панели. */}
+          <div className="flex flex-row items-start gap-3 md:flex-col md:gap-0">
             {/* Календарь */}
-            <div className="sm:shrink-0">
+            <div className="shrink-0">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -774,8 +773,8 @@ export function PsychologistSchedule() {
               />
             </div>
 
-            {/* Праздники + Легенда */}
-            <div className="flex flex-row flex-wrap gap-3 sm:min-w-0 sm:flex-1 md:mt-3 md:flex-col md:flex-nowrap">
+            {/* Праздники + Легенда — справа от календаря, друг под другом */}
+            <div className="flex min-w-0 flex-1 flex-col gap-3 md:mt-3">
               {holidaysThisMonth.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">
