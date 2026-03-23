@@ -297,7 +297,6 @@ export function ClientAppointments({ clientId }: Props) {
             const endTime = new Date(item.end).getTime();
             const startTime = new Date(item.start).getTime();
             const isPast = endTime < now;
-            const isNow = startTime <= now && now <= endTime;
             const isFutureOrNow = !isPast;
 
             return (

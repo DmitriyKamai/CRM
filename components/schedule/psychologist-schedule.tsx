@@ -208,7 +208,6 @@ function toFirstOfMonth(d: Date): Date {
 export function PsychologistSchedule() {
   const [slots, setSlots] = useState<SlotDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [displayedMonth, setDisplayedMonth] = useState<Date>(() => toFirstOfMonth(new Date()));
@@ -233,7 +232,6 @@ export function PsychologistSchedule() {
 
   const loadSlots = useCallback(async (retries = 2): Promise<void> => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/schedule/slots");
       if (!res.ok) {
@@ -256,7 +254,6 @@ export function PsychologistSchedule() {
       const msg =
         err instanceof Error ? err.message : "Не удалось подключиться к серверу расписания";
       console.error(err);
-      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -310,7 +307,6 @@ export function PsychologistSchedule() {
     e.preventDefault();
     if (!createDateTime) return;
     setCreating(true);
-    setError(null);
     try {
       const startIso = createDateTime.toISOString();
       let res: Response;
@@ -360,7 +356,6 @@ export function PsychologistSchedule() {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Не удалось создать запись";
-      setError(msg);
       toast.error(msg);
     } finally {
       setCreating(false);
@@ -370,7 +365,6 @@ export function PsychologistSchedule() {
   async function handleConfirmAppointment(slot: SlotDto): Promise<void> {
     if (!slot.appointmentId) return;
     setUpdatingId(slot.id);
-    setError(null);
     try {
       const res = await fetch(`/api/appointments/${slot.appointmentId}`, {
         method: "PATCH",
@@ -396,7 +390,6 @@ export function PsychologistSchedule() {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Не удалось подтвердить запись";
-      setError(msg);
       toast.error(msg);
     } finally {
       setUpdatingId(null);
@@ -406,7 +399,6 @@ export function PsychologistSchedule() {
   async function handleCancelAppointment(slot: SlotDto): Promise<void> {
     if (!slot.appointmentId) return;
     setUpdatingId(slot.id);
-    setError(null);
     try {
       const res = await fetch(`/api/appointments/${slot.appointmentId}`, {
         method: "PATCH",
@@ -438,7 +430,6 @@ export function PsychologistSchedule() {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Не удалось отменить запись";
-      setError(msg);
       toast.error(msg);
     } finally {
       setUpdatingId(null);
@@ -447,7 +438,6 @@ export function PsychologistSchedule() {
 
   async function handleDeleteSlot(slotId: string): Promise<void> {
     setUpdatingId(slotId);
-    setError(null);
     try {
       const res = await fetch(`/api/schedule/slots/${slotId}`, {
         method: "DELETE"
@@ -470,7 +460,6 @@ export function PsychologistSchedule() {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Не удалось удалить слот";
-      setError(msg);
       toast.error(msg);
     } finally {
       setUpdatingId(null);
@@ -483,7 +472,6 @@ export function PsychologistSchedule() {
     durationMinutes: number
   ): Promise<void> {
     setUpdatingId(slot.id);
-    setError(null);
     try {
       const base = new Date(slot.start);
       const parts = newTime.split(":");
@@ -528,7 +516,6 @@ export function PsychologistSchedule() {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Не удалось обновить слот";
-      setError(msg);
       toast.error(msg);
     } finally {
       setUpdatingId(null);

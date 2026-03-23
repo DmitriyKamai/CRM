@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,12 @@ const HOURS = Array.from({ length: 24 }, (_, i) =>
 );
 const MINUTES = ["00", "10", "20", "30", "40", "50"];
 
+function subscribePointer(cb: () => void) {
+  const mq = window.matchMedia("(pointer: coarse)");
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
 type TimeInputProps = {
   value: string; // "HH:MM"
   onChange: (value: string) => void;
@@ -22,12 +28,11 @@ type TimeInputProps = {
 };
 
 export function TimeInput({ value, onChange, className }: TimeInputProps) {
-  // После монтирования определяем тип устройства
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
-  }, []);
+  const isMobile = useSyncExternalStore(
+    subscribePointer,
+    () => window.matchMedia("(pointer: coarse)").matches,
+    () => false
+  );
 
   const parts = value.split(":");
   const hour = (parts[0] ?? "09").padStart(2, "0");
