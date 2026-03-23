@@ -47,6 +47,14 @@ export function formatPhoneDisplay(value?: string | null): string {
   return formatPhone(value);
 }
 
+/** Ссылка `tel:` для набора номера; `null`, если цифр нет. */
+export function phoneToTelHref(value?: string | null): string | null {
+  if (!value?.trim()) return null;
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  return `tel:+${digits}`;
+}
+
 type PhoneInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   "value" | "onChange"

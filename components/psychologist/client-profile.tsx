@@ -48,7 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { PhoneInput } from "@/components/ui/phone-input";
+import { PhoneInput, formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -694,6 +694,9 @@ export const PsychologistClientProfile = forwardRef<
     }
   }
 
+  const phoneDisplayText = formatPhoneDisplay(phone);
+  const phoneHref = phoneToTelHref(phone);
+
   return (
     <div className="space-y-4 min-w-0 w-full overflow-x-auto">
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1081,13 +1084,32 @@ export const PsychologistClientProfile = forwardRef<
                 Телефон
               </Label>
               <div className={FIELD_VALUE_CLASS}>
-                <PhoneInput
-                  id="phone"
-                  value={phone}
-                  onChange={value => setPhone(value)}
-                  disabled={!isEditing}
-                  className={cn(PLAIN_INPUT_CLASS, !isEditing && "cursor-default")}
-                />
+                {isEditing ? (
+                  <PhoneInput
+                    id="phone"
+                    value={phone}
+                    onChange={value => setPhone(value)}
+                    className={PLAIN_INPUT_CLASS}
+                  />
+                ) : phoneHref && phoneDisplayText !== "—" ? (
+                  <a
+                    id="phone"
+                    href={phoneHref}
+                    className={cn(
+                      PLAIN_INPUT_CLASS,
+                      "text-primary underline-offset-2 hover:underline inline-block"
+                    )}
+                  >
+                    {phoneDisplayText}
+                  </a>
+                ) : (
+                  <span
+                    id="phone"
+                    className={cn(PLAIN_INPUT_CLASS, "text-muted-foreground inline-block")}
+                  >
+                    {phoneDisplayText}
+                  </span>
+                )}
               </div>
             </div>
             <div className={FIELD_ROW_CLASS}>

@@ -73,7 +73,7 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
-import { PhoneInput, formatPhoneDisplay } from "@/components/ui/phone-input";
+import { PhoneInput, formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
@@ -1280,11 +1280,27 @@ export function PsychologistClientsList({
         header: () => (
           <span className="inline-block min-w-[10rem] text-xs font-medium text-muted-foreground whitespace-nowrap">Телефон</span>
         ),
-        cell: ({ row }) => (
-          <span className="inline-block min-w-[10rem] text-muted-foreground whitespace-nowrap">
-            {formatPhoneDisplay(row.original.phone)}
-          </span>
-        )
+        cell: ({ row }) => {
+          const p = row.original.phone;
+          const href = phoneToTelHref(p);
+          const label = formatPhoneDisplay(p);
+          if (!href || label === "—") {
+            return (
+              <span className="inline-block min-w-[10rem] text-muted-foreground whitespace-nowrap">
+                {label}
+              </span>
+            );
+          }
+          return (
+            <a
+              href={href}
+              className="inline-block min-w-[10rem] text-primary underline-offset-2 hover:underline whitespace-nowrap"
+              onClick={e => e.stopPropagation()}
+            >
+              {label}
+            </a>
+          );
+        }
       },
       {
         id: "createdAt",

@@ -212,6 +212,42 @@
     font-weight: 700;
     font-style: italic;
   }
+
+  /**
+   * Sonner (unstyled): матовое стекло — кнопка закрытия в углу, не ломает flex-ряд.
+   */
+  [data-sonner-toast].sonner-toast-glass {
+    position: relative;
+  }
+
+  [data-sonner-toast].sonner-toast-glass [data-close-button] {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    margin: 0;
+    transform: none;
+    border-width: 1px;
+    border-style: solid;
+    /* Перебиваем инжект Sonner ([data-sonner-theme] … [data-close-button]) */
+    background-color: hsl(0 0% 100% / 0.32) !important;
+    border-color: hsl(0 0% 100% / 0.45) !important;
+    color: hsl(var(--foreground)) !important;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  .dark [data-sonner-toast].sonner-toast-glass [data-close-button] {
+    background-color: hsl(0 0% 100% / 0.12) !important;
+    border-color: hsl(0 0% 100% / 0.22) !important;
+  }
+
+  [data-sonner-toast].sonner-toast-glass [data-close-button]:hover {
+    background-color: hsl(0 0% 100% / 0.48) !important;
+  }
+
+  .dark [data-sonner-toast].sonner-toast-glass [data-close-button]:hover {
+    background-color: hsl(0 0% 100% / 0.2) !important;
+  }
 }
 
 /* Скроллбар в стиле планинга: используем только для основного окна и явных контейнеров,
