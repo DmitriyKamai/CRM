@@ -344,6 +344,8 @@ export function PsychologistClientsList({
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
+      // Игнорируем нулевую ширину — переходное состояние при монтировании/навигации.
+      if (w <= 0) return;
       setListScale(w >= MIN_LIST_WIDTH ? 1 : Math.max(0.3, w / MIN_LIST_WIDTH));
     });
     ro.observe(el);
