@@ -254,6 +254,7 @@ export function PsychologistSchedule() {
       const msg =
         err instanceof Error ? err.message : "Не удалось подключиться к серверу расписания";
       console.error(err);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

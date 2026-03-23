@@ -295,7 +295,6 @@ export function ClientAppointments({ clientId }: Props) {
           {items.map(item => {
             const now = Date.now();
             const endTime = new Date(item.end).getTime();
-            const startTime = new Date(item.start).getTime();
             const isPast = endTime < now;
             const isFutureOrNow = !isPast;
 
