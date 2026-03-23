@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CalendarClock,
   ClipboardList,
@@ -182,26 +182,27 @@ export function ClientHistoryPanel({
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<HistoryEventRow[]>([]);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    fetch(`/api/psychologist/clients/${clientId}/history`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Не удалось загрузить"))))
-      .then((data: { events?: HistoryEventRow[] }) => {
+  useEffect(() => {
+    const ctrl = new AbortController();
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const r = await fetch(`/api/psychologist/clients/${clientId}/history`, { signal: ctrl.signal });
+        if (ctrl.signal.aborted) return;
+        if (!r.ok) throw new Error("Не удалось загрузить");
+        const data = (await r.json()) as { events?: HistoryEventRow[] };
         setRows(Array.isArray(data?.events) ? data.events : []);
-      })
-      .catch(() => {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError("Не удалось загрузить историю");
         setRows([]);
-      })
-      .finally(() => setLoading(false));
-  }, [clientId]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      load();
-    });
-  }, [load, refreshKey]);
+      } finally {
+        if (!ctrl.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => ctrl.abort();
+  }, [clientId, refreshKey]);
 
   return (
     <div

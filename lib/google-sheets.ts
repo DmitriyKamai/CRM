@@ -41,7 +41,12 @@ export function createSheetsOAuth2Client() {
 }
 
 function oauthStateSecret(): string {
-  return process.env.NEXTAUTH_SECRET?.trim() || "fallback-secret-change-me";
+  const secret = process.env.NEXTAUTH_SECRET?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("NEXTAUTH_SECRET не задан — обязателен для подписи OAuth state");
+  }
+  return "fallback-secret-dev-only";
 }
 
 export type GoogleSheetsOAuthIntent = "export";
@@ -182,7 +187,7 @@ export async function writeSpreadsheetAoA(
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `${escaped}!A1`,
-      valueInputOption: "USER_ENTERED",
+      valueInputOption: "RAW",
       requestBody: { values }
     });
   }
@@ -241,7 +246,7 @@ export async function createSpreadsheetWithAoA(
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `${escapeSheetTitle(sheetTitle)}!A1`,
-      valueInputOption: "USER_ENTERED",
+      valueInputOption: "RAW",
       requestBody: { values }
     });
   }

@@ -6,6 +6,9 @@ import { prisma } from "@/lib/db";
 function appBaseUrl(request: Request): string {
   const env = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
   if (env) return env;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("NEXTAUTH_URL не задан — обязателен для OAuth callback");
+  }
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const proto = request.headers.get("x-forwarded-proto") ?? "https";
   return host ? `${proto}://${host}` : "http://localhost:3000";

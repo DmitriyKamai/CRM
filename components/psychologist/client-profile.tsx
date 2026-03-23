@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -244,12 +245,13 @@ export const PsychologistClientProfile = forwardRef<
   const [isEditingState, setIsEditingState] = useState(false);
   const isEditing =
     props.onEditingChange !== undefined ? (props.isEditing ?? false) : isEditingState;
+  const { onEditingChange } = props;
   const setEditing = useCallback(
     (value: boolean) => {
-      if (props.onEditingChange) props.onEditingChange(value);
+      if (onEditingChange) onEditingChange(value);
       else setIsEditingState(value);
     },
-    [props]
+    [onEditingChange]
   );
 
   const [firstName, setFirstName] = useState(props.firstName);
@@ -354,6 +356,12 @@ export const PsychologistClientProfile = forwardRef<
   }, [updateTabsScrollState, customFieldDefs.length]);
 
   useEffect(() => {
+    setFirstName(props.firstName);
+    setLastName(props.lastName);
+    setEmail(props.email ?? "");
+    setPhone(props.phone ?? "");
+    setNotes(props.notes ?? "");
+    setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
     setCountry(props.country ?? "");
     setCity(props.city ?? "");
     setCountryCode(props.country ? getCountryCodeByName(props.country) : null);
@@ -362,7 +370,12 @@ export const PsychologistClientProfile = forwardRef<
     setStatusId(props.statusId ?? null);
     setStatusLabel(props.statusLabel ?? null);
     setStatusColor(props.statusColor ?? null);
-  }, [props.country, props.city, props.gender, props.maritalStatus, props.statusId, props.statusLabel, props.statusColor]);
+  }, [
+    props.id,
+    props.firstName, props.lastName, props.email, props.phone, props.notes, props.dateOfBirth,
+    props.country, props.city, props.gender, props.maritalStatus,
+    props.statusId, props.statusLabel, props.statusColor
+  ]);
 
   const refetchCustomFieldDefs = useCallback(() => {
     setCustomFieldsLoading(true);
@@ -1251,7 +1264,7 @@ export const PsychologistClientProfile = forwardRef<
                       );
                       const data = await res.json().catch(() => ({}));
                       if (!res.ok) {
-                        console.error(data);
+                        toast.error((data as { message?: string }).message ?? "Не удалось сохранить поля");
                         return;
                       }
                       setEditing(false);
@@ -1771,9 +1784,13 @@ export const PsychologistClientProfile = forwardRef<
                                       prev.filter((file) => file.id !== f.id)
                                     );
                                     setHistoryTick((t) => t + 1);
+                                  } else {
+                                    const data = await res.json().catch(() => ({}));
+                                    toast.error((data as { message?: string }).message ?? "Не удалось удалить файл");
                                   }
                                 } catch (err) {
                                   console.error(err);
+                                  toast.error("Не удалось удалить файл");
                                 }
                               }}
                             >

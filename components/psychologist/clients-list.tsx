@@ -267,6 +267,7 @@ export function PsychologistClientsList({
   const MIN_LIST_WIDTH = 1;
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const listInnerRef = useRef<HTMLDivElement | null>(null);
+  const loadClientsAbortRef = useRef<AbortController | null>(null);
   const [listScale, setListScale] = useState(1);
   const [listInnerHeight, setListInnerHeight] = useState(0);
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
@@ -361,10 +362,13 @@ export function PsychologistClientsList({
   }, [listScale, loading, clients.length, statusFilter]);
 
   const loadClients = useCallback(async () => {
+    loadClientsAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    loadClientsAbortRef.current = ctrl;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/psychologist/clients");
+      const res = await fetch("/api/psychologist/clients", { signal: ctrl.signal });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.message ?? "Не удалось загрузить клиентов");
@@ -373,10 +377,11 @@ export function PsychologistClientsList({
       setClients(data.clients);
       setSelectedIds(new Set());
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error(err);
       setError(err instanceof Error ? err.message : "Не удалось загрузить клиентов");
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted) setLoading(false);
     }
   }, []);
 
@@ -1161,19 +1166,17 @@ export function PsychologistClientsList({
                   {c.lastName} {c.firstName}
                 </span>
                 {c.hasAccount === true && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
-                          <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
-                          <span className="sr-only">Зарегистрирован</span>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Клиент зарегистрирован
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex text-muted-foreground hover:text-foreground cursor-help focus:outline-none">
+                        <UserCheck className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="sr-only">Зарегистрирован</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Клиент зарегистрирован
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </span>
             </div>
@@ -1473,6 +1476,7 @@ export function PsychologistClientsList({
       : clients.filter((c) => c.statusId === statusFilter);
 
   return (
+    <TooltipProvider>
     <div className="px-3 py-4 sm:px-6">
       <div ref={listContainerRef} className="w-full min-w-0 space-y-4">
         <div
@@ -1675,6 +1679,16 @@ export function PsychologistClientsList({
                       <button
                         type="button"
                         onClick={() => importFileInputRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (!file || !importFileInputRef.current) return;
+                          const dt = new DataTransfer();
+                          dt.items.add(file);
+                          importFileInputRef.current.files = dt.files;
+                          importFileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+                        }}
                         className="group w-full flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -2234,5 +2248,6 @@ export function PsychologistClientsList({
         </Dialog>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
