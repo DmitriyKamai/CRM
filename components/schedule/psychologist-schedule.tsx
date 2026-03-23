@@ -610,7 +610,7 @@ export function PsychologistSchedule() {
 
   const ScheduleDayButton = useCallback(
     (props: React.ComponentProps<typeof CalendarDayButton>) => {
-      const { day, children, modifiers, ...rest } = props;
+      const { day, children, modifiers, className, ...rest } = props;
       const key = dayKey(day.date);
       const dots = dayDotsMap[key];
       const hasDots =
@@ -623,6 +623,7 @@ export function PsychologistSchedule() {
       const dow = day.date.getDay();
       const isWeekend = dow === 0 || dow === 6;
       const isHoliday = Boolean(HOLIDAYS_BY_MONTH_DAY[monthDayKey(day.date)]);
+      const isToday = Boolean(modifiers?.today);
       const dayNumberClass = cn(
         "block text-center leading-none tabular-nums",
         !isSelectedSingle &&
@@ -633,14 +634,26 @@ export function PsychologistSchedule() {
               : "")
       );
       return (
-        <CalendarDayButton day={day} modifiers={modifiers ?? {}} {...rest}>
+        <CalendarDayButton
+          day={day}
+          modifiers={modifiers ?? {}}
+          className={cn(
+            className,
+            isToday &&
+              !isSelectedSingle &&
+              "box-border border-x-0 border-y-[3px] border-solid border-primary",
+            isSelectedSingle &&
+              "box-border border-x-0 border-y-[3px] border-solid border-primary-foreground/45"
+          )}
+          {...rest}
+        >
           <span className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[inherit] pb-1">
             <span className={cn("block w-full text-center leading-none", dayNumberClass)}>
               {children}
             </span>
             {hasDots && (
               <div
-                className="absolute bottom-0 left-0 right-0 flex translate-y-[5px] justify-center gap-0.5 py-0.5"
+                className="absolute bottom-0 left-0 right-0 flex translate-y-[2px] justify-center gap-0.5 py-0.5"
                 aria-hidden
               >
                 {dots!.free && (
@@ -812,21 +825,30 @@ export function PsychologistSchedule() {
                 <ul className="space-y-0.5">
                   <li className="flex items-center gap-2">
                     <span
-                      className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)}
+                      className={cn(
+                        "h-1 w-1 shrink-0 rounded-sm border sm:h-3 sm:w-3",
+                        SLOT_STYLE_FREE
+                      )}
                       aria-hidden
                     />
                     <span className="min-w-0">Свободный слот</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span
-                      className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)}
+                      className={cn(
+                        "h-1 w-1 shrink-0 rounded-sm border sm:h-3 sm:w-3",
+                        SLOT_STYLE_PENDING
+                      )}
                       aria-hidden
                     />
                     <span className="min-w-0">Запись, ожидающая подтверждения</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span
-                      className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)}
+                      className={cn(
+                        "h-1 w-1 shrink-0 rounded-sm border sm:h-3 sm:w-3",
+                        SLOT_STYLE_CONFIRMED
+                      )}
                       aria-hidden
                     />
                     <span className="min-w-0">Подтверждённая запись</span>
@@ -835,8 +857,8 @@ export function PsychologistSchedule() {
               </div>
             </div>
 
-        {/* Низ: неделя / суточный план на всю ширину */}
-        <div className="col-span-2 min-w-0 space-y-2">
+        {/* Низ: неделя / суточный план — order-3, иначе при order у календаря/легенды план оказывается сверху */}
+        <div className="col-span-2 order-3 min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
