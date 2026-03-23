@@ -135,12 +135,6 @@ for (let h = 0; h <= 23; h += 1) {
 
 const HOUR_ROW_HEIGHT = 56;
 
-/**
- * Мин. ширина суточного плана = 2× ширина календаря (7×--cell-size + гориз. p-3), см. calendar.tsx.
- * Не даёт flex сжимать колонку с легендой/праздниками на узких экранах.
- */
-const DAY_PLAN_MIN_WIDTH_CLASS = "min-w-[31rem]";
-
 /** Сетка недели, точки под датами и легенда — одни и те же цвета (не --status-* из темы). */
 const SLOT_STYLE_FREE =
   "bg-sky-600 border-sky-700 dark:bg-sky-500 dark:border-sky-400";
@@ -711,17 +705,19 @@ export function PsychologistSchedule() {
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="flex flex-col gap-4 md:flex-row md:gap-1 md:items-start">
-          <div className="mx-auto flex w-full max-w-[20rem] shrink-0 flex-col md:mx-0 md:w-72 md:max-w-none">
-            <div className="h-10 shrink-0" aria-hidden />
-            <div
-              className="h-[360px] rounded-md border border-border bg-muted/30 animate-pulse"
-              aria-busy="true"
-              aria-label="Загрузка календаря"
-            />
-            <div className="mt-3 h-24 rounded-md bg-muted/30 animate-pulse" aria-hidden />
+        <div className="grid w-full min-w-0 grid-cols-2 gap-3 md:gap-4">
+          <div
+            className="min-w-0 rounded-md border border-border bg-muted/30 animate-pulse"
+            style={{ minHeight: 320 }}
+            aria-busy="true"
+            aria-label="Загрузка календаря"
+          />
+          <div className="min-w-0 space-y-2">
+            <div className="h-4 w-[75%] rounded-md bg-muted/30 animate-pulse" aria-hidden />
+            <div className="h-20 rounded-md bg-muted/30 animate-pulse" aria-hidden />
+            <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
           </div>
-          <div className="min-w-0 flex-1 space-y-2">
+          <div className="col-span-2 min-w-0 space-y-2">
             <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
             <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
               <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
@@ -750,23 +746,15 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="flex w-full flex-col items-stretch gap-4 md:flex-row md:items-start md:gap-1"
+            className="grid w-full min-w-0 grid-cols-2 grid-rows-[auto_minmax(0,1fr)] gap-3 md:gap-4"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-        {/* Узкие экраны: строка [календарь | праздники+легенда]; md+: боковая колонка */}
-        <div className="w-full shrink-0 md:w-72">
-          {/* Spacer: выравнивает верх календаря с заголовком сетки на десктопе */}
-          <div className="hidden h-10 shrink-0 md:block" aria-hidden />
-
-          {/* < md — одна строка: календарь слева, справа колонка (праздники, затем легенда).
-              md+ — столбец в боковой панели. */}
-          <div className="flex flex-row items-start gap-3 md:flex-col md:gap-0">
-            {/* Календарь */}
-            <div className="shrink-0">
+            {/* Верх: календарь и легенда — по 1fr (равные колонки) */}
+            <div className="min-w-0 justify-self-start">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -779,8 +767,7 @@ export function PsychologistSchedule() {
               />
             </div>
 
-            {/* Праздники + Легенда — справа от календаря, друг под другом */}
-            <div className="flex min-w-0 flex-1 flex-col gap-3 md:mt-3">
+            <div className="flex min-w-0 flex-col gap-3">
               {holidaysThisMonth.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">
@@ -791,10 +778,10 @@ export function PsychologistSchedule() {
                       const day = md.slice(3, 5);
                       return (
                         <li key={md} className="flex gap-2">
-                          <span className="w-8 text-left font-medium text-foreground">
+                          <span className="w-8 shrink-0 text-left font-medium text-foreground">
                             {day}.{currentMonthKey}
                           </span>
-                          <span className="flex-1">{title}</span>
+                          <span className="min-w-0 break-words">{title}</span>
                         </li>
                       );
                     })}
@@ -811,29 +798,28 @@ export function PsychologistSchedule() {
                       className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)}
                       aria-hidden
                     />
-                    <span>Свободный слот</span>
+                    <span className="min-w-0">Свободный слот</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span
                       className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)}
                       aria-hidden
                     />
-                    <span>Запись, ожидающая подтверждения</span>
+                    <span className="min-w-0">Запись, ожидающая подтверждения</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span
                       className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)}
                       aria-hidden
                     />
-                    <span>Подтверждённая запись</span>
+                    <span className="min-w-0">Подтверждённая запись</span>
                   </li>
                 </ul>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className={cn("w-full flex-1 space-y-2", DAY_PLAN_MIN_WIDTH_CLASS)}>
+        {/* Низ: неделя / суточный план на всю ширину */}
+        <div className="col-span-2 min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
@@ -1153,9 +1139,9 @@ export function PsychologistSchedule() {
             </CardContent>
           </Card>
           </div>
+          </div>
         </div>
       </div>
-        </div>
       </div>
       
       <Dialog
