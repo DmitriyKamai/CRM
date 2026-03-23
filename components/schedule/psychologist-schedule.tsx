@@ -646,7 +646,7 @@ export function PsychologistSchedule() {
                 {dots!.free && (
                   <span
                     className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      "size-[0.3125rem] shrink-0 rounded-full",
                       isSelectedSingle
                         ? "bg-sky-300 dark:bg-sky-400"
                         : "bg-sky-600 dark:bg-sky-500"
@@ -657,7 +657,7 @@ export function PsychologistSchedule() {
                 {dots!.pending && (
                   <span
                     className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      "size-[0.3125rem] shrink-0 rounded-full",
                       isSelectedSingle
                         ? "bg-amber-300 dark:bg-amber-300"
                         : "bg-amber-500 dark:bg-amber-400"
@@ -668,7 +668,7 @@ export function PsychologistSchedule() {
                 {dots!.scheduled && (
                   <span
                     className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      "size-[0.3125rem] shrink-0 rounded-full",
                       isSelectedSingle
                         ? "bg-emerald-400 dark:bg-emerald-300"
                         : "bg-emerald-600 dark:bg-emerald-500"
@@ -813,7 +813,7 @@ export function PsychologistSchedule() {
                   <li className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "h-1 w-1 shrink-0 rounded-sm border sm:h-3 sm:w-3",
+                        "h-3 w-3 shrink-0 rounded-sm border",
                         SLOT_STYLE_FREE
                       )}
                       aria-hidden
@@ -823,7 +823,7 @@ export function PsychologistSchedule() {
                   <li className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "h-1 w-1 shrink-0 rounded-sm border sm:h-3 sm:w-3",
+                        "h-3 w-3 shrink-0 rounded-sm border",
                         SLOT_STYLE_PENDING
                       )}
                       aria-hidden
@@ -833,7 +833,7 @@ export function PsychologistSchedule() {
                   <li className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "h-1 w-1 shrink-0 rounded-sm border sm:h-3 sm:w-3",
+                        "h-3 w-3 shrink-0 rounded-sm border",
                         SLOT_STYLE_CONFIRMED
                       )}
                       aria-hidden
