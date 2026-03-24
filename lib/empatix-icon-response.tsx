@@ -1,17 +1,22 @@
+import { readFile } from "fs/promises";
+import { join } from "path";
+
 import { ImageResponse } from "next/og";
 
-/** Tangerine 700 — тот же вес, что для акцента логотипа в layout. */
-const TANGERINE_BOLD_WOFF2 =
-  "https://fonts.gstatic.com/s/tangerine/v18/Iurd6Y5j_oScZZow4VO5srNZi5FNym499g.woff2";
-
+/**
+ * Tangerine 700 из @fontsource/tangerine.
+ * ImageResponse (Satori) не поддерживает WOFF2 — только WOFF/TTF.
+ */
 let fontPromise: Promise<ArrayBuffer> | null = null;
 
 function getTangerineBoldArrayBuffer(): Promise<ArrayBuffer> {
   if (!fontPromise) {
-    fontPromise = fetch(TANGERINE_BOLD_WOFF2).then(r => {
-      if (!r.ok) throw new Error("Не удалось загрузить шрифт Tangerine");
-      return r.arrayBuffer();
-    });
+    fontPromise = readFile(
+      join(
+        process.cwd(),
+        "node_modules/@fontsource/tangerine/files/tangerine-latin-700-normal.woff"
+      )
+    ).then(buf => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
   }
   return fontPromise;
 }
