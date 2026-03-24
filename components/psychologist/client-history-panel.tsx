@@ -31,7 +31,8 @@ function appointmentStatusLabel(code: string): string {
     PENDING_CONFIRMATION: "Ожидает подтверждения",
     SCHEDULED: "Подтверждена",
     COMPLETED: "Завершена",
-    CANCELED: "Отменена"
+    CANCELED: "Отменена",
+    NO_SHOW: "Не состоялась"
   };
   return m[code] ?? code;
 }
@@ -115,8 +116,11 @@ function formatEventLine(row: HistoryEventRow): { title: string; detail?: string
       };
     }
     case "APPOINTMENT_STATUS_CHANGED": {
-      const from = typeof meta.fromStatus === "string" ? appointmentStatusLabel(meta.fromStatus) : "—";
-      const to = typeof meta.toStatus === "string" ? appointmentStatusLabel(meta.toStatus) : "—";
+      const rawFrom = meta.fromStatus ?? meta.previousStatus;
+      const rawTo = meta.toStatus ?? meta.newStatus;
+      const from =
+        typeof rawFrom === "string" ? appointmentStatusLabel(rawFrom) : "—";
+      const to = typeof rawTo === "string" ? appointmentStatusLabel(rawTo) : "—";
       let detail = `${from} → ${to}`;
       if (typeof meta.start === "string") {
         try {

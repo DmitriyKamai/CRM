@@ -148,6 +148,9 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         appointmentId: id,
         previousStatus: appt.status,
         newStatus: status,
+        fromStatus: appt.status,
+        toStatus: status,
+        start: appt.start.toISOString(),
         initiatedBy: "client"
       }
     });
