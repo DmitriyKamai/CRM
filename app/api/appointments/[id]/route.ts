@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { AppointmentStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
@@ -12,13 +13,6 @@ type ParamsPromise = {
     id: string;
   }>;
 };
-
-type AppointmentStatus =
-  | "PENDING_CONFIRMATION"
-  | "SCHEDULED"
-  | "COMPLETED"
-  | "CANCELED"
-  | "NO_SHOW";
 
 // Допустимые переходы статусов для психолога
 const ALLOWED_TRANSITIONS: Partial<Record<AppointmentStatus, AppointmentStatus[]>> = {
