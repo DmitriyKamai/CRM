@@ -720,19 +720,19 @@ export function PsychologistSchedule() {
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 md:gap-4">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 max-md:grid-cols-2">
           <div
-            className="order-1 max-sm:order-2 min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
+            className="min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
             style={{ minHeight: 320 }}
             aria-busy="true"
             aria-label="Загрузка календаря"
           />
-          <div className="order-2 max-sm:order-1 min-w-0 max-w-full space-y-2 overflow-x-clip">
+          <div className="min-w-0 max-w-full space-y-2 overflow-x-clip">
             <div className="h-4 w-[75%] rounded-md bg-muted/30 animate-pulse" aria-hidden />
             <div className="h-20 rounded-md bg-muted/30 animate-pulse" aria-hidden />
             <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
           </div>
-          <div className="col-span-2 min-w-0 space-y-2">
+          <div className="min-w-0 space-y-2 max-md:col-span-2">
             <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
             <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
               <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
@@ -761,15 +761,15 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="isolate grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] gap-3 md:gap-4"
+            className="isolate grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 max-md:grid-cols-2"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-            {/* Верх: календарь и легенда; на max-sm — легенда слева, календарь справа */}
-            <div className="order-1 max-sm:order-2 min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
+            {/* md+: календарь, под ним легенда; max-md: две колонки (календарь | легенда), затем план */}
+            <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -779,11 +779,11 @@ export function PsychologistSchedule() {
                 locale={ru}
                 initialFocus
                 components={{ DayButton: ScheduleDayButton }}
-                className="max-w-full min-w-0 max-sm:[--cell-size:1.3rem]"
+                className="max-w-full min-w-0 max-md:[--cell-size:1.3rem] md:[--cell-size:2rem]"
               />
             </div>
 
-            <div className="order-2 max-sm:order-1 flex min-w-0 max-w-full flex-col gap-3 overflow-x-clip break-words">
+            <div className="flex min-w-0 max-w-full flex-col gap-3 overflow-x-clip break-words">
               {holidaysThisMonth.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">
@@ -844,8 +844,8 @@ export function PsychologistSchedule() {
               </div>
             </div>
 
-        {/* Низ: неделя / суточный план — order-3, иначе при order у календаря/легенды план оказывается сверху */}
-        <div className="col-span-2 order-3 min-w-0 space-y-2">
+        {/* Неделя / суточный план */}
+        <div className="min-w-0 space-y-2 max-md:col-span-2">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
@@ -1188,7 +1188,10 @@ export function PsychologistSchedule() {
           <DialogHeader>
             <DialogTitle>Новая запись</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreateAppointment} className="space-y-4 text-sm">
+          <form
+            onSubmit={handleCreateAppointment}
+            className="min-w-0 space-y-4 text-sm"
+          >
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Дата</Label>
               <p className="text-sm font-medium">
@@ -1201,7 +1204,7 @@ export function PsychologistSchedule() {
                   : "Не выбрана"}
               </p>
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 w-full flex-col gap-1">
               <Label className="text-xs">Время начала</Label>
               <TimeInput
                 value={

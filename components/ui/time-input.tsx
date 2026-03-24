@@ -40,21 +40,26 @@ export function TimeInput({ value, onChange, className }: TimeInputProps) {
   const snapped = Math.round(rawMin / 10) * 10;
   const minute = String(snapped >= 60 ? 0 : snapped).padStart(2, "0");
 
-  // Мобильные — нативный пикер (на iOS = барабан как в будильнике)
+  // Мобильные — нативный пикер (на iOS = барабан как в будильнике).
+  // Обёртка min-w-0: иначе WebKit даёт type=time огромный intrinsic min-width и поле «выпирает» вправо в модалках/grid.
   if (isMobile) {
     return (
-      <input
-        type="time"
-        step={600}
-        value={value}
-        onChange={e => {
-          if (e.target.value) onChange(e.target.value);
-        }}
-        className={cn(
-          "w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm leading-normal focus:outline-none focus:ring-1 focus:ring-ring",
-          className
-        )}
-      />
+      <div className={cn("w-full min-w-0", className)}>
+        <input
+          type="time"
+          step={600}
+          value={value}
+          onChange={e => {
+            if (e.target.value) onChange(e.target.value);
+          }}
+          className={cn(
+            "box-border h-9 w-full min-w-0 max-w-full rounded-md border border-input bg-[hsl(var(--input-bg))] px-3 text-sm leading-none",
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+            // компактнее индикатор справа (Safari / Chrome)
+            "[&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:mr-0 [&::-webkit-calendar-picker-indicator]:opacity-60"
+          )}
+        />
+      </div>
     );
   }
 
