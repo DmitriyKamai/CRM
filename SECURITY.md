@@ -6,7 +6,7 @@
 
 - **Аутентификация:** NextAuth (JWT-сессии), пароли через bcrypt.
 - **Валидация входных данных:** по возможности Zod в API-роутах.
-- **Заголовки:** `middleware.ts` — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`** (Next.js/React: в режиме только отчётов для `script-src` и `script-src-elem` указано `'unsafe-inline'`, чтобы не засорять отчёты; при переходе на enforcing — nonce/хэши), в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
+- **Заголовки:** `proxy.ts` (ранее `middleware`) — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`** (Next.js/React: в режиме только отчётов для `script-src` и `script-src-elem` указано `'unsafe-inline'`, чтобы не засорять отчёты; при переходе на enforcing — nonce/хэши), в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
 - **Rate limiting:** `lib/rate-limit.ts` — регистрация, восстановление пароля, сброс пароля. Поддерживает Redis/Upstash (если настроены) и fallback в in-memory (на dev/single instance).
 - **Guards для API:** `lib/security/api-guards.ts` — `requireAuth`, `requireRoles`, `requirePsychologist`, `requireAdmin`, `requireClient`, `getClientIp`. Большинство маршрутов в `app/api/**` уже используют эти хелперы вместо ручного `getServerSession` + проверки роли.
 - **Владение ресурсами:** для `PATCH`/`DELETE` слота расписания проверяется `psychologistId` слота — нельзя менять чужие слоты по id.

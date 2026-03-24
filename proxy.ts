@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
  * CSP включаем в режиме Report-Only, чтобы собирать отчёты и не ломать фронт.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function middleware(_request: NextRequest) {
+export function proxy(_request: NextRequest) {
   const res = NextResponse.next();
 
   res.headers.set("X-Content-Type-Options", "nosniff");

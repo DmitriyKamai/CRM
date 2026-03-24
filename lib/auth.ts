@@ -235,7 +235,7 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
   };
 }
 
-// Общая конфигурация NextAuth (используется в API-роуте и middleware).
+// Общая конфигурация NextAuth (используется в API-роуте; глобальные заголовки — в proxy.ts).
 // При отсутствии OAuth используем noopAdapter, чтобы не обращаться к Account/Session и не падать.
 export const authOptions: NextAuthOptions = {
   adapter: hasOAuthProviders() ? PrismaAdapter(prisma) : noopAdapter,
