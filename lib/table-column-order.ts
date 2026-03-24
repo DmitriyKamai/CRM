@@ -22,7 +22,7 @@ export function getColumnIdsFromDefs<TData, TValue>(
 export function normalizeColumnOrder(
   saved: string[] | null | undefined,
   currentIds: string[],
-  fixedIds: string[]
+  fixedIds: readonly string[]
 ): string[] {
   const fixedSet = new Set(fixedIds);
   const seen = new Set<string>();

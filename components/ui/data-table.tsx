@@ -36,6 +36,9 @@ import {
 import { DataTableColumnOrderDialog } from "@/components/ui/data-table-column-order-dialog";
 import { getColumnIdsFromDefs, normalizeColumnOrder } from "@/lib/table-column-order";
 
+/** Стабильная ссылка: значение по умолчанию в параметрах создавало новый массив каждый рендер → infinite loop (React #185). */
+const DEFAULT_COLUMN_ORDER_FIXED_IDS: readonly string[] = ["select", "search"];
+
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -76,11 +79,20 @@ export function DataTable<TData, TValue>({
   minTableWidthClassName,
   initialColumnOrder,
   onColumnOrderPersist,
-  columnOrderFixedIds = ["select", "search"]
+  columnOrderFixedIds: columnOrderFixedIdsProp
 }: DataTableProps<TData, TValue>) {
   const reorderEnabled = Boolean(onColumnOrderPersist);
 
+  const columnOrderFixedKey =
+    columnOrderFixedIdsProp === undefined
+      ? "default"
+      : columnOrderFixedIdsProp.join("\0");
+  const columnOrderFixedIds = React.useMemo(() => {
+    return columnOrderFixedIdsProp ?? DEFAULT_COLUMN_ORDER_FIXED_IDS;
+  }, [columnOrderFixedIdsProp, columnOrderFixedKey]);
+
   const columnIds = React.useMemo(() => getColumnIdsFromDefs(columns), [columns]);
+  const columnIdsKey = React.useMemo(() => columnIds.join("\0"), [columnIds]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -89,11 +101,14 @@ export function DataTable<TData, TValue>({
 
   const [columnOrder, setColumnOrder] = React.useState<string[]>(() =>
     reorderEnabled
-      ? normalizeColumnOrder(null, getColumnIdsFromDefs(columns), columnOrderFixedIds)
+      ? normalizeColumnOrder(null, getColumnIdsFromDefs(columns), [
+          ...DEFAULT_COLUMN_ORDER_FIXED_IDS
+        ])
       : []
   );
   const [orderDialogOpen, setOrderDialogOpen] = React.useState(false);
   const initialColumnOrderAppliedRef = React.useRef(false);
+  const prevColumnIdsKeyForOrderRef = React.useRef<string | null>(null);
 
   const persistTimerRef = React.useRef<number | undefined>(undefined);
 
@@ -110,22 +125,29 @@ export function DataTable<TData, TValue>({
     [onColumnOrderPersist]
   );
 
+  /** Один раз подставляем порядок с сервера (или дефолт), когда initialColumnOrder перестал быть undefined. */
   React.useEffect(() => {
     if (!reorderEnabled) return;
     if (initialColumnOrder === undefined) return;
+    if (initialColumnOrderAppliedRef.current) return;
+    initialColumnOrderAppliedRef.current = true;
+    setColumnOrder(
+      normalizeColumnOrder(initialColumnOrder, columnIds, columnOrderFixedIds)
+    );
+  }, [reorderEnabled, initialColumnOrder, columnIds, columnOrderFixedIds]);
 
-    if (!initialColumnOrderAppliedRef.current) {
-      initialColumnOrderAppliedRef.current = true;
-      setColumnOrder(
-        normalizeColumnOrder(initialColumnOrder, columnIds, columnOrderFixedIds)
-      );
-      return;
-    }
-
+  /** Только при изменении набора id колонок (новые кастомные поля и т.д.), без лишних setState каждый рендер. */
+  React.useEffect(() => {
+    if (!reorderEnabled) return;
+    if (!initialColumnOrderAppliedRef.current) return;
+    if (prevColumnIdsKeyForOrderRef.current === columnIdsKey) return;
+    const previousKey = prevColumnIdsKeyForOrderRef.current;
+    prevColumnIdsKeyForOrderRef.current = columnIdsKey;
+    if (previousKey === null) return;
     setColumnOrder(prev =>
       normalizeColumnOrder(prev, columnIds, columnOrderFixedIds)
     );
-  }, [reorderEnabled, initialColumnOrder, columnIds, columnOrderFixedIds]);
+  }, [reorderEnabled, columnIdsKey, columnIds, columnOrderFixedIds]);
 
   React.useEffect(() => {
     if (!initialColumnVisibility) return;
