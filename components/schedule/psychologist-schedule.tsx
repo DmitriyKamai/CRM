@@ -1104,21 +1104,9 @@ export function PsychologistSchedule() {
                                               {label}
                                             </div>
                                             {secondLineText ? (
-                                              clientProfileHref && slot.clientName?.trim() ? (
-                                                <Link
-                                                  href={clientProfileHref}
-                                                  className="mt-0.5 line-clamp-2 block break-words text-[11px] leading-tight text-white underline-offset-2 hover:underline focus-visible:underline"
-                                                  onClick={event => {
-                                                    event.stopPropagation();
-                                                  }}
-                                                >
-                                                  {slot.clientName.trim()}
-                                                </Link>
-                                              ) : (
-                                                <div className="mt-0.5 line-clamp-2 break-words text-[11px] leading-tight text-white">
-                                                  {secondLineText}
-                                                </div>
-                                              )
+                                              <div className="mt-0.5 line-clamp-2 break-words text-[11px] leading-tight text-white">
+                                                {secondLineText}
+                                              </div>
                                             ) : null}
                                           </div>
                                         </PopoverTrigger>
