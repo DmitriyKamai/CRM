@@ -141,8 +141,9 @@ const MIN_SLOT_HEIGHT_FOR_TWO_LINES = 36;
 /** Сетка недели, точки под датами и легенда — одни и те же цвета (не --status-* из темы). */
 const SLOT_STYLE_FREE =
   "bg-sky-600 border-sky-700 dark:bg-sky-500 dark:border-sky-400";
+/** Ожидающие записи: тёплый насыщенный тон (не жёлтый) — достаточный контраст с белым текстом. */
 const SLOT_STYLE_PENDING =
-  "bg-amber-500 border-amber-600 dark:bg-amber-400 dark:border-amber-500";
+  "bg-orange-700 border-orange-800 dark:bg-orange-600 dark:border-orange-700";
 const SLOT_STYLE_CONFIRMED =
   "bg-emerald-600 border-emerald-700 dark:bg-emerald-500 dark:border-emerald-400";
 
@@ -678,8 +679,8 @@ export function PsychologistSchedule() {
                     className={cn(
                       "size-[0.3125rem] shrink-0 rounded-full",
                       isSelectedSingle
-                        ? "bg-amber-300 dark:bg-amber-300"
-                        : "bg-amber-500 dark:bg-amber-400"
+                        ? "bg-orange-400 dark:bg-orange-400"
+                        : "bg-orange-600 dark:bg-orange-500"
                     )}
                     title="Ожидает подтверждения"
                   />
