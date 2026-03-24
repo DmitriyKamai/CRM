@@ -28,10 +28,13 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { DataTableColumnOrderDialog } from "@/components/ui/data-table-column-order-dialog";
+import { getColumnIdsFromDefs, normalizeColumnOrder } from "@/lib/table-column-order";
 
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -50,6 +53,14 @@ export interface DataTableProps<TData, TValue> {
   visibilityStorageKey?: string;
   /** Минимальная ширина таблицы для горизонтального скролла */
   minTableWidthClassName?: string;
+  /**
+   * Порядок колонок с сервера: undefined — ещё не загружено, null — в БД нет сохранения.
+   */
+  initialColumnOrder?: string[] | null;
+  /** Сохранить порядок колонок (например в БД). Без колбэка настройка порядка скрыта. */
+  onColumnOrderPersist?: (order: string[]) => void | Promise<void>;
+  /** Id колонок, которые всегда слева и не участвуют в диалоге переупорядочивания */
+  columnOrderFixedIds?: string[];
 }
 
 export function DataTable<TData, TValue>({
@@ -62,12 +73,59 @@ export function DataTable<TData, TValue>({
   columnLabels,
   initialColumnVisibility,
   visibilityStorageKey,
-  minTableWidthClassName
+  minTableWidthClassName,
+  initialColumnOrder,
+  onColumnOrderPersist,
+  columnOrderFixedIds = ["select", "search"]
 }: DataTableProps<TData, TValue>) {
+  const reorderEnabled = Boolean(onColumnOrderPersist);
+
+  const columnIds = React.useMemo(() => getColumnIdsFromDefs(columns), [columns]);
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(initialColumnVisibility ?? {});
   const visibilityReadyRef = React.useRef(false);
+
+  const [columnOrder, setColumnOrder] = React.useState<string[]>(() =>
+    reorderEnabled
+      ? normalizeColumnOrder(null, getColumnIdsFromDefs(columns), columnOrderFixedIds)
+      : []
+  );
+  const [orderDialogOpen, setOrderDialogOpen] = React.useState(false);
+  const initialColumnOrderAppliedRef = React.useRef(false);
+
+  const persistTimerRef = React.useRef<number | undefined>(undefined);
+
+  const schedulePersist = React.useCallback(
+    (order: string[]) => {
+      if (!onColumnOrderPersist) return;
+      if (persistTimerRef.current !== undefined) {
+        window.clearTimeout(persistTimerRef.current);
+      }
+      persistTimerRef.current = window.setTimeout(() => {
+        void Promise.resolve(onColumnOrderPersist(order));
+      }, 400);
+    },
+    [onColumnOrderPersist]
+  );
+
+  React.useEffect(() => {
+    if (!reorderEnabled) return;
+    if (initialColumnOrder === undefined) return;
+
+    if (!initialColumnOrderAppliedRef.current) {
+      initialColumnOrderAppliedRef.current = true;
+      setColumnOrder(
+        normalizeColumnOrder(initialColumnOrder, columnIds, columnOrderFixedIds)
+      );
+      return;
+    }
+
+    setColumnOrder(prev =>
+      normalizeColumnOrder(prev, columnIds, columnOrderFixedIds)
+    );
+  }, [reorderEnabled, initialColumnOrder, columnIds, columnOrderFixedIds]);
 
   React.useEffect(() => {
     if (!initialColumnVisibility) return;
@@ -116,10 +174,16 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnFilters, columnVisibility },
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      ...(reorderEnabled ? { columnOrder } : {})
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    ...(reorderEnabled ? { onColumnOrderChange: setColumnOrder } : {}),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel()
@@ -131,9 +195,30 @@ export function DataTable<TData, TValue>({
     .getAllColumns()
     .filter(col => typeof col.accessorFn !== "undefined" && col.getCanHide());
 
+  const fixedOrderSet = React.useMemo(
+    () => new Set(columnOrderFixedIds),
+    [columnOrderFixedIds]
+  );
+
+  const reorderableColumnIds = React.useMemo(
+    () => columnOrder.filter(id => !fixedOrderSet.has(id)),
+    [columnOrder, fixedOrderSet]
+  );
+
+  const handleApplyColumnOrder = React.useCallback(
+    (reordered: string[]) => {
+      const prefix = columnOrderFixedIds.filter(id => columnIds.includes(id));
+      const full = [...prefix, ...reordered];
+      setColumnOrder(full);
+      schedulePersist(full);
+    },
+    [columnIds, columnOrderFixedIds, schedulePersist]
+  );
+
+  const showSettingsMenu = hideableColumns.length > 0 || reorderEnabled;
+
   return (
     <div className="space-y-3">
-      {/* Toolbar: поиск слева, колонки — у правого края строки */}
       <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
         {filterColumn && (
           <Input
@@ -143,36 +228,60 @@ export function DataTable<TData, TValue>({
             className="h-8 min-w-0 flex-1 max-w-sm"
           />
         )}
-        {hideableColumns.length > 0 && (
+        {showSettingsMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
                 size="icon"
                 className="ml-auto h-8 w-8 shrink-0 p-0"
-                aria-label="Настройка колонок"
+                aria-label="Настройка таблицы"
               >
                 <Settings2 className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuLabel>Показать колонки</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {hideableColumns.map(col => (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={value => col.toggleVisibility(!!value)}
+            <DropdownMenuContent align="end" className="w-52">
+              {hideableColumns.length > 0 && (
+                <>
+                  <DropdownMenuLabel>Показать колонки</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {hideableColumns.map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      checked={col.getIsVisible()}
+                      onCheckedChange={value => col.toggleVisibility(!!value)}
+                    >
+                      {columnLabels?.[col.id] ?? col.id}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </>
+              )}
+              {reorderEnabled && hideableColumns.length > 0 && <DropdownMenuSeparator />}
+              {reorderEnabled && (
+                <DropdownMenuItem
+                  onSelect={e => {
+                    e.preventDefault();
+                    setOrderDialogOpen(true);
+                  }}
                 >
-                  {columnLabels?.[col.id] ?? col.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+                  Порядок колонок…
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>
 
-      {/* Table: горизонтальный скролл на узких экранах */}
+      {reorderEnabled && (
+        <DataTableColumnOrderDialog
+          open={orderDialogOpen}
+          onOpenChange={setOrderDialogOpen}
+          itemIds={reorderableColumnIds}
+          labels={columnLabels ?? {}}
+          onApply={handleApplyColumnOrder}
+        />
+      )}
+
       <div className="overflow-x-auto rounded-md border">
         <Table className={minTableWidthClassName ?? "min-w-[600px]"}>
           <TableHeader className="bg-muted/10">
@@ -219,7 +328,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={Math.max(1, table.getVisibleLeafColumns().length)}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Нет данных.
@@ -230,7 +339,6 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Row count */}
       <div className="text-xs text-muted-foreground">
         {table.getFilteredRowModel().rows.length} из {data.length}{" "}
         {data.length === 1 ? "запись" : "записей"}

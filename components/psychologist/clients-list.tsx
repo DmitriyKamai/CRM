@@ -263,6 +263,10 @@ export function PsychologistClientsList({
   const [statuses, setStatuses] = useState<Array<{ id: string; label: string; color: string }>>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [tableCustomFieldDefs, setTableCustomFieldDefs] = useState<Array<{ id: string; label: string }>>([]);
+  /** undefined — загрузка с сервера; null — в БД нет сохранённого порядка */
+  const [clientsTableColumnOrder, setClientsTableColumnOrder] = useState<string[] | null | undefined>(
+    undefined
+  );
 
   const MIN_LIST_WIDTH = 1;
   const listContainerRef = useRef<HTMLDivElement | null>(null);
@@ -387,9 +391,45 @@ export function PsychologistClientsList({
     }
   }, []);
 
+  const persistClientsTableColumnOrder = useCallback(async (order: string[]) => {
+    try {
+      const res = await fetch("/api/psychologist/clients-table-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columnOrder: order })
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { message?: string };
+        toast.error(
+          typeof err?.message === "string" ? err.message : "Не удалось сохранить порядок колонок"
+        );
+        return;
+      }
+    } catch {
+      toast.error("Не удалось сохранить порядок колонок");
+    }
+  }, []);
+
   useEffect(() => {
     void loadClients();
   }, [loadClients]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/psychologist/clients-table-settings");
+        if (!res.ok) throw new Error("bad");
+        const data = (await res.json()) as { columnOrder: string[] | null };
+        if (!cancelled) setClientsTableColumnOrder(data.columnOrder ?? null);
+      } catch {
+        if (!cancelled) setClientsTableColumnOrder(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     async function loadStatuses() {
@@ -2145,6 +2185,8 @@ export function PsychologistClientsList({
                 }}
                 visibilityStorageKey="psychologist-clients-table-columns"
                 minTableWidthClassName="min-w-[56rem] xl:min-w-[1500px]"
+                initialColumnOrder={clientsTableColumnOrder}
+                onColumnOrderPersist={persistClientsTableColumnOrder}
                 onRowClick={
                   multiSelectMode
                     ? client => toggleOne(client.id)
