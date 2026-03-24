@@ -1687,7 +1687,7 @@ export function PsychologistClientsList({
                 </div>
 
                 {/* Узкий экран: одно меню «Действия» (без вложенного Sub — на тач-устройствах он часто не открывается) */}
-                <div className="flex justify-end md:hidden">
+                <div className="flex w-full justify-end md:hidden">
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button

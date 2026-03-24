@@ -803,7 +803,7 @@ export const PsychologistClientProfile = forwardRef<
         >
           <SelectTrigger
             className={cn(
-              "w-auto min-w-[180px] h-8 rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring relative [&>*:first-child]:flex-1 [&>*:first-child]:min-w-0 [&>*:first-child]:flex [&>*:first-child]:justify-center [&>*:first-child]:text-center [&>svg]:relative [&>svg]:z-10 [&>svg]:shrink-0 [&>svg]:ml-1",
+              "h-8 w-full min-w-0 basis-full rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring md:w-auto md:min-w-[180px] md:basis-auto relative [&>*:first-child]:flex-1 [&>*:first-child]:min-w-0 [&>*:first-child]:flex [&>*:first-child]:justify-center [&>*:first-child]:text-center [&>svg]:relative [&>svg]:z-10 [&>svg]:shrink-0 [&>svg]:ml-1",
               currentStatus
                 ? "text-white data-[placeholder]:text-white [&>svg]:text-white [&>svg]:opacity-100"
                 : "text-foreground bg-[hsl(var(--input-bg))] data-[placeholder]:text-muted-foreground"

@@ -83,13 +83,9 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const reorderEnabled = Boolean(onColumnOrderPersist);
 
-  const columnOrderFixedKey =
-    columnOrderFixedIdsProp === undefined
-      ? "default"
-      : columnOrderFixedIdsProp.join("\0");
   const columnOrderFixedIds = React.useMemo(() => {
     return columnOrderFixedIdsProp ?? DEFAULT_COLUMN_ORDER_FIXED_IDS;
-  }, [columnOrderFixedIdsProp, columnOrderFixedKey]);
+  }, [columnOrderFixedIdsProp]);
 
   const columnIds = React.useMemo(() => getColumnIdsFromDefs(columns), [columns]);
   const columnIdsKey = React.useMemo(() => columnIds.join("\0"), [columnIds]);
