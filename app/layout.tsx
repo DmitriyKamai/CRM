@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/auth/auth-provider";
@@ -7,7 +7,19 @@ import { Toaster } from "@/components/ui/sonner";
 export const metadata: Metadata = {
   title: "Empatix",
   description:
-    "CRM для психологов и их клиентов с диагностикой, расписанием и безопасным хранением данных."
+    "CRM для психологов и их клиентов с диагностикой, расписанием и безопасным хранением данных.",
+  appleWebApp: {
+    capable: true,
+    title: "Empatix",
+    statusBarStyle: "black-translucent"
+  }
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" }
+  ]
 };
 
 export default function RootLayout({
