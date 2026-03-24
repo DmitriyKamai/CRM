@@ -421,14 +421,14 @@ export function ClientDashboardClient({
                   <ul className="space-y-2">
                     {history.map(apt => {
                       const statusLabel: Record<AppointmentStatus, string> = {
-                        SCHEDULED: "Запланирована",
+                        SCHEDULED: "Ожидает нового статуса",
                         COMPLETED: "Состоялась",
                         CANCELED: "Отменена",
-                        NO_SHOW: "Не пришёл",
+                        NO_SHOW: "Не состоялась",
                         PENDING_CONFIRMATION: "Ожидала подтверждения"
                       };
                       const statusColor: Record<AppointmentStatus, string> = {
-                        SCHEDULED: "text-foreground",
+                        SCHEDULED: "text-blue-600 dark:text-blue-400",
                         COMPLETED: "text-emerald-600 dark:text-emerald-400",
                         CANCELED: "text-muted-foreground line-through",
                         NO_SHOW: "text-destructive",

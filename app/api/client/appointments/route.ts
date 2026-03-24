@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   if (filter === "past") {
     where.end = { lt: now };
-    where.status = { notIn: ["PENDING_CONFIRMATION"] };
+    where.status = { notIn: ["PENDING_CONFIRMATION", "CANCELED"] };
   } else if (filter === "upcoming") {
     where.start = { gte: now };
     where.status = { in: ["SCHEDULED", "PENDING_CONFIRMATION"] };

@@ -24,7 +24,6 @@ type AppointmentStatus =
 const ALLOWED_TRANSITIONS: Partial<Record<AppointmentStatus, AppointmentStatus[]>> = {
   PENDING_CONFIRMATION: ["SCHEDULED", "CANCELED"],
   SCHEDULED: ["CANCELED", "COMPLETED", "NO_SHOW"],
-  COMPLETED: ["CANCELED"],
   NO_SHOW: ["COMPLETED"],
 };
 
@@ -95,7 +94,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       const slotIdToFree = appt.slotId;
       const wasPending = appt.status === "PENDING_CONFIRMATION";
 
-      // При отмене (из любого статуса) и при NO_SHOW — слот освобождаем если привязан
+      // При отмене — слот освобождаем если привязан
       const shouldFreeSlot = status === "CANCELED";
 
       const updated = await tx.appointment.update({

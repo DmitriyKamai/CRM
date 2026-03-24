@@ -40,26 +40,36 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     }
   });
 
-  // Ленивое автозавершение: прошедшие SCHEDULED → COMPLETED прямо при чтении
   const now = new Date();
-  const pastScheduledIds = appointments
-    .filter(a => a.status === "SCHEDULED" && a.end < now)
-    .map(a => a.id);
 
-  if (pastScheduledIds.length > 0) {
-    await prisma.appointment.updateMany({
-      where: { id: { in: pastScheduledIds } },
-      data: { status: "COMPLETED" }
-    });
-    for (const a of appointments) {
-      if (pastScheduledIds.includes(a.id)) {
-        a.status = "COMPLETED";
+  // Прошедшие неподтверждённые записи удаляем — они больше не актуальны
+  const pastPending = appointments.filter(
+    a => a.status === "PENDING_CONFIRMATION" && a.end < now
+  );
+  if (pastPending.length > 0) {
+    const pastPendingIds = pastPending.map(a => a.id);
+    const pastPendingSlotIds = pastPending
+      .filter(a => a.slotId !== null)
+      .map(a => a.slotId as string);
+    await prisma.$transaction(async tx => {
+      await tx.appointment.deleteMany({ where: { id: { in: pastPendingIds } } });
+      if (pastPendingSlotIds.length > 0) {
+        await tx.scheduleSlot.updateMany({
+          where: { id: { in: pastPendingSlotIds } },
+          data: { status: "FREE" }
+        });
       }
-    }
+    });
   }
 
+  // Возвращаем без отменённых и удалённых просроченных
+  const pastPendingIds = new Set(pastPending.map(a => a.id));
+  const toReturn = appointments.filter(
+    a => a.status !== "CANCELED" && !pastPendingIds.has(a.id)
+  );
+
   return NextResponse.json(
-    appointments.map(a => ({
+    toReturn.map(a => ({
       id: a.id,
       start: a.start.toISOString(),
       end: a.end.toISOString(),

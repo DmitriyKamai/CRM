@@ -21,7 +21,7 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Check, X } from "lucide-react";
 import { ru } from "date-fns/locale";
 import {
   Select,
@@ -77,16 +77,23 @@ function statusLabel(appointment: AppointmentDto, isPast: boolean, isNow: boolea
         ? "Ожидает подтверждения клиентом"
         : "Ожидает подтверждения";
     case "SCHEDULED":
-      if (isPast) return "Состоялась";
+      if (isPast) return "Ожидает нового статуса";
       if (isNow) return "Идёт сейчас";
       return "Запланирован";
     case "COMPLETED":
       return "Состоялась";
     case "NO_SHOW":
-      return "Клиент не явился";
+      return "Не состоялась";
     case "CANCELED":
       return "Отменена";
   }
+}
+
+function statusTextClass(appointment: AppointmentDto, isPast: boolean) {
+  if (isPast && appointment.status === "SCHEDULED") {
+    return "text-blue-600 dark:text-blue-400";
+  }
+  return "text-muted-foreground";
 }
 
 function statusMarkerClasses(appointment: AppointmentDto, isPast: boolean) {
@@ -96,8 +103,11 @@ function statusMarkerClasses(appointment: AppointmentDto, isPast: boolean) {
   if (appointment.status === "CANCELED" || appointment.status === "NO_SHOW") {
     return "border-l-4 border-l-destructive";
   }
-  // SCHEDULED past или COMPLETED — состоялась
-  if (isPast || appointment.status === "COMPLETED") {
+  // Прошедшие SCHEDULED — ожидают нового статуса (синий)
+  if (isPast && appointment.status === "SCHEDULED") {
+    return "border-l-4 border-l-blue-500";
+  }
+  if (appointment.status === "COMPLETED") {
     return "border-l-4 border-l-[hsl(var(--status-success))]";
   }
   return "border-l-4 border-l-[hsl(var(--status-success))]";
@@ -311,7 +321,7 @@ export function ClientAppointments({ clientId }: Props) {
                   <div className="font-medium">
                     {formatDateRange(item.start, item.end)}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className={`text-sm ${statusTextClass(item, isPast)}`}>
                     {statusLabel(item, isPast, isNow)}
                   </div>
                 </div>
@@ -352,16 +362,26 @@ export function ClientAppointments({ clientId }: Props) {
                     </Button>
                   )}
 
-                  {/* История: SCHEDULED или COMPLETED — считается состоявшейся, можно скорректировать */}
-                  {isPast && (item.status === "SCHEDULED" || item.status === "COMPLETED") && (
+                  {/* Прошедшие SCHEDULED — ожидают нового статуса: две кнопки для выбора итога */}
+                  {isPast && item.status === "SCHEDULED" && (
                     <>
-                      <Button size="sm" className="text-sm" variant="outline"
-                        onClick={() => handleStatusChange(item.id, "NO_SHOW")}>
-                        Клиент не явился
+                      <Button
+                        size="sm"
+                        className="h-8 gap-1.5 text-sm"
+                        variant="default"
+                        onClick={() => handleStatusChange(item.id, "COMPLETED")}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Состоялась
                       </Button>
-                      <Button size="sm" className="text-sm" variant="ghost"
-                        onClick={() => setCancelPending(item.id)}>
-                        Отменена
+                      <Button
+                        size="sm"
+                        className="h-8 gap-1.5 text-sm"
+                        variant="outline"
+                        onClick={() => handleStatusChange(item.id, "NO_SHOW")}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Не состоялась
                       </Button>
                     </>
                   )}
