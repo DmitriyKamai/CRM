@@ -135,6 +135,9 @@ for (let h = 0; h <= 23; h += 1) {
 
 const HOUR_ROW_HEIGHT = 56;
 
+/** Высота блока слота (px), при которой помещаются две строки: время (text-xs) и имя/статус (~11px + py-1). */
+const MIN_SLOT_HEIGHT_FOR_TWO_LINES = 36;
+
 /** Сетка недели, точки под датами и легенда — одни и те же цвета (не --status-* из темы). */
 const SLOT_STYLE_FREE =
   "bg-sky-600 border-sky-700 dark:bg-sky-500 dark:border-sky-400";
@@ -194,6 +197,22 @@ function formatHumanRange(startIso: string, endIso: string): string {
   const mEnd = String(end.getMinutes()).padStart(2, "0");
 
   return `${hStart}:${mStart}–${hEnd}:${mEnd}`;
+}
+
+/** Вторая строка в ячейке календаря: фамилия и имя (как в API) или короткий статус. */
+function getSlotCalendarSecondLine(
+  slot: SlotDto,
+  hasAppointment: boolean,
+  isPendingByPsychologist: boolean
+): string | null {
+  if (!hasAppointment) return "Свободен";
+  if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
+    const name = slot.clientName?.trim();
+    if (name) return name;
+    return isPendingByPsychologist ? "Ждёт клиента" : "Ждёт вас";
+  }
+  const name = slot.clientName?.trim();
+  return name || null;
 }
 
 function toMonthKey(d: Date): string {
@@ -1022,24 +1041,15 @@ export function PsychologistSchedule() {
                                       return slot.clientName || "Занято";
                                     })();
 
-                                    // Компактный режим: если слот низкий, внутри блока показываем только время,
-                                    // а всё остальное (статус, имя) — во всплывающей подсказке/попапе.
-                                    const isCompact = heightPx < 56;
-
-                                    let statusText: string;
-                                    if (isCompact) {
-                                      statusText = "";
-                                    } else if (hasAppointment) {
-                                      if (slot.appointmentStatus === "PENDING_CONFIRMATION") {
-                                        statusText = isPendingByPsychologist
-                                          ? "Ждёт подтверждения клиента"
-                                          : "Ждёт вашего подтверждения";
-                                      } else {
-                                        statusText = slot.clientName || "";
-                                      }
-                                    } else {
-                                      statusText = "Свободен";
-                                    }
+                                    const slotHeight = Math.max(20, heightPx);
+                                    const canFitTwoLines = slotHeight >= MIN_SLOT_HEIGHT_FOR_TWO_LINES;
+                                    const secondLineText = canFitTwoLines
+                                      ? getSlotCalendarSecondLine(
+                                          slot,
+                                          hasAppointment,
+                                          isPendingByPsychologist
+                                        )
+                                      : null;
 
                                     const tooltipTitle = popupStatusText;
 
@@ -1069,24 +1079,26 @@ export function PsychologistSchedule() {
                                         <PopoverTrigger asChild>
                                           <div
                                             className={cn(
-                                              "absolute left-0 right-0 z-10 cursor-pointer touch-manipulation rounded-md border px-2 py-1.5 text-white shadow-sm",
+                                              "absolute left-0 right-0 z-10 cursor-pointer touch-manipulation rounded-md border px-1.5 py-1 text-white shadow-sm",
                                               slotToneClass
                                             )}
                                             title={tooltipTitle}
                                             style={{
                                               top: topOffsetPx,
-                                              height: Math.max(22, heightPx)
+                                              height: slotHeight
                                             }}
                                             onClick={event => {
                                               event.stopPropagation();
                                             }}
                                           >
-                                            <div className="text-sm font-medium">
+                                            <div className="text-xs font-medium leading-tight tabular-nums">
                                               {label}
                                             </div>
-                                            <div className="mt-0.5 text-sm text-white/90">
-                                              {statusText}
-                                            </div>
+                                            {secondLineText ? (
+                                              <div className="mt-0.5 line-clamp-2 break-words text-[11px] leading-tight text-white/90">
+                                                {secondLineText}
+                                              </div>
+                                            ) : null}
                                           </div>
                                         </PopoverTrigger>
                                         <PopoverContent
