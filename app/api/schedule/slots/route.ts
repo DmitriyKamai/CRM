@@ -90,6 +90,7 @@ export async function GET() {
           status: isStuck || (slot.status === "BOOKED" && !appointment) ? "FREE" : slot.status,
           appointmentId: appointment?.id ?? null,
           appointmentStatus: appointment?.status ?? null,
+          clientId: appointment?.client?.id ?? null,
           clientName: appointment?.client
             ? `${appointment.client.lastName} ${appointment.client.firstName}`
             : null,

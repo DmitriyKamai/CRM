@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { ru } from "date-fns/locale";
@@ -43,6 +44,7 @@ type SlotDto = {
   status: SlotStatus;
   appointmentId?: string | null;
   appointmentStatus?: AppointmentStatus;
+  clientId?: string | null;
   clientName?: string | null;
   proposedByPsychologist?: boolean;
 };
@@ -198,6 +200,11 @@ function formatHumanRange(startIso: string, endIso: string): string {
   const mEnd = String(end.getMinutes()).padStart(2, "0");
 
   return `${hStart}:${mStart}–${hEnd}:${mEnd}`;
+}
+
+function getClientProfileHref(clientId?: string | null): string | null {
+  if (!clientId) return null;
+  return `/psychologist/clients/${clientId}`;
 }
 
 /** Вторая строка в ячейке календаря: фамилия и имя (как в API) или короткий статус. */
@@ -1041,6 +1048,7 @@ export function PsychologistSchedule() {
                                       }
                                       return slot.clientName || "Занято";
                                     })();
+                                    const clientProfileHref = getClientProfileHref(slot.clientId);
 
                                     const slotHeight = Math.max(20, heightPx);
                                     const canFitTwoLines = slotHeight >= MIN_SLOT_HEIGHT_FOR_TWO_LINES;
@@ -1096,9 +1104,21 @@ export function PsychologistSchedule() {
                                               {label}
                                             </div>
                                             {secondLineText ? (
-                                              <div className="mt-0.5 line-clamp-2 break-words text-[11px] leading-tight text-white/90">
-                                                {secondLineText}
-                                              </div>
+                                              clientProfileHref && slot.clientName?.trim() ? (
+                                                <Link
+                                                  href={clientProfileHref}
+                                                  className="mt-0.5 line-clamp-2 block break-words text-[11px] leading-tight text-white underline-offset-2 hover:underline focus-visible:underline"
+                                                  onClick={event => {
+                                                    event.stopPropagation();
+                                                  }}
+                                                >
+                                                  {slot.clientName.trim()}
+                                                </Link>
+                                              ) : (
+                                                <div className="mt-0.5 line-clamp-2 break-words text-[11px] leading-tight text-white">
+                                                  {secondLineText}
+                                                </div>
+                                              )
                                             ) : null}
                                           </div>
                                         </PopoverTrigger>
@@ -1113,8 +1133,26 @@ export function PsychologistSchedule() {
                                               <div className="text-sm font-medium">
                                                 {label}
                                               </div>
-                                              <div className="mt-0.5 text-sm text-muted-foreground">
-                                                {popupStatusText}
+                                              <div className="mt-0.5 text-sm text-white">
+                                                {clientProfileHref && slot.clientName?.trim() ? (
+                                                  <div className="space-y-0.5">
+                                                    <Link
+                                                      href={clientProfileHref}
+                                                      className="inline underline-offset-2 hover:underline focus-visible:underline"
+                                                      onClick={() => setOpenSlotId(null)}
+                                                    >
+                                                      {slot.clientName.trim()}
+                                                    </Link>
+                                                    {slot.appointmentStatus === "PENDING_CONFIRMATION" ? (
+                                                      <div className="text-white/90">
+                                                        {pendingLabel.charAt(0).toUpperCase() +
+                                                          pendingLabel.slice(1)}
+                                                      </div>
+                                                    ) : null}
+                                                  </div>
+                                                ) : (
+                                                  popupStatusText
+                                                )}
                                               </div>
                                             </div>
                                             <button
@@ -1143,7 +1181,7 @@ export function PsychologistSchedule() {
                                             <div className="flex flex-col gap-2">
                                               {slot.appointmentStatus === "PENDING_CONFIRMATION" && (
                                                 <>
-                                                  <p className="text-xs text-muted-foreground">
+                                                  <p className="text-xs text-white/90">
                                                     {isPendingByPsychologist
                                                       ? "Клиент получил уведомление. Вы можете подтвердить вместо него, если клиент устно согласился."
                                                       : "Клиент запросил эту запись. Подтвердите или отмените её."}
