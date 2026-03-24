@@ -70,41 +70,37 @@ function formatDateRange(startIso: string, endIso: string) {
   return `${date}, ${startTime}–${endTime}`;
 }
 
-function statusLabel(appointment: AppointmentDto) {
-  const now = Date.now();
-  const start = new Date(appointment.start);
-  const end = new Date(appointment.end);
-  const isPast = end.getTime() < now;
-  const isNow = start.getTime() <= now && now <= end.getTime();
-
+function statusLabel(appointment: AppointmentDto, isPast: boolean, isNow: boolean) {
   switch (appointment.status) {
     case "PENDING_CONFIRMATION":
       return appointment.proposedByPsychologist
         ? "Ожидает подтверждения клиентом"
         : "Ожидает подтверждения";
     case "SCHEDULED":
-      if (isPast) return "Состоялся";
+      if (isPast) return "Состоялась";
       if (isNow) return "Идёт сейчас";
       return "Запланирован";
     case "COMPLETED":
-      return "Состоялся";
+      return "Состоялась";
     case "NO_SHOW":
-      return "Клиент не пришёл";
+      return "Клиент не явился";
     case "CANCELED":
-      return isPast ? "Не состоялся (отменён)" : "Отменён";
+      return "Отменена";
   }
 }
 
-function statusMarkerClasses(status: AppointmentStatus) {
-  switch (status) {
-    case "PENDING_CONFIRMATION":
-      return "border-l-4 border-l-[hsl(var(--status-warning))]";
-    case "CANCELED":
-    case "NO_SHOW":
-      return "border-l-4 border-l-destructive";
-    default:
-      return "border-l-4 border-l-[hsl(var(--status-success))]";
+function statusMarkerClasses(appointment: AppointmentDto, isPast: boolean) {
+  if (appointment.status === "PENDING_CONFIRMATION") {
+    return "border-l-4 border-l-[hsl(var(--status-warning))]";
   }
+  if (appointment.status === "CANCELED" || appointment.status === "NO_SHOW") {
+    return "border-l-4 border-l-destructive";
+  }
+  // SCHEDULED past или COMPLETED — состоялась
+  if (isPast || appointment.status === "COMPLETED") {
+    return "border-l-4 border-l-[hsl(var(--status-success))]";
+  }
+  return "border-l-4 border-l-[hsl(var(--status-success))]";
 }
 
 export function ClientAppointments({ clientId }: Props) {
@@ -291,125 +287,100 @@ export function ClientAppointments({ clientId }: Props) {
           Записей с этим клиентом пока нет.
         </p>
       ) : (
-        <ul className="space-y-2 text-xs">
-          {items.map(item => {
-            const now = Date.now();
+        (() => {
+          const now = Date.now();
+          const upcoming = items
+            .filter(i => new Date(i.end).getTime() >= now)
+            .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+          const past = items
+            .filter(i => new Date(i.end).getTime() < now)
+            .sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
+
+          const renderItem = (item: AppointmentDto) => {
             const endTime = new Date(item.end).getTime();
+            const startTime = new Date(item.start).getTime();
             const isPast = endTime < now;
-            const isFutureOrNow = !isPast;
+            const isNow = startTime <= now && now <= endTime;
 
             return (
               <li
                 key={item.id}
-                className={`flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 ${statusMarkerClasses(item.status)}`}
+                className={`flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 ${statusMarkerClasses(item, isPast)}`}
               >
                 <div className="space-y-0.5">
                   <div className="font-medium">
                     {formatDateRange(item.start, item.end)}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {statusLabel(item)}
+                    {statusLabel(item, isPast, isNow)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
-                  {/* Ожидает подтверждения — клиент записался сам */}
-                  {item.status === "PENDING_CONFIRMATION" &&
-                    !item.proposedByPsychologist && (
-                      <>
-                        <Button
-                          size="sm"
-                          className="text-sm"
-                          variant="default"
-                          onClick={() => handleStatusChange(item.id, "SCHEDULED")}
-                        >
-                          Подтвердить
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="text-sm"
-                          variant="outline"
-                          onClick={() => setCancelPending(item.id)}
-                        >
-                          Отменить
-                        </Button>
-                      </>
-                    )}
-
-                  {/* Ожидает подтверждения — психолог предложил, ждём клиента */}
-                  {item.status === "PENDING_CONFIRMATION" &&
-                    item.proposedByPsychologist && (
-                      <Button
-                        size="sm"
-                        className="text-sm"
-                        variant="outline"
-                        onClick={() => setCancelPending(item.id)}
-                      >
-                        Отменить
-                      </Button>
-                    )}
-
-                  {/* Запланирован, будущий или идёт сейчас */}
-                  {item.status === "SCHEDULED" && isFutureOrNow && (
-                    <Button
-                      size="sm"
-                      className="text-sm"
-                      variant="outline"
-                      onClick={() => setCancelPending(item.id)}
-                    >
-                      Отменить
-                    </Button>
-                  )}
-
-                  {/* Запланирован, но уже прошёл — отмечаем факт */}
-                  {item.status === "SCHEDULED" && isPast && (
+                  {/* Предстоящие: ожидает подтверждения — клиент записался сам */}
+                  {!isPast && item.status === "PENDING_CONFIRMATION" && !item.proposedByPsychologist && (
                     <>
-                      <Button
-                        size="sm"
-                        className="text-sm"
-                        variant="default"
-                        onClick={() => handleStatusChange(item.id, "COMPLETED")}
-                      >
-                        Состоялся
+                      <Button size="sm" className="text-sm" variant="default"
+                        onClick={() => handleStatusChange(item.id, "SCHEDULED")}>
+                        Подтвердить
                       </Button>
-                      <Button
-                        size="sm"
-                        className="text-sm"
-                        variant="outline"
-                        onClick={() => handleStatusChange(item.id, "NO_SHOW")}
-                      >
-                        Не пришёл
+                      <Button size="sm" className="text-sm" variant="outline"
+                        onClick={() => setCancelPending(item.id)}>
+                        Отменить
                       </Button>
                     </>
                   )}
 
-                  {/* Состоялся — возможность исправить ошибку */}
-                  {item.status === "COMPLETED" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs text-muted-foreground"
-                      onClick={() => setCancelPending(item.id)}
-                    >
-                      Отменить (ошибка)
+                  {/* Предстоящие: психолог предложил, ждём клиента */}
+                  {!isPast && item.status === "PENDING_CONFIRMATION" && item.proposedByPsychologist && (
+                    <Button size="sm" className="text-sm" variant="outline"
+                      onClick={() => setCancelPending(item.id)}>
+                      Отменить
                     </Button>
                   )}
 
-                  {/* Клиент не пришёл — возможность исправить */}
-                  {item.status === "NO_SHOW" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs text-muted-foreground"
-                      onClick={() => handleStatusChange(item.id, "COMPLETED")}
-                    >
-                      Пришёл (исправить)
+                  {/* Предстоящие: запланирован */}
+                  {!isPast && item.status === "SCHEDULED" && (
+                    <Button size="sm" className="text-sm" variant="outline"
+                      onClick={() => setCancelPending(item.id)}>
+                      Отменить
                     </Button>
+                  )}
+
+                  {/* История: SCHEDULED — считается состоявшейся, но можно скорректировать */}
+                  {isPast && item.status === "SCHEDULED" && (
+                    <>
+                      <Button size="sm" className="text-sm" variant="outline"
+                        onClick={() => handleStatusChange(item.id, "NO_SHOW")}>
+                        Клиент не явился
+                      </Button>
+                      <Button size="sm" className="text-sm" variant="ghost"
+                        onClick={() => setCancelPending(item.id)}>
+                        Отменена
+                      </Button>
+                    </>
                   )}
                 </div>
               </li>
             );
-          })}
-        </ul>
+          };
+
+          return (
+            <div className="space-y-4 text-xs">
+              {upcoming.length > 0 && (
+                <ul className="space-y-2">{upcoming.map(renderItem)}</ul>
+              )}
+              {upcoming.length === 0 && past.length > 0 && (
+                <p className="text-xs text-muted-foreground">Предстоящих записей нет.</p>
+              )}
+              {past.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">История</p>
+                  <ul className="space-y-2">{past.map(renderItem)}</ul>
+                </div>
+              )}
+            </div>
+          );
+        })()
       )}
 
       <AlertDialog
@@ -420,7 +391,7 @@ export function ClientAppointments({ clientId }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Отменить запись?</AlertDialogTitle>
             <AlertDialogDescription>
-              Запись будет отменена. Слот освободится для других клиентов.
+              Запись будет отменена.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
