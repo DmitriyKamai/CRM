@@ -61,7 +61,8 @@
     --sidebar-border: 228 12% 82%;
 
     --status-success: 142 48% 36%;
-    --status-warning: 28 94% 50%;
+    /* Ожидание / внимание: насыщенный оранжевый (как слоты «ожидает» в календаре), не жёлтый */
+    --status-warning: 20 91% 42%;
     --status-free: 199 22% 36%;
 
     --chart-1: 28 94% 50%;
@@ -110,7 +111,7 @@
     --sidebar-border: 0 0% 18%;
 
     --status-success: 142 45% 48%;
-    --status-warning: 28 88% 56%;
+    --status-warning: 20 91% 50%;
     --status-free: 199 55% 52%;
 
     --chart-1: 28 90% 54%;
