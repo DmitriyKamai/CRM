@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
+import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { TelegramAccountBlock } from "@/components/account/telegram-account-block";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
@@ -143,6 +144,7 @@ export function ClientSettingsForm() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dobPopoverOpen, setDobPopoverOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
@@ -488,7 +490,7 @@ export function ClientSettingsForm() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Дата рождения</Label>
-                    <Popover>
+                    <Popover open={dobPopoverOpen} onOpenChange={setDobPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -508,9 +510,10 @@ export function ClientSettingsForm() {
                         <Calendar
                           mode="single"
                           selected={dateOfBirth ? new Date(dateOfBirth) : undefined}
-                          onSelect={(d) =>
-                            setDateOfBirth(d ? format(d, "yyyy-MM-dd") : "")
-                          }
+                          onSelect={d => {
+                            setDateOfBirth(d ? format(d, "yyyy-MM-dd") : "");
+                            if (shouldCloseCalendarPopoverAfterSelect()) setDobPopoverOpen(false);
+                          }}
                           locale={ru}
                           initialFocus
                           defaultMonth={dateOfBirth ? new Date(dateOfBirth) : new Date()}

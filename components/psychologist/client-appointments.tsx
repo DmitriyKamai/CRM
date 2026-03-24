@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-
+import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 
 type AppointmentStatus =
   | "PENDING_CONFIRMATION"
@@ -128,6 +128,7 @@ export function ClientAppointments({ clientId }: Props) {
   const [creating, setCreating] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createDate, setCreateDate] = useState<Date | undefined>(undefined);
+  const [createDatePopoverOpen, setCreateDatePopoverOpen] = useState(false);
   const [createTime, setCreateTime] = useState<string>("09:00");
   const [duration, setDuration] = useState(50);
   const [cancelPending, setCancelPending] = useState<string | null>(null);
@@ -407,7 +408,7 @@ export function ClientAppointments({ clientId }: Props) {
           <form onSubmit={handleCreate} className="space-y-4 text-sm">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Дата</Label>
-              <Popover>
+              <Popover open={createDatePopoverOpen} onOpenChange={setCreateDatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -434,7 +435,10 @@ export function ClientAppointments({ clientId }: Props) {
                   <Calendar
                     mode="single"
                     selected={createDate}
-                    onSelect={setCreateDate}
+                    onSelect={d => {
+                      setCreateDate(d);
+                      if (shouldCloseCalendarPopoverAfterSelect()) setCreateDatePopoverOpen(false);
+                    }}
                     locale={ru}
                     initialFocus
                   />

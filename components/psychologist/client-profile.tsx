@@ -72,6 +72,7 @@ import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
 import { ClientHistoryPanel } from "@/components/psychologist/client-history-panel";
 import { cn } from "@/lib/utils";
+import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 
 const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
 const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-full md:w-[200px]";
@@ -269,6 +270,8 @@ export const PsychologistClientProfile = forwardRef<
   const [dob, setDob] = useState<Date | undefined>(
     props.dateOfBirth ? new Date(props.dateOfBirth) : undefined
   );
+  const [dobPopoverOpen, setDobPopoverOpen] = useState(false);
+  const [cfDatePopoverFieldId, setCfDatePopoverFieldId] = useState<string | null>(null);
   const [statusId, setStatusId] = useState<string | null>(props.statusId ?? null);
   const [statusLabel, setStatusLabel] = useState<string | null>(props.statusLabel ?? null);
   const [statusColor, setStatusColor] = useState<string | null>(props.statusColor ?? null);
@@ -1040,7 +1043,7 @@ export const PsychologistClientProfile = forwardRef<
             <div className={FIELD_ROW_CLASS}>
               <Label className={FIELD_LABEL_CLASS}>Дата рождения</Label>
               <div className={FIELD_VALUE_CLASS}>
-                <Popover>
+                <Popover open={dobPopoverOpen} onOpenChange={setDobPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
@@ -1065,7 +1068,10 @@ export const PsychologistClientProfile = forwardRef<
                     <Calendar
                       mode="single"
                       selected={dob}
-                      onSelect={setDob}
+                      onSelect={d => {
+                        setDob(d);
+                        if (shouldCloseCalendarPopoverAfterSelect()) setDobPopoverOpen(false);
+                      }}
                       locale={ru}
                       initialFocus
                       defaultMonth={dob ?? new Date()}
@@ -1390,7 +1396,12 @@ export const PsychologistClientProfile = forwardRef<
                             />
                           )}
                           {type === "DATE" && (
-                            <Popover>
+                            <Popover
+                              open={cfDatePopoverFieldId === def.id}
+                              onOpenChange={open =>
+                                setCfDatePopoverFieldId(open ? def.id : null)
+                              }
+                            >
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="ghost"
@@ -1415,9 +1426,12 @@ export const PsychologistClientProfile = forwardRef<
                                       ? new Date(value)
                                       : undefined
                                   }
-                                  onSelect={(date) =>
-                                    updateValue(date ? date.toISOString() : null)
-                                  }
+                                  onSelect={date => {
+                                    updateValue(date ? date.toISOString() : null);
+                                    if (shouldCloseCalendarPopoverAfterSelect()) {
+                                      setCfDatePopoverFieldId(null);
+                                    }
+                                  }}
                                   locale={ru}
                                   initialFocus
                                   defaultMonth={

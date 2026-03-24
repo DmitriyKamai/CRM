@@ -80,6 +80,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { cn } from "@/lib/utils";
+import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { openGoogleSheetsPicker } from "@/lib/google-sheet-picker-client";
 
 type ClientDto = {
@@ -250,6 +251,7 @@ export function PsychologistClientsList({
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [dob, setDob] = useState<Date | undefined>(undefined);
+  const [addDobPopoverOpen, setAddDobPopoverOpen] = useState(false);
   const [form, setForm] = useState({
     email: "",
     firstName: "",
@@ -2346,7 +2348,7 @@ export function PsychologistClientsList({
               </div>
               <div className="space-y-1.5">
                 <Label>Дата рождения</Label>
-                <Popover>
+                <Popover open={addDobPopoverOpen} onOpenChange={setAddDobPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -2368,7 +2370,10 @@ export function PsychologistClientsList({
                     <Calendar
                       mode="single"
                       selected={dob}
-                      onSelect={setDob}
+                      onSelect={d => {
+                        setDob(d);
+                        if (shouldCloseCalendarPopoverAfterSelect()) setAddDobPopoverOpen(false);
+                      }}
                       locale={ru}
                       initialFocus
                     />
