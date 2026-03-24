@@ -330,12 +330,18 @@ export function ClientAppointments({ clientId }: Props) {
                     </>
                   )}
 
-                  {/* Предстоящие: психолог предложил, ждём клиента */}
+                  {/* Предстоящие: психолог предложил, ждём устного подтверждения клиента */}
                   {!isPast && item.status === "PENDING_CONFIRMATION" && item.proposedByPsychologist && (
-                    <Button size="sm" className="text-sm" variant="outline"
-                      onClick={() => setCancelPending(item.id)}>
-                      Отменить
-                    </Button>
+                    <>
+                      <Button size="sm" className="text-sm" variant="default"
+                        onClick={() => handleStatusChange(item.id, "SCHEDULED")}>
+                        Клиент подтвердил
+                      </Button>
+                      <Button size="sm" className="text-sm" variant="outline"
+                        onClick={() => setCancelPending(item.id)}>
+                        Отменить
+                      </Button>
+                    </>
                   )}
 
                   {/* Предстоящие: запланирован */}
@@ -346,8 +352,8 @@ export function ClientAppointments({ clientId }: Props) {
                     </Button>
                   )}
 
-                  {/* История: SCHEDULED — считается состоявшейся, но можно скорректировать */}
-                  {isPast && item.status === "SCHEDULED" && (
+                  {/* История: SCHEDULED или COMPLETED — считается состоявшейся, можно скорректировать */}
+                  {isPast && (item.status === "SCHEDULED" || item.status === "COMPLETED") && (
                     <>
                       <Button size="sm" className="text-sm" variant="outline"
                         onClick={() => handleStatusChange(item.id, "NO_SHOW")}>
