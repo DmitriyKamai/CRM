@@ -12,7 +12,6 @@ import {
   Pencil,
   Download,
   ChevronDown,
-  MoreHorizontal,
   Upload,
   FileSpreadsheet,
   UploadCloud,
@@ -51,10 +50,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
@@ -1689,24 +1686,25 @@ export function PsychologistClientsList({
                   </Button>
                 </div>
 
-                {/* Узкий экран: одно меню «Действия» */}
-                <div className="w-full md:hidden">
-                  <DropdownMenu>
+                {/* Узкий экран: одно меню «Действия» (без вложенного Sub — на тач-устройствах он часто не открывается) */}
+                <div className="flex justify-end md:hidden">
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full justify-between gap-2"
+                        className="shrink-0 gap-1.5"
                         aria-haspopup="menu"
                       >
-                        <span className="inline-flex min-w-0 items-center gap-2">
-                          <MoreHorizontal className="h-4 w-4 shrink-0" aria-hidden />
-                          <span className="truncate">Действия</span>
-                        </span>
+                        Действия
                         <ChevronDown className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[min(100vw-2rem,20rem)]">
+                    <DropdownMenuContent
+                      align="end"
+                      sideOffset={6}
+                      className="w-[min(100vw-2rem,20rem)]"
+                    >
                       {multiSelectMode ? (
                         <>
                           <DropdownMenuItem
@@ -1741,46 +1739,40 @@ export function PsychologistClientsList({
                           <DropdownMenuSeparator />
                         </>
                       )}
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger
-                          disabled={exporting || clients.length === 0}
-                          className="gap-2"
-                        >
-                          <Download className="h-4 w-4 shrink-0" aria-hidden />
-                          {exporting ? "Экспорт…" : "Экспорт"}
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem
-                            onClick={() => handleExport("csv")}
-                            disabled={exporting}
-                          >
-                            Скачать CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleExport("json")}
-                            disabled={exporting}
-                          >
-                            Скачать JSON
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleExport("xlsx")}
-                            disabled={exporting}
-                          >
-                            Скачать XLSX
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => void handleExportGoogleSheets()}
-                            disabled={
-                              exporting ||
-                              clients.length === 0 ||
-                              googleSheetsOAuthConfigured === false
-                            }
-                          >
-                            <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                            В Google Таблицу
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
+                      <DropdownMenuLabel className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                        <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {exporting ? "Экспорт…" : "Экспорт"}
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => handleExport("csv")}
+                        disabled={exporting || clients.length === 0}
+                      >
+                        Скачать CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExport("json")}
+                        disabled={exporting || clients.length === 0}
+                      >
+                        Скачать JSON
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExport("xlsx")}
+                        disabled={exporting || clients.length === 0}
+                      >
+                        Скачать XLSX
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => void handleExportGoogleSheets()}
+                        disabled={
+                          exporting ||
+                          clients.length === 0 ||
+                          googleSheetsOAuthConfigured === false
+                        }
+                      >
+                        <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                        В Google Таблицу
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setImportOpen(true)}>
                         <Upload className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                         Импорт
