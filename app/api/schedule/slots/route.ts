@@ -60,27 +60,42 @@ export async function GET() {
     });
   }
 
+  // Прошедшие пустые слоты (FREE, end < now) — удаляем из БД, они захламляют календарь
+  const pastFreeSlotIds = slots
+    .filter(s => s.end < now && (stuckSlotIds.includes(s.id) || s.status === "FREE") && !s.appointment)
+    .map(s => s.id);
+
+  if (pastFreeSlotIds.length > 0) {
+    await prisma.scheduleSlot.deleteMany({
+      where: { id: { in: pastFreeSlotIds } }
+    });
+  }
+
+  const pastFreeSet = new Set(pastFreeSlotIds);
+
   return NextResponse.json(
-    slots.map(slot => {
-      const appt = slot.appointment;
-      const isActive =
-        appt &&
-        (appt.status === "SCHEDULED" || appt.status === "PENDING_CONFIRMATION");
-      const appointment = isActive ? appt : null;
-      const isStuck = stuckSlotIds.includes(slot.id);
-      return {
-        id: slot.id,
-        start: slot.start,
-        end: slot.end,
-        status: isStuck || (slot.status === "BOOKED" && !appointment) ? "FREE" : slot.status,
-        appointmentId: appointment?.id ?? null,
-        appointmentStatus: appointment?.status ?? null,
-        clientName: appointment?.client
-          ? `${appointment.client.lastName} ${appointment.client.firstName}`
-          : null,
-        proposedByPsychologist: appointment?.proposedByPsychologist ?? false
-      };
-    })
+    slots
+      .filter(slot => !pastFreeSet.has(slot.id))
+      .map(slot => {
+        const appt = slot.appointment;
+        const isActive =
+          appt &&
+          (appt.status === "SCHEDULED" || appt.status === "PENDING_CONFIRMATION");
+        const appointment = isActive ? appt : null;
+        const isStuck = stuckSlotIds.includes(slot.id);
+        return {
+          id: slot.id,
+          start: slot.start,
+          end: slot.end,
+          status: isStuck || (slot.status === "BOOKED" && !appointment) ? "FREE" : slot.status,
+          appointmentId: appointment?.id ?? null,
+          appointmentStatus: appointment?.status ?? null,
+          clientName: appointment?.client
+            ? `${appointment.client.lastName} ${appointment.client.firstName}`
+            : null,
+          proposedByPsychologist: appointment?.proposedByPsychologist ?? false
+        };
+      })
   );
   });
   } catch (err) {

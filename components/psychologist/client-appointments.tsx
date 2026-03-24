@@ -16,12 +16,19 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Check, X } from "lucide-react";
+import { Calendar as CalendarIcon, Check, Plus, X } from "lucide-react";
 import { ru } from "date-fns/locale";
 import {
   Select,
@@ -119,6 +126,7 @@ export function ClientAppointments({ clientId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [creating, setCreating] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createDate, setCreateDate] = useState<Date | undefined>(undefined);
   const [createTime, setCreateTime] = useState<string>("09:00");
   const [duration, setDuration] = useState(50);
@@ -192,7 +200,7 @@ export function ClientAppointments({ clientId }: Props) {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось предложить запись");
+        throw new Error(data?.message ?? "Не удалось добавить запись");
       }
       setItems(prev =>
         [data as AppointmentDto, ...prev].sort((a, b) =>
@@ -201,10 +209,12 @@ export function ClientAppointments({ clientId }: Props) {
       );
       setCreateDate(undefined);
       setCreateTime("09:00");
+      setDuration(50);
+      setCreateDialogOpen(false);
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error ? err.message : "Не удалось предложить запись"
+        err instanceof Error ? err.message : "Не удалось добавить запись"
       );
     } finally {
       setCreating(false);
@@ -213,76 +223,23 @@ export function ClientAppointments({ clientId }: Props) {
 
   return (
     <div className="space-y-3">
-      <form
-        onSubmit={handleCreate}
-        className="flex flex-col gap-3 rounded-md border bg-background/40 p-3 text-xs md:flex-row md:items-end"
-      >
-        <div className="space-y-1 flex-1">
-          <Label className="text-sm">Дата</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                type="button"
-                className="h-9 w-full justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
-                data-empty={!createDate}
-              >
-                <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
-                {createDate ? (
-                  createDate.toLocaleDateString("ru-RU", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric"
-                  })
-                ) : (
-                  <span>Выберите дату</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto border-none bg-transparent p-0 shadow-none"
-              align="start"
-            >
-              <Calendar
-                mode="single"
-                selected={createDate}
-                onSelect={setCreateDate}
-                locale={ru}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-sm">Время</Label>
-          <TimeInput value={createTime} onChange={setCreateTime} />
-        </div>
-        <div className="space-y-1 w-full md:w-32">
-          <Label className="text-sm">Длительность, минут</Label>
-          <Select
-            value={String(duration)}
-            onValueChange={value => setDuration(Number(value))}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="30">30</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="60">60</SelectItem>
-              <SelectItem value="90">90</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex items-center justify-between gap-2">
         <Button
-          type="submit"
           size="sm"
-          className="mt-1 h-9 md:mt-0"
-          disabled={creating || !createDate}
+          variant="outline"
+          className="h-8 gap-1.5 text-sm"
+          onClick={() => {
+            setCreateDate(undefined);
+            setCreateTime("09:00");
+            setDuration(50);
+            setError(null);
+            setCreateDialogOpen(true);
+          }}
         >
-          {creating ? "Отправляем..." : "Предложить запись"}
+          <Plus className="h-3.5 w-3.5" />
+          Добавить запись
         </Button>
-      </form>
+      </div>
 
       {error && (
         <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
@@ -435,6 +392,99 @@ export function ClientAppointments({ clientId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={open => {
+          setCreateDialogOpen(open);
+          if (!open) setError(null);
+        }}
+      >
+        <DialogContent className="max-w-sm" onOpenAutoFocus={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Добавить запись</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4 text-sm">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Дата</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="h-9 w-full justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
+                    data-empty={!createDate}
+                  >
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
+                    {createDate ? (
+                      createDate.toLocaleDateString("ru-RU", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                      })
+                    ) : (
+                      <span>Выберите дату</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto border-none bg-transparent p-0 shadow-none"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={createDate}
+                    onSelect={setCreateDate}
+                    locale={ru}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Время начала</Label>
+              <TimeInput value={createTime} onChange={setCreateTime} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Длительность, минут</Label>
+              <Select
+                value={String(duration)}
+                onValueChange={value => setDuration(Number(value))}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="60">60</SelectItem>
+                  <SelectItem value="90">90</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+            <DialogFooter className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateDialogOpen(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={creating || !createDate}
+              >
+                {creating ? "Добавляем..." : "Добавить"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
