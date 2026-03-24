@@ -1181,7 +1181,10 @@ export function PsychologistSchedule() {
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent
+          className="max-w-md"
+          onOpenAutoFocus={e => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Новая запись</DialogTitle>
           </DialogHeader>
