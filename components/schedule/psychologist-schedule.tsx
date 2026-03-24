@@ -720,8 +720,9 @@ export function PsychologistSchedule() {
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 max-md:grid-cols-2 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)]">
-          <div className="min-w-0 md:flex md:flex-col md:gap-3 max-md:contents">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 max-md:grid-cols-2 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:grid-rows-[auto_auto] md:items-start">
+          <div className="hidden md:block md:col-start-1 md:row-start-1" aria-hidden />
+          <div className="min-w-0 md:flex md:flex-col md:gap-3 max-md:contents md:col-start-1 md:row-start-2">
             <div
               className="min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
               style={{ minHeight: 320 }}
@@ -734,14 +735,16 @@ export function PsychologistSchedule() {
               <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
             </div>
           </div>
-          <div className="min-w-0 space-y-2 max-md:col-span-2 md:min-w-0">
-            <div className="h-10 rounded-md bg-muted/30 animate-pulse" aria-hidden />
-            <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
-              <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
-                <CardContent className="space-y-2 px-4 py-3">
-                  <ScheduleGridSkeleton />
-                </CardContent>
-              </Card>
+          <div className="min-w-0 max-md:col-span-2 max-md:space-y-2 md:contents">
+            <div className="h-10 rounded-md bg-muted/30 animate-pulse md:col-start-2 md:row-start-1" aria-hidden />
+            <div className="min-w-0 md:col-start-2 md:row-start-2 md:min-w-0">
+              <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
+                <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
+                  <CardContent className="space-y-2 px-4 py-3">
+                    <ScheduleGridSkeleton />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -763,15 +766,16 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="isolate grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 max-md:grid-cols-2 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)]"
+            className="isolate grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 max-md:grid-cols-2 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:grid-rows-[auto_auto] md:items-start"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-            {/* md+: слева календарь и под ним легенда; справа недельный план. max-md: contents — календарь|легенда в одном ряду, план ниже */}
-            <div className="min-w-0 md:flex md:flex-col md:gap-3 max-md:contents">
+            {/* md+: верхний ряд — пустая лев. ячейка + переключатель недели; нижний — календарь|легенда слева, сетка справа */}
+            <div className="hidden md:block md:col-start-1 md:row-start-1" aria-hidden />
+            <div className="min-w-0 md:flex md:flex-col md:gap-3 max-md:contents md:col-start-1 md:row-start-2">
               <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
                 <Calendar
                   mode="single"
@@ -848,9 +852,9 @@ export function PsychologistSchedule() {
               </div>
             </div>
 
-        {/* Неделя / суточный план */}
-        <div className="min-w-0 space-y-2 max-md:col-span-2 md:min-w-0">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* Неделя / суточный план: на md+ верхняя строка сетки — только переключатель, ниже — карточка */}
+        <div className="min-w-0 max-md:col-span-2 max-md:space-y-2 md:contents">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:col-start-2 md:row-start-1">
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
               <Button
                 variant="outline"
@@ -903,6 +907,7 @@ export function PsychologistSchedule() {
             </div>
           </div>
 
+          <div className="min-w-0 md:col-start-2 md:row-start-2 md:min-w-0">
           <div className={isMobileView ? "" : "overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0"}>
           <Card className={cn("overflow-hidden rounded-lg border border-border", !isMobileView && "min-w-[1008px] md:min-w-0")}>
             <CardContent className="space-y-2 px-4 py-3">
@@ -1173,6 +1178,7 @@ export function PsychologistSchedule() {
           </div>
           </div>
         </div>
+      </div>
       </div>
       </div>
       
