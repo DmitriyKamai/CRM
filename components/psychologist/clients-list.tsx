@@ -12,6 +12,7 @@ import {
   Pencil,
   Download,
   ChevronDown,
+  MoreHorizontal,
   Upload,
   FileSpreadsheet,
   UploadCloud,
@@ -50,6 +51,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
@@ -1594,92 +1599,199 @@ export function PsychologistClientsList({
                 )}
               </div>
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
-                {multiSelectMode ? (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={selectedIds.size === 0 || bulkDeleting}
-                      onClick={openBulkDeleteDialog}
-                    >
-                      {bulkDeleting
-                        ? "Удаляем..."
-                        : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
-                    </Button>
+                {/* Десктоп: кнопки в ряд */}
+                <div className="hidden flex-wrap items-center gap-2 md:flex md:justify-end">
+                  {multiSelectMode ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={selectedIds.size === 0 || bulkDeleting}
+                        onClick={openBulkDeleteDialog}
+                      >
+                        {bulkDeleting
+                          ? "Удаляем..."
+                          : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedIds(new Set());
+                          setMultiSelectMode(false);
+                        }}
+                      >
+                        Отменить выделение
+                      </Button>
+                    </>
+                  ) : (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => {
                         setSelectedIds(new Set());
-                        setMultiSelectMode(false);
+                        setMultiSelectMode(true);
                       }}
                     >
-                      Отменить выделение
+                      Выбрать несколько
                     </Button>
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedIds(new Set());
-                      setMultiSelectMode(true);
-                    }}
-                  >
-                    Выбрать несколько
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={exporting || clients.length === 0}
+                      >
+                        <Download className="h-4 w-4 mr-1.5" />
+                        {exporting ? "Экспорт…" : "Экспорт"}
+                        <ChevronDown className="h-4 w-4 ml-1.5 opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => handleExport("csv")}
+                        disabled={exporting}
+                      >
+                        Скачать CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExport("json")}
+                        disabled={exporting}
+                      >
+                        Скачать JSON
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExport("xlsx")}
+                        disabled={exporting}
+                      >
+                        Скачать XLSX
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => void handleExportGoogleSheets()}
+                        disabled={
+                          exporting ||
+                          clients.length === 0 ||
+                          googleSheetsOAuthConfigured === false
+                        }
+                      >
+                        <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                        В Google Таблицу
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                    <Upload className="h-4 w-4 mr-1.5" />
+                    Импорт
                   </Button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={exporting || clients.length === 0}
-                    >
-                      <Download className="h-4 w-4 mr-1.5" />
-                      {exporting ? "Экспорт…" : "Экспорт"}
-                      <ChevronDown className="h-4 w-4 ml-1.5 opacity-70" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => handleExport("csv")}
-                      disabled={exporting}
-                    >
-                      Скачать CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleExport("json")}
-                      disabled={exporting}
-                    >
-                      Скачать JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleExport("xlsx")}
-                      disabled={exporting}
-                    >
-                      Скачать XLSX
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => void handleExportGoogleSheets()}
-                      disabled={
-                        exporting ||
-                        clients.length === 0 ||
-                        googleSheetsOAuthConfigured === false
-                      }
-                    >
-                      <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      В Google Таблицу
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-                  <Upload className="h-4 w-4 mr-1.5" />
-                  Импорт
-                </Button>
-                <Button size="sm" onClick={() => setAddOpen(true)}>
-                  Добавить клиента
-                </Button>
+                  <Button size="sm" onClick={() => setAddOpen(true)}>
+                    Добавить клиента
+                  </Button>
+                </div>
+
+                {/* Узкий экран: одно меню «Действия» */}
+                <div className="w-full md:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full justify-between gap-2"
+                        aria-haspopup="menu"
+                      >
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                          <MoreHorizontal className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="truncate">Действия</span>
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[min(100vw-2rem,20rem)]">
+                      {multiSelectMode ? (
+                        <>
+                          <DropdownMenuItem
+                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                            disabled={selectedIds.size === 0 || bulkDeleting}
+                            onClick={openBulkDeleteDialog}
+                          >
+                            {bulkDeleting
+                              ? "Удаляем..."
+                              : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedIds(new Set());
+                              setMultiSelectMode(false);
+                            }}
+                          >
+                            Отменить выделение
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      ) : (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedIds(new Set());
+                              setMultiSelectMode(true);
+                            }}
+                          >
+                            Выбрать несколько
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger
+                          disabled={exporting || clients.length === 0}
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4 shrink-0" aria-hidden />
+                          {exporting ? "Экспорт…" : "Экспорт"}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem
+                            onClick={() => handleExport("csv")}
+                            disabled={exporting}
+                          >
+                            Скачать CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleExport("json")}
+                            disabled={exporting}
+                          >
+                            Скачать JSON
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleExport("xlsx")}
+                            disabled={exporting}
+                          >
+                            Скачать XLSX
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => void handleExportGoogleSheets()}
+                            disabled={
+                              exporting ||
+                              clients.length === 0 ||
+                              googleSheetsOAuthConfigured === false
+                            }
+                          >
+                            <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                            В Google Таблицу
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuItem onClick={() => setImportOpen(true)}>
+                        <Upload className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                        Импорт
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAddOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                        Добавить клиента
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
 
