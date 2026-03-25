@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Empatix",
   description:
     "CRM для психологов и их клиентов с диагностикой, расписанием и безопасным хранением данных.",
+  // `app/icon.svg` — favicon; для Apple отдаём тот же SVG (старые iOS могут подставить скриншот)
+  icons: {
+    apple: "/icon.svg"
+  },
   appleWebApp: {
     capable: true,
     title: "Empatix",

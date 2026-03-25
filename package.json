@@ -26,6 +26,7 @@
     "prisma:seed-pavlova": "tsx prisma/seed-pavlova.ts",
     "prisma:seed-smil": "tsx prisma/seed-smil.ts",
     "bot": "tsx scripts/telegram-bot.ts",
+    "icons:build": "node scripts/build-empatix-icon-svg.mjs",
     "vercel:delete-old": "node scripts/delete-old-vercel-deployments.js",
     "postinstall": "node scripts/patch-next-dev.js"
   },
