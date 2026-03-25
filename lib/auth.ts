@@ -198,7 +198,12 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
         token.picture = user.image ?? null;
       }
       // При явном обновлении токена (signIn, update) — обновляем данные из БД.
-      if (trigger === "update" || (!token.role && token.id)) {
+      // Пока в JWT роль UNSPECIFIED, тоже читаем БД: после выбора роли на сервере токен
+      // иначе не обновится (!token.role для строки "UNSPECIFIED" ложно → вечный рассинхрон).
+      if (
+        trigger === "update" ||
+        ((!token.role || token.role === "UNSPECIFIED") && token.id)
+      ) {
         const userId = (token.id ?? token.sub) as string | undefined;
         if (userId) {
           try {
