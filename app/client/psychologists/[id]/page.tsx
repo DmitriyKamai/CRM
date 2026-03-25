@@ -253,27 +253,42 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
                   <h2 className="text-sm font-semibold text-foreground">
                     Связаться
                   </h2>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex min-w-0 flex-wrap gap-2">
                     {phoneHref && psychologist.contactPhone && (
-                      <Button variant="outline" size="sm" className="gap-2" asChild>
-                        <a href={phoneHref}>
-                          <ContactBrandPhoneIcon />
-                          <span className="max-w-[200px] truncate sm:max-w-none">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto max-w-full min-w-0 gap-2 py-2"
+                        asChild
+                      >
+                        <a
+                          href={phoneHref}
+                          title={psychologist.contactPhone}
+                          className="min-w-0"
+                        >
+                          <ContactBrandPhoneIcon className="shrink-0" />
+                          <span className="min-w-0 break-words text-left">
                             {psychologist.contactPhone}
                           </span>
                         </a>
                       </Button>
                     )}
                     {telegramHref && psychologist.contactTelegram && (
-                      <Button variant="outline" size="sm" className="gap-2" asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto max-w-full min-w-0 gap-2 py-2"
+                        asChild
+                      >
                         <a
                           href={telegramHref}
                           target="_blank"
                           rel="noopener noreferrer"
                           title={psychologist.contactTelegram}
+                          className="min-w-0"
                         >
-                          <ContactBrandTelegramIcon />
-                          <span className="max-w-[160px] truncate sm:max-w-[220px]">
+                          <ContactBrandTelegramIcon className="shrink-0" />
+                          <span className="min-w-0 break-words text-left">
                             {psychologist.contactTelegram}
                           </span>
                         </a>

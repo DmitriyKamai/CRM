@@ -774,36 +774,57 @@ export function PsychologistSettingsForm({
   return (
     <SettingsFormErrorBoundary>
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
-      <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1 bg-muted/80">
-        <TabsTrigger value="profile" className="flex items-center gap-2 shrink-0">
-          <User className="h-4 w-4" />
-          Личные данные
+      <TabsList className="flex h-auto w-full min-w-0 flex-wrap justify-start gap-1 bg-muted/80 p-1">
+        <TabsTrigger
+          value="profile"
+          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+        >
+          <User className="h-4 w-4 shrink-0" />
+          <span className="text-left leading-tight">Личные данные</span>
         </TabsTrigger>
-        <TabsTrigger value="professional" className="flex items-center gap-2 shrink-0">
-          <Briefcase className="h-4 w-4" />
-          Профиль
+        <TabsTrigger
+          value="professional"
+          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+        >
+          <Briefcase className="h-4 w-4 shrink-0" />
+          <span className="text-left leading-tight">Профиль</span>
         </TabsTrigger>
-        <TabsTrigger value="security" className="flex items-center gap-2 shrink-0">
-          <Lock className="h-4 w-4" />
-          Безопасность
+        <TabsTrigger
+          value="security"
+          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+        >
+          <Lock className="h-4 w-4 shrink-0" />
+          <span className="text-left leading-tight">Безопасность</span>
         </TabsTrigger>
-        <TabsTrigger value="accounts" className="flex items-center gap-2 shrink-0">
-          <Link2 className="h-4 w-4" />
-          Аккаунты
+        <TabsTrigger
+          value="accounts"
+          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+        >
+          <Link2 className="h-4 w-4 shrink-0" />
+          <span className="text-left leading-tight">Аккаунты</span>
         </TabsTrigger>
         {schedulingEnabled && (
-          <TabsTrigger value="calendar" className="flex items-center gap-2 shrink-0">
-            <CalendarDays className="h-4 w-4" />
-            Календарь
+          <TabsTrigger
+            value="calendar"
+            className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+          >
+            <CalendarDays className="h-4 w-4 shrink-0" />
+            <span className="text-left leading-tight">Календарь</span>
           </TabsTrigger>
         )}
-        <TabsTrigger value="customFields" className="flex items-center gap-2 shrink-0">
-          <ListChecks className="h-4 w-4" />
-          Поля клиента
+        <TabsTrigger
+          value="customFields"
+          className="flex max-w-full min-w-0 shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+        >
+          <ListChecks className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 text-left leading-tight">Поля клиента</span>
         </TabsTrigger>
-        <TabsTrigger value="statuses" className="flex items-center gap-2 shrink-0">
-          <ListFilter className="h-4 w-4" />
-          Статусы клиентов
+        <TabsTrigger
+          value="statuses"
+          className="flex max-w-full min-w-0 shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+        >
+          <ListFilter className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 text-left leading-tight">Статусы клиентов</span>
         </TabsTrigger>
       </TabsList>
 

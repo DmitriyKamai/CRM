@@ -1613,9 +1613,9 @@ export function PsychologistClientsList({
                 </TabsList>
               </Tabs>
             )}
-            {/* Header: на узких экранах — колонка, чтобы подсказка не сжималась в одну линию с кнопками */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-              <div className="min-w-0 w-full flex flex-col gap-1 sm:max-w-xl sm:pr-2">
+            {/* До md — всегда колонка: иначе между sm и md сайдбар + ряд дают «сжатую» подсказку и налезание кнопок */}
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-2">
+              <div className="flex min-w-0 w-full flex-col gap-1 md:max-w-xl md:pr-2">
                 <p className="text-pretty text-sm leading-snug text-muted-foreground">
                   Нажмите на строку, чтобы открыть профиль клиента.
                 </p>
@@ -1625,7 +1625,7 @@ export function PsychologistClientsList({
                   </p>
                 )}
               </div>
-              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
+              <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:justify-end">
                 {/* Десктоп: кнопки в ряд */}
                 <div className="hidden flex-wrap items-center gap-2 md:flex md:justify-end">
                   {multiSelectMode ? (

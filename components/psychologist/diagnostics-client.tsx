@@ -304,16 +304,16 @@ export function PsychologistDiagnosticsClient() {
                 type="button"
                 onClick={() => setSelectedMethodologyId(m.id)}
                 className={cn(
-                  "flex w-full flex-col gap-0.5 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
+                  "flex min-w-0 w-full flex-col gap-0.5 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
                   selectedMethodologyId === m.id
                     ? "bg-primary/10 ring-1 ring-primary/30"
                     : "bg-muted/50 hover:bg-muted/70"
                 )}
               >
-                <span className="font-medium leading-snug text-foreground">
+                <span className="break-words font-medium leading-snug text-foreground">
                   {m.name}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="break-words text-xs text-muted-foreground">
                   Автор: {m.author}
                 </span>
               </button>
@@ -325,8 +325,10 @@ export function PsychologistDiagnosticsClient() {
         <Card className="h-full">
           {selectedMethodologyId === "smil" ? (
             <>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{SMIL_METHODOLOGY.name}</CardTitle>
+              <CardHeader className="min-w-0 pb-3">
+                <CardTitle className="text-balance break-words text-base">
+                  {SMIL_METHODOLOGY.name}
+                </CardTitle>
                 <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                   <span>Автор: {SMIL_METHODOLOGY.author}</span>
                 </div>
@@ -353,9 +355,10 @@ export function PsychologistDiagnosticsClient() {
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex min-w-0 flex-wrap gap-2">
                   <Button
                     size="sm"
+                    className="h-auto max-w-full whitespace-normal text-balance"
                     onClick={handleCreateLink}
                     disabled={loadingLink}
                   >
@@ -364,6 +367,7 @@ export function PsychologistDiagnosticsClient() {
                   <Button
                     size="sm"
                     variant="outline"
+                    className="shrink-0"
                     onClick={handleOpenInNewTab}
                   >
                     Открыть форму теста
@@ -371,6 +375,7 @@ export function PsychologistDiagnosticsClient() {
                   <Button
                     size="sm"
                     variant="outline"
+                    className="shrink-0"
                     onClick={() => setSendDialogOpen(true)}
                   >
                     Отправить клиенту
@@ -405,8 +410,10 @@ export function PsychologistDiagnosticsClient() {
             </>
           ) : (
             <>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{QUESTIONNAIRE.name}</CardTitle>
+              <CardHeader className="min-w-0 pb-3">
+                <CardTitle className="text-balance break-words text-base">
+                  {QUESTIONNAIRE.name}
+                </CardTitle>
                 <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                   <span>Автор: {QUESTIONNAIRE.author}</span>
                 </div>
@@ -420,7 +427,7 @@ export function PsychologistDiagnosticsClient() {
                     value={selectedAdaptationId}
                     onValueChange={(v: AdaptationId) => setSelectedAdaptationId(v)}
                   >
-                    <SelectTrigger className="w-full max-w-sm">
+                    <SelectTrigger className="min-h-10 h-auto min-w-0 w-full max-w-full py-2 sm:max-w-sm [&>span]:line-clamp-none [&>span]:whitespace-normal [&>span]:text-left [&>span]:break-words">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -456,9 +463,10 @@ export function PsychologistDiagnosticsClient() {
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex min-w-0 flex-wrap gap-2">
                       <Button
                         size="sm"
+                        className="h-auto max-w-full whitespace-normal text-balance"
                         onClick={handleCreateLink}
                         disabled={loadingLink}
                       >
@@ -467,6 +475,7 @@ export function PsychologistDiagnosticsClient() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="shrink-0"
                         onClick={handleOpenInNewTab}
                       >
                         Открыть форму теста
@@ -474,6 +483,7 @@ export function PsychologistDiagnosticsClient() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="shrink-0"
                         onClick={() => setSendDialogOpen(true)}
                       >
                         Отправить клиенту
