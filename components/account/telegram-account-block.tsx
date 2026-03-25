@@ -44,7 +44,11 @@ export function TelegramAccountBlock() {
       }
       if (data.link) {
         setLinkResult({ link: data.link, expiresIn: data.expiresIn ?? 600 });
-        window.open(data.link, "_blank", "noopener,noreferrer");
+        // После await fetch() window.open часто блокируется на телефонах (нет «прямого» user gesture).
+        const popup = window.open(data.link, "_blank", "noopener,noreferrer");
+        if (popup == null) {
+          window.location.assign(data.link);
+        }
         toast.success("Откройте бота в Telegram и нажмите «Старт». Ссылка действительна 10 минут.");
       } else {
         toast.error("Не настроен TELEGRAM_BOT_USERNAME. Добавьте его в .env");
@@ -165,8 +169,18 @@ export function TelegramAccountBlock() {
           </Button>
           {linkResult && (
             <>
-              <span className="text-xs text-muted-foreground">
-                Ссылка действительна {Math.floor(linkResult.expiresIn / 60)} мин
+              <span className="text-xs text-muted-foreground inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                <a
+                  href={linkResult.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Открыть бота в Telegram
+                </a>
+                <span className="text-muted-foreground">
+                  · действительна {Math.floor(linkResult.expiresIn / 60)} мин
+                </span>
               </span>
               <Button
                 type="button"
