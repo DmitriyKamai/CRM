@@ -37,7 +37,7 @@ Commands are in `package.json`:
 ### Database
 
 - Schema: `prisma/schema.prisma`
-- **For fresh local setup**, use `npx prisma db push` instead of `npx prisma migrate deploy` — the migration directory has an ordering issue where `20260309*` sorts before `20260315_init_from_schema`, causing failures on empty databases. `db push` syncs the schema directly.
+- Для свежей локальной БД: `npx prisma migrate deploy` или `npx prisma db push`.
 - Seed diagnostic tests: `npm run prisma:seed`
 - Required `.env` vars: `DATABASE_URL`, `DIRECT_DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
 
