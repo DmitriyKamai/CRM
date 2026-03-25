@@ -6,12 +6,10 @@
  * Set DIRECT_DATABASE_URL to the *direct* connection string (no -pooler in host).
  */
 (async () => {
-  // Dynamic import to avoid `require()` (eslint rule `@typescript-eslint/no-require-imports`)
   const childProcessMod = await import("child_process");
   const execSync =
     childProcessMod.execSync ?? (childProcessMod.default && childProcessMod.default.execSync);
 
-  // Для npm-скриптов Node не всегда подхватывает `.env`, поэтому явно грузим dotenv.
   try {
     const dotenvMod = await import("dotenv");
     dotenvMod.config();
