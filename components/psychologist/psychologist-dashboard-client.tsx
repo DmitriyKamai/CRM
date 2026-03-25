@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -27,9 +27,10 @@ export function PsychologistDashboardClient({
   diagnosticsEnabled
 }: Props) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [clientsCount] = useState<number>(0);
   const [upcomingAppointments] = useState<number>(0);
+  const sessionRefreshTried = useRef(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -38,6 +39,12 @@ export function PsychologistDashboardClient({
       return;
     }
     const role = (session.user as UserWithRole).role;
+    // Сразу после credentials signIn JWT на клиенте иногда без role — один раз подтягиваем сессию.
+    if (role === undefined && !sessionRefreshTried.current) {
+      sessionRefreshTried.current = true;
+      void update();
+      return;
+    }
     if (role === "UNSPECIFIED") {
       router.replace("/auth/choose-role");
       return;
@@ -46,7 +53,7 @@ export function PsychologistDashboardClient({
       router.replace("/?forbidden=1");
       return;
     }
-  }, [status, session, router]);
+  }, [status, session, router, update]);
 
   if (status === "loading") {
     return (
@@ -65,7 +72,12 @@ export function PsychologistDashboardClient({
   }
 
   const role = (session?.user as UserWithRole | undefined)?.role;
-  if (!session?.user || role === "UNSPECIFIED" || role !== "PSYCHOLOGIST") {
+  if (
+    !session?.user ||
+    role === undefined ||
+    role === "UNSPECIFIED" ||
+    role !== "PSYCHOLOGIST"
+  ) {
     return (
       <div className="p-6 space-y-4">
         <p className="text-sm text-muted-foreground">Проверяем доступ…</p>

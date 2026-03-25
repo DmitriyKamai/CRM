@@ -133,6 +133,8 @@ export function RegisterForm({ role, embedded }: RegisterFormProps) {
         return;
       }
 
+      // Обновляем серверные данные и клиентскую сессию до перехода в кабинет.
+      router.refresh();
       router.push(signInResult?.url ?? callbackUrl);
     } catch (err) {
       console.error(err);

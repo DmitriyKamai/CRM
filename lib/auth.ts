@@ -244,7 +244,8 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
     async session({ session, token }) {
       if (!session.user || !token) return session;
       if (token.id) session.user.id = token.id;
-      if (token.role) session.user.role = token.role;
+      // Всегда пробрасываем роль из JWT (в т.ч. UNSPECIFIED), не только «truthy».
+      session.user.role = token.role ?? null;
       if (token.name) session.user.name = token.name;
       if (token.email) session.user.email = token.email;
       if (token.picture) session.user.image = token.picture;
