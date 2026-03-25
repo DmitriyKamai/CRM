@@ -8,13 +8,13 @@ CREATE TYPE "Role" AS ENUM ('UNSPECIFIED', 'CLIENT', 'PSYCHOLOGIST', 'ADMIN');
 CREATE TYPE "SlotStatus" AS ENUM ('FREE', 'BOOKED', 'CANCELED');
 
 -- CreateEnum
-CREATE TYPE "AppointmentStatus" AS ENUM ('PENDING_CONFIRMATION', 'SCHEDULED', 'COMPLETED', 'CANCELED');
+CREATE TYPE "AppointmentStatus" AS ENUM ('PENDING_CONFIRMATION', 'SCHEDULED', 'COMPLETED', 'CANCELED', 'NO_SHOW');
 
 -- CreateEnum
 CREATE TYPE "CustomFieldTarget" AS ENUM ('CLIENT', 'APPOINTMENT');
 
 -- CreateEnum
-CREATE TYPE "CustomFieldType" AS ENUM ('TEXT', 'NUMBER', 'DATE', 'SELECT', 'MULTILINE', 'BOOLEAN');
+CREATE TYPE "CustomFieldType" AS ENUM ('TEXT', 'NUMBER', 'DATE', 'SELECT', 'MULTILINE', 'BOOLEAN', 'MULTI_SELECT');
 
 -- CreateEnum
 CREATE TYPE "TestType" AS ENUM ('SHMISHEK', 'PAVLOVA_SHMISHEK', 'SMIL');
@@ -102,6 +102,18 @@ CREATE TABLE "VerificationToken" (
 );
 
 -- CreateTable
+CREATE TABLE "PasswordResetToken" (
+    "id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "usedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PsychologistProfile" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -114,13 +126,43 @@ CREATE TABLE "PsychologistProfile" (
     "maritalStatus" TEXT,
     "specialization" TEXT,
     "bio" TEXT,
-    "settingsJson" JSONB,
+    "contactPhone" TEXT,
+    "contactTelegram" TEXT,
+    "contactViber" TEXT,
+    "contactWhatsapp" TEXT,
     "profilePhotoUrl" TEXT,
     "profilePhotoPublished" BOOLEAN NOT NULL DEFAULT false,
+    "settingsJson" JSONB,
+    "googleSheetsRefreshToken" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PsychologistProfile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CalendarFeedToken" (
+    "id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "psychologistId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CalendarFeedToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AuditLog" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "actorUserId" TEXT,
+    "actorRole" TEXT,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT,
+    "targetId" TEXT,
+    "ip" TEXT,
+    "meta" JSONB,
+
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -140,8 +182,35 @@ CREATE TABLE "ClientProfile" (
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "statusId" TEXT,
 
     CONSTRAINT "ClientProfile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ClientHistoryEvent" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "clientId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "actorUserId" TEXT,
+    "meta" JSONB,
+
+    CONSTRAINT "ClientHistoryEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ClientStatus" (
+    "id" TEXT NOT NULL,
+    "psychologistId" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ClientStatus_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -257,6 +326,7 @@ CREATE TABLE "Appointment" (
     "end" TIMESTAMP(3) NOT NULL,
     "status" "AppointmentStatus" NOT NULL DEFAULT 'SCHEDULED',
     "notes" TEXT,
+    "proposedByPsychologist" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -270,7 +340,10 @@ CREATE TABLE "CustomFieldDefinition" (
     "target" "CustomFieldTarget" NOT NULL,
     "key" TEXT NOT NULL,
     "label" TEXT NOT NULL,
+    "description" TEXT,
     "type" "CustomFieldType" NOT NULL,
+    "group" TEXT,
+    "order" INTEGER NOT NULL DEFAULT 0,
     "options" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -292,6 +365,20 @@ CREATE TABLE "CustomFieldValue" (
 );
 
 -- CreateTable
+CREATE TABLE "ClientFile" (
+    "id" TEXT NOT NULL,
+    "psychologistId" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ClientFile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Recommendation" (
     "id" TEXT NOT NULL,
     "psychologistId" TEXT NOT NULL,
@@ -302,6 +389,16 @@ CREATE TABLE "Recommendation" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Recommendation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PlatformSettings" (
+    "id" TEXT NOT NULL,
+    "schedulingEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "diagnosticsEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PlatformSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -335,7 +432,34 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PasswordResetToken_token_key" ON "PasswordResetToken"("token");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_userId_idx" ON "PasswordResetToken"("userId");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_expiresAt_idx" ON "PasswordResetToken"("expiresAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "PsychologistProfile_userId_key" ON "PsychologistProfile"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CalendarFeedToken_token_key" ON "CalendarFeedToken"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CalendarFeedToken_psychologistId_key" ON "CalendarFeedToken"("psychologistId");
+
+-- CreateIndex
+CREATE INDEX "CalendarFeedToken_token_idx" ON "CalendarFeedToken"("token");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_actorUserId_idx" ON "AuditLog"("actorUserId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_action_createdAt_idx" ON "AuditLog"("action", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "ClientProfile_userId_idx" ON "ClientProfile"("userId");
@@ -347,7 +471,19 @@ CREATE INDEX "ClientProfile_psychologistId_idx" ON "ClientProfile"("psychologist
 CREATE INDEX "ClientProfile_email_idx" ON "ClientProfile"("email");
 
 -- CreateIndex
+CREATE INDEX "ClientProfile_statusId_idx" ON "ClientProfile"("statusId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ClientProfile_psychologistId_email_key" ON "ClientProfile"("psychologistId", "email");
+
+-- CreateIndex
+CREATE INDEX "ClientHistoryEvent_clientId_createdAt_idx" ON "ClientHistoryEvent"("clientId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "ClientStatus_psychologistId_order_idx" ON "ClientStatus"("psychologistId", "order");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ClientStatus_psychologistId_key_key" ON "ClientStatus"("psychologistId", "key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Test_type_key" ON "Test"("type");
@@ -407,6 +543,9 @@ CREATE INDEX "CustomFieldValue_clientId_idx" ON "CustomFieldValue"("clientId");
 CREATE INDEX "CustomFieldValue_appointmentId_idx" ON "CustomFieldValue"("appointmentId");
 
 -- CreateIndex
+CREATE INDEX "ClientFile_psychologistId_clientId_idx" ON "ClientFile"("psychologistId", "clientId");
+
+-- CreateIndex
 CREATE INDEX "Recommendation_psychologistId_idx" ON "Recommendation"("psychologistId");
 
 -- CreateIndex
@@ -425,13 +564,34 @@ ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PsychologistProfile" ADD CONSTRAINT "PsychologistProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CalendarFeedToken" ADD CONSTRAINT "CalendarFeedToken_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ClientProfile" ADD CONSTRAINT "ClientProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ClientProfile" ADD CONSTRAINT "ClientProfile_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientProfile" ADD CONSTRAINT "ClientProfile_statusId_fkey" FOREIGN KEY ("statusId") REFERENCES "ClientStatus"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientHistoryEvent" ADD CONSTRAINT "ClientHistoryEvent_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "ClientProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientHistoryEvent" ADD CONSTRAINT "ClientHistoryEvent_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientStatus" ADD CONSTRAINT "ClientStatus_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TestQuestion" ADD CONSTRAINT "TestQuestion_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -491,6 +651,12 @@ ALTER TABLE "CustomFieldValue" ADD CONSTRAINT "CustomFieldValue_clientId_fkey" F
 ALTER TABLE "CustomFieldValue" ADD CONSTRAINT "CustomFieldValue_appointmentId_fkey" FOREIGN KEY ("appointmentId") REFERENCES "Appointment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "ClientFile" ADD CONSTRAINT "ClientFile_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClientFile" ADD CONSTRAINT "ClientFile_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "ClientProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Recommendation" ADD CONSTRAINT "Recommendation_psychologistId_fkey" FOREIGN KEY ("psychologistId") REFERENCES "PsychologistProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -498,3 +664,4 @@ ALTER TABLE "Recommendation" ADD CONSTRAINT "Recommendation_clientId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "Recommendation" ADD CONSTRAINT "Recommendation_testResultId_fkey" FOREIGN KEY ("testResultId") REFERENCES "TestResult"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
