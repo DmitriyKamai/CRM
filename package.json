@@ -103,7 +103,8 @@
   },
   "overrides": {
     "effect": "^3.20.0",
-    "undici": ">=6.24.0"
+    "undici": ">=6.24.0",
+    "picomatch": "^4.0.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
