@@ -132,13 +132,13 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
           : mounted ? "Пользователь" : "—";
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-2 rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] px-4">
-      <div className="flex items-center gap-2 min-w-0">
+    <header className="relative z-40 flex min-w-0 h-14 shrink-0 items-center justify-between gap-2 rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] px-4">
+      <div className="flex min-w-0 items-center gap-2">
         {onMenuClick && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 md:hidden"
+            className="h-9 w-9 shrink-0 lg:hidden"
             aria-label="Открыть меню"
             onClick={onMenuClick}
           >

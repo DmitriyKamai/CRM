@@ -61,14 +61,14 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         />
       ) : (
         <header className="rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))]">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <div className="mx-auto flex min-w-0 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:gap-4">
             <Link
               href="/"
-              className="tangerine-bold text-5xl text-foreground leading-none"
+              className="tangerine-bold min-w-0 shrink text-4xl text-foreground leading-none sm:text-5xl"
             >
               Empatix
             </Link>
-            <nav className="flex items-center gap-2">
+            <nav className="flex min-w-0 flex-wrap items-center justify-end gap-2">
               <>
                 <Button variant="ghost" asChild size="sm">
                   <Link href="/auth/login">Войти</Link>
@@ -111,7 +111,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             <Button size="lg" variant="outline" asChild>
               <Link href="/auth/choose-role">Сменить роль</Link>
             </Button>
-            <p className="w-full text-center text-sm text-muted-foreground">
+            <p className="w-full max-w-full px-1 text-center text-sm break-words text-muted-foreground">
               Вы вошли: {userLabel}
             </p>
           </section>

@@ -847,7 +847,7 @@ export const PsychologistClientProfile = forwardRef<
         className="w-full min-w-0"
       >
         {/* Узкие экраны: выбор вкладки из селекта */}
-        <div className="md:hidden w-full">
+        <div className="w-full lg:hidden">
           <Select
             value={activeTab}
             onValueChange={(v) => {
@@ -880,7 +880,7 @@ export const PsychologistClientProfile = forwardRef<
           </Select>
         </div>
         {/* Широкие экраны: вкладки со стрелками */}
-        <div className="hidden md:block w-full min-w-0 overflow-hidden">
+        <div className="hidden w-full min-w-0 overflow-hidden lg:block">
           <div className="flex items-center gap-1 min-w-0">
             {tabsHaveOverflow && (
               <Button

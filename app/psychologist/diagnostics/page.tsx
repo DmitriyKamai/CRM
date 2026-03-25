@@ -17,6 +17,10 @@ export default async function PsychologistDiagnosticsPage() {
     redirect("/");
   }
 
-  return <div className="p-6"><PsychologistDiagnosticsClient /></div>;
+  return (
+    <div className="min-w-0 p-4 sm:p-6">
+      <PsychologistDiagnosticsClient />
+    </div>
+  );
 }
 

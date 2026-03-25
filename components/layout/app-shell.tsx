@@ -19,7 +19,8 @@ export function AppShell({ role, children, modules }: AppShellProps) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Сайдбар от верха до низа экрана (слева) */}
-      <div className="hidden md:flex h-full shrink-0">
+      {/* До lg контент ~768–1023px слишком узкий рядом с фикс. сайдбаром 280px — переполнение тулбаров. Док — только Sheet. */}
+      <div className="hidden h-full shrink-0 lg:flex">
         <SidebarNav role={role} modules={modules} />
       </div>
       {/* Хедер и контент справа от сайдбара */}

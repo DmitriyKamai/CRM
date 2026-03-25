@@ -1613,9 +1613,9 @@ export function PsychologistClientsList({
                 </TabsList>
               </Tabs>
             )}
-            {/* До md — всегда колонка: иначе между sm и md сайдбар + ряд дают «сжатую» подсказку и налезание кнопок */}
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-2">
-              <div className="flex min-w-0 w-full flex-col gap-1 md:max-w-xl md:pr-2">
+            {/* До lg — колонка; на md+ с узким main (при старом брейкпоинте сайдбара) тулбар ломался — см. AppShell lg */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-2">
+              <div className="flex min-w-0 w-full flex-col gap-1 lg:max-w-xl lg:pr-2">
                 <p className="text-pretty text-sm leading-snug text-muted-foreground">
                   Нажмите на строку, чтобы открыть профиль клиента.
                 </p>
@@ -1625,9 +1625,9 @@ export function PsychologistClientsList({
                   </p>
                 )}
               </div>
-              <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:justify-end">
-                {/* Десктоп: кнопки в ряд */}
-                <div className="hidden flex-wrap items-center gap-2 md:flex md:justify-end">
+              <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0 lg:justify-end">
+                {/* Десктоп: кнопки в ряд (сайдбар с lg — здесь тоже lg) */}
+                <div className="hidden flex-wrap items-center gap-2 lg:flex lg:justify-end">
                   {multiSelectMode ? (
                     <>
                       <Button
@@ -1717,7 +1717,7 @@ export function PsychologistClientsList({
                 </div>
 
                 {/* Узкий экран: одно меню «Действия» (без вложенного Sub — на тач-устройствах он часто не открывается) */}
-                <div className="flex w-full justify-end md:hidden">
+                <div className="flex w-full justify-end lg:hidden">
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button
