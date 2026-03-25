@@ -525,9 +525,35 @@ export function PsychologistClientsList({
     return () => window.removeEventListener("focus", onWindowFocus);
   }, [importOpen]);
 
-  function parseCSVLine(line: string): string[] {
+  /** Определяет разделитель по первой строке (учитывает кавычки). Часто в RU/Excel — `;`. */
+  function detectCsvDelimiter(firstLine: string): string {
+    let comma = 0;
+    let semi = 0;
+    let tab = 0;
+    let inQuotes = false;
+    for (let i = 0; i < firstLine.length; i++) {
+      const c = firstLine[i];
+      if (c === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (!inQuotes) {
+        if (c === ",") comma++;
+        else if (c === ";") semi++;
+        else if (c === "\t") tab++;
+      }
+    }
+    const max = Math.max(comma, semi, tab);
+    if (max === 0) return ",";
+    if (semi === max) return ";";
+    if (tab === max) return "\t";
+    return ",";
+  }
+
+  function parseCSVLine(line: string, delimiter: string): string[] {
     const out: string[] = [];
     let i = 0;
+    const delim = delimiter.slice(0, 1);
     while (i < line.length) {
       if (line[i] === '"') {
         let cell = "";
@@ -545,14 +571,15 @@ export function PsychologistClientsList({
           }
         }
         out.push(cell);
+        if (i < line.length && line[i] === delim) i++;
       } else {
         let cell = "";
-        while (i < line.length && line[i] !== ",") {
+        while (i < line.length && line[i] !== delim) {
           cell += line[i];
           i++;
         }
         out.push(cell.trim());
-        i++;
+        if (i < line.length && line[i] === delim) i++;
       }
     }
     return out;
@@ -609,8 +636,9 @@ export function PsychologistClientsList({
           setImportRows([]);
           return;
         }
-        const headers = parseCSVLine(lines[0]);
-        const rows = lines.slice(1).map(parseCSVLine);
+        const delimiter = detectCsvDelimiter(lines[0]);
+        const headers = parseCSVLine(lines[0], delimiter);
+        const rows = lines.slice(1).map((l) => parseCSVLine(l, delimiter));
         const nextMapping: Record<string, number> = {};
         headers.forEach((h, idx) => {
           const base = IMPORT_FIELDS.find((f) => f.label === h);
@@ -1830,8 +1858,9 @@ export function PsychologistClientsList({
                         <div>
                           <Label className="text-sm">Файл</Label>
                           <p className="text-xs text-muted-foreground">
-                            Поддерживаются CSV, XLSX и JSON. Для корректного распознавания дат
-                            используйте формат из шаблона.
+                            Поддерживаются CSV, XLSX и JSON. В CSV разделитель колонок определяется
+                            автоматически (запятая, «;» как в Excel при русской локали, или табуляция).
+                            Для дат используйте формат из шаблона.
                           </p>
                         </div>
                         <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
