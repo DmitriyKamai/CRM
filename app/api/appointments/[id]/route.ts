@@ -33,14 +33,20 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     if (mod) return mod;
 
     const body = await request.json().catch(() => null);
-    const status = body?.status as AppointmentStatus | undefined;
+    const rawStatus = body?.status as string | undefined;
 
-    if (!status) {
+    const VALID_STATUSES: AppointmentStatus[] = [
+      "PENDING_CONFIRMATION", "SCHEDULED", "COMPLETED", "CANCELED", "NO_SHOW"
+    ];
+
+    if (!rawStatus || !VALID_STATUSES.includes(rawStatus as AppointmentStatus)) {
       return NextResponse.json(
-        { message: "Не указан статус" },
+        { message: "Не указан или неверный статус" },
         { status: 400 }
       );
     }
+
+    const status = rawStatus as AppointmentStatus;
 
     const profile = await prisma.psychologistProfile.findUnique({
       where: { id: ctx.psychologistId }

@@ -43,6 +43,16 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
 
+    const client = await prisma.clientProfile.findFirst({
+      where: { id, psychologistId: ctx.psychologistId }
+    });
+    if (!client) {
+      return NextResponse.json(
+        { message: "Клиент не найден или вам недоступен" },
+        { status: 404 }
+      );
+    }
+
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(
         { message: "Загрузка файлов не настроена (BLOB_READ_WRITE_TOKEN)." },

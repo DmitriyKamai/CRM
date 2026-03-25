@@ -41,6 +41,15 @@ export async function POST(request: Request) {
     const data = forgotSchema.parse(json);
     const email = data.email.trim().toLowerCase();
 
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, hashedPassword: true }
+    });
+
+    if (!user || !user.hashedPassword) {
+      return NextResponse.json({ ok: true });
+    }
+
     const allowedByEmail = await checkRateLimit({
       key: `forgot-password:email:${email}`,
       windowMs: 60 * 60 * 1000,
@@ -54,17 +63,6 @@ export async function POST(request: Request) {
         },
         { status: 429 }
       );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, hashedPassword: true }
-    });
-
-    // Чтобы не раскрывать, есть ли пользователь в системе,
-    // всегда возвращаем одинаковый ответ.
-    if (!user || !user.hashedPassword) {
-      return NextResponse.json({ ok: true });
     }
 
     const token = crypto.randomUUID();
@@ -94,11 +92,7 @@ export async function POST(request: Request) {
 
     await sendPasswordResetEmail({ to: email, resetUrl });
 
-    const isDev = process.env.NODE_ENV !== "production";
-    return NextResponse.json({
-      ok: true,
-      ...(isDev && { resetUrl })
-    });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
       logZodError("POST /api/auth/forgot-password", error);

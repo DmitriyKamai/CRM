@@ -45,7 +45,7 @@ function validatePayload(payload: unknown): {
   const normalized: Record<number, 0 | 1> = {};
   for (const [k, v] of Object.entries(answers)) {
     const index = Number(k);
-    if (!Number.isFinite(index) || index < 1 || index > SMIL_QUESTION_COUNT) continue;
+    if (!Number.isInteger(index) || index < 1 || index > SMIL_QUESTION_COUNT) continue;
     const num = Number(v);
     if (num !== 0 && num !== 1) continue;
     normalized[index] = num as 0 | 1;

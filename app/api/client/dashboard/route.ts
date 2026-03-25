@@ -22,12 +22,7 @@ async function handleGet(): Promise<Response> {
     } catch (dbErr) {
       console.error("[API /api/client/dashboard] prisma findMany:", dbErr);
       return NextResponse.json(
-        {
-          error:
-            dbErr instanceof Error
-              ? dbErr.message
-              : "Ошибка подключения к базе данных"
-        },
+        { error: "Ошибка подключения к базе данных" },
         { status: 500 }
       );
     }
@@ -205,9 +200,7 @@ async function handleGet(): Promise<Response> {
   } catch (err) {
     console.error("[API /api/client/dashboard] error:", err);
     return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : "Ошибка загрузки данных"
-      },
+      { error: "Ошибка загрузки данных" },
       { status: 500 }
     );
   }

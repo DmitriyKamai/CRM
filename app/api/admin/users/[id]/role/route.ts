@@ -25,6 +25,23 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     );
   }
 
+  if (nextRole !== "ADMIN") {
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true }
+    });
+
+    if (target?.role === "ADMIN") {
+      const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { message: "Невозможно понизить единственного администратора" },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   const user = await prisma.user.update({
     where: { id },
     data: { role: nextRole as Role }

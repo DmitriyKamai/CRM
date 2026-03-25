@@ -114,12 +114,15 @@ export async function PATCH(request: Request) {
     return await withPrismaLock(async () => {
       const link = await prisma.diagnosticLink.findUnique({
         where: { token },
-        include: { progress: true }
+        include: {
+          test: { select: { isActive: true } },
+          progress: true
+        }
       });
 
-      if (!link) {
+      if (!link || !link.test || !link.test.isActive) {
         return NextResponse.json(
-          { message: "Ссылка не найдена" },
+          { message: "Ссылка недействительна" },
           { status: 404 }
         );
       }

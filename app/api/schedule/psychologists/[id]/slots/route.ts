@@ -24,17 +24,6 @@ export async function GET(_request: Request, { params }: ParamsPromise) {
       orderBy: { start: "asc" }
     });
 
-    const slotIds = slots.map((s) => s.id);
-    if (slotIds.length > 0) {
-      await prisma.appointment.updateMany({
-        where: {
-          slotId: { in: slotIds },
-          status: { notIn: ["SCHEDULED", "PENDING_CONFIRMATION"] }
-        },
-        data: { slotId: null }
-      });
-    }
-
     return NextResponse.json(slots);
   } catch (err) {
     console.error("[API GET /api/schedule/psychologists/[id]/slots]", err);

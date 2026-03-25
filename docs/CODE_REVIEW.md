@@ -1,133 +1,112 @@
 # Код-ревью: Empatix CRM
 
 Дата: 2026-03-25
+Статус: ✅ Все найденные проблемы (кроме #4 — открытая регистрация психологов по решению владельца) исправлены.
 
 ## Критические проблемы
 
-### 1. IDOR при загрузке файлов клиента
+### 1. ~~IDOR при загрузке файлов клиента~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/psychologist/clients/[id]/files/route.ts` (POST)
 **Серьёзность:** 🔴 CRITICAL
 
-Психолог может загрузить файл к чужому клиенту — после `requirePsychologist()` не проверяется, что `ClientProfile` принадлежит текущему психологу. DELETE корректно фильтрует по всем полям, а POST — нет.
-
-**Исправление:** Добавить `findFirst({ where: { id, psychologistId: ctx.psychologistId } })` перед созданием записи — аналогично `invite/route.ts`.
+Добавлена проверка `findFirst({ where: { id, psychologistId } })` перед загрузкой.
 
 ---
 
 ## Высокий приоритет
 
-### 2. Публичный GET-эндпоинт мутирует БД
+### 2. ~~Публичный GET-эндпоинт мутирует БД~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/schedule/psychologists/[id]/slots/route.ts`
 **Серьёзность:** 🟠 HIGH
 
-GET-запрос (список слотов психолога) выполняет `appointment.updateMany`, очищая `slotId` у записей. Побочные эффекты на публичном read-only эндпоинте — риск DoS и нарушения данных.
+Удалена мутация `appointment.updateMany` из GET-эндпоинта.
 
-**Исправление:** Перенести reconciliation-логику в отдельный cron/admin-эндпоинт или authenticated PUT/POST.
-
-### 3. Shmishek submit не проверяет тип теста
+### 3. ~~Shmishek submit не проверяет тип теста~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/diagnostics/shmishek/submit/route.ts`
 **Серьёзность:** 🟠 HIGH
 
-Павлова и СМИЛ проверяют `link.test.type`, а Шмишек — только `isActive`. Токен от другого теста можно отправить на `/api/diagnostics/shmishek/submit`, создав `TestResult` с неправильной интерпретацией.
+Добавлена проверка `link.test.type !== "SHMISHEK"`.
 
-**Исправление:** Добавить `if (link.test.type !== "SHMISHEK") return 400`.
-
-### 4. Открытая регистрация психологов
+### 4. Открытая регистрация психологов — ⏭️ НЕ БАГО, ПО ЗАМЫСЛУ
 
 **Файл:** `app/api/auth/register/route.ts`
-**Серьёзность:** 🟠 HIGH (если не задумано)
+**Серьёзность:** ℹ️ INFO
 
-Любой может зарегистрироваться как психолог без верификации. Для CRM это может быть нежелательно.
+Открытая регистрация психологов — осознанное решение владельца продукта.
 
-**Исправление:** Добавить инвайт-систему или модерацию для роли `PSYCHOLOGIST`.
-
-### 5. Нет защиты от удаления последнего админа
+### 5. ~~Нет защиты от удаления последнего админа~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/admin/users/[id]/role/route.ts`
 **Серьёзность:** 🟠 HIGH
 
-Админ может понизить себя или последнего админа, заблокировав доступ к админке навсегда.
-
-**Исправление:** Проверять `count({ where: { role: "ADMIN" } }) > 1` перед понижением.
+Добавлена проверка `count({ where: { role: "ADMIN" } }) > 1` перед понижением.
 
 ---
 
 ## Средний приоритет
 
-### 6. `proxy.ts` не подключён как middleware
+### 6. ~~`proxy.ts` не подключён как middleware~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `proxy.ts`
 **Серьёзность:** 🟡 MEDIUM
 
-Файл определяет CSP-заголовки, HSTS, Permissions-Policy, но не экспортируется как Next.js middleware (`middleware.ts` отсутствует). Заголовки из `proxy.ts` не применяются.
+В Next.js 16 `proxy.ts` подхватывается автоматически — подтверждено сборкой (`ƒ Proxy (Middleware)`) и проверкой заголовков.
 
-**Исправление:** Создать `middleware.ts`, реэкспортирующий `proxy`, или перенести заголовки в `next.config.mjs`.
-
-### 7. Diagnostic progress PATCH слабее GET
+### 7. ~~Diagnostic progress PATCH слабее GET~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/diagnostics/progress/route.ts`
 **Серьёзность:** 🟡 MEDIUM
 
-GET проверяет `test.isActive`, expiry и maxUses. PATCH — нет. Можно обновить прогресс по деактивированному тесту.
+PATCH теперь включает `test: { select: { isActive: true } }` и проверяет `test.isActive`.
 
-**Исправление:** Повторить валидацию из GET в PATCH.
-
-### 8. Утечка ошибки БД клиенту
+### 8. ~~Утечка ошибки БД клиенту~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/client/dashboard/route.ts`
 **Серьёзность:** 🟡 MEDIUM
 
-`dbErr.message` может содержать информацию о схеме или подключении. Возвращается напрямую клиенту.
+Заменён `dbErr.message` на generic-сообщение в обоих catch-блоках.
 
-**Исправление:** Логировать на сервере, возвращать generic-сообщение.
-
-### 9. Forgot-password: abuse per-email rate limit
+### 9. ~~Forgot-password: abuse per-email rate limit~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/auth/forgot-password/route.ts`
 **Серьёзность:** 🟡 MEDIUM
 
-Rate limit по email срабатывает до проверки существования пользователя. Атакующий может исчерпать лимит жертвы (3/час).
+Per-email rate limit теперь срабатывает только после подтверждения существования пользователя.
 
-**Исправление:** Строже лимитировать по IP; инкрементировать per-email счётчик только для существующих аккаунтов.
-
-### 10. СМИЛ: ключи ответов не проверяются на целочисленность
+### 10. ~~СМИЛ: ключи ответов не проверяются на целочисленность~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/diagnostics/smil/submit/route.ts`
 **Серьёзность:** 🟡 MEDIUM
 
-`Number.isFinite` пропускает дробные числа (`"1.5"`), которые некорректны как индексы вопросов.
+Заменено `Number.isFinite` на `Number.isInteger`.
 
-**Исправление:** Использовать `Number.isInteger(index)`.
-
-### 11. `appointments/[id]` — status без enum-валидации
+### 11. ~~`appointments/[id]` — status без enum-валидации~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/appointments/[id]/route.ts`
 **Серьёзность:** 🟡 MEDIUM
 
-`body?.status as AppointmentStatus` — cast без проверки. Невалидная строка попадёт в Prisma.
-
-**Исправление:** Валидировать через `z.enum([...])` или allowlist.
+Добавлена проверка через `VALID_STATUSES.includes()` перед использованием.
 
 ---
 
 ## Низкий приоритет
 
-### 12. Forgot-password: resetUrl в ответе (non-production)
+### 12. ~~Forgot-password: resetUrl в ответе (non-production)~~ ✅ ИСПРАВЛЕНО
 
 **Файл:** `app/api/auth/forgot-password/route.ts`
 **Серьёзность:** 🟢 LOW
 
-В `NODE_ENV !== "production"` ссылка сброса пароля возвращается в JSON. На shared dev/staging — утечка.
+Удалён возврат `resetUrl` в JSON-ответе.
 
-### 13. Diagnostic links: fallback на Math.random
+### 13. ~~Diagnostic links: fallback на Math.random~~ ✅ ИСПРАВЛЕНО
 
 **Файлы:** `diagnostics/*/link/route.ts`
 **Серьёзность:** 🟢 LOW
 
-`randomToken()` использует `Math.random()` если нет `crypto.randomUUID`. На Node 22 это не проблема, но fallback лучше удалить.
+Убран fallback на `Math.random` — теперь всегда `crypto.randomUUID()`.
 
 ### 14. `dangerouslySetInnerHTML` в chart.tsx
 

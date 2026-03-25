@@ -11,10 +11,7 @@ import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { getClientIp, requireRoles } from "@/lib/security/api-guards";
 
 function randomToken() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 export async function POST(request: Request) {

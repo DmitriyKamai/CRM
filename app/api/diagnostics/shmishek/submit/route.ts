@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         }
       });
 
-      if (!link || !link.test || !link.test.isActive) {
+      if (!link || !link.test || link.test.type !== "SHMISHEK" || !link.test.isActive) {
         return NextResponse.json(
           { message: "Ссылка на тест недействительна" },
           { status: 404 }
