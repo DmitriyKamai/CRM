@@ -744,33 +744,92 @@ export function PsychologistSchedule() {
 
   const scaled = scale < 1;
 
+  const weekNavToolbar = (
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => {
+            const next = addDays(currentDate, isMobileView ? -1 : -7);
+            setCurrentDate(next);
+            setDisplayedMonth(toFirstOfMonth(next));
+          }}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="min-w-0 truncate px-1 text-center text-sm font-medium sm:text-left">
+          {isMobileView
+            ? currentDate.toLocaleDateString("ru-RU", {
+                weekday: "short",
+                day: "numeric",
+                month: "long"
+              })
+            : <>
+                {weekStart.toLocaleDateString("ru-RU", {
+                  day: "2-digit",
+                  month: "short"
+                })}{" "}
+                –{" "}
+                {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
+                  day: "2-digit",
+                  month: "short",
+                  year:
+                    weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
+                      ? "numeric"
+                      : undefined
+                })}
+              </>}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => {
+            const next = addDays(currentDate, isMobileView ? 1 : 7);
+            setCurrentDate(next);
+            setDisplayedMonth(toFirstOfMonth(next));
+          }}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:grid-rows-[auto_auto] md:items-start">
-          <div className="hidden md:block md:col-start-1 md:row-start-1" aria-hidden />
-          <div className="flex min-w-0 flex-col gap-3 md:col-start-1 md:row-start-2">
-            <div
-              className="min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
-              style={{ minHeight: 320 }}
-              aria-busy="true"
-              aria-label="Загрузка календаря"
-            />
-            <div className="min-w-0 max-w-full space-y-2 overflow-x-clip">
-              <div className="h-4 w-[75%] rounded-md bg-muted/30 animate-pulse" aria-hidden />
-              <div className="h-20 rounded-md bg-muted/30 animate-pulse" aria-hidden />
-              <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
-            </div>
+        <div className="flex w-full min-w-0 flex-col gap-3 md:gap-4">
+          <div className="hidden md:grid md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4">
+            <div className="min-h-0 min-w-0" aria-hidden />
+            <div className="h-10 rounded-md bg-muted/30 animate-pulse min-w-0" aria-hidden />
           </div>
-          <div className="min-w-0 space-y-2 md:contents">
-            <div className="h-10 rounded-md bg-muted/30 animate-pulse md:col-start-2 md:row-start-1" aria-hidden />
-            <div className="min-w-0 md:col-start-2 md:row-start-2 md:min-w-0">
-              <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
-                <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
-                  <CardContent className="space-y-2 px-4 py-3">
-                    <ScheduleGridSkeleton />
-                  </CardContent>
-                </Card>
+          <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4 md:items-start">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div
+                className="min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
+                style={{ minHeight: 320 }}
+                aria-busy="true"
+                aria-label="Загрузка календаря"
+              />
+              <div className="min-w-0 max-w-full space-y-2 overflow-x-clip">
+                <div className="h-4 w-[75%] rounded-md bg-muted/30 animate-pulse" aria-hidden />
+                <div className="h-20 rounded-md bg-muted/30 animate-pulse" aria-hidden />
+                <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
+              </div>
+            </div>
+            <div className="min-w-0 space-y-2">
+              <div className="h-10 rounded-md bg-muted/30 animate-pulse md:hidden" aria-hidden />
+              <div className="min-w-0">
+                <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
+                  <Card className="overflow-hidden rounded-lg border border-border md:min-w-[1008px]">
+                    <CardContent className="space-y-2 px-4 py-3">
+                      <ScheduleGridSkeleton />
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           </div>
@@ -793,16 +852,21 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="isolate grid w-full min-w-0 grid-cols-1 gap-3 md:gap-4 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:grid-rows-[auto_auto] md:items-start"
+            className="isolate flex w-full min-w-0 flex-col gap-3 md:gap-4"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-            {/* md+: верхний ряд — пустая лев. ячейка + переключатель недели; нижний — календарь|легенда слева, сетка справа */}
-            <div className="hidden md:block md:col-start-1 md:row-start-1" aria-hidden />
-            <div className="flex min-w-0 flex-col gap-3 md:col-start-1 md:row-start-2">
+            {/* md+: полоса переключения недели только над правой колонкой; под ней календарь и сетка начинаются на одной линии */}
+            <div className="hidden min-w-0 md:grid md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4">
+              <div className="min-h-0 min-w-0" aria-hidden />
+              <div className="min-w-0">{weekNavToolbar}</div>
+            </div>
+
+            <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4 md:items-start">
+            <div className="flex min-w-0 flex-col gap-3">
               <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
                 <Calendar
                   mode="single"
@@ -879,62 +943,9 @@ export function PsychologistSchedule() {
               </div>
             </div>
 
-        {/* Неделя / суточный план: на md+ верхняя строка сетки — только переключатель, ниже — карточка */}
-        <div className="min-w-0 space-y-2 md:contents">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:col-start-2 md:row-start-1">
-            <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-start sm:flex-initial">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => {
-                  const next = addDays(currentDate, isMobileView ? -1 : -7);
-                  setCurrentDate(next);
-                  setDisplayedMonth(toFirstOfMonth(next));
-                }}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="min-w-0 truncate px-1 text-center text-sm font-medium sm:text-left">
-                {isMobileView
-                  ? currentDate.toLocaleDateString("ru-RU", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "long"
-                    })
-                  : <>
-                      {weekStart.toLocaleDateString("ru-RU", {
-                        day: "2-digit",
-                        month: "short"
-                      })}{" "}
-                      –{" "}
-                      {addDays(weekStart, 6).toLocaleDateString("ru-RU", {
-                        day: "2-digit",
-                        month: "short",
-                        year:
-                          weekStart.getFullYear() !== addDays(weekStart, 6).getFullYear()
-                            ? "numeric"
-                            : undefined
-                      })}
-                    </>
-                }
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => {
-                  const next = addDays(currentDate, isMobileView ? 1 : 7);
-                  setCurrentDate(next);
-                  setDisplayedMonth(toFirstOfMonth(next));
-                }}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="min-w-0 md:col-start-2 md:row-start-2 md:min-w-0">
+            <div className="min-w-0 space-y-2">
+              <div className="md:hidden">{weekNavToolbar}</div>
+              <div className="min-w-0 md:min-w-0">
           <div className={isMobileView ? "" : "overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0"}>
           <Card className={cn("overflow-hidden rounded-lg border border-border", !isMobileView && "min-w-[1008px] md:min-w-0")}>
             <CardContent className="space-y-2 px-4 py-3">
@@ -1220,7 +1231,8 @@ export function PsychologistSchedule() {
       </div>
       </div>
       </div>
-      
+      </div>
+
       <Dialog
         open={createDialogOpen}
         onOpenChange={open => {
