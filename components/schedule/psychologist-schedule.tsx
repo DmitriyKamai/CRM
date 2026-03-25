@@ -806,13 +806,13 @@ export function PsychologistSchedule() {
   if (!mounted) {
     return (
       <div className="w-full min-w-0">
-        <div className="flex w-full min-w-0 flex-col gap-3 md:gap-4">
-          <div className="hidden md:grid md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4">
-            <div className="min-h-0 min-w-0" aria-hidden />
-            <div className="h-10 rounded-md bg-muted/30 animate-pulse min-w-0" aria-hidden />
-          </div>
-          <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4 md:items-start">
-            <div className="flex min-w-0 flex-col gap-3">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:grid-rows-[auto_auto] md:gap-4 md:items-start">
+          <div className="hidden md:block md:col-start-1 md:row-start-1 min-h-0 min-w-0" aria-hidden />
+          <div
+            className="hidden md:block md:col-start-2 md:row-start-1 min-w-0 h-10 rounded-md bg-muted/30 animate-pulse"
+            aria-hidden
+          />
+          <div className="flex min-w-0 flex-col gap-3 md:col-start-1 md:row-start-2">
               <div
                 className="min-w-0 max-w-full overflow-x-clip rounded-md border border-border bg-muted/30 animate-pulse"
                 style={{ minHeight: 320 }}
@@ -825,7 +825,7 @@ export function PsychologistSchedule() {
                 <div className="h-16 rounded-md bg-muted/30 animate-pulse" aria-hidden />
               </div>
             </div>
-            <div className="min-w-0 space-y-2">
+            <div className="min-w-0 space-y-2 md:col-start-2 md:row-start-2">
               <div className="h-10 rounded-md bg-muted/30 animate-pulse md:hidden" aria-hidden />
               <div className="min-w-0">
                 <div className="md:overflow-visible md:pb-0 overflow-x-auto overscroll-x-contain pb-1 [touch-action:pan-x_pan-y]">
@@ -837,7 +837,6 @@ export function PsychologistSchedule() {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </div>
     );
@@ -857,21 +856,20 @@ export function PsychologistSchedule() {
         >
           <div
             ref={innerRef}
-            className="isolate flex w-full min-w-0 flex-col gap-3 md:gap-4"
+            className="isolate grid w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:grid-rows-[auto_auto] md:gap-4 md:items-start"
             style={{
               width: scaled ? 1008 : "100%",
               transform: scaled ? `scale(${scale})` : undefined,
               transformOrigin: "0 0"
             }}
           >
-            {/* md+: полоса переключения недели только над правой колонкой; под ней календарь и сетка начинаются на одной линии */}
-            <div className="hidden min-w-0 md:grid md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4">
-              <div className="min-h-0 min-w-0" aria-hidden />
-              <div className="min-w-0">{weekNavToolbar}</div>
+            {/* md: одна сетка — (1,1) пусто, (2,1) навигация недели, вторая строка: календарь | карточка */}
+            <div className="hidden md:block md:col-start-1 md:row-start-1 min-h-0 min-w-0" aria-hidden />
+            <div className="hidden min-w-0 md:block md:col-start-2 md:row-start-1">
+              {weekNavToolbar}
             </div>
 
-            <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-4 md:items-start">
-            <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex min-w-0 flex-col gap-3 md:col-start-1 md:row-start-2">
               <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
                 <Calendar
                   mode="single"
@@ -948,7 +946,7 @@ export function PsychologistSchedule() {
               </div>
             </div>
 
-            <div className="min-w-0 space-y-2">
+            <div className="min-w-0 space-y-2 md:col-start-2 md:row-start-2">
               <div className="md:hidden">{weekNavToolbar}</div>
               <div className="min-w-0 md:min-w-0">
           <div className={isMobileView ? "" : "overflow-x-auto overscroll-x-contain pb-2 [touch-action:pan-x_pan-y] md:overflow-visible md:pb-0"}>
@@ -1232,9 +1230,8 @@ export function PsychologistSchedule() {
           </Card>
           </div>
           </div>
+          </div>
         </div>
-      </div>
-      </div>
       </div>
       </div>
 
