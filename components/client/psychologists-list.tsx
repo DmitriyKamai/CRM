@@ -129,8 +129,7 @@ export function PublicPsychologistsList({
           <p className="max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">
             {schedulingEnabled ? (
               <>
-                Поиск по имени и тексту анкеты; страна и город — в компактной
-                панели ниже. Запись — на странице профиля.
+                Поиск по имени и тексту анкеты. Запись — на странице профиля.
               </>
             ) : (
               <>
@@ -221,11 +220,7 @@ export function PublicPsychologistsList({
                   <SelectValue placeholder="Город" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[min(280px,50vh)]">
-                  <SelectItem value={FILTER_ANY}>
-                    {selectedCountry
-                      ? "Все города (страна)"
-                      : "Все города"}
-                  </SelectItem>
+                  <SelectItem value={FILTER_ANY}>Все города</SelectItem>
                   {cityOptions.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -270,12 +265,6 @@ export function PublicPsychologistsList({
               )}
             </div>
           </div>
-
-          <p className="text-[11px] leading-snug text-muted-foreground lg:max-w-3xl">
-            Города в списке соответствуют выбранной стране (или всему каталогу,
-            если страна «Все»). Длинный список прокручивается внутри поля. Если в
-            анкетах не указаны страна или город, соответствующие списки пустые.
-          </p>
         </div>
       </section>
 
