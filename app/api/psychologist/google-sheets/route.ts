@@ -6,6 +6,7 @@ import {
   isGoogleOAuthConfiguredForSheets,
   parseSpreadsheetId
 } from "@/lib/google-sheets";
+import { unsealGoogleSheetsRefreshToken } from "@/lib/google-sheets-refresh-token-crypto";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
 /** Статус OAuth, подключение Google и сохранённая таблица для подстановки ссылки. */
@@ -21,7 +22,9 @@ export async function GET() {
 
     return NextResponse.json({
       oauthConfigured: isGoogleOAuthConfiguredForSheets(),
-      googleConnected: Boolean(p?.googleSheetsRefreshToken?.trim()),
+      googleConnected: Boolean(
+        unsealGoogleSheetsRefreshToken(p?.googleSheetsRefreshToken ?? null)?.trim()
+      ),
       spreadsheetId: getSpreadsheetIdFromProfileSettings(p?.settingsJson)
     });
   } catch (err) {

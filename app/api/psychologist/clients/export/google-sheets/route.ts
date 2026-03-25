@@ -5,6 +5,7 @@ import { safeLogAudit } from "@/lib/audit-log";
 import { buildClientsExportTable } from "@/lib/clients-export-build";
 import { prisma } from "@/lib/db";
 import { createSpreadsheetWithAoA } from "@/lib/google-sheets";
+import { unsealGoogleSheetsRefreshToken } from "@/lib/google-sheets-refresh-token-crypto";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 
 const BodySchema = z.object({
@@ -49,7 +50,9 @@ export async function POST(request: Request) {
       select: { settingsJson: true, googleSheetsRefreshToken: true }
     });
 
-    const refreshToken = profile?.googleSheetsRefreshToken?.trim();
+    const refreshToken = unsealGoogleSheetsRefreshToken(
+      profile?.googleSheetsRefreshToken ?? null
+    )?.trim();
     if (!refreshToken) {
       return NextResponse.json(
         { message: "Сначала подключите Google в разделе импорта (кнопка «Подключить Google»)." },

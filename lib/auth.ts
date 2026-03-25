@@ -20,6 +20,39 @@ const noopAdapterUser = null as unknown as AdapterUser;
 const noopAdapterSession = null as unknown as AdapterSession;
 
 /** Адаптер-заглушка: не обращается к БД. Все методы не бросают, чтобы не ронять процесс. */
+/** Однократное чтение OAuth-переменных окружения (buildProviders + adapter). */
+const oauthEnvConfig = (() => {
+  const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const appleId = process.env.APPLE_ID?.trim();
+  const applePrivateKey = process.env.APPLE_PRIVATE_KEY?.trim();
+  const appleTeamId = process.env.APPLE_TEAM_ID?.trim();
+  const appleKeyId = process.env.APPLE_KEY_ID?.trim();
+  const google =
+    googleId && googleSecret
+      ? { clientId: googleId, clientSecret: googleSecret }
+      : null;
+  const appleConfigured = !!(
+    appleId &&
+    applePrivateKey &&
+    appleTeamId &&
+    appleKeyId
+  );
+  return {
+    google,
+    apple:
+      appleConfigured && appleId && applePrivateKey && appleTeamId && appleKeyId
+        ? {
+            appleId,
+            applePrivateKey,
+            appleTeamId,
+            appleKeyId
+          }
+        : null,
+    hasOAuth: !!google || appleConfigured
+  };
+})();
+
 const noopAdapter: Adapter = {
   async createUser() {
     return safeNoop(() => noopAdapterUser) ?? noopAdapterUser;
@@ -94,27 +127,19 @@ function buildProviders() {
           email: user.email,
           name: user.name ?? undefined,
           role: user.role
-        } as unknown as {
-          id: string;
-          email: string;
-          name?: string | undefined;
-          role?: string | null;
         };
       }
     })
   ];
-  const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
-  const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  if (googleId && googleSecret) {
+  if (oauthEnvConfig.google) {
+    const { clientId, clientSecret } = oauthEnvConfig.google;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const GP = require("next-auth/providers/google").default;
-    providers.push(GP({ clientId: googleId, clientSecret: googleSecret }));
+    providers.push(GP({ clientId, clientSecret }));
   }
-  const appleId = process.env.APPLE_ID?.trim();
-  const applePrivateKey = process.env.APPLE_PRIVATE_KEY?.trim();
-  const appleTeamId = process.env.APPLE_TEAM_ID?.trim();
-  const appleKeyId = process.env.APPLE_KEY_ID?.trim();
-  if (appleId && applePrivateKey && appleTeamId && appleKeyId) {
+  if (oauthEnvConfig.apple) {
+    const { appleId, applePrivateKey, appleTeamId, appleKeyId } =
+      oauthEnvConfig.apple;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const AP = require("next-auth/providers/apple").default;
     providers.push(
@@ -132,14 +157,7 @@ function buildProviders() {
 }
 
 function hasOAuthProviders(): boolean {
-  const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
-  const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const appleId = process.env.APPLE_ID?.trim();
-  const applePrivateKey = process.env.APPLE_PRIVATE_KEY?.trim();
-  const appleTeamId = process.env.APPLE_TEAM_ID?.trim();
-  const appleKeyId = process.env.APPLE_KEY_ID?.trim();
-  const hasApple = !!(appleId && applePrivateKey && appleTeamId && appleKeyId);
-  return !!(googleId && googleSecret) || hasApple;
+  return oauthEnvConfig.hasOAuth;
 }
 
 export const OAUTH_LINK_COOKIE = "oauth_link_uid";
@@ -173,9 +191,8 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
     async jwt({ token, user, trigger }) {
       // При первом входе — сохраняем id и роль в JWT.
       if (user) {
-        const u = user as unknown as { id: string; role?: string };
-        token.id = u.id;
-        token.role = u.role ?? null;
+        token.id = user.id;
+        token.role = user.role ?? null;
         token.name = user.name;
         token.email = user.email;
         token.picture = user.image ?? null;
@@ -191,9 +208,11 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
             });
             if (dbUser) {
               const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
-              const isInitialAdmin = initialAdminEmail && dbUser.email.toLowerCase() === initialAdminEmail;
+              const isInitialAdmin = !!(initialAdminEmail && dbUser.email.toLowerCase() === initialAdminEmail);
               if (isInitialAdmin && dbUser.role !== "ADMIN") {
                 await prisma.user.update({ where: { id: userId }, data: { role: "ADMIN" } });
+                token.role = "ADMIN";
+              } else if (isInitialAdmin) {
                 token.role = "ADMIN";
               } else {
                 token.role = dbUser.role;
@@ -224,12 +243,11 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
     },
     async session({ session, token }) {
       if (!session.user || !token) return session;
-      const tok = token as unknown as { id?: string; role?: string; name?: string; email?: string; picture?: string };
-      if (tok.id) (session.user as unknown as { id?: string }).id = tok.id;
-      if (tok.role) (session.user as unknown as { role?: string }).role = tok.role;
-      if (tok.name) session.user.name = tok.name;
-      if (tok.email) session.user.email = tok.email;
-      if (tok.picture) session.user.image = tok.picture;
+      if (token.id) session.user.id = token.id;
+      if (token.role) session.user.role = token.role;
+      if (token.name) session.user.name = token.name;
+      if (token.email) session.user.email = token.email;
+      if (token.picture) session.user.image = token.picture;
       return session;
     }
   };

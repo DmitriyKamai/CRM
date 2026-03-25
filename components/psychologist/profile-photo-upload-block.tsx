@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 type Props = {
   profilePhotoUrl: string | null;
-  profilePublished: boolean;
+  profilePhotoPublished: boolean;
   /** false — модуль записей выключен: без публикации в каталоге */
   schedulingEnabled?: boolean;
   initials: string;
@@ -21,7 +21,7 @@ type Props = {
 
 export function ProfilePhotoUploadBlock({
   profilePhotoUrl,
-  profilePublished,
+  profilePhotoPublished,
   schedulingEnabled = true,
   initials,
   alt,
@@ -144,7 +144,7 @@ export function ProfilePhotoUploadBlock({
           </div>
           <Switch
             id="profile-published"
-            checked={profilePublished}
+            checked={profilePhotoPublished}
             onCheckedChange={handlePublishChange}
             disabled={publishSaving}
             className="cursor-pointer disabled:cursor-pointer"

@@ -7,12 +7,21 @@
 | Переменная | Описание |
 |------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string (Neon или другой) |
+| `DIRECT_DATABASE_URL` | Прямое подключение без pooler (для миграций Prisma) |
+| `SHADOW_DATABASE_URL` | Теневая БД для `migrate dev` (локально) |
 | `NEXTAUTH_URL` | Полный URL приложения, напр. `https://yourdomain.com` |
 | `NEXTAUTH_SECRET` | Случайная строка (например `openssl rand -base64 32`) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Опционально, для входа через Google |
 | `APPLE_ID` / `APPLE_PRIVATE_KEY` и др. | Опционально, для входа через Apple |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | **Рекомендуется в production** — сквозной rate limit между инстансами Vercel (альтернатива: `REDIS_URL` для node-redis) |
+| `GOOGLE_SHEETS_TOKEN_ENCRYPTION_KEY` | Опционально: Base64 от 32 байт (`openssl rand -base64 32`). Шифрует refresh token Google Sheets в БД. После включения на проде не отключайте без переподключения Google у пользователей |
 
 Перед первым запуском выполните миграции БД (см. ниже по платформам).
+
+### Rate limiting и CSP
+
+- Без Redis в production приложение логирует предупреждение: лимиты действуют только внутри одного инстанса. Для публичных форм (логин, запись, сброс пароля) задайте Upstash или Redis.
+- Заголовки CSP в режиме **Report-Only** (`proxy.ts`). Если подключаете новый сторонний API с фронта, может понадобиться добавить домен в `connect-src`.
 
 ---
 

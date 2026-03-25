@@ -8,6 +8,7 @@ import {
   readSpreadsheetAsAoA
 } from "@/lib/google-sheets";
 import { prisma } from "@/lib/db";
+import { unsealGoogleSheetsRefreshToken } from "@/lib/google-sheets-refresh-token-crypto";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
 const bodySchema = z.object({
@@ -42,7 +43,9 @@ export async function POST(request: Request) {
       select: { settingsJson: true, googleSheetsRefreshToken: true }
     });
 
-    const refreshToken = profile?.googleSheetsRefreshToken?.trim();
+    const refreshToken = unsealGoogleSheetsRefreshToken(
+      profile?.googleSheetsRefreshToken ?? null
+    )?.trim();
     if (!refreshToken) {
       return NextResponse.json(
         {

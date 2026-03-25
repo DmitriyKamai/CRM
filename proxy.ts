@@ -38,7 +38,8 @@ export function proxy(_request: NextRequest) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://lh3.googleusercontent.com",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https: wss: http: ws:",
+      // Узкий список для будущего enforcing; в Report-Only только диагностика. При новых доменах (аналитика и т.д.) — дополнять.
+      "connect-src 'self' https://api.telegram.org https://*.googleapis.com https://oauth2.googleapis.com https://accounts.google.com https://www.googleapis.com https://*.public.blob.vercel-storage.com https://blob.vercel-storage.com https://*.upstash.io wss://*.vercel.live",
       "report-uri /api/csp-report"
     ].join("; ")
   );

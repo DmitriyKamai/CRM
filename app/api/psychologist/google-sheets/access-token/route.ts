@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { createSheetsOAuth2Client } from "@/lib/google-sheets";
 import { prisma } from "@/lib/db";
+import { createSheetsOAuth2Client } from "@/lib/google-sheets";
+import { unsealGoogleSheetsRefreshToken } from "@/lib/google-sheets-refresh-token-crypto";
 import { requirePsychologist } from "@/lib/security/api-guards";
 
 /** Краткоживущий access token для Google Picker в браузере. */
@@ -14,7 +15,9 @@ export async function GET() {
       where: { id: ctx.psychologistId },
       select: { googleSheetsRefreshToken: true }
     });
-    const refresh = p?.googleSheetsRefreshToken?.trim();
+    const refresh = unsealGoogleSheetsRefreshToken(
+      p?.googleSheetsRefreshToken ?? null
+    )?.trim();
     if (!refresh) {
       return NextResponse.json(
         { message: "Сначала подключите Google в блоке импорта." },

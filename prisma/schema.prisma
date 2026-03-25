@@ -194,9 +194,10 @@ model PsychologistProfile {
   contactViber       String?
   contactWhatsapp    String?
   profilePhotoUrl     String?   // фото для карточки в «Записаться к психологу» (отдельно от User.image — аватар)
-  profilePublished    Boolean @default(false) @map("profilePhotoPublished") // «Опубликовать профиль» — тогда профиль и карточка видны клиентам
+  /// Показывать карточку клиентам в каталоге (колонка БД profilePhotoPublished).
+  profilePhotoPublished Boolean @default(false)
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
-  /// OAuth refresh token для чтения Google Таблиц от имени психолога (импорт клиентов).
+  /// OAuth refresh token Google Sheets. При `GOOGLE_SHEETS_TOKEN_ENCRYPTION_KEY` шифруется в приложении (см. lib/google-sheets-refresh-token-crypto.ts, DEPLOY.md).
   googleSheetsRefreshToken String? @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -255,6 +256,7 @@ model ClientProfile {
   id             String   @id @default(cuid())
   userId         String?
   email          String?  // для связки при регистрации, когда userId ещё нет
+  /// Может быть null для профиля после social-complete до привязки к психологу; в сценариях психолог↔клиент должен быть задан (API создания/импорта).
   psychologistId String?
   firstName      String
   lastName       String

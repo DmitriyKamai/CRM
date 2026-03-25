@@ -27,7 +27,7 @@ export async function getPublishedPsychologistsForCatalog(): Promise<
   PsychologistCatalogEntry[]
 > {
   const rows = await prisma.psychologistProfile.findMany({
-    where: { profilePublished: true },
+    where: { profilePhotoPublished: true },
     select: publishedPsychologistCatalogSelect,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
   });

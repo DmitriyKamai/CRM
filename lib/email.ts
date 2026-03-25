@@ -12,6 +12,7 @@ const defaultFrom = (() => {
   }
 })();
 
+// Транспорт создаётся при загрузке модуля: смена SMTP_* или пароля требует перезапуск процесса (в serverless — новый инстанс).
 const transporter =
   process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
     ? nodemailer.createTransport({

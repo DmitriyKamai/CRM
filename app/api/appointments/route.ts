@@ -133,14 +133,17 @@ export async function POST(request: Request) {
       // Уведомление психологу: клиент записался
       const psychologist = await tx.psychologistProfile.findUnique({
         where: { id: slot.psychologistId },
-        select: { userId: true }
+        select: {
+          userId: true,
+          user: { select: { telegramChatId: true } }
+        }
       });
       const client = await tx.clientProfile.findUnique({
         where: { id: clientId },
         select: { firstName: true, lastName: true }
       });
       const clientName = client
-        ? `${client.lastName} ${client.firstName}`.trim() || "Клиент"
+        ? `${(client.lastName ?? "").trim()} ${(client.firstName ?? "").trim()}`.trim() || "Клиент"
         : "Клиент";
       const dateStr = slot.start.toLocaleString("ru-RU", {
         dateStyle: "short",
@@ -156,54 +159,32 @@ export async function POST(request: Request) {
         });
       }
 
-      return appointment;
+      const telegramChatId = psychologist?.user?.telegramChatId ?? null;
+      return { appointment, telegramChatId, clientName };
     });
 
-    // Уведомление психологу в Telegram с кнопками «Подтвердить» / «Отменить»
-    const [psychUser, client] = await Promise.all([
-      prisma.psychologistProfile
-        .findUnique({
-          where: { id: result.psychologistId },
-          select: { userId: true }
-        })
-        .then(p =>
-          p
-            ? prisma.user.findUnique({
-                where: { id: p.userId },
-                select: { telegramChatId: true }
-              })
-            : null
-        ),
-      prisma.clientProfile.findUnique({
-        where: { id: result.clientId },
-        select: { firstName: true, lastName: true }
-      })
-    ]);
-    const clientName = client
-      ? `${(client.lastName ?? "").trim()} ${(client.firstName ?? "").trim()}`.trim() || "Клиент"
-      : "Клиент";
-    const dateStr = result.start.toLocaleString("ru-RU", {
+    const dateStr = result.appointment.start.toLocaleString("ru-RU", {
       dateStyle: "short",
       timeStyle: "short"
     });
-    if (psychUser?.telegramChatId) {
+    if (result.telegramChatId) {
       const sent = await sendNewAppointmentToPsychologist(
-        psychUser.telegramChatId,
-        result.id,
-        clientName,
+        result.telegramChatId,
+        result.appointment.id,
+        result.clientName,
         dateStr
       ).catch((err) => {
         console.error("[appointments] Ошибка отправки уведомления в Telegram:", err);
         return false;
       });
       if (!sent) {
-        console.warn("[appointments] Не удалось отправить уведомление психологу в Telegram (chatId:", psychUser.telegramChatId, ")");
+        console.warn("[appointments] Не удалось отправить уведомление психологу в Telegram (chatId:", result.telegramChatId, ")");
       }
     } else {
       console.warn("[appointments] У психолога не привязан Telegram (userId по psychologistId не найден или telegramChatId пустой) — уведомление не отправлено.");
     }
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(result.appointment, { status: 201 });
   } catch (error) {
     console.error("Appointment error", error);
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

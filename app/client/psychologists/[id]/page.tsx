@@ -73,7 +73,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
     specialization: string | null;
     bio: string | null;
     profilePhotoUrl: string | null;
-    profilePublished: boolean;
+    profilePhotoPublished: boolean;
     contactPhone: string | null;
     contactTelegram: string | null;
     contactViber: string | null;
@@ -95,7 +95,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
         specialization: true,
         bio: true,
         profilePhotoUrl: true,
-        profilePublished: true,
+        profilePhotoPublished: true,
         contactPhone: true,
         contactTelegram: true,
         contactViber: true,
@@ -103,7 +103,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       }
     });
 
-    if (!psychologist || !psychologist.profilePublished) {
+    if (!psychologist || !psychologist.profilePhotoPublished) {
       notFound();
     }
   } catch (err) {

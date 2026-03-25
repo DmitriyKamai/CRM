@@ -20,6 +20,36 @@ function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }
 
+function delay(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+/** Повтор при 5xx и сетевых сбоях — временные ошибки Telegram API. */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  maxAttempts = 3
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, init);
+      if (res.status >= 500 && res.status < 600 && attempt < maxAttempts - 1) {
+        await delay(Math.min(1000 * 2 ** attempt, 8000));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxAttempts - 1) {
+        await delay(Math.min(1000 * 2 ** attempt, 8000));
+        continue;
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export type InlineButton = { text: string; callback_data: string };
 
 /**
@@ -33,7 +63,7 @@ export async function sendTelegramMessage(
   const token = getToken();
   if (!token) return false;
 
-  const res = await fetchWithTimeout(`${BASE}${token}/sendMessage`, {
+  const res = await fetchWithRetry(`${BASE}${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -63,7 +93,7 @@ export async function sendTelegramMessageWithButtons(
   const token = getToken();
   if (!token) return false;
 
-  const res = await fetchWithTimeout(`${BASE}${token}/sendMessage`, {
+  const res = await fetchWithRetry(`${BASE}${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -139,7 +169,7 @@ export async function editTelegramMessage(
   const token = getToken();
   if (!token) return false;
 
-  const res = await fetchWithTimeout(`${BASE}${token}/editMessageText`, {
+  const res = await fetchWithRetry(`${BASE}${token}/editMessageText`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

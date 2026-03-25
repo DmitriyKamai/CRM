@@ -58,7 +58,7 @@ export async function GET() {
       specialization: string | null;
       bio: string | null;
       profilePhotoUrl: string | null;
-      profilePublished: boolean;
+      profilePhotoPublished: boolean;
       contactPhone: string | null;
       contactTelegram: string | null;
       contactViber: string | null;
@@ -83,7 +83,7 @@ export async function GET() {
           specialization: p.specialization ?? null,
           bio: p.bio ?? null,
           profilePhotoUrl: p.profilePhotoUrl ?? null,
-          profilePublished: p.profilePublished ?? false,
+          profilePhotoPublished: p.profilePhotoPublished ?? false,
           contactPhone: p.contactPhone ?? null,
           contactTelegram: p.contactTelegram ?? null,
           contactViber: p.contactViber ?? null,
@@ -101,7 +101,7 @@ export async function GET() {
           specialization: null,
           bio: null,
           profilePhotoUrl: null,
-          profilePublished: false,
+          profilePhotoPublished: false,
           contactPhone: null,
           contactTelegram: null,
           contactViber: null,
@@ -169,7 +169,7 @@ export async function PATCH(request: Request) {
         maritalStatus?: string | null;
         specialization?: string | null;
         bio?: string | null;
-        profilePublished?: boolean;
+        profilePhotoPublished?: boolean; // в теле допускается и legacy-ключ profilePublished
         contactPhone?: string | null;
         contactTelegram?: string | null;
         contactViber?: string | null;
@@ -241,7 +241,14 @@ export async function PATCH(request: Request) {
           raw === null ? null : raw.trim().slice(0, MAX_CONTACT_LINK_LENGTH);
       }
       if (body.bio !== undefined) profileUpdates.bio = body.bio === null ? null : String(body.bio).slice(0, BIO_MAX_LENGTH);
-      if (typeof body.profilePublished === "boolean") profileUpdates.profilePublished = body.profilePublished;
+      const published =
+        typeof body.profilePhotoPublished === "boolean"
+          ? body.profilePhotoPublished
+          : typeof body.profilePublished === "boolean"
+            ? body.profilePublished
+            : undefined;
+      if (published !== undefined)
+        profileUpdates.profilePhotoPublished = published;
       if (Object.keys(profileUpdates).length > 0) {
         const updated = await prisma.psychologistProfile.upsert({
           where: { userId },

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { createSheetsOAuth2Client, verifyGoogleSheetsOAuthState } from "@/lib/google-sheets";
 import { prisma } from "@/lib/db";
+import { createSheetsOAuth2Client, verifyGoogleSheetsOAuthState } from "@/lib/google-sheets";
+import {
+  sealGoogleSheetsRefreshToken,
+  unsealGoogleSheetsRefreshToken
+} from "@/lib/google-sheets-refresh-token-crypto";
 
 function appBaseUrl(request: Request): string {
   const env = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
@@ -59,14 +63,17 @@ export async function GET(request: Request) {
       return redirectToClients(base, { sheet_oauth: "invalid", openImport: true });
     }
 
-    const refreshToken = tokens.refresh_token ?? existing.googleSheetsRefreshToken;
+    const existingPlain = unsealGoogleSheetsRefreshToken(
+      existing.googleSheetsRefreshToken ?? null
+    );
+    const refreshToken = tokens.refresh_token ?? existingPlain ?? null;
     if (!refreshToken) {
       return redirectToClients(base, { sheet_oauth: "norefresh", openImport: true });
     }
 
     await prisma.psychologistProfile.update({
       where: { id: psychologistId },
-      data: { googleSheetsRefreshToken: refreshToken }
+      data: { googleSheetsRefreshToken: sealGoogleSheetsRefreshToken(refreshToken) }
     });
 
     if (fromExportFlow) {

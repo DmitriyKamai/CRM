@@ -136,3 +136,20 @@ export async function checkRateLimit(options: RateLimitOptions) {
   return checkRateLimitInMemory(options);
 }
 
+// При `next build` NODE_ENV=production, но это не рантайм сервера — не спамим лог сборки.
+const skipRedisProdWarn =
+  process.env.npm_lifecycle_event === "build" ||
+  process.env.npm_lifecycle_event === "build:next";
+
+if (
+  process.env.NODE_ENV === "production" &&
+  !skipRedisProdWarn &&
+  !process.env.UPSTASH_REDIS_REST_URL &&
+  !process.env.KV_REST_API_URL &&
+  !process.env.REDIS_URL
+) {
+  console.warn(
+    "[rate-limit] В production не настроен Redis (Upstash/KV или REDIS_URL). Лимиты действуют только в пределах одного инстанса serverless."
+  );
+}
+

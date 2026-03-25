@@ -16,11 +16,11 @@
 
 ### Сервисы
 
-| Сервис | Обязателен | Запуск |
+| Сервис | Обязателен | Запуск / примечание |
 |--------|-----------|--------|
-| PostgreSQL | Да | `sudo pg_ctlcluster 16 main start` |
+| PostgreSQL | Да | Облако (Neon и т.п.) по `DATABASE_URL` или локально — см. документацию СУБД. Команда `sudo pg_ctlcluster 16 main start` — **только пример** для Debian/Ubuntu с пакетом PostgreSQL 16 |
 | Next.js | Да | см. «Режимы запуска» |
-| Redis | Нет | Без Redis — fallback на in-memory rate limiter |
+| Redis / Upstash | Нет (dev) / **настоятельно рекомендуется (prod)** | Без Redis — in-memory лимитер только в рамках одного инстанса; для Vercel и нескольких реплик задайте `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` или `REDIS_URL` |
 | Telegram бот | Нет | `npm run bot` (нужен `TELEGRAM_BOT_TOKEN`) |
 | SMTP | Нет | Без SMTP — email логируются в консоль |
 | Vercel Blob | Нет | Без `BLOB_READ_WRITE_TOKEN` — загрузка файлов отключена |
@@ -42,9 +42,11 @@
 ```
 npm run lint          # ESLint, --max-warnings=0
 npm run typecheck     # tsc --noEmit
-npm run test          # Vitest (52 юнит-теста)
+npm run test          # Vitest (юнит-тесты в `__tests__/`)
 npm run test:watch    # Vitest в watch-режиме
-npm run build:next    # production-сборка
+npm run security:audit # npm audit production-зависимостей
+npm run security:check # typecheck + lint + security:audit
+npm run build:next    # production-сборка (на части сред может прерываться; минимум — lint + typecheck + test)
 ```
 
 ### База данных
@@ -53,7 +55,8 @@ npm run build:next    # production-сборка
 - **Свежая БД:** `npx prisma migrate deploy` или `npx prisma db push`
 - **Seed диагностик:** `npm run prisma:seed` (Шмишек + Павлова + СМИЛ)
 - **Обязательные `.env`:** `DATABASE_URL`, `DIRECT_DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
-- **Миграции в репозитории:** `prisma migrate deploy` применяет все 9 миграций в правильном порядке.
+- **Локально `prisma migrate dev`:** в схеме задан `shadowDatabaseUrl` — нужен `SHADOW_DATABASE_URL` (отдельная БД или схема; см. `DEPLOY.md` / документацию Prisma)
+- **Миграции в репозитории:** baseline — одна миграция `20260325180000_init` (см. `prisma/MIGRATIONS.md`); дальше — `prisma migrate dev`.
 - **`npm run build`** автоматически запускает `prisma generate` + `migrate-deploy` + `next build`.
 
 ---
@@ -73,9 +76,10 @@ app/                          # Next.js App Router
 └── api/                      # API-роуты (см. ниже)
 
 lib/                          # Серверная бизнес-логика
-├── auth.ts                   # NextAuth: providers, callbacks, JWT
+├── auth.ts                   # NextAuth: providers, callbacks, JWT (oauthEnvConfig)
 ├── db.ts                     # Prisma-клиент (singleton)
-├── rate-limit.ts             # Rate limiter: Upstash → Redis → in-memory
+├── rate-limit.ts             # Rate limiter: Upstash → Redis → in-memory (+ warn в prod без Redis)
+├── google-sheets-refresh-token-crypto.ts  # AES-256-GCM для refresh token Google Sheets (опционально)
 ├── api-error.ts              # Стандартизированная обработка ошибок API
 ├── audit-log.ts              # Аудит-лог (best-effort запись)
 ├── client-history.ts         # Лента истории действий по клиенту
@@ -104,14 +108,17 @@ components/                   # React-компоненты
 
 prisma/
 ├── schema.prisma             # Схема БД (все модели)
-├── migrations/               # 9 миграций
+├── migrations/               # История миграций (baseline: init)
 ├── seed-shmishek.ts          # Seed: вопросы и шкалы Шмишека
 ├── seed-pavlova.ts           # Seed: вопросы и шкалы Павлова
 └── seed-smil.ts              # Seed: вопросы и шкалы СМИЛ
 
 __tests__/                    # Vitest юнит-тесты
 ├── diagnostics/              # Тесты на расчёт диагностик
-└── lib/                      # Тесты на rate-limit, валидацию
+└── lib/                      # rate-limit, валидация, crypto Google Sheets
+
+types/
+└── next-auth.d.ts            # Расширение типов Session / JWT / User
 ```
 
 ### API-роуты
@@ -191,6 +198,7 @@ __tests__/                    # Vitest юнит-тесты
 - `requirePsychologist()` — роль + `psychologistProfile`
 - `requireAdmin()` — роль ADMIN
 - `requireClient()` — роль CLIENT
+- `requireClientOrPsychologist()` — запись клиента на приём и схожие сценарии (роль CLIENT или PSYCHOLOGIST)
 
 Пример:
 ```typescript
@@ -216,7 +224,11 @@ if (mod) return mod; // 403 если модуль отключён
 
 #### Rate limiting (`lib/rate-limit.ts`)
 
-Три стратегии (приоритет): Upstash Redis → стандартный Redis → in-memory Map. Для локальной разработки Redis не нужен.
+Три стратегии (приоритет): Upstash Redis → стандартный Redis → in-memory Map. Для локальной разработки Redis не нужен. В **production** при отсутствии Redis в env процесс при старте пишет предупреждение в лог: лимит не сквозной между инстансами serverless.
+
+#### Google Sheets OAuth (`GOOGLE_SHEETS_TOKEN_ENCRYPTION_KEY`)
+
+Опционально: Base64 от **32 байт** (`openssl rand -base64 32`). Если задан — `googleSheetsRefreshToken` в БД хранится в формате `gs:v1:…` (AES-256-GCM). Без ключа значение хранится как раньше (удобно для dev). **Не отключайте ключ на проде**, если в БД уже есть зашифрованные токены — пользователям потребуется переподключить Google.
 
 #### Обработка ошибок
 
@@ -226,17 +238,18 @@ if (mod) return mod; // 403 если модуль отключён
 
 - **Фреймворк:** Vitest
 - **Конфиг:** `vitest.config.ts` (alias `@/`, environment: node)
-- **52 теста** в `__tests__/`:
+- Тесты в `__tests__/`:
   - `diagnostics/shmishek.test.ts` — расчёт баллов, обратные ключи, интерпретация
   - `diagnostics/pavlova.test.ts` — 3-балльная шкала, обратные ключи
   - `diagnostics/smil.test.ts` — сырые баллы, K-коррекция, T-баллы, мужской/женский ключ
   - `lib/rate-limit.test.ts` — in-memory лимитер
   - `lib/validation.test.ts` — схема регистрации
+  - `lib/google-sheets-refresh-token-crypto.test.ts` — шифрование refresh token Google Sheets
 
 ### Security headers
 
 `proxy.ts` — Next.js 16 Proxy (аналог middleware). Устанавливает:
-- `Content-Security-Policy-Report-Only`
+- `Content-Security-Policy-Report-Only` (в т.ч. узкий `connect-src`: свой домен, Telegram API, Google, Vercel Blob, Upstash и т.д.; при новых интеграциях в браузере — расширять список)
 - `Permissions-Policy`
 - `X-Frame-Options: SAMEORIGIN`
 - `X-Content-Type-Options: nosniff`
@@ -247,7 +260,7 @@ if (mod) return mod; // 403 если модуль отключён
 | Модель | Описание |
 |--------|----------|
 | `User` | Пользователь + роль (CLIENT/PSYCHOLOGIST/ADMIN) |
-| `PsychologistProfile` | Профиль психолога |
+| `PsychologistProfile` | Профиль психолога (`profilePhotoPublished` — показ карточки в каталоге) |
 | `ClientProfile` | Профиль клиента (может быть без userId — «офлайн-клиент») |
 | `Test` / `TestQuestion` / `TestScale` | Диагностические тесты |
 | `TestResult` | Результат прохождения теста |
@@ -267,6 +280,6 @@ if (mod) return mod; // 403 если модуль отключён
 2. **`postinstall`** патчит Next.js dev-сервер (`scripts/patch-next-dev.js`) для auto-restart при V8 crash (Windows).
 3. **`proxy.ts`** — это Next.js 16 Proxy, заменивший `middleware.ts`. Нельзя создавать `middleware.ts` — билд упадёт.
 4. **ClientProfile без userId** — психолог может создать клиента без аккаунта (офлайн-клиент). При регистрации клиента происходит привязка по email.
-5. **Rate limit** без Redis: in-memory Map, очистка каждые 5 минут. Достаточно для одного инстанса.
+5. **Rate limit** без Redis: in-memory Map, очистка каждые 5 минут. Только для одного процесса; на Vercel с несколькими инстансами — подключите Upstash или Redis.
 6. **INITIAL_ADMIN_EMAIL** в `.env` — первый пользователь с этим email автоматически получает роль ADMIN при входе.
 7. **Защита последнего админа** — API не позволит понизить роль единственного администратора.
