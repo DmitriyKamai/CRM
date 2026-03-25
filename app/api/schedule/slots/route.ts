@@ -3,26 +3,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
-import { requireRoles } from "@/lib/security/api-guards";
+import { requirePsychologist } from "@/lib/security/api-guards";
 
 export async function GET() {
   try {
     return await withPrismaLock(async () => {
   const mod = await assertModuleEnabled("scheduling");
   if (mod) return mod;
-  const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
-  if (!psychAuth.ok) return psychAuth.response;
-  const userId = psychAuth.userId;
-
-  const profile = await prisma.psychologistProfile.findUnique({ where: { userId } });
-  if (!profile) {
-    return NextResponse.json({ message: "Профиль психолога не найден" }, { status: 404 });
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const now = new Date();
   const slots = await prisma.scheduleSlot.findMany({
     where: {
-      psychologistId: profile.id,
+      psychologistId: ctx.psychologistId,
       start: {
         gte: new Date(now.getTime() - 1000 * 60 * 60 * 24) // сутки назад для контекста
       }
@@ -112,14 +106,8 @@ export async function POST(request: Request) {
   try {
   const mod = await assertModuleEnabled("scheduling");
   if (mod) return mod;
-  const psychAuth = await requireRoles(["PSYCHOLOGIST"]);
-  if (!psychAuth.ok) return psychAuth.response;
-  const userId = psychAuth.userId;
-
-  const profile = await prisma.psychologistProfile.findUnique({ where: { userId } });
-  if (!profile) {
-    return NextResponse.json({ message: "Профиль психолога не найден" }, { status: 404 });
-  }
+  const ctx = await requirePsychologist();
+  if (!ctx.ok) return ctx.response;
 
   const body = await request.json().catch(() => null);
   if (!body) {
@@ -169,7 +157,7 @@ export async function POST(request: Request) {
   // newStart < existingEnd && newEnd > existingStart
   const overlapping = await prisma.scheduleSlot.findFirst({
     where: {
-      psychologistId: profile.id,
+      psychologistId: ctx.psychologistId,
       start: {
         lt: endDate
       },
@@ -191,7 +179,7 @@ export async function POST(request: Request) {
 
   const slot = await prisma.scheduleSlot.create({
     data: {
-      psychologistId: profile.id,
+      psychologistId: ctx.psychologistId,
       start: startDate,
       end: endDate
     }

@@ -2,8 +2,19 @@ import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
 
+import { SESSION_INVALID_CODE } from "@/lib/api-error-codes";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+
+/** 401: сессия есть, данных в БД нет (сброс БД, удалён пользователь/профиль). Клиент делает signOut. */
+export function sessionInvalidResponse(
+  message = "Данные входа устарели или аккаунт удалён. Войдите снова."
+) {
+  return NextResponse.json(
+    { message, code: SESSION_INVALID_CODE },
+    { status: 401 }
+  );
+}
 
 /** Роли из Prisma `Role` — для проверок в API. */
 export type AppRole = "ADMIN" | "PSYCHOLOGIST" | "CLIENT" | "UNSPECIFIED";
@@ -102,9 +113,8 @@ export async function requirePsychologist(): Promise<
   if (!psych) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
+      response: sessionInvalidResponse(
+        "Сессия недействительна: профиль специалиста не найден. Войдите снова."
       )
     };
   }

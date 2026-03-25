@@ -9,6 +9,7 @@ export {
   requireClientOrPsychologist,
   requirePsychologist,
   requireRoles,
+  sessionInvalidResponse,
   sessionUser
 } from "./api-guards";
 

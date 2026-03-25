@@ -32,6 +32,7 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover";
 import { ScheduleGridSkeleton } from "@/components/schedule/schedule-skeleton";
+import { signOutIfSessionInvalid } from "@/lib/session-stale-client";
 
 type SlotStatus = "FREE" | "BOOKED" | "CANCELED";
 type AppointmentStatus = "PENDING_CONFIRMATION" | "SCHEDULED" | null;
@@ -261,18 +262,22 @@ export function PsychologistSchedule() {
     setLoading(true);
     try {
       const res = await fetch("/api/schedule/slots");
+      let body: unknown = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
       if (!res.ok) {
+        if (await signOutIfSessionInvalid(res.status, body)) return;
         let msg = "Не удалось загрузить расписание";
-        try {
-          const body = await res.json();
-          if (body && typeof body.message === "string") msg = body.message;
-        } catch {
-          // ignore
+        if (body && typeof body === "object" && body !== null) {
+          const m = (body as { message?: unknown }).message;
+          if (typeof m === "string") msg = m;
         }
         throw new Error(msg);
       }
-      const data = (await res.json()) as SlotDto[];
-      setSlots(data);
+      setSlots(body as SlotDto[]);
     } catch (err) {
       if (retries > 0) {
         setTimeout(() => void loadSlots(retries - 1), 500);

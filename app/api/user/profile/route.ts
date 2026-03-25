@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { requireAuth } from "@/lib/security/api-guards";
+import { requireAuth, sessionInvalidResponse } from "@/lib/security/api-guards";
 
 /** Максимум символов в блоке «О себе» профессионального профиля */
 const BIO_MAX_LENGTH = 1500;
@@ -37,10 +37,7 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { message: "Пользователь не найден. Войдите снова." },
-        { status: 401 }
-      );
+      return sessionInvalidResponse("Пользователь не найден. Войдите снова.");
     }
 
     const dateOfBirthStr = user.dateOfBirth
@@ -70,44 +67,29 @@ export async function GET() {
       const profile = await prisma.psychologistProfile.findUnique({
         where: { userId }
       });
-      if (profile) {
-        const p = profile;
-        psychologistProfile = {
-          firstName: p.firstName,
-          lastName: p.lastName,
-          phone: p.phone ?? null,
-          country: p.country ?? null,
-          city: p.city ?? null,
-          gender: p.gender ?? null,
-          maritalStatus: p.maritalStatus ?? null,
-          specialization: p.specialization ?? null,
-          bio: p.bio ?? null,
-          profilePhotoUrl: p.profilePhotoUrl ?? null,
-          profilePhotoPublished: p.profilePhotoPublished ?? false,
-          contactPhone: p.contactPhone ?? null,
-          contactTelegram: p.contactTelegram ?? null,
-          contactViber: p.contactViber ?? null,
-          contactWhatsapp: p.contactWhatsapp ?? null
-        };
-      } else {
-        psychologistProfile = {
-          firstName: "",
-          lastName: "",
-          phone: null,
-          country: null,
-          city: null,
-          gender: null,
-          maritalStatus: null,
-          specialization: null,
-          bio: null,
-          profilePhotoUrl: null,
-          profilePhotoPublished: false,
-          contactPhone: null,
-          contactTelegram: null,
-          contactViber: null,
-          contactWhatsapp: null
-        };
+      if (!profile) {
+        return sessionInvalidResponse(
+          "Сессия недействительна: профиль специалиста не найден. Войдите снова."
+        );
       }
+      const p = profile;
+      psychologistProfile = {
+        firstName: p.firstName,
+        lastName: p.lastName,
+        phone: p.phone ?? null,
+        country: p.country ?? null,
+        city: p.city ?? null,
+        gender: p.gender ?? null,
+        maritalStatus: p.maritalStatus ?? null,
+        specialization: p.specialization ?? null,
+        bio: p.bio ?? null,
+        profilePhotoUrl: p.profilePhotoUrl ?? null,
+        profilePhotoPublished: p.profilePhotoPublished ?? false,
+        contactPhone: p.contactPhone ?? null,
+        contactTelegram: p.contactTelegram ?? null,
+        contactViber: p.contactViber ?? null,
+        contactWhatsapp: p.contactWhatsapp ?? null
+      };
     }
 
     return NextResponse.json({

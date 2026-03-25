@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { PsychologistSessionGuard } from "@/components/psychologist/psychologist-session-guard";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
 
 export default async function PsychologistLayout({
@@ -9,6 +10,7 @@ export default async function PsychologistLayout({
   const modules = await getPlatformModuleFlags();
   return (
     <AppShell role="PSYCHOLOGIST" modules={modules}>
+      <PsychologistSessionGuard />
       {children}
     </AppShell>
   );

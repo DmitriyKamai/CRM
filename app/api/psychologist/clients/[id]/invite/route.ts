@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { sendRegistrationInviteEmail } from "@/lib/email";
-import { requirePsychologist } from "@/lib/security/api-guards";
+import { requirePsychologist, sessionInvalidResponse } from "@/lib/security/api-guards";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -20,10 +20,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     });
 
     if (!psych) {
-      return NextResponse.json(
-        { message: "Профиль психолога не найден" },
-        { status: 400 }
-      );
+      return sessionInvalidResponse();
     }
 
     const body = await request.json().catch(() => ({}));
