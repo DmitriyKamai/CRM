@@ -169,81 +169,71 @@ export function PublicPsychologistsList({
               </div>
             </div>
 
-            {countryOptions.length > 1 && (
-              <div className="w-full min-w-[10rem] max-w-[14rem]">
-                <Label
-                  htmlFor="psych-country"
-                  className="text-xs font-medium text-muted-foreground"
+            <div className="w-full min-w-[10rem] max-w-[14rem]">
+              <Label
+                htmlFor="psych-country"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Страна
+              </Label>
+              <Select
+                value={selectedCountry ?? FILTER_ANY}
+                onValueChange={(v) =>
+                  setSelectedCountry(v === FILTER_ANY ? null : v)
+                }
+              >
+                <SelectTrigger
+                  id="psych-country"
+                  className="mt-1 h-9 text-sm"
+                  aria-label="Фильтр по стране"
                 >
-                  Страна
-                </Label>
-                <Select
-                  value={selectedCountry ?? FILTER_ANY}
-                  onValueChange={(v) =>
-                    setSelectedCountry(v === FILTER_ANY ? null : v)
-                  }
-                >
-                  <SelectTrigger
-                    id="psych-country"
-                    className="mt-1 h-9 text-sm"
-                    aria-label="Фильтр по стране"
-                  >
-                    <SelectValue placeholder="Страна" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[min(280px,50vh)]">
-                    <SelectItem value={FILTER_ANY}>Все страны</SelectItem>
-                    {countryOptions.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                  <SelectValue placeholder="Страна" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[min(280px,50vh)]">
+                  <SelectItem value={FILTER_ANY}>Все страны</SelectItem>
+                  {countryOptions.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            {total > 0 && (cityOptions.length > 0 || selectedCountry != null) && (
-              <div className="w-full min-w-[10rem] max-w-[14rem]">
-                <Label
-                  htmlFor="psych-city"
-                  className="text-xs font-medium text-muted-foreground"
+            <div className="w-full min-w-[10rem] max-w-[14rem]">
+              <Label
+                htmlFor="psych-city"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Город
+              </Label>
+              <Select
+                value={activeCityFilter ?? FILTER_ANY}
+                onValueChange={(v) =>
+                  setSelectedCity(v === FILTER_ANY ? null : v)
+                }
+              >
+                <SelectTrigger
+                  id="psych-city"
+                  className="mt-1 h-9 text-sm"
+                  aria-label="Фильтр по городу"
                 >
-                  Город
-                </Label>
-                {cityOptions.length > 0 ? (
-                  <Select
-                    value={activeCityFilter ?? FILTER_ANY}
-                    onValueChange={(v) =>
-                      setSelectedCity(v === FILTER_ANY ? null : v)
-                    }
-                  >
-                    <SelectTrigger
-                      id="psych-city"
-                      className="mt-1 h-9 text-sm"
-                      aria-label="Фильтр по городу"
-                    >
-                      <SelectValue placeholder="Город" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[min(280px,50vh)]">
-                      <SelectItem value={FILTER_ANY}>
-                        {selectedCountry
-                          ? "Все города (страна)"
-                          : "Все города"}
-                      </SelectItem>
-                      {cityOptions.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="mt-2 text-xs leading-snug text-muted-foreground">
-                    Нет городов в анкетах для выбранной страны.
-                  </p>
-                )}
-              </div>
-            )}
+                  <SelectValue placeholder="Город" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[min(280px,50vh)]">
+                  <SelectItem value={FILTER_ANY}>
+                    {selectedCountry
+                      ? "Все города (страна)"
+                      : "Все города"}
+                  </SelectItem>
+                  {cityOptions.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 lg:ml-auto">
               <p
@@ -281,12 +271,11 @@ export function PublicPsychologistsList({
             </div>
           </div>
 
-          {countryOptions.length > 1 && (
-            <p className="text-[11px] leading-snug text-muted-foreground lg:max-w-3xl">
-              Города в списке соответствуют выбранной стране (или всему каталогу,
-              если страна «Все»). Длинный список прокручивается внутри поля.
-            </p>
-          )}
+          <p className="text-[11px] leading-snug text-muted-foreground lg:max-w-3xl">
+            Города в списке соответствуют выбранной стране (или всему каталогу,
+            если страна «Все»). Длинный список прокручивается внутри поля. Если в
+            анкетах не указаны страна или город, соответствующие списки пустые.
+          </p>
         </div>
       </section>
 
