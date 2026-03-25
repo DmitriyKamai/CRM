@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
-import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
+import { withPrismaLock } from "@/lib/prisma-request-lock";
 import {
   buildSmilInterpretation,
   computeSmilTScores,
   SMIL_QUESTION_COUNT
 } from "@/lib/diagnostics/smil";
 import type { SmilVariant } from "@/lib/diagnostics/smil";
+import { validateDiagnosticLink } from "@/lib/diagnostics/link-validation";
+import { saveTestResultAndIncrement } from "@/lib/diagnostics/submit-result";
 
-/** Вариант из запроса: мужской, женский или подростковый (13–15). Для подсчёта adolescent использует нормы male. */
 export type SmilRequestVariant = "male" | "female" | "adolescent";
-import { withPrismaLock } from "@/lib/prisma-request-lock";
 
 function validatePayload(payload: unknown): {
   token: string;
@@ -45,22 +44,21 @@ function validatePayload(payload: unknown): {
   const normalized: Record<number, 0 | 1> = {};
   for (const [k, v] of Object.entries(answers)) {
     const index = Number(k);
-    if (!Number.isInteger(index) || index < 1 || index > SMIL_QUESTION_COUNT) continue;
+    if (!Number.isInteger(index) || index < 1 || index > SMIL_QUESTION_COUNT)
+      continue;
     const num = Number(v);
     if (num !== 0 && num !== 1) continue;
     normalized[index] = num as 0 | 1;
   }
-  const required = SMIL_QUESTION_COUNT;
   const answered = Object.keys(normalized).length;
-  if (answered < required) {
+  if (answered < SMIL_QUESTION_COUNT) {
     throw new Error(
-      `Ответьте на все ${required} утверждений. Сейчас заполнено ${answered}.`
+      `Ответьте на все ${SMIL_QUESTION_COUNT} утверждений. Сейчас заполнено ${answered}.`
     );
   }
   return { token, answers: normalized, variant: variant as SmilRequestVariant };
 }
 
-/** Для подсчёта T-баллов и профиля: adolescent использует мужские нормы и мужской профильный лист. */
 function toScoringVariant(variant: SmilRequestVariant): SmilVariant {
   return variant === "adolescent" ? "male" : variant;
 }
@@ -69,6 +67,7 @@ export async function POST(request: Request) {
   try {
     const mod = await assertModuleEnabled("diagnostics");
     if (mod) return mod;
+
     const json = await request.json();
     const { token, answers, variant } = validatePayload(json);
     const scoringVariant = toScoringVariant(variant);
@@ -77,77 +76,18 @@ export async function POST(request: Request) {
     const interpretation = buildSmilInterpretation(tScores, scoringVariant);
 
     return await withPrismaLock(async () => {
-      const link = await prisma.diagnosticLink.findUnique({
-        where: { token },
-        include: {
-          test: true,
-          client: true,
-          psychologist: true
-        }
+      const result = await validateDiagnosticLink(token, "SMIL");
+      if (!result.ok) return result.response;
+
+      await saveTestResultAndIncrement({
+        link: result.link,
+        rawAnswers: answers,
+        scaleScores: tScores,
+        interpretation
       });
-
-      if (!link || !link.test || link.test.type !== "SMIL" || !link.test.isActive) {
-        return NextResponse.json(
-          { message: "Ссылка на тест СМИЛ недействительна" },
-          { status: 404 }
-        );
-      }
-
-      const now = new Date();
-      if (link.expiresAt && link.expiresAt < now) {
-        return NextResponse.json(
-          { message: "Срок действия ссылки истёк" },
-          { status: 410 }
-        );
-      }
-
-      if (link.maxUses && link.usedCount >= link.maxUses) {
-        return NextResponse.json(
-          { message: "Ссылка уже была использована" },
-          { status: 409 }
-        );
-      }
-
-      const testResult = await prisma.$transaction(async (tx) => {
-        const tr = await tx.testResult.create({
-          data: {
-            testId: link.testId,
-            clientId: link.clientId ?? null,
-            psychologistId: link.psychologistId ?? null,
-            rawAnswers: answers,
-            scaleScores: tScores,
-            interpretation
-          }
-        });
-        await tx.diagnosticLink.update({
-          where: { id: link.id },
-          data: { usedCount: { increment: 1 } }
-        });
-        await tx.diagnosticProgress.deleteMany({
-          where: { diagnosticLinkId: link.id }
-        });
-        return tr;
-      });
-
-      if (link.clientId) {
-        await safeLogClientHistory({
-          clientId: link.clientId,
-          type: ClientHistoryType.DIAGNOSTIC_COMPLETED,
-          actorUserId: null,
-          meta: {
-            testType: "SMIL",
-            testTitle: link.test.title,
-            resultId: testResult.id
-          }
-        });
-      }
 
       return NextResponse.json(
-        {
-          scaleScores: tScores,
-          interpretation,
-          profileSheet: scoringVariant
-        },
+        { scaleScores: tScores, interpretation, profileSheet: scoringVariant },
         { status: 201 }
       );
     });
