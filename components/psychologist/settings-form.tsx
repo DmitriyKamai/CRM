@@ -2147,7 +2147,7 @@ export function PsychologistSettingsForm({
                     id="contact-phone"
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+7 999 123-45-67"
+                    placeholder="+375 (29) 123-45-67"
                     maxLength={32}
                   />
                 </div>

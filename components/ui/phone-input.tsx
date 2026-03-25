@@ -63,7 +63,12 @@ type PhoneInputProps = Omit<
   onChange?: (value: string) => void;
 };
 
-export function PhoneInput({ value, onChange, ...props }: PhoneInputProps) {
+export function PhoneInput({
+  value,
+  onChange,
+  placeholder = "+375 (29) 123-45-67",
+  ...props
+}: PhoneInputProps) {
   const displayValue = value ? formatPhone(value) : "";
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -85,6 +90,7 @@ export function PhoneInput({ value, onChange, ...props }: PhoneInputProps) {
       type="tel"
       inputMode="tel"
       {...props}
+      placeholder={placeholder}
       value={displayValue}
       onChange={handleChange}
     />
