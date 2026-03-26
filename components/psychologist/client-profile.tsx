@@ -19,7 +19,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  Mail,
   Paperclip,
   Download,
   Trash,
@@ -43,7 +42,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { PhoneInput, formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
+import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -55,13 +54,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
-import { CountryAutocomplete, CityAutocomplete } from "@/components/ui/location-autocomplete";
+// Импорты из профиля вынесены в отдельные компоненты, поэтому эти UI-провайдеры
+// больше не требуются здесь.
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
 import { ClientHistoryPanel } from "@/components/psychologist/client-history-panel";
@@ -69,6 +63,7 @@ import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-tabs-nav";
 import { ClientProfileHeader } from "@/components/psychologist/client-profile-header";
+import { ClientProfileProfileTab } from "@/components/psychologist/client-profile-profile-tab";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
@@ -76,14 +71,6 @@ const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-full md:w-[2
 const FIELD_VALUE_CLASS = "min-w-0 w-full md:min-w-[28rem] md:w-fit";
 const PLAIN_INPUT_CLASS =
   "border-0 bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-0 min-h-0 w-full min-w-0 md:w-auto md:min-w-[28rem]";
-
-const MARITAL_OPTIONS: { value: string; label: string }[] = [
-  { value: "single", label: "Не в браке" },
-  { value: "married", label: "В браке" },
-  { value: "divorced", label: "В разводе" },
-  { value: "widowed", label: "Вдовец / Вдова" },
-  { value: "unspecified", label: "Не указано" }
-];
 
 function SortableFieldWrap({
   id,
@@ -606,11 +593,6 @@ export const PsychologistClientProfile = forwardRef<
     setEditing(false);
   }
 
-  function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    void saveAll();
-  }
-
   async function handleSendRegistrationInvite() {
     if (hasAccount) return;
     const targetEmail = (email || "").trim() || props.email || "";
@@ -737,31 +719,81 @@ export const PsychologistClientProfile = forwardRef<
           value="profile"
           className="mt-0 min-w-0 rounded-lg border bg-card p-4"
         >
-          <div className="text-sm text-muted-foreground pb-2">
-            {props.email ?? "Email ещё не указан"} · Создан{" "}
-            {formatDate(props.createdAt)}
-          </div>
+          <ClientProfileProfileTab
+            email={props.email}
+            createdAt={props.createdAt}
+            hasAccount={hasAccount}
+            isEditing={isEditing}
+            saving={saving}
+            deleting={deleting}
+            customFieldsSaving={customFieldsSaving}
+            error={error}
 
-          <form
-            id="profile-form"
-            onSubmit={handleSave}
-            className="flex min-w-0 flex-col"
-          >
-            <div className={FIELD_ROW_CLASS}>
-              <Label htmlFor="firstName" className={FIELD_LABEL_CLASS}>
-                Имя
-              </Label>
-              <div className={FIELD_VALUE_CLASS}>
-                <Input
-                  id="firstName"
-                  required
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  disabled={!isEditing}
-                  className={cn(PLAIN_INPUT_CLASS, !isEditing && "cursor-default")}
-                />
-              </div>
+            firstName={firstName}
+            setFirstName={setFirstName}
+            lastName={lastName}
+            setLastName={setLastName}
+            emailValue={email}
+            setEmailValue={setEmail}
+
+            phone={phone}
+            setPhone={setPhone}
+            phoneHref={phoneHref}
+            phoneDisplayText={phoneDisplayText}
+
+            country={country}
+            setCountry={setCountry}
+            countryCode={countryCode}
+            setCountryCode={setCountryCode}
+            city={city}
+            setCity={setCity}
+
+            gender={gender}
+            setGender={setGender}
+            maritalStatus={maritalStatus}
+            setMaritalStatus={setMaritalStatus}
+
+            notes={notes}
+            setNotes={setNotes}
+
+            dob={dob}
+            dobPopoverOpen={dobPopoverOpen}
+            setDobPopoverOpen={setDobPopoverOpen}
+            setDob={setDob}
+
+            handleSendRegistrationInvite={handleSendRegistrationInvite}
+            cancelAll={cancelAll}
+            saveAll={saveAll}
+          />
+
+          {/* OLD PROFILE CONTENT (временно) */}
+          {/*
+            <div className="text-sm text-muted-foreground pb-2">
+              {props.email ?? "Email ещё не указан"} · Создан{" "}
+              {formatDate(props.createdAt)}
             </div>
+
+            <form
+              id="profile-form"
+              onSubmit={handleSave}
+              className="flex min-w-0 flex-col"
+            >
+              <div className={FIELD_ROW_CLASS}>
+                <Label htmlFor="firstName" className={FIELD_LABEL_CLASS}>
+                  Имя
+                </Label>
+                <div className={FIELD_VALUE_CLASS}>
+                  <Input
+                    id="firstName"
+                    required
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    disabled={!isEditing}
+                    className={cn(PLAIN_INPUT_CLASS, !isEditing && "cursor-default")}
+                  />
+                </div>
+              </div>
+          
             <div className={FIELD_ROW_CLASS}>
               <Label htmlFor="lastName" className={FIELD_LABEL_CLASS}>
                 Фамилия
@@ -1018,6 +1050,7 @@ export const PsychologistClientProfile = forwardRef<
               </div>
             )}
             </form>
+          */}
         </TabsContent>
 
         {Array.from(
