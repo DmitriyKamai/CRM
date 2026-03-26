@@ -31,6 +31,7 @@ import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-t
 import { ClientProfileHeader } from "@/components/psychologist/client-profile-header";
 import { ClientProfileProfileTab } from "@/components/psychologist/client-profile-profile-tab";
 import { ClientProfileCustomFieldsTabs } from "@/components/psychologist/client-profile-custom-fields-tabs";
+import { ClientProfileDiagnosticsTab } from "@/components/psychologist/client-profile-diagnostics-tab";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 type ClientProfileProps = {
@@ -689,39 +690,11 @@ export const PsychologistClientProfile = forwardRef<
         />
 
         {diagnosticsOn && (
-          <TabsContent
-            value="diagnostics"
-            className="mt-0 space-y-3 rounded-lg border bg-card p-4"
-          >
-            {diagnosticsLoading ? (
-              <p className="text-sm text-muted-foreground">Загрузка результатов…</p>
-            ) : diagnosticsList.length > 0 ? (
-              <ul className="space-y-2">
-                {diagnosticsList.map((result) => (
-                  <li
-                    key={result.id}
-                    className="rounded-md border bg-card px-3 py-2 text-sm"
-                  >
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-medium">{result.testTitle}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(result.createdAt)}
-                      </span>
-                    </div>
-                    {result.interpretation && (
-                      <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
-                        {result.interpretation}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Результаты психологической диагностики для этого клиента пока не сохранены.
-              </p>
-            )}
-          </TabsContent>
+          <ClientProfileDiagnosticsTab
+            loading={diagnosticsLoading}
+            diagnostics={diagnosticsList}
+            formatDate={formatDate}
+          />
         )}
 
         {schedulingOn && (
