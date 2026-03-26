@@ -16,7 +16,6 @@ import {
   FileSpreadsheet,
   UploadCloud,
 } from "lucide-react";
-import { toast } from "sonner";
 import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -80,6 +79,7 @@ import {
   type ClientsImportCustomDef,
   type ClientsImportField
 } from "@/hooks/use-clients-import";
+import { useClientsExport } from "@/hooks/use-clients-export";
 
 const AVATAR_COLORS = [
   "bg-rose-200 text-rose-800",
@@ -226,7 +226,6 @@ export function PsychologistClientsList({
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   const [singleDeleting, setSingleDeleting] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
     null
   );
@@ -265,6 +264,17 @@ export function PsychologistClientsList({
       setGoogleSheetsGoogleConnected(false);
     }
   }, []);
+
+  const clientsExport = useClientsExport({
+    clientsCount: clients.length,
+    statusFilter,
+    googleSheetsOAuthConfigured,
+    googleSheetsGoogleConnected,
+    setGoogleSheetsOAuthConfigured: (v) => setGoogleSheetsOAuthConfigured(v),
+    setGoogleSheetsGoogleConnected: (v) => setGoogleSheetsGoogleConnected(v),
+    syncGoogleSheetsFromServer,
+    setError
+  });
 
   useEffect(() => {
     void syncGoogleSheetsFromServer();
@@ -369,116 +379,6 @@ export function PsychologistClientsList({
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
-    }
-  }
-
-  async function handleExportGoogleSheets() {
-    if (clients.length === 0) return;
-
-    type GsJson = {
-      oauthConfigured?: boolean;
-      googleConnected?: boolean;
-      spreadsheetId?: string | null;
-    };
-
-    let oauthOk = googleSheetsOAuthConfigured;
-    let connected = googleSheetsGoogleConnected;
-
-    if (oauthOk === null || connected === null) {
-      let data: GsJson | null = null;
-      try {
-        const res = await fetch("/api/psychologist/google-sheets");
-        if (res.ok) data = (await res.json().catch(() => null)) as GsJson | null;
-      } catch {
-        toast.error("Не удалось проверить настройки Google. Обновите страницу и попробуйте снова.");
-        return;
-      }
-      if (!data) {
-        toast.error("Не удалось проверить настройки Google. Обновите страницу и попробуйте снова.");
-        return;
-      }
-      oauthOk = Boolean(data.oauthConfigured);
-      connected = Boolean(data.googleConnected);
-      setGoogleSheetsOAuthConfigured(oauthOk);
-      setGoogleSheetsGoogleConnected(connected);
-    }
-
-    if (!oauthOk) {
-      toast.error(
-        "Google для таблиц не настроен на сервере. Нужны GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET — обратитесь к администратору."
-      );
-      return;
-    }
-
-    if (!connected) {
-      window.location.assign("/api/psychologist/google-sheets/oauth/start?intent=export");
-      return;
-    }
-
-    setExporting(true);
-    try {
-      const body: { statusId?: string } = {};
-      if (statusFilter !== "ALL") body.statusId = statusFilter;
-
-      const res = await fetch("/api/psychologist/clients/export/google-sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = (await res.json().catch(() => null)) as {
-        message?: string;
-        spreadsheetUrl?: string;
-        exportedCount?: number;
-      } | null;
-      if (!res.ok) {
-        if (res.status === 403) {
-          setGoogleSheetsGoogleConnected(false);
-          void syncGoogleSheetsFromServer();
-        }
-        throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицу");
-      }
-      void syncGoogleSheetsFromServer();
-      const n = data?.exportedCount ?? 0;
-      toast.success(
-        n > 0
-          ? `Создана новая таблица, выгружено строк: ${n}. Открываем…`
-          : "Создана новая таблица (только заголовки — нет клиентов по фильтру). Открываем…"
-      );
-      if (data?.spreadsheetUrl) {
-        window.open(data.spreadsheetUrl, "_blank", "noopener,noreferrer");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Ошибка выгрузки в Google");
-    } finally {
-      setExporting(false);
-    }
-  }
-
-  async function handleExport(format: "csv" | "json" | "xlsx") {
-    setExporting(true);
-    try {
-      const params = new URLSearchParams({ format });
-      if (statusFilter !== "ALL") params.set("statusId", statusFilter);
-      const res = await fetch(`/api/psychologist/clients/export?${params.toString()}`);
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "Не удалось выгрузить список");
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const d = new Date();
-      const dateStr = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
-      a.download = `clients-${dateStr}.${format === "xlsx" ? "xlsx" : format}`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Ошибка экспорта");
-    } finally {
-      setExporting(false);
     }
   }
 
@@ -1001,36 +901,36 @@ export function PsychologistClientsList({
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={exporting || clients.length === 0}
+                        disabled={clientsExport.exporting || clients.length === 0}
                       >
                         <Download className="h-4 w-4 mr-1.5" />
-                        {exporting ? "Экспорт…" : "Экспорт"}
+                        {clientsExport.exporting ? "Экспорт…" : "Экспорт"}
                         <ChevronDown className="h-4 w-4 ml-1.5 opacity-70" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => handleExport("csv")}
-                        disabled={exporting}
+                        onClick={() => clientsExport.handleExport("csv")}
+                        disabled={clientsExport.exporting}
                       >
                         Скачать CSV
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleExport("json")}
-                        disabled={exporting}
+                        onClick={() => clientsExport.handleExport("json")}
+                        disabled={clientsExport.exporting}
                       >
                         Скачать JSON
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleExport("xlsx")}
-                        disabled={exporting}
+                        onClick={() => clientsExport.handleExport("xlsx")}
+                        disabled={clientsExport.exporting}
                       >
                         Скачать XLSX
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => void handleExportGoogleSheets()}
+                        onClick={() => void clientsExport.handleExportGoogleSheets()}
                         disabled={
-                          exporting ||
+                          clientsExport.exporting ||
                           clients.length === 0 ||
                           googleSheetsOAuthConfigured === false
                         }
@@ -1104,30 +1004,30 @@ export function PsychologistClientsList({
                       )}
                       <DropdownMenuLabel className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
                         <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {exporting ? "Экспорт…" : "Экспорт"}
+                        {clientsExport.exporting ? "Экспорт…" : "Экспорт"}
                       </DropdownMenuLabel>
                       <DropdownMenuItem
-                        onClick={() => handleExport("csv")}
-                        disabled={exporting || clients.length === 0}
+                        onClick={() => clientsExport.handleExport("csv")}
+                        disabled={clientsExport.exporting || clients.length === 0}
                       >
                         Скачать CSV
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleExport("json")}
-                        disabled={exporting || clients.length === 0}
+                        onClick={() => clientsExport.handleExport("json")}
+                        disabled={clientsExport.exporting || clients.length === 0}
                       >
                         Скачать JSON
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleExport("xlsx")}
-                        disabled={exporting || clients.length === 0}
+                        onClick={() => clientsExport.handleExport("xlsx")}
+                        disabled={clientsExport.exporting || clients.length === 0}
                       >
                         Скачать XLSX
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => void handleExportGoogleSheets()}
+                        onClick={() => void clientsExport.handleExportGoogleSheets()}
                         disabled={
-                          exporting ||
+                          clientsExport.exporting ||
                           clients.length === 0 ||
                           googleSheetsOAuthConfigured === false
                         }
