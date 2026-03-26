@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,119 +31,99 @@ interface UserRow {
   createdAt: string;
 }
 
+interface UsersResponse {
+  rows: UserRow[];
+  totalCount: number;
+}
+
+const ALL_ROLE = "ALL";
+
+async function fetchUsers(params: {
+  page: number;
+  role: string;
+  search: string;
+  take: number;
+}): Promise<UsersResponse> {
+  const sp = new URLSearchParams();
+  if (params.role && params.role !== ALL_ROLE) sp.set("role", params.role);
+  if (params.search.trim()) sp.set("search", params.search.trim());
+  sp.set("take", String(params.take));
+  sp.set("page", String(params.page));
+  const res = await fetch(`/api/admin/users?${sp}`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message ?? "Не удалось загрузить пользователей");
+  return data as UsersResponse;
+}
+
+async function changeRoleApi(userId: string, role: Role): Promise<void> {
+  const res = await fetch(`/api/admin/users/${userId}/role`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role })
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message ?? "Не удалось изменить роль");
+}
+
 export function UsersTable() {
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
+  const queryClient = useQueryClient();
+
   const [page, setPage] = useState(1);
-  const [take, setTake] = useState<number>(25);
+  const [take, setTake] = useState(25);
+  const [role, setRole] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
-  // Быстрые фильтры
-  const [role, setRole] = useState<string>(""); // пусто = все
-  const [search, setSearch] = useState<string>("");
+  const queryKey = ["admin-users", { page, role, search, take }] as const;
 
+  const { data, isFetching, isError, error } = useQuery({
+    queryKey,
+    queryFn: () => fetchUsers({ page, role, search, take }),
+    placeholderData: prev => prev
+  });
+
+  const rolesMutation = useMutation({
+    mutationFn: ({ userId, newRole }: { userId: string; newRole: Role }) =>
+      changeRoleApi(userId, newRole),
+    onMutate: ({ userId }) => setSavingId(userId),
+    onSuccess: (_, { userId, newRole }) => {
+      queryClient.setQueryData(queryKey, (old: UsersResponse | undefined) =>
+        old
+          ? { ...old, rows: old.rows.map(u => (u.id === userId ? { ...u, role: newRole } : u)) }
+          : old
+      );
+      setSavingId(null);
+      setMutationError(null);
+    },
+    onError: (e: Error) => {
+      setSavingId(null);
+      setMutationError(e.message);
+    }
+  });
+
+  const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / take));
 
-  const ALL_ROLE = "ALL";
-
-  function buildQueryString(
-    pageValue: number,
-    overrides?: { role?: string; search?: string; take?: number }
-  ) {
-    const nextRole = overrides?.role ?? role;
-    const nextSearch = overrides?.search ?? search;
-    const nextTake = overrides?.take ?? take;
-    const sp = new URLSearchParams();
-    if (nextRole && nextRole !== ALL_ROLE) sp.set("role", nextRole);
-    if (nextSearch.trim()) sp.set("search", nextSearch.trim());
-    sp.set("take", String(nextTake));
-    sp.set("page", String(pageValue));
-    return sp.toString();
-  }
-
-  async function load(
-    pageValue: number,
-    overrides?: { role?: string; search?: string; take?: number }
-  ) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/admin/users?${buildQueryString(pageValue, overrides)}`
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "Не удалось загрузить пользователей");
-      }
-      const data = (await res.json()) as {
-        rows: UserRow[];
-        totalCount: number;
-      };
-      setUsers(data.rows);
-      setTotalCount(data.totalCount ?? 0);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось загрузить пользователей"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function applyFilters() {
+  function applySearch() {
+    setSearch(searchInput);
     setPage(1);
-    load(1);
   }
 
-  function goToPage(next: number) {
-    const clamped = Math.min(Math.max(1, next), totalPages);
-    setPage(clamped);
-    load(clamped);
-  }
-
-  async function changeRole(userId: string, role: Role) {
-    setSavingId(userId);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/users/${userId}/role`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ role })
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось изменить роль");
-      }
-      setUsers(prev =>
-        prev.map(u => (u.id === userId ? { ...u, role } : u))
-      );
-      setSavingId(null);
-    } catch (err) {
-      console.error(err);
-      setSavingId(null);
-      setError(
-        err instanceof Error ? err.message : "Не удалось изменить роль"
-      );
-    }
-  }
+  const displayError = isError
+    ? (error as Error).message
+    : mutationError;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Пользователи</h2>
-        <Button variant="ghost" size="sm" onClick={applyFilters}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-users"] })}
+        >
           Обновить
         </Button>
       </div>
@@ -152,10 +133,9 @@ export function UsersTable() {
           <div className="text-xs text-muted-foreground mb-1">Роль</div>
           <Select
             value={role || ALL_ROLE}
-            onValueChange={(v) => {
-              setRole(v);
+            onValueChange={v => {
+              setRole(v === ALL_ROLE ? "" : v);
               setPage(1);
-              void load(1, { role: v });
             }}
           >
             <SelectTrigger>
@@ -173,9 +153,10 @@ export function UsersTable() {
         <div className="md:col-span-2">
           <div className="text-xs text-muted-foreground mb-1">Поиск</div>
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onBlur={() => applyFilters()}
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onBlur={applySearch}
+            onKeyDown={e => e.key === "Enter" && applySearch()}
             placeholder="email или имя"
           />
         </div>
@@ -184,11 +165,9 @@ export function UsersTable() {
           <div className="text-xs text-muted-foreground mb-1">Записей</div>
           <Select
             value={String(take)}
-            onValueChange={(v) => {
-              const nextTake = Number(v);
-              setTake(nextTake);
+            onValueChange={v => {
+              setTake(Number(v));
               setPage(1);
-              void load(1, { take: nextTake });
             }}
           >
             <SelectTrigger>
@@ -203,15 +182,15 @@ export function UsersTable() {
         </div>
       </div>
 
-      {error && (
+      {displayError && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
+          {displayError}
         </div>
       )}
 
-      {loading ? (
+      {isFetching && !data ? (
         <div className="text-sm text-muted-foreground">Загружаем список...</div>
-      ) : users.length === 0 ? (
+      ) : (data?.rows ?? []).length === 0 ? (
         <div className="text-sm text-muted-foreground">
           Пользователи пока не зарегистрированы.
         </div>
@@ -227,8 +206,8 @@ export function UsersTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map(user => (
-                <TableRow key={user.id}>
+              {(data?.rows ?? []).map(user => (
+                <TableRow key={user.id} className={isFetching ? "opacity-60" : ""}>
                   <TableCell>{user.email}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {user.name ?? "—"}
@@ -238,7 +217,12 @@ export function UsersTable() {
                       className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                       value={user.role}
                       disabled={savingId === user.id}
-                      onChange={e => changeRole(user.id, e.target.value as Role)}
+                      onChange={e =>
+                        rolesMutation.mutate({
+                          userId: user.id,
+                          newRole: e.target.value as Role
+                        })
+                      }
                     >
                       <option value="CLIENT">Клиент</option>
                       <option value="PSYCHOLOGIST">Специалист</option>
@@ -258,7 +242,7 @@ export function UsersTable() {
         </div>
       )}
 
-      {!loading && totalCount > 0 && (
+      {totalCount > 0 && (
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="text-xs text-muted-foreground">
             Страница{" "}
@@ -270,7 +254,7 @@ export function UsersTable() {
               size="sm"
               variant="outline"
               disabled={page <= 1}
-              onClick={() => goToPage(page - 1)}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
             >
               Назад
             </Button>
@@ -278,7 +262,7 @@ export function UsersTable() {
               size="sm"
               variant="outline"
               disabled={page >= totalPages}
-              onClick={() => goToPage(page + 1)}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
               Далее
             </Button>
@@ -288,4 +272,3 @@ export function UsersTable() {
     </div>
   );
 }
-

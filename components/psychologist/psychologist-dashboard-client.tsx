@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -20,16 +20,18 @@ type UserWithRole = { role?: "UNSPECIFIED" | "ADMIN" | "CLIENT" | "PSYCHOLOGIST"
 type Props = {
   schedulingEnabled: boolean;
   diagnosticsEnabled: boolean;
+  initialClientsCount: number;
+  initialUpcomingCount: number;
 };
 
 export function PsychologistDashboardClient({
   schedulingEnabled,
-  diagnosticsEnabled
+  diagnosticsEnabled,
+  initialClientsCount,
+  initialUpcomingCount
 }: Props) {
   const router = useRouter();
   const { data: session, status, update } = useSession();
-  const [clientsCount] = useState<number>(0);
-  const [upcomingAppointments] = useState<number>(0);
   const sessionRefreshTried = useRef(false);
 
   useEffect(() => {
@@ -39,7 +41,6 @@ export function PsychologistDashboardClient({
       return;
     }
     const role = (session.user as UserWithRole).role;
-    // Сразу после credentials signIn JWT на клиенте иногда без role — один раз подтягиваем сессию.
     if (role === undefined && !sessionRefreshTried.current) {
       sessionRefreshTried.current = true;
       void update();
@@ -91,10 +92,7 @@ export function PsychologistDashboardClient({
   const subtitleParts: string[] = ["клиенты"];
   if (schedulingEnabled) subtitleParts.push("расписание");
   if (diagnosticsEnabled) subtitleParts.push("результаты диагностики");
-  const subtitle =
-    subtitleParts.length > 0
-      ? `Здесь собраны ключевые элементы вашей работы: ${subtitleParts.join(", ")}.`
-      : "Здесь собраны ключевые элементы вашей работы.";
+  const subtitle = `Здесь собраны ключевые элементы вашей работы: ${subtitleParts.join(", ")}.`;
 
   return (
     <div className="p-6 space-y-6">
@@ -114,7 +112,7 @@ export function PsychologistDashboardClient({
             <CardDescription>Клиенты</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{clientsCount}</div>
+            <div className="text-2xl font-semibold">{initialClientsCount}</div>
           </CardContent>
         </Card>
 
@@ -124,7 +122,7 @@ export function PsychologistDashboardClient({
               <CardDescription>Ближайшие записи</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">{upcomingAppointments}</div>
+              <div className="text-2xl font-semibold">{initialUpcomingCount}</div>
             </CardContent>
           </Card>
         )}

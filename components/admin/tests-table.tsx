@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,116 +29,98 @@ interface TestRow {
   createdAt: string;
 }
 
+interface TestsResponse {
+  rows: TestRow[];
+  totalCount: number;
+}
+
+const ALL_STATUS = "ALL";
+
+async function fetchTests(params: {
+  page: number;
+  isActiveFilter: string;
+  search: string;
+  take: number;
+}): Promise<TestsResponse> {
+  const sp = new URLSearchParams();
+  if (params.isActiveFilter && params.isActiveFilter !== ALL_STATUS)
+    sp.set("isActive", params.isActiveFilter);
+  if (params.search.trim()) sp.set("search", params.search.trim());
+  sp.set("take", String(params.take));
+  sp.set("page", String(params.page));
+  const res = await fetch(`/api/admin/tests?${sp}`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message ?? "Не удалось загрузить тесты");
+  return data as TestsResponse;
+}
+
+async function toggleTestApi(testId: string, isActive: boolean): Promise<void> {
+  const res = await fetch(`/api/admin/tests/${testId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isActive })
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message ?? "Не удалось обновить статус теста");
+}
+
 export function TestsTable() {
-  const [tests, setTests] = useState<TestRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
+  const queryClient = useQueryClient();
+
   const [page, setPage] = useState(1);
-  const [take, setTake] = useState<number>(25);
+  const [take, setTake] = useState(25);
+  const [isActiveFilter, setIsActiveFilter] = useState(ALL_STATUS);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
-  // Быстрые фильтры
-  const ALL_STATUS = "ALL";
-  const [isActiveFilter, setIsActiveFilter] = useState<string>(ALL_STATUS); // 'ALL', 'true', 'false'
-  const [search, setSearch] = useState<string>("");
+  const queryKey = ["admin-tests", { page, isActiveFilter, search, take }] as const;
 
+  const { data, isFetching, isError, error } = useQuery({
+    queryKey,
+    queryFn: () => fetchTests({ page, isActiveFilter, search, take }),
+    placeholderData: prev => prev
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ testId, isActive }: { testId: string; isActive: boolean }) =>
+      toggleTestApi(testId, isActive),
+    onMutate: ({ testId }) => setSavingId(testId),
+    onSuccess: (_, { testId, isActive }) => {
+      queryClient.setQueryData(queryKey, (old: TestsResponse | undefined) =>
+        old
+          ? { ...old, rows: old.rows.map(t => (t.id === testId ? { ...t, isActive } : t)) }
+          : old
+      );
+      setSavingId(null);
+      setMutationError(null);
+    },
+    onError: (e: Error) => {
+      setSavingId(null);
+      setMutationError(e.message);
+    }
+  });
+
+  const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / take));
 
-  function buildQueryString(
-    pageValue: number,
-    overrides?: { isActiveFilter?: string; search?: string; take?: number }
-  ) {
-    const nextIsActiveFilter = overrides?.isActiveFilter ?? isActiveFilter;
-    const nextSearch = overrides?.search ?? search;
-    const nextTake = overrides?.take ?? take;
-    const sp = new URLSearchParams();
-    if (nextIsActiveFilter && nextIsActiveFilter !== ALL_STATUS)
-      sp.set("isActive", nextIsActiveFilter);
-    if (nextSearch.trim()) sp.set("search", nextSearch.trim());
-    sp.set("take", String(nextTake));
-    sp.set("page", String(pageValue));
-    return sp.toString();
-  }
-
-  async function load(
-    pageValue: number,
-    overrides?: { isActiveFilter?: string; search?: string; take?: number }
-  ) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/admin/tests?${buildQueryString(pageValue, overrides)}`
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "Не удалось загрузить тесты");
-      }
-      const data = (await res.json()) as { rows: TestRow[]; totalCount: number };
-      setTests(data.rows);
-      setTotalCount(data.totalCount ?? 0);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Не удалось загрузить тесты"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function applyFilters() {
+  function applySearch() {
+    setSearch(searchInput);
     setPage(1);
-    load(1);
   }
 
-  function goToPage(next: number) {
-    const clamped = Math.min(Math.max(1, next), totalPages);
-    setPage(clamped);
-    load(clamped);
-  }
-
-  async function toggleActive(testId: string, isActive: boolean) {
-    setSavingId(testId);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/tests/${testId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ isActive })
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось обновить статус теста");
-      }
-      setTests(prev =>
-        prev.map(t => (t.id === testId ? { ...t, isActive } : t))
-      );
-      setSavingId(null);
-    } catch (err) {
-      console.error(err);
-      setSavingId(null);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось обновить статус теста"
-      );
-    }
-  }
+  const displayError = isError ? (error as Error).message : mutationError;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Диагностические тесты</h2>
-        <Button variant="ghost" size="sm" onClick={applyFilters}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-tests"] })}
+        >
           Обновить
         </Button>
       </div>
@@ -147,10 +130,9 @@ export function TestsTable() {
           <div className="text-xs text-muted-foreground mb-1">Статус</div>
           <Select
             value={isActiveFilter}
-            onValueChange={(v) => {
+            onValueChange={v => {
               setIsActiveFilter(v);
               setPage(1);
-              void load(1, { isActiveFilter: v });
             }}
           >
             <SelectTrigger>
@@ -166,9 +148,10 @@ export function TestsTable() {
         <div className="md:col-span-2">
           <div className="text-xs text-muted-foreground mb-1">Поиск</div>
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onBlur={() => applyFilters()}
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onBlur={applySearch}
+            onKeyDown={e => e.key === "Enter" && applySearch()}
             placeholder="по названию"
           />
         </div>
@@ -176,11 +159,9 @@ export function TestsTable() {
           <div className="text-xs text-muted-foreground mb-1">Записей</div>
           <Select
             value={String(take)}
-            onValueChange={(v) => {
-              const nextTake = Number(v);
-              setTake(nextTake);
+            onValueChange={v => {
+              setTake(Number(v));
               setPage(1);
-              void load(1, { take: nextTake });
             }}
           >
             <SelectTrigger>
@@ -195,15 +176,15 @@ export function TestsTable() {
         </div>
       </div>
 
-      {error && (
+      {displayError && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
+          {displayError}
         </div>
       )}
 
-      {loading ? (
+      {isFetching && !data ? (
         <div className="text-sm text-muted-foreground">Загружаем тесты...</div>
-      ) : tests.length === 0 ? (
+      ) : (data?.rows ?? []).length === 0 ? (
         <div className="text-sm text-muted-foreground">Тесты ещё не добавлены.</div>
       ) : (
         <div className="overflow-x-auto rounded-md border">
@@ -218,8 +199,8 @@ export function TestsTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tests.map(test => (
-                <TableRow key={test.id}>
+              {(data?.rows ?? []).map(test => (
+                <TableRow key={test.id} className={isFetching ? "opacity-60" : ""}>
                   <TableCell>
                     <div className="font-medium text-foreground">{test.title}</div>
                   </TableCell>
@@ -246,7 +227,9 @@ export function TestsTable() {
                       size="sm"
                       variant="outline"
                       disabled={savingId === test.id}
-                      onClick={() => toggleActive(test.id, !test.isActive)}
+                      onClick={() =>
+                        toggleMutation.mutate({ testId: test.id, isActive: !test.isActive })
+                      }
                     >
                       {savingId === test.id
                         ? "Сохраняем..."
@@ -262,7 +245,7 @@ export function TestsTable() {
         </div>
       )}
 
-      {!loading && totalCount > 0 && (
+      {totalCount > 0 && (
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="text-xs text-muted-foreground">
             Страница{" "}
@@ -274,7 +257,7 @@ export function TestsTable() {
               size="sm"
               variant="outline"
               disabled={page <= 1}
-              onClick={() => goToPage(page - 1)}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
             >
               Назад
             </Button>
@@ -282,7 +265,7 @@ export function TestsTable() {
               size="sm"
               variant="outline"
               disabled={page >= totalPages}
-              onClick={() => goToPage(page + 1)}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
               Далее
             </Button>
@@ -292,4 +275,3 @@ export function TestsTable() {
     </div>
   );
 }
-

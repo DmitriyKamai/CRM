@@ -1,71 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+interface ModulesData {
+  schedulingEnabled: boolean;
+  diagnosticsEnabled: boolean;
+}
+
+async function fetchModules(): Promise<ModulesData> {
+  const res = await fetch("/api/admin/platform-modules");
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message ?? "Не удалось загрузить настройки");
+  return data as ModulesData;
+}
+
+async function patchModules(partial: Partial<ModulesData>): Promise<ModulesData> {
+  const res = await fetch("/api/admin/platform-modules", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(partial)
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message ?? "Не удалось сохранить");
+  return data as ModulesData;
+}
+
 export function ModulesSettingsClient() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [scheduling, setScheduling] = useState(true);
-  const [diagnostics, setDiagnostics] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/platform-modules");
-        const data = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(data?.message ?? "Не удалось загрузить настройки");
-        }
-        if (!cancelled) {
-          setScheduling(Boolean(data?.schedulingEnabled));
-          setDiagnostics(Boolean(data?.diagnosticsEnabled));
-        }
-      } catch (e) {
-        if (!cancelled) {
-          toast.error(e instanceof Error ? e.message : "Ошибка загрузки");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-platform-modules"],
+    queryFn: fetchModules
+  });
 
-  async function patch(partial: { schedulingEnabled?: boolean; diagnosticsEnabled?: boolean }) {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/admin/platform-modules", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(partial)
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось сохранить");
-      }
-      if (typeof data?.schedulingEnabled === "boolean") setScheduling(data.schedulingEnabled);
-      if (typeof data?.diagnosticsEnabled === "boolean") setDiagnostics(data.diagnosticsEnabled);
+  const mutation = useMutation({
+    mutationFn: patchModules,
+    onSuccess: updated => {
+      queryClient.setQueryData(["admin-platform-modules"], updated);
       toast.success("Настройки модулей обновлены");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка сохранения");
-    } finally {
-      setSaving(false);
-    }
-  }
+    },
+    onError: (e: Error) => toast.error(e.message)
+  });
 
-  if (loading) {
+  if (isLoading) {
     return <p className="text-sm text-muted-foreground">Загрузка…</p>;
   }
+
+  const scheduling = data?.schedulingEnabled ?? true;
+  const diagnostics = data?.diagnosticsEnabled ?? true;
 
   return (
     <div className="grid gap-4 max-w-xl">
@@ -85,11 +74,8 @@ export function ModulesSettingsClient() {
           <Switch
             id="mod-scheduling"
             checked={scheduling}
-            disabled={saving}
-            onCheckedChange={(v) => {
-              setScheduling(v);
-              void patch({ schedulingEnabled: v });
-            }}
+            disabled={mutation.isPending}
+            onCheckedChange={v => mutation.mutate({ schedulingEnabled: v })}
           />
         </CardContent>
       </Card>
@@ -109,11 +95,8 @@ export function ModulesSettingsClient() {
           <Switch
             id="mod-diagnostics"
             checked={diagnostics}
-            disabled={saving}
-            onCheckedChange={(v) => {
-              setDiagnostics(v);
-              void patch({ diagnosticsEnabled: v });
-            }}
+            disabled={mutation.isPending}
+            onCheckedChange={v => mutation.mutate({ diagnosticsEnabled: v })}
           />
         </CardContent>
       </Card>

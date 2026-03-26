@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, Moon, Settings, Sun, LogOut, LayoutDashboard } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -79,11 +80,23 @@ type HeaderNavProps = {
 export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
-  const [professionLabel, setProfessionLabel] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => setMounted(true))();
   }, []);
+
+  const { data: profileData } = useQuery({
+    queryKey: ["user-profile-nav"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/profile");
+      if (!res.ok) return null;
+      return res.json() as Promise<{
+        psychologistProfile?: { specialization?: string | null };
+      } | null>;
+    },
+    enabled: role === "PSYCHOLOGIST",
+    staleTime: 5 * 60 * 1000
+  });
 
   const user = session?.user;
   const name =
@@ -102,29 +115,14 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
   const settingsHref = SETTINGS_HREF[role] ?? "/";
   const profileHref = PROFILE_HREF[role] ?? "/";
 
-  const fetchProfessionLabel = useCallback(() => {
-    if (role !== "PSYCHOLOGIST") return;
-    fetch("/api/user/profile")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { psychologistProfile?: { specialization?: string | null } } | null) => {
-        if (!data?.psychologistProfile) {
-          setProfessionLabel("Специалист");
-          return;
-        }
-        setProfessionLabel(
-          getProfessionLabel(data.psychologistProfile.specialization ?? null)
-        );
-      })
-      .catch(() => setProfessionLabel("Специалист"));
-  }, [role]);
-
-  useEffect(() => {
-    if (role === "PSYCHOLOGIST") fetchProfessionLabel();
-  }, [role, fetchProfessionLabel]);
+  const professionLabel =
+    role === "PSYCHOLOGIST"
+      ? getProfessionLabel(profileData?.psychologistProfile?.specialization ?? null)
+      : null;
 
   const roleLabel =
     role === "PSYCHOLOGIST"
-      ? mounted ? (professionLabel ?? "Специалист") : "—"
+      ? mounted ? professionLabel ?? "Специалист" : "—"
       : role === "CLIENT"
         ? mounted ? "Клиент" : "—"
         : role === "ADMIN"
@@ -159,11 +157,7 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
         <div className="mr-1 sm:mr-2">
           <NotificationsPanel />
         </div>
-        <DropdownMenu
-          onOpenChange={(open) => {
-            if (open && role === "PSYCHOLOGIST") fetchProfessionLabel();
-          }}
-        >
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
