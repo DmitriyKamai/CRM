@@ -8,8 +8,6 @@ import {
   UserCheck,
   Users,
   Plus,
-  Trash2,
-  Pencil,
   UploadCloud,
 } from "lucide-react";
 import { ru } from "date-fns/locale";
@@ -30,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -57,9 +54,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { PhoneInput, formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
 import { ClientsActionsToolbar } from "@/components/psychologist/clients-actions-toolbar";
+import { ClientsProfileOverlay } from "@/components/psychologist/clients-profile-overlay";
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
@@ -212,9 +209,6 @@ export function PsychologistClientsList({
   const listInnerRef = useRef<HTMLDivElement | null>(null);
   const [listScale, setListScale] = useState(1);
   const [listInnerHeight, setListInnerHeight] = useState(0);
-  const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
-  const [singleDeleting, setSingleDeleting] = useState(false);
-  const [profileEditing, setProfileEditing] = useState(false);
   const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
     null
   );
@@ -292,10 +286,6 @@ export function PsychologistClientsList({
     return () => ro.disconnect();
   }, [listScale, loading, clients.length, statusFilter]);
 
-  useEffect(() => {
-    setProfileEditing(false);
-  }, [profileClient?.id]);
-
   function downloadTemplate() {
     try {
       const headers = IMPORT_FIELDS.map((f) => f.label);
@@ -368,23 +358,6 @@ export function PsychologistClientsList({
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
-    }
-  }
-
-  async function confirmSingleDelete() {
-    if (!profileClient) return;
-    setSingleDeleting(true);
-    setError(null);
-    try {
-      await deleteClient.mutateAsync(profileClient.id);
-      setProfileClient(null);
-      router.replace(pathname);
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось удалить клиента");
-    } finally {
-      setSingleDeleting(false);
-      setSingleDeleteDialogOpen(false);
     }
   }
 
@@ -660,124 +633,30 @@ export function PsychologistClientsList({
   // Профиль клиента поверх списка (на всю основную ширину)
   if (profileClient) {
     return (
-      <div className="px-6 py-4">
-        <div className="w-full space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-2 px-2"
-              onClick={() => { setProfileClient(null); router.replace(pathname); }}
-            >
-              <span className="text-lg leading-none">←</span>
-              <span className="text-sm">Вернуться назад</span>
-            </Button>
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={profileEditing ? "secondary" : "outline"}
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setProfileEditing(prev => !prev)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">
-                        {profileEditing ? "Завершить редактирование" : "Редактировать профиль"}
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {profileEditing ? "Завершить редактирование" : "Редактировать профиль"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/10"
-                    disabled={singleDeleting}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Удалить клиента</span>
-                  </Button>
-                </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Удалить клиента из списка?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Удалить этого клиента из вашего списка? Его записи и тесты в системе сохранятся.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={confirmSingleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {singleDeleting ? "Удаляем..." : "Удалить"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
-          <PsychologistClientProfile
-            id={profileClient.id}
-            schedulingEnabled={schedulingEnabled}
-            diagnosticsEnabled={diagnosticsEnabled}
-            email={profileClient.email ?? null}
-            hasAccount={profileClient.hasAccount}
-            firstName={profileClient.firstName}
-            lastName={profileClient.lastName}
-            dateOfBirth={profileClient.dateOfBirth ?? null}
-            phone={profileClient.phone ?? null}
-            country={profileClient.country ?? null}
-            city={profileClient.city ?? null}
-            gender={profileClient.gender ?? null}
-            maritalStatus={profileClient.maritalStatus ?? null}
-            notes={profileClient.notes ?? null}
-            createdAt={profileClient.createdAt}
-            statusId={profileClient.statusId ?? null}
-            statusLabel={profileClient.statusLabel ?? null}
-            statusColor={profileClient.statusColor ?? null}
-            avatarUrl={profileClient.avatarUrl ?? null}
-            isEditing={profileEditing}
-            onEditingChange={setProfileEditing}
-            onDeleted={async () => {
-              setProfileEditing(false);
-              setProfileClient(null);
-              router.replace(pathname);
-              await invalidateClients();
-            }}
-            onUpdated={next => {
-              const patch = {
-                firstName: next.firstName,
-                lastName: next.lastName,
-                email: next.email ?? null,
-                phone: next.phone ?? null,
-                country: next.country ?? null,
-                city: next.city ?? null,
-                gender: next.gender ?? null,
-                maritalStatus: next.maritalStatus ?? null,
-                notes: next.notes ?? null,
-                dateOfBirth: next.dateOfBirth ?? null,
-                statusId: next.statusId ?? null,
-                statusLabel: next.statusLabel ?? null,
-                statusColor: next.statusColor ?? null
-              };
-              updateClientInCache(profileClient.id, patch);
-              setProfileClient(prev => prev ? { ...prev, ...patch } : prev);
-            }}
-          />
-        </div>
-      </div>
+      <ClientsProfileOverlay
+        client={profileClient}
+        schedulingEnabled={schedulingEnabled}
+        diagnosticsEnabled={diagnosticsEnabled}
+        onBack={() => {
+          setProfileClient(null);
+          router.replace(pathname);
+        }}
+        onInvalidateClients={invalidateClients}
+        onUpdateClientInCache={updateClientInCache}
+        onLocalPatchClient={(patch) =>
+          setProfileClient((prev) => (prev ? { ...prev, ...patch } : prev))
+        }
+        deleteClientById={async (clientId) => {
+          setError(null);
+          try {
+            await deleteClient.mutateAsync(clientId);
+          } catch (err) {
+            console.error(err);
+            setError(err instanceof Error ? err.message : "Не удалось удалить клиента");
+            throw err;
+          }
+        }}
+      />
     );
   }
 
