@@ -13,7 +13,7 @@ import {
 } from "@/lib/data/countries-ru";
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter, Pencil, Trash2, Check } from "lucide-react";
+import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
 const Calendar = dynamic(
@@ -69,6 +69,8 @@ const TelegramAccountBlock = dynamic(
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
+import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
+import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -210,6 +212,12 @@ export function PsychologistSettingsForm({
     () => evaluatePassword("")
   );
   const [touchedNewPassword, setTouchedNewPassword] = useState(false);
+
+  const handleNewPasswordChange = (value: string) => {
+    setNewPassword(value);
+    setNewPasswordChecks(evaluatePassword(value));
+    if (!touchedNewPassword) setTouchedNewPassword(true);
+  };
   const [savingProfessional, setSavingProfessional] = useState(false);
   const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
   const [savingPublish, setSavingPublish] = useState(false);
@@ -311,6 +319,11 @@ export function PsychologistSettingsForm({
     } finally {
       setUnlinkAccountProvider(null);
     }
+  }
+
+  async function handleLinkGoogle() {
+    await fetch("/api/auth/oauth-link-intent", { method: "POST" });
+    signIn("google", { callbackUrl: "/psychologist/settings" });
   }
 
   const [formHydrated, setFormHydrated] = useState(false);
@@ -886,83 +899,22 @@ export function PsychologistSettingsForm({
       <TabsContent value="security" className="mt-4">
         {activeTab === "security" && (
         <Section title="Смена пароля">
-          <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Текущий пароль</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Новый пароль</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setNewPassword(value);
-                  setNewPasswordChecks(evaluatePassword(value));
-                  if (!touchedNewPassword) setTouchedNewPassword(true);
-                }}
-                autoComplete="new-password"
-                minLength={8}
-                className={
-                  newPasswordValid
-                    ? "border-emerald-500 focus-visible:ring-emerald-500"
-                    : undefined
-                }
-              />
-                <div className="space-y-1">
-                  <div
-                    className={`h-1 w-full overflow-hidden rounded-full ${progressTrackColor}`}
-                  >
-                    <div
-                      className={`h-full rounded-full ${progressFillColor}`}
-                      style={{ width: `${progressFillWidthPct}%` }}
-                    />
-                  </div>
-                  <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted-foreground">
-                    {passwordRequirements.map((req) => {
-                      const passed = newPasswordChecks[req.key];
-                      return (
-                        <li key={req.key} className="flex items-center gap-1">
-                          <Check
-                            className={`h-4 w-4 ${
-                              passed
-                                ? "text-emerald-500"
-                                : "text-muted-foreground/60"
-                            }`}
-                          />
-                          <span
-                            className={passed ? "text-foreground" : undefined}
-                          >
-                            {req.text}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPasswordConfirm">Повторите новый пароль</Label>
-              <Input
-                id="newPasswordConfirm"
-                type="password"
-                value={newPasswordConfirm}
-                onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                autoComplete="new-password"
-              />
-            </div>
-            <Button type="submit" variant="secondary" disabled={passwordSaving}>
-              {passwordSaving ? "Сохранение…" : "Сменить пароль"}
-            </Button>
-          </form>
+          <SecurityTabForm
+            handleChangePassword={handleChangePassword}
+            currentPassword={currentPassword}
+            onCurrentPasswordChange={setCurrentPassword}
+            newPassword={newPassword}
+            onNewPasswordChange={handleNewPasswordChange}
+            newPasswordConfirm={newPasswordConfirm}
+            onNewPasswordConfirmChange={setNewPasswordConfirm}
+            newPasswordChecks={newPasswordChecks}
+            newPasswordValid={newPasswordValid}
+            passwordSaving={passwordSaving}
+            passwordRequirements={passwordRequirements}
+            progressTrackColor={progressTrackColor}
+            progressFillColor={progressFillColor}
+            progressFillWidthPct={progressFillWidthPct}
+          />
         </Section>
         )}
       </TabsContent>
@@ -970,87 +922,13 @@ export function PsychologistSettingsForm({
       <TabsContent value="accounts" className="mt-4">
         {activeTab === "accounts" && (
         <Section title="Привязка аккаунтов">
-          <p className="text-sm text-muted-foreground mb-4">
-            Привяжите Google, чтобы входить без пароля и использовать аватар из профиля.
-          </p>
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-            {hasGoogle ? (
-              <>
-                <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm font-medium">
-                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="20" height="20" className="block">
-                      <path d="M8.00018 3.16667C9.18018 3.16667 10.2368 3.57333 11.0702 4.36667L13.3535 2.08333C11.9668 0.793333 10.1568 0 8.00018 0C4.87352 0 2.17018 1.79333 0.853516 4.40667L3.51352 6.47C4.14352 4.57333 5.91352 3.16667 8.00018 3.16667Z" fill="#EA4335" />
-                      <path d="M15.66 8.18335C15.66 7.66002 15.61 7.15335 15.5333 6.66669H8V9.67335H12.3133C12.12 10.66 11.56 11.5 10.72 12.0667L13.2967 14.0667C14.8 12.6734 15.66 10.6134 15.66 8.18335Z" fill="#4285F4" />
-                      <path d="M3.51 9.53001C3.35 9.04668 3.25667 8.53334 3.25667 8.00001C3.25667 7.46668 3.34667 6.95334 3.51 6.47001L0.85 4.40668C0.306667 5.48668 0 6.70668 0 8.00001C0 9.29334 0.306667 10.5133 0.853333 11.5933L3.51 9.53001Z" fill="#FBBC05" />
-                      <path d="M8.0001 16C10.1601 16 11.9768 15.29 13.2968 14.0633L10.7201 12.0633C10.0034 12.5467 9.0801 12.83 8.0001 12.83C5.91343 12.83 4.14343 11.4233 3.5101 9.52667L0.850098 11.59C2.1701 14.2067 4.87343 16 8.0001 16Z" fill="#34A853" />
-                    </svg>
-                  </span>
-                  Google привязан
-                  <a href="https://myaccount.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">
-                    Перейти в аккаунт
-                  </a>
-                </span>
-                <Button type="button" variant="outline" size="sm" disabled={unlinkAccountProvider !== null} onClick={() => handleUnlinkAccount("google")}>
-                  {unlinkAccountProvider === "google" ? "Отвязка…" : "Отвязать"}
-                </Button>
-              </>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  await fetch("/api/auth/oauth-link-intent", { method: "POST" });
-                  signIn("google", { callbackUrl: "/psychologist/settings" });
-                }}
-              >
-                <span className="flex items-center gap-1">
-                  <span className="inline-flex h-4 w-4 items-center justify-center">
-                    <svg
-                      aria-hidden="true"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 16 16"
-                      width="16"
-                      height="16"
-                      className="block"
-                    >
-                      <g clipPath="url(#gh_google_clip_psy_btn)">
-                        <path
-                          d="M8.00018 3.16667C9.18018 3.16667 10.2368 3.57333 11.0702 4.36667L13.3535 2.08333C11.9668 0.793333 10.1568 0 8.00018 0C4.87352 0 2.17018 1.79333 0.853516 4.40667L3.51352 6.47C4.14352 4.57333 5.91352 3.16667 8.00018 3.16667Z"
-                          fill="#EA4335"
-                        />
-                        <path
-                          d="M15.66 8.18335C15.66 7.66002 15.61 7.15335 15.5333 6.66669H8V9.67335H12.3133C12.12 10.66 11.56 11.5 10.72 12.0667L13.2967 14.0667C14.8 12.6734 15.66 10.6134 15.66 8.18335Z"
-                          fill="#4285F4"
-                        />
-                        <path
-                          d="M3.51 9.53001C3.35 9.04668 3.25667 8.53334 3.25667 8.00001C3.25667 7.46668 3.34667 6.95334 3.51 6.47001L0.85 4.40668C0.306667 5.48668 0 6.70668 0 8.00001C0 9.29334 0.306667 10.5133 0.853333 11.5933L3.51 9.53001Z"
-                          fill="#FBBC05"
-                        />
-                        <path
-                          d="M8.0001 16C10.1601 16 11.9768 15.29 13.2968 14.0633L10.7201 12.0633C10.0034 12.5467 9.0801 12.83 8.0001 12.83C5.91343 12.83 4.14343 11.4233 3.5101 9.52667L0.850098 11.59C2.1701 14.2067 4.87343 16 8.0001 16Z"
-                          fill="#34A853"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="gh_google_clip_psy_btn">
-                          <rect width="16" height="16" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                  </span>
-                  <span>Привязать Google</span>
-                </span>
-              </Button>
-            )}
-            </div>
-            {/* Apple OAuth будет включён позже */}
-            <div className="border-t pt-3">
-              <p className="text-sm text-muted-foreground mb-2">Telegram — уведомления и бот</p>
-              <TelegramAccountBlock />
-            </div>
-          </div>
+          <AccountsTabContent
+            hasGoogle={hasGoogle}
+            unlinkAccountProvider={unlinkAccountProvider}
+            onUnlinkAccount={handleUnlinkAccount}
+            onLinkGoogle={handleLinkGoogle}
+            telegramBlock={<TelegramAccountBlock />}
+          />
         </Section>
         )}
       </TabsContent>
