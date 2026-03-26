@@ -15,7 +15,6 @@ import {
   Upload,
   FileSpreadsheet,
   UploadCloud,
-  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { ru } from "date-fns/locale";
@@ -55,13 +54,6 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import {
   Popover,
   PopoverTrigger,
   PopoverContent
@@ -79,10 +71,15 @@ import { PhoneInput, formatPhoneDisplay, phoneToTelHref } from "@/components/ui/
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
+import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
-import { openGoogleSheetsPicker } from "@/lib/google-sheet-picker-client";
 import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
+import {
+  useClientsImport,
+  type ClientsImportCustomDef,
+  type ClientsImportField
+} from "@/hooks/use-clients-import";
 
 const AVATAR_COLORS = [
   "bg-rose-200 text-rose-800",
@@ -103,7 +100,7 @@ function getClientColor(id: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
-const IMPORT_FIELDS: { key: string; label: string }[] = [
+const IMPORT_FIELDS: ClientsImportField[] = [
   { key: "firstName", label: "Имя" },
   { key: "lastName", label: "Фамилия" },
   { key: "email", label: "Email" },
@@ -204,43 +201,6 @@ export function PsychologistClientsList({
     if (client) setProfileClient(client);
   }, [profileIdFromUrl, clients]);
 
-  useEffect(() => {
-    const v = searchParams.get("sheet_oauth");
-    const openImport = searchParams.get("openImport") === "1";
-    const sheetIntent = searchParams.get("sheet_intent");
-    if (!v && !openImport) return;
-
-    if (openImport) setImportOpen(true);
-
-    if (v === "ok" && sheetIntent === "export") {
-      toast.success("Google подключён. Снова нажмите «Экспорт» → «В Google Таблицу».");
-    } else if (v === "ok") {
-      toast.success("Google подключён: можно загружать данные из Google Таблицы для импорта");
-    } else if (v === "access_denied") {
-      toast.error(
-        "Доступ не выдан (часто это режим «Тестирование» в Google Cloud). Добавьте этот Google-аккаунт в список тестовых пользователей: APIs & Services → OAuth consent screen → Test users, либо опубликуйте приложение.",
-        { duration: 12000 }
-      );
-    } else if (v === "denied") {
-      toast.error("Доступ к Google не выдан");
-    } else if (v === "norefresh") {
-      toast.error(
-        "Google не выдал долгоживущий токен. Откройте настройки аккаунта Google → безопасность → доступ приложений, отзовите CRM и подключите снова."
-      );
-    } else if (v === "invalid") {
-      toast.error("Ошибка авторизации");
-    } else if (v) {
-      toast.error("Не удалось подключить Google");
-    }
-
-    const q = new URLSearchParams(searchParams.toString());
-    q.delete("sheet_oauth");
-    q.delete("openImport");
-    q.delete("sheet_intent");
-    const qs = q.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [searchParams, pathname, router]);
-
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [dob, setDob] = useState<Date | undefined>(undefined);
@@ -267,9 +227,6 @@ export function PsychologistClientsList({
   const [singleDeleting, setSingleDeleting] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [googleSheetsImportUrl, setGoogleSheetsImportUrl] = useState("");
-  const [googleSheetsImportLoading, setGoogleSheetsImportLoading] = useState(false);
-  const [googleSheetsPickerLoading, setGoogleSheetsPickerLoading] = useState(false);
   const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
     null
   );
@@ -278,50 +235,31 @@ export function PsychologistClientsList({
   );
 
   const [importOpen, setImportOpen] = useState(false);
-  const [importHeaders, setImportHeaders] = useState<string[]>([]);
-  const [importRows, setImportRows] = useState<(string | number | boolean)[][]>([]);
-  const [importMapping, setImportMapping] = useState<Record<string, number>>({});
-  const [importCustomDefs, setImportCustomDefs] = useState<Array<{ id: string; label: string }>>([]);
-  const [importSkipDuplicates, setImportSkipDuplicates] = useState(true);
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{
-    created: number;
-    updated?: number;
-    skipped: number;
-    failed: number;
-    errors: { row: number; message: string }[];
-    warnings?: { row: number; message: string }[];
-  } | null>(null);
-  const [importFileName, setImportFileName] = useState<string | null>(null);
-  const importFileInputRef = useRef<HTMLInputElement>(null);
-  /** После Google Picker не сбрасывать шаг импорта (иначе стирается выбранная ссылка). */
-  const resumeImportWithoutResetRef = useRef(false);
-  /** Не подставлять URL из профиля поверх только что выбранной в Picker таблицы. */
-  const skipGoogleSheetsProfileUrlOnceRef = useRef(false);
+  const [importCustomDefs, setImportCustomDefs] = useState<ClientsImportCustomDef[]>([]);
 
-  const syncGoogleSheetsFromServer = useCallback(async (fillImportUrl: boolean) => {
+  const clientsImport = useClientsImport({
+    importFields: IMPORT_FIELDS,
+    importOpen,
+    setImportOpen,
+    importCustomDefs,
+    setImportCustomDefs,
+    onImported: invalidateClients,
+    setGlobalError: setError,
+    pathname,
+    routerReplace: router.replace,
+    searchParamsToString: () => searchParams.toString()
+  });
+
+  const syncGoogleSheetsFromServer = useCallback(async () => {
     try {
       const res = await fetch("/api/psychologist/google-sheets");
       if (!res.ok) return;
       const data = (await res.json().catch(() => null)) as {
         oauthConfigured?: boolean;
         googleConnected?: boolean;
-        spreadsheetId?: string | null;
       } | null;
       setGoogleSheetsOAuthConfigured(Boolean(data?.oauthConfigured));
-      const connected = Boolean(data?.googleConnected);
-      setGoogleSheetsGoogleConnected(connected);
-      const sid =
-        typeof data?.spreadsheetId === "string" && data.spreadsheetId.trim()
-          ? data.spreadsheetId.trim()
-          : null;
-      if (fillImportUrl) {
-        if (skipGoogleSheetsProfileUrlOnceRef.current) {
-          skipGoogleSheetsProfileUrlOnceRef.current = false;
-        } else if (connected && sid) {
-          setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${sid}/edit`);
-        }
-      }
+      setGoogleSheetsGoogleConnected(Boolean(data?.googleConnected));
     } catch {
       setGoogleSheetsOAuthConfigured(false);
       setGoogleSheetsGoogleConnected(false);
@@ -329,7 +267,7 @@ export function PsychologistClientsList({
   }, []);
 
   useEffect(() => {
-    void syncGoogleSheetsFromServer(false);
+    void syncGoogleSheetsFromServer();
   }, [syncGoogleSheetsFromServer]);
 
   useEffect(() => {
@@ -359,219 +297,6 @@ export function PsychologistClientsList({
     setProfileEditing(false);
   }, [profileClient?.id]);
 
-  useEffect(() => {
-    if (!importOpen) return;
-    if (resumeImportWithoutResetRef.current) {
-      resumeImportWithoutResetRef.current = false;
-      async function loadDefsOnly() {
-        try {
-          const res = await fetch("/api/psychologist/custom-fields");
-          if (!res.ok) return;
-          const data = await res.json().catch(() => null);
-          const items = data?.items ?? [];
-          setImportCustomDefs(
-            items.map((d: { id: string; label: string }) => ({ id: d.id, label: d.label }))
-          );
-        } catch (err) {
-          console.error(err);
-        }
-      }
-      void loadDefsOnly();
-      void syncGoogleSheetsFromServer(false);
-      return;
-    }
-    setImportResult(null);
-    setImportFileName(null);
-    setImportHeaders([]);
-    setImportRows([]);
-    setImportMapping({});
-    setGoogleSheetsImportUrl("");
-    async function load() {
-      try {
-        const res = await fetch("/api/psychologist/custom-fields");
-        if (!res.ok) return;
-        const data = await res.json().catch(() => null);
-        const items = data?.items ?? [];
-        setImportCustomDefs(items.map((d: { id: string; label: string }) => ({ id: d.id, label: d.label })));
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    void load();
-  }, [importOpen, syncGoogleSheetsFromServer]);
-
-  useEffect(() => {
-    if (!importOpen) return;
-    void syncGoogleSheetsFromServer(true);
-  }, [importOpen, syncGoogleSheetsFromServer]);
-
-  useEffect(() => {
-    if (!importOpen) return;
-    function onWindowFocus() {
-      if (importFileInputRef.current && document.activeElement === importFileInputRef.current) {
-        importFileInputRef.current.blur();
-      }
-    }
-    window.addEventListener("focus", onWindowFocus);
-    return () => window.removeEventListener("focus", onWindowFocus);
-  }, [importOpen]);
-
-  /** Определяет разделитель по первой строке (учитывает кавычки). Часто в RU/Excel — `;`. */
-  function detectCsvDelimiter(firstLine: string): string {
-    let comma = 0;
-    let semi = 0;
-    let tab = 0;
-    let inQuotes = false;
-    for (let i = 0; i < firstLine.length; i++) {
-      const c = firstLine[i];
-      if (c === '"') {
-        inQuotes = !inQuotes;
-        continue;
-      }
-      if (!inQuotes) {
-        if (c === ",") comma++;
-        else if (c === ";") semi++;
-        else if (c === "\t") tab++;
-      }
-    }
-    const max = Math.max(comma, semi, tab);
-    if (max === 0) return ",";
-    if (semi === max) return ";";
-    if (tab === max) return "\t";
-    return ",";
-  }
-
-  function parseCSVLine(line: string, delimiter: string): string[] {
-    const out: string[] = [];
-    let i = 0;
-    const delim = delimiter.slice(0, 1);
-    while (i < line.length) {
-      if (line[i] === '"') {
-        let cell = "";
-        i++;
-        while (i < line.length) {
-          if (line[i] === '"') {
-            i++;
-            if (line[i] === '"') {
-              cell += '"';
-              i++;
-            } else break;
-          } else {
-            cell += line[i];
-            i++;
-          }
-        }
-        out.push(cell);
-        if (i < line.length && line[i] === delim) i++;
-      } else {
-        let cell = "";
-        while (i < line.length && line[i] !== delim) {
-          cell += line[i];
-          i++;
-        }
-        out.push(cell.trim());
-        if (i < line.length && line[i] === delim) i++;
-      }
-    }
-    return out;
-  }
-
-  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportFileName(file.name);
-    const name = file.name.toLowerCase();
-    try {
-      if (name.endsWith(".json")) {
-        const text = await file.text();
-        const arr = JSON.parse(text) as Record<string, unknown>[];
-        if (!Array.isArray(arr) || arr.length === 0) {
-          setImportHeaders([]);
-          setImportRows([]);
-          return;
-        }
-        const skipKeys = new Set(["customFields", "id", "createdAt"]);
-        const headers = Array.from(
-          new Set(arr.flatMap((o) => Object.keys(o).filter((k) => !skipKeys.has(k))))
-        );
-        const customKeys = Array.from(
-          new Set(arr.flatMap((o) => Object.keys((o as { customFields?: Record<string, unknown> }).customFields ?? {})))
-        );
-        const allHeaders = [...headers, ...customKeys];
-        const rows = arr.map((obj) => {
-          const cf = (obj as { customFields?: Record<string, unknown> }).customFields ?? {};
-          return allHeaders.map((h) => {
-            if (cf[h] !== undefined) return cf[h] as string | number | boolean;
-            const v = (obj as Record<string, unknown>)[h];
-            if (v instanceof Date) return v.toISOString();
-            return (v ?? "") as string | number | boolean;
-          });
-        });
-        const nextMapping: Record<string, number> = {};
-        allHeaders.forEach((h, idx) => {
-          const base = IMPORT_FIELDS.find((f) => f.label === h);
-          if (base) nextMapping[base.key] = idx;
-          const custom = importCustomDefs.find((d) => d.label === h);
-          if (custom) nextMapping[`custom:${custom.label}`] = idx;
-        });
-        setImportHeaders(allHeaders);
-        setImportRows(rows);
-        setImportMapping(nextMapping);
-        return;
-      }
-      if (name.endsWith(".csv")) {
-        const text = await file.text();
-        const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((l) => l.trim());
-        if (lines.length === 0) {
-          setImportHeaders([]);
-          setImportRows([]);
-          return;
-        }
-        const delimiter = detectCsvDelimiter(lines[0]);
-        const headers = parseCSVLine(lines[0], delimiter);
-        const rows = lines.slice(1).map((l) => parseCSVLine(l, delimiter));
-        const nextMapping: Record<string, number> = {};
-        headers.forEach((h, idx) => {
-          const base = IMPORT_FIELDS.find((f) => f.label === h);
-          if (base) nextMapping[base.key] = idx;
-          const custom = importCustomDefs.find((d) => d.label === h);
-          if (custom) nextMapping[`custom:${custom.label}`] = idx;
-        });
-        setImportHeaders(headers);
-        setImportRows(rows);
-        setImportMapping(nextMapping);
-        return;
-      }
-      if (name.endsWith(".xlsx")) {
-        const { parseXlsxFirstSheetToAoA } = await import("@/lib/clients-xlsx-parse");
-        const buf = await file.arrayBuffer();
-        const data = await parseXlsxFirstSheetToAoA(buf);
-        if (!data.length) {
-          setImportHeaders([]);
-          setImportRows([]);
-          return;
-        }
-        const headers = (data[0] ?? []).map(String);
-        const rows = (data.slice(1) as (string | number)[][]).filter((r) =>
-          r.some((c) => c != null && String(c).trim() !== "")
-        );
-        const nextMapping: Record<string, number> = {};
-        headers.forEach((h, idx) => {
-          const base = IMPORT_FIELDS.find((f) => f.label === h);
-          if (base) nextMapping[base.key] = idx;
-          const custom = importCustomDefs.find((d) => d.label === h);
-          if (custom) nextMapping[`custom:${custom.label}`] = idx;
-        });
-        setImportHeaders(headers);
-        setImportRows(rows);
-        setImportMapping(nextMapping);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Не удалось прочитать файл");
-    }
-  }
-
   function downloadTemplate() {
     try {
       const headers = IMPORT_FIELDS.map((f) => f.label);
@@ -587,69 +312,6 @@ export function PsychologistClientsList({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download template", err);
-    }
-  }
-
-  async function handleImportSubmit() {
-    if (importRows.length === 0) return;
-    setImporting(true);
-    setError(null);
-    try {
-      const clients = importRows.map((row) => {
-        const get = (key: string) => {
-          const idx = importMapping[key];
-          if (idx == null || idx < 0 || idx >= row.length) return null;
-          const v = row[idx];
-          return v == null ? null : String(v).trim() || null;
-        };
-        const customFields: Record<string, unknown> = {};
-        for (const d of importCustomDefs) {
-          const v = get(`custom:${d.label}`);
-          if (v !== null && v !== undefined) customFields[d.label] = v;
-        }
-        return {
-          firstName: get("firstName") ?? "",
-          lastName: get("lastName") ?? "",
-          email: get("email"),
-          phone: get("phone"),
-          dateOfBirth: get("dateOfBirth"),
-          country: get("country"),
-          city: get("city"),
-          gender: get("gender"),
-          maritalStatus: get("maritalStatus"),
-          status: get("status"),
-          notes: get("notes"),
-          customFields: Object.keys(customFields).length > 0 ? customFields : undefined
-        };
-      });
-      const res = await fetch("/api/psychologist/clients/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clients,
-          options: { skipDuplicatesByEmail: importSkipDuplicates }
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (res.status === 400 && data?.issues) {
-          console.error("Ошибка валидации при импорте. Детали (issues):", data.issues);
-          data.issues.forEach((issue: { path?: unknown[]; message?: string }, i: number) => {
-            const path = issue.path?.length ? issue.path.join(".") : "данные";
-            console.error(`  [${i + 1}] Поле: ${path} — ${issue.message ?? ""}`);
-          });
-        }
-        throw new Error(data?.message ?? "Ошибка импорта");
-      }
-      setImportResult(data as { created: number; skipped: number; failed: number; errors: { row: number; message: string }[] });
-      if (data.created > 0 || data.skipped > 0) {
-        void invalidateClients();
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Ошибка импорта");
-    } finally {
-      setImporting(false);
     }
   }
 
@@ -739,13 +401,6 @@ export function PsychologistClientsList({
       connected = Boolean(data.googleConnected);
       setGoogleSheetsOAuthConfigured(oauthOk);
       setGoogleSheetsGoogleConnected(connected);
-      const sid =
-        typeof data.spreadsheetId === "string" && data.spreadsheetId.trim()
-          ? data.spreadsheetId.trim()
-          : null;
-      if (connected && sid) {
-        setGoogleSheetsImportUrl(`https://docs.google.com/spreadsheets/d/${sid}/edit`);
-      }
     }
 
     if (!oauthOk) {
@@ -778,11 +433,11 @@ export function PsychologistClientsList({
       if (!res.ok) {
         if (res.status === 403) {
           setGoogleSheetsGoogleConnected(false);
-          void syncGoogleSheetsFromServer(false);
+          void syncGoogleSheetsFromServer();
         }
         throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицу");
       }
-      void syncGoogleSheetsFromServer(false);
+      void syncGoogleSheetsFromServer();
       const n = data?.exportedCount ?? 0;
       toast.success(
         n > 0
@@ -824,161 +479,6 @@ export function PsychologistClientsList({
       setError(err instanceof Error ? err.message : "Ошибка экспорта");
     } finally {
       setExporting(false);
-    }
-  }
-
-  const loadGoogleSheetsTableIntoImport = useCallback(
-    async (spreadsheetUrlOrId: string) => {
-      const trimmed = spreadsheetUrlOrId.trim();
-      if (!trimmed) {
-        toast.error("Укажите ссылку на таблицу");
-        return;
-      }
-      setGoogleSheetsImportLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/psychologist/clients/import/google-sheets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            spreadsheetUrlOrId: trimmed
-          })
-        });
-        const data = (await res.json().catch(() => null)) as {
-          message?: string;
-          headers?: string[];
-          rows?: (string | number | boolean)[][];
-          spreadsheetId?: string;
-          sheetTitle?: string;
-        } | null;
-        if (!res.ok) {
-          throw new Error(data?.message ?? "Не удалось прочитать таблицу");
-        }
-        const headers = data?.headers ?? [];
-        const rows = data?.rows ?? [];
-        if (headers.length === 0) {
-          throw new Error("В таблице нет строки заголовков");
-        }
-        const nextMapping: Record<string, number> = {};
-        headers.forEach((h, idx) => {
-          const base = IMPORT_FIELDS.find((f) => f.label === h);
-          if (base) nextMapping[base.key] = idx;
-          const custom = importCustomDefs.find((d) => d.label === h);
-          if (custom) nextMapping[`custom:${custom.label}`] = idx;
-        });
-        setImportHeaders(headers);
-        setImportRows(rows);
-        setImportMapping(nextMapping);
-        setImportFileName(
-          typeof data?.sheetTitle === "string"
-            ? `Google Sheets — ${data.sheetTitle}`
-            : "Google Sheets"
-        );
-        if (typeof data?.spreadsheetId === "string" && data.spreadsheetId) {
-          await fetch("/api/psychologist/google-sheets", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              spreadsheetId: `https://docs.google.com/spreadsheets/d/${data.spreadsheetId}/edit`
-            })
-          }).catch(() => {});
-        }
-        toast.success("Таблица загружена — проверьте сопоставление колонок и нажмите «Импортировать»");
-      } catch (err) {
-        console.error(err);
-        const msg = err instanceof Error ? err.message : "Ошибка загрузки из Google";
-        toast.error(msg);
-        setError(msg);
-      } finally {
-        setGoogleSheetsImportLoading(false);
-      }
-    },
-    [importCustomDefs]
-  );
-
-  const resetImportSourceSelection = useCallback(() => {
-    setImportHeaders([]);
-    setImportRows([]);
-    setImportMapping({});
-    setImportFileName(null);
-    setImportResult(null);
-    if (importFileInputRef.current) importFileInputRef.current.value = "";
-  }, []);
-
-  async function handleImportFromGoogleSheets() {
-    await loadGoogleSheetsTableIntoImport(googleSheetsImportUrl);
-  }
-
-  async function handleOpenGoogleSheetsPicker() {
-    setImportOpen(false);
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(resolve, 50);
-        });
-      });
-    });
-
-    setGoogleSheetsPickerLoading(true);
-    try {
-      const res = await fetch("/api/psychologist/google-sheets/access-token");
-      const data = (await res.json().catch(() => null)) as {
-        accessToken?: string;
-        message?: string;
-      } | null;
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось получить доступ к Google");
-      }
-      const accessToken = data?.accessToken;
-      if (!accessToken) {
-        throw new Error("Нет токена доступа — подключите Google ещё раз");
-      }
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY?.trim();
-
-      function reopenImportDialog() {
-        resumeImportWithoutResetRef.current = true;
-        setImportOpen(true);
-      }
-
-      openGoogleSheetsPicker({
-        accessToken,
-        developerKey: apiKey,
-        onPicked: (id) => {
-          const url = `https://docs.google.com/spreadsheets/d/${id}/edit`;
-          skipGoogleSheetsProfileUrlOnceRef.current = true;
-          setGoogleSheetsImportUrl(url);
-          resumeImportWithoutResetRef.current = true;
-          setImportOpen(true);
-          window.setTimeout(() => {
-            void loadGoogleSheetsTableIntoImport(url);
-          }, 0);
-        },
-        onCancel: () => {
-          reopenImportDialog();
-        },
-        onError: (msg) => {
-          toast.error(msg);
-          reopenImportDialog();
-        }
-      });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка");
-      resumeImportWithoutResetRef.current = true;
-      setImportOpen(true);
-    } finally {
-      setGoogleSheetsPickerLoading(false);
-    }
-  }
-
-  async function handleDisconnectGoogleSheets() {
-    try {
-      const res = await fetch("/api/psychologist/google-sheets", { method: "DELETE" });
-      const data = (await res.json().catch(() => null)) as { message?: string } | null;
-      if (!res.ok) throw new Error(data?.message ?? "Не удалось отключить Google");
-      setGoogleSheetsGoogleConnected(false);
-      toast.success("Доступ Google к таблицам отключён");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось отключить");
     }
   }
 
@@ -1651,409 +1151,36 @@ export function PsychologistClientsList({
             </div>
 
             {/* Импорт */}
-            <Dialog
+            <ClientsImportDialog
               open={importOpen}
-              onOpenChange={(open) => {
-                if (!open) {
-                  importFileInputRef.current?.blur();
-                  if (importFileInputRef.current) importFileInputRef.current.value = "";
-                }
-                setImportOpen(open);
-              }}
-            >
-              <DialogContent
-                className={
-                  importHeaders.length > 0
-                    ? "max-w-none w-full h-[100dvh] max-h-[100dvh] min-h-0 left-0 top-0 translate-x-0 translate-y-0 rounded-none flex flex-col overflow-hidden gap-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:p-6"
-                    : "max-w-2xl max-h-[90vh] overflow-y-auto"
-                }
-              >
-                <DialogHeader
-                  className={importHeaders.length > 0 ? "shrink-0 text-left" : undefined}
-                >
-                  <DialogTitle>Импорт клиентов</DialogTitle>
-                  <DialogDescription>
-                    {importHeaders.length === 0
-                      ? "Загрузите CSV, XLSX, JSON или импортируйте данные с первого листа Google Таблицы (заголовки — в первой строке листа)."
-                      : "Сопоставьте колонки с полями и нажмите «Импортировать»."}
-                  </DialogDescription>
-                </DialogHeader>
-                <div
-                  className={
-                    importHeaders.length > 0
-                      ? "space-y-4 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
-                      : "space-y-4"
-                  }
-                >
-                  {importHeaders.length === 0 ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <Label className="text-sm">Файл</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Поддерживаются CSV, XLSX и JSON. В CSV разделитель колонок определяется
-                            автоматически (запятая, «;» как в Excel при русской локали, или табуляция).
-                            Для дат используйте формат из шаблона.
-                          </p>
-                        </div>
-                        <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Шаблон
-                        </Button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => importFileInputRef.current?.click()}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const file = e.dataTransfer.files?.[0];
-                          if (!file || !importFileInputRef.current) return;
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          importFileInputRef.current.files = dt.files;
-                          importFileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
-                        }}
-                        className="group w-full flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/60 hover:bg-muted/60"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <UploadCloud className="h-5 w-5" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-medium text-foreground">
-                            Перетащите файл сюда или нажмите, чтобы выбрать
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            CSV, XLSX или JSON, размером до 10 МБ.
-                          </p>
-                        </div>
-                        {importFileName && (
-                          <p className="mt-1 text-xs text-muted-foreground break-all">
-                            Выбран файл: <span className="font-medium">{importFileName}</span>
-                          </p>
-                        )}
-                        <Input
-                          ref={importFileInputRef}
-                          type="file"
-                          accept=".csv,.xlsx,.json"
-                          className="sr-only"
-                          onChange={handleImportFile}
-                        />
-                      </button>
-
-                      <div className="relative py-2">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
-                          <span className="bg-background px-2">или</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <Label className="text-sm font-medium">Google Таблицы</Label>
-                          </div>
-                          {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs text-muted-foreground"
-                              onClick={() => void handleDisconnectGoogleSheets()}
-                            >
-                              Отключить Google
-                            </Button>
-                          ) : null}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Читается первый лист таблицы; первая строка — заголовки колонок (как в шаблоне
-                          CSV). Доступ к файлам — с вашего Google-аккаунта, без расшаривания на
-                          технические email.
-                        </p>
-                        {googleSheetsOAuthConfigured === false ? (
-                          <Alert variant="destructive" className="py-2">
-                            <AlertDescription className="text-xs">
-                              На сервере не заданы{" "}
-                              <code className="rounded bg-muted px-1">GOOGLE_CLIENT_ID</code>,{" "}
-                              <code className="rounded bg-muted px-1">GOOGLE_CLIENT_SECRET</code> и{" "}
-                              <code className="rounded bg-muted px-1">NEXTAUTH_URL</code> — обратитесь к
-                              администратору.
-                            </AlertDescription>
-                          </Alert>
-                        ) : null}
-                        {googleSheetsOAuthConfigured && !googleSheetsGoogleConnected ? (
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <p className="text-xs text-muted-foreground">
-                              Один раз разрешите приложению чтение таблиц — как обычный вход через Google.
-                            </p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="shrink-0 w-fit"
-                              onClick={() => {
-                                window.location.href = "/api/psychologist/google-sheets/oauth/start";
-                              }}
-                            >
-                              Подключить Google
-                            </Button>
-                          </div>
-                        ) : null}
-                        {googleSheetsOAuthConfigured && googleSheetsGoogleConnected ? (
-                          <div className="space-y-1.5">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="w-full sm:w-auto"
-                              disabled={googleSheetsPickerLoading || googleSheetsImportLoading}
-                              onClick={() => void handleOpenGoogleSheetsPicker()}
-                            >
-                              {googleSheetsPickerLoading ? "Открываем выбор…" : "Выбрать таблицу…"}
-                            </Button>
-                            {!process.env.NEXT_PUBLIC_GOOGLE_API_KEY ? (
-                              <p className="text-xs text-amber-800 dark:text-amber-200/90">
-                                Чтобы открывалось стандартное окно Google, задайте в настройках сервера
-                                переменную{" "}
-                                <code className="rounded bg-muted px-1">NEXT_PUBLIC_GOOGLE_API_KEY</code>{" "}
-                                (ключ API в Google Cloud → ограничение по HTTP referrer). Иначе вставьте
-                                ссылку на таблицу ниже.
-                              </p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                Откроется окно Google: выберите файл таблицы или укажите ссылку вручную
-                                ниже.
-                              </p>
-                            )}
-                          </div>
-                        ) : null}
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <Label htmlFor="google-import-url" className="text-xs">
-                              Ссылка на таблицу (если не выбирали выше)
-                            </Label>
-                            <Input
-                              id="google-import-url"
-                              placeholder="https://docs.google.com/spreadsheets/d/..."
-                              value={googleSheetsImportUrl}
-                              onChange={(e) => setGoogleSheetsImportUrl(e.target.value)}
-                              disabled={googleSheetsImportLoading || googleSheetsPickerLoading}
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="shrink-0"
-                            disabled={
-                              googleSheetsImportLoading ||
-                              googleSheetsPickerLoading ||
-                              !googleSheetsOAuthConfigured ||
-                              !googleSheetsGoogleConnected
-                            }
-                            onClick={() => void handleImportFromGoogleSheets()}
-                          >
-                            {googleSheetsImportLoading ? "Загрузка…" : "Загрузить из Google Таблицы"}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground">
-                        Файлы CSV/XLSX/JSON разбираются в браузере. Импорт из Google выполняется на сервере
-                        с вашего разрешения (OAuth).
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-b border-border pb-3">
-                      <div className="min-w-0 space-y-1">
-                        {importFileName ? (
-                          <p
-                            className="text-xs text-muted-foreground truncate"
-                            title={importFileName}
-                          >
-                            <span className="font-medium text-foreground">{importFileName}</span>
-                          </p>
-                        ) : null}
-                        <p className="text-sm text-muted-foreground">
-                          Найдено колонок: {importHeaders.length}, строк: {importRows.length}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={resetImportSourceSelection}
-                      >
-                        <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-                        Другой файл или таблица
-                      </Button>
-                    </div>
-                  )}
-                  {importHeaders.length > 0 && (
-                    <>
-                      <div className="flex shrink-0 flex-col space-y-2">
-                        <Label className="text-sm shrink-0">Сопоставление полей</Label>
-                        <div className="max-w-full overflow-x-auto rounded-md border">
-                          <table className="w-full min-w-max border-collapse text-xs">
-                            <thead>
-                              <tr>
-                                {importHeaders.map((_, colIndex) => {
-                                  const fieldOptions = [
-                                    ...IMPORT_FIELDS,
-                                    ...importCustomDefs.map((d) => ({
-                                      key: `custom:${d.label}`,
-                                      label: d.label
-                                    }))
-                                  ];
-                                  const currentKey =
-                                    Object.entries(importMapping).find(
-                                      ([, idx]) => idx === colIndex
-                                    )?.[0] ?? "__none__";
-                                  return (
-                                    <th
-                                      key={colIndex}
-                                      className="border-b bg-muted/40 px-2 py-1 align-bottom"
-                                    >
-                                      <Select
-                                        value={currentKey}
-                                        onValueChange={(fieldKey) =>
-                                          setImportMapping((prev) => {
-                                            const next = { ...prev };
-                                            // убрать предыдущие сопоставления для этого столбца
-                                            for (const [k, idx] of Object.entries(next)) {
-                                              if (idx === colIndex) {
-                                                delete next[k];
-                                              }
-                                            }
-                                            if (fieldKey === "__none__") {
-                                              return next;
-                                            }
-                                            // один наше поле не должно быть привязано к двум столбцам
-                                            delete next[fieldKey];
-                                            next[fieldKey] = colIndex;
-                                            return next;
-                                          })
-                                        }
-                                      >
-                                        <SelectTrigger className="w-full">
-                                          <SelectValue placeholder="— не импортировать" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="__none__">— не импортировать</SelectItem>
-                                          {fieldOptions.map((opt) => (
-                                            <SelectItem key={opt.key} value={opt.key}>
-                                              {opt.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </th>
-                                  );
-                                })}
-                              </tr>
-                              <tr>
-                                {importHeaders.map((h, i) => (
-                                  <th
-                                    key={i}
-                                    className="border-b bg-muted px-2 py-1 text-left font-medium"
-                                  >
-                                    {h || `Колонка ${i + 1}`}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {importRows.slice(0, 5).map((row, rowIndex) => (
-                                <tr key={rowIndex}>
-                                  {importHeaders.map((_, colIndex) => (
-                                    <td
-                                      key={colIndex}
-                                      className="border-t px-2 py-1 text-[11px] text-muted-foreground"
-                                    >
-                                      {String(row[colIndex] ?? "")}
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={importSkipDuplicates}
-                          onChange={(e) => setImportSkipDuplicates(e.target.checked)}
-                        />
-                        Пропускать дубликаты по email
-                      </label>
-                      {importResult && (
-                        <div className="space-y-2">
-                          <Alert variant={importResult.failed > 0 ? "destructive" : "default"}>
-                            <AlertDescription>
-                              Создано: {importResult.created}
-                              {(importResult.updated ?? 0) > 0 && `, обновлено: ${importResult.updated}`}
-                              {importResult.skipped > 0 && `, пропущено: ${importResult.skipped}`}
-                              {importResult.failed > 0 && `, ошибок: ${importResult.failed}`}.
-                              {importResult.errors.length > 0 && (
-                                <ul className="mt-2 list-inside text-xs">
-                                  {importResult.errors.slice(0, 10).map((e, i) => (
-                                    <li key={i}>
-                                      Строка {e.row}: {e.message}
-                                    </li>
-                                  ))}
-                                  {importResult.errors.length > 10 && (
-                                    <li>… и ещё {importResult.errors.length - 10}</li>
-                                  )}
-                                </ul>
-                              )}
-                            </AlertDescription>
-                          </Alert>
-                          {importResult.warnings && importResult.warnings.length > 0 && (
-                            <Alert variant="default">
-                              <AlertDescription>
-                                <span className="font-medium">Предупреждения:</span>
-                                <ul className="mt-2 list-inside text-xs">
-                                  {importResult.warnings.slice(0, 10).map((w, i) => (
-                                    <li key={i}>
-                                      Строка {w.row}: {w.message}
-                                    </li>
-                                  ))}
-                                  {importResult.warnings.length > 10 && (
-                                    <li>… и ещё {importResult.warnings.length - 10}</li>
-                                  )}
-                                </ul>
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                <DialogFooter
-                  className={importHeaders.length > 0 ? "shrink-0 gap-2 border-t border-border pt-4 sm:justify-end" : undefined}
-                >
-                  <Button variant="outline" onClick={() => setImportOpen(false)}>
-                    Закрыть
-                  </Button>
-                  <Button
-                    disabled={
-                      importing ||
-                      importRows.length === 0 ||
-                      importMapping.firstName == null ||
-                      importMapping.lastName == null
-                    }
-                    onClick={() => void handleImportSubmit()}
-                  >
-                    {importing ? "Импорт…" : "Импортировать"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              onOpenChange={setImportOpen}
+              error={error}
+              importFields={IMPORT_FIELDS}
+              importCustomDefs={importCustomDefs}
+              importHeaders={clientsImport.importHeaders}
+              importRows={clientsImport.importRows}
+              importMapping={clientsImport.importMapping}
+              setImportMapping={clientsImport.setImportMapping}
+              importSkipDuplicates={clientsImport.importSkipDuplicates}
+              setImportSkipDuplicates={clientsImport.setImportSkipDuplicates}
+              importing={clientsImport.importing}
+              importResult={clientsImport.importResult}
+              importFileName={clientsImport.importFileName}
+              importFileInputRef={clientsImport.importFileInputRef}
+              googleSheetsImportUrl={clientsImport.googleSheetsImportUrl}
+              setGoogleSheetsImportUrl={clientsImport.setGoogleSheetsImportUrl}
+              googleSheetsImportLoading={clientsImport.googleSheetsImportLoading}
+              googleSheetsPickerLoading={clientsImport.googleSheetsPickerLoading}
+              googleSheetsOAuthConfigured={clientsImport.googleSheetsOAuthConfigured}
+              googleSheetsGoogleConnected={clientsImport.googleSheetsGoogleConnected}
+              onImportFileChange={clientsImport.handleImportFile}
+              onResetSource={clientsImport.resetImportSourceSelection}
+              onSubmit={clientsImport.handleImportSubmit}
+              onImportFromGoogleSheets={clientsImport.handleImportFromGoogleSheets}
+              onOpenGoogleSheetsPicker={clientsImport.handleOpenGoogleSheetsPicker}
+              onDisconnectGoogleSheets={clientsImport.handleDisconnectGoogleSheets}
+              onDownloadTemplate={downloadTemplate}
+            />
 
             {/* Подтверждение массового удаления */}
             <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
