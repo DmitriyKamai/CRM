@@ -27,7 +27,10 @@ export function useClientStatusesSettings(enabled: boolean) {
   const { data: clientStatuses = [], isLoading } = useQuery({
     queryKey: KEY,
     queryFn: fetchStatuses,
-    enabled
+    enabled,
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false
   });
 
   function refetch() {

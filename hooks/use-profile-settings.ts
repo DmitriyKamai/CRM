@@ -60,13 +60,17 @@ export function useProfileSettings() {
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: PROFILE_KEY,
-    queryFn: fetchProfile
+    queryFn: fetchProfile,
+    staleTime: 2 * 60 * 1000,
+    refetchOnReconnect: false
   });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ACCOUNTS_KEY,
     queryFn: fetchAccounts,
-    enabled: !!profile
+    enabled: !!profile,
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false
   });
 
   const [hydrated, setHydrated] = useState(false);

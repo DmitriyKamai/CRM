@@ -23,7 +23,9 @@ export function useScheduleClients() {
     queryKey: ["schedule-clients"],
     queryFn: fetchClients,
     enabled: false,
-    staleTime: 60_000
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false
   });
 
   return {

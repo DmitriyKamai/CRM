@@ -31,7 +31,10 @@ export function useCustomFieldsSettings(enabled: boolean) {
   const { data: customFields = [], isLoading, error } = useQuery({
     queryKey: KEY,
     queryFn: fetchCustomFields,
-    enabled
+    enabled,
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false
   });
 
   function refetch() {

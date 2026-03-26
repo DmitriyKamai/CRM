@@ -109,22 +109,31 @@ export function useClientsData() {
 
   const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useQuery({
     queryKey: CLIENTS_KEY,
-    queryFn: fetchClients
+    queryFn: fetchClients,
+    // Списки клиентов редко должны обновляться "на каждый рендер".
+    staleTime: 5 * 60 * 1000,
+    refetchOnReconnect: false
   });
 
   const { data: statuses = [] } = useQuery({
     queryKey: STATUSES_KEY,
-    queryFn: fetchStatuses
+    queryFn: fetchStatuses,
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false
   });
 
   const { data: customFieldDefs = [] } = useQuery({
     queryKey: CUSTOM_FIELDS_KEY,
-    queryFn: fetchCustomFieldDefs
+    queryFn: fetchCustomFieldDefs,
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false
   });
 
   const { data: columnOrder } = useQuery({
     queryKey: COL_ORDER_KEY,
-    queryFn: fetchColumnOrder
+    queryFn: fetchColumnOrder,
+    staleTime: 10 * 60 * 1000,
+    refetchOnReconnect: false
   });
 
   const persistColumnOrder = useMutation({
