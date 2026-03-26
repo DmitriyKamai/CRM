@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Calendar as CalendarIcon,
   ArrowUpDown,
@@ -57,6 +57,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
 import { ClientsActionsToolbar } from "@/components/psychologist/clients-actions-toolbar";
 import { ClientsProfileOverlay } from "@/components/psychologist/clients-profile-overlay";
+import { ClientsListScaleShell } from "@/components/psychologist/clients-list-scale-shell";
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
@@ -66,6 +67,7 @@ import {
   type ClientsImportField
 } from "@/hooks/use-clients-import";
 import { useClientsExport } from "@/hooks/use-clients-export";
+import { useClientsListScale } from "@/hooks/use-clients-list-scale";
 
 const AVATAR_COLORS = [
   "bg-rose-200 text-rose-800",
@@ -204,11 +206,6 @@ export function PsychologistClientsList({
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  const MIN_LIST_WIDTH = 1;
-  const listContainerRef = useRef<HTMLDivElement | null>(null);
-  const listInnerRef = useRef<HTMLDivElement | null>(null);
-  const [listScale, setListScale] = useState(1);
-  const [listInnerHeight, setListInnerHeight] = useState(0);
   const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
     null
   );
@@ -263,28 +260,9 @@ export function PsychologistClientsList({
     void syncGoogleSheetsFromServer();
   }, [syncGoogleSheetsFromServer]);
 
-  useEffect(() => {
-    const el = listContainerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      const w = el.clientWidth;
-      if (w <= 0) return;
-      setListScale(w >= MIN_LIST_WIDTH ? 1 : Math.max(0.3, w / MIN_LIST_WIDTH));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (listScale >= 1) return;
-    const el = listInnerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setListInnerHeight(el.offsetHeight);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [listScale, loading, clients.length, statusFilter]);
+  const listScaleState = useClientsListScale({
+    deps: [loading, clients.length, statusFilter]
+  });
 
   function downloadTemplate() {
     try {
@@ -660,7 +638,6 @@ export function PsychologistClientsList({
     );
   }
 
-  const listScaled = listScale < 1;
   const visibleClients =
     statusFilter === "ALL"
       ? clients
@@ -669,25 +646,14 @@ export function PsychologistClientsList({
   return (
     <TooltipProvider>
     <div className="px-3 py-4 sm:px-6">
-      <div ref={listContainerRef} className="w-full min-w-0 space-y-4">
-        <div
-          style={{
-            overflow: listScaled ? "hidden" : undefined,
-            width: listScaled ? MIN_LIST_WIDTH * listScale : undefined,
-            height: listScaled && listInnerHeight > 0 ? listInnerHeight * listScale : undefined,
-            maxWidth: "100%",
-            margin: listScaled ? "0 auto" : undefined
-          }}
-        >
-          <div
-            ref={listInnerRef}
-            className="space-y-4"
-            style={{
-              width: listScaled ? MIN_LIST_WIDTH : undefined,
-              transform: listScaled ? `scale(${listScale})` : undefined,
-              transformOrigin: "0 0"
-            }}
-          >
+      <ClientsListScaleShell
+        listScaled={listScaleState.listScaled}
+        minListWidth={listScaleState.minListWidth}
+        listScale={listScaleState.listScale}
+        listInnerHeight={listScaleState.listInnerHeight}
+        containerRef={listScaleState.listContainerRef}
+        innerRef={listScaleState.listInnerRef}
+      >
             {/* Фильтр по статусу */}
             {statuses.length > 0 && (
               <Tabs
@@ -891,8 +857,7 @@ export function PsychologistClientsList({
                 }
               />
             )}
-          </div>
-        </div>
+      </ClientsListScaleShell>
 
         {/* Диалог добавления клиента */}
         <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>
@@ -1003,7 +968,6 @@ export function PsychologistClientsList({
             </form>
           </DialogContent>
         </Dialog>
-      </div>
     </div>
     </TooltipProvider>
   );
