@@ -27,6 +27,7 @@ import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs
 import { useClientProfileFiles } from "@/hooks/use-client-profile-files";
 import { useClientProfileDiagnostics } from "@/hooks/use-client-profile-diagnostics";
 import { useClientProfileStatuses } from "@/hooks/use-client-profile-statuses";
+import { useClientProfileCustomFields } from "@/hooks/use-client-profile-custom-fields";
 
 type ClientProfileProps = {
   id: string;
@@ -79,17 +80,6 @@ type ClientProfileProps = {
   }[];
 };
 
-type CustomFieldOption = { value: string; label: string };
-type CustomFieldDef = {
-  id: string;
-  key?: string | null;
-  label: string;
-  type: string;
-  group?: string | null;
-  description?: string | null;
-  options?: { selectOptions?: CustomFieldOption[] } | null;
-};
-
 export type PsychologistClientProfileHandle = {
   saveAll: () => Promise<void>;
 };
@@ -138,10 +128,6 @@ export const PsychologistClientProfile = forwardRef<
   const [statusLabel, setStatusLabel] = useState<string | null>(props.statusLabel ?? null);
   const [statusColor, setStatusColor] = useState<string | null>(props.statusColor ?? null);
   const hasAccount = props.hasAccount ?? false;
-  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
-  const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
-  const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
   const {
     files,
     setFiles,
@@ -161,6 +147,22 @@ export const PsychologistClientProfile = forwardRef<
     enabled: diagnosticsOn,
     active: diagnosticsTabActive,
     initial: props.diagnostics ?? []
+  });
+
+  const {
+    customFieldsLoading,
+    customFieldDefs,
+    setCustomFieldDefs,
+    customFieldValues,
+    setCustomFieldValues,
+    customFieldsSaving,
+    setCustomFieldsSaving,
+    refetchCustomFieldDefs,
+    saveCustomFields
+  } = useClientProfileCustomFields({
+    clientId: props.id,
+    setError,
+    setHistoryTick
   });
 
   useEffect(() => {
@@ -208,18 +210,6 @@ export const PsychologistClientProfile = forwardRef<
     props.statusId, props.statusLabel, props.statusColor
   ]);
 
-  const refetchCustomFieldDefs = useCallback(() => {
-    setCustomFieldsLoading(true);
-    fetch(`/api/psychologist/clients/${props.id}/custom-fields`)
-      .then((r) => (r?.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.definitions) setCustomFieldDefs(data.definitions);
-        if (data?.values) setCustomFieldValues(data.values);
-      })
-      .catch(() => {})
-      .finally(() => setCustomFieldsLoading(false));
-  }, [props.id]);
-
   const sortableSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 }
@@ -228,10 +218,6 @@ export const PsychologistClientProfile = forwardRef<
       coordinateGetter: sortableKeyboardCoordinates
     })
   );
-
-  useEffect(() => {
-    refetchCustomFieldDefs();
-  }, [props.id, refetchCustomFieldDefs]);
 
   const buildUpdatedPayloadForStatus = useCallback(
     (applied: { statusId: string | null; statusLabel: string | null; statusColor: string | null }) => ({
@@ -349,30 +335,6 @@ export const PsychologistClientProfile = forwardRef<
       throw err;
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function saveCustomFields(): Promise<void> {
-    setCustomFieldsSaving(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/psychologist/clients/${props.id}/custom-fields`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ values: customFieldValues })
-        }
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data?.message ?? "Не удалось сохранить пользовательские поля";
-        setError(msg);
-        throw new Error(msg);
-      }
-      setHistoryTick((t) => t + 1);
-    } finally {
-      setCustomFieldsSaving(false);
     }
   }
 
