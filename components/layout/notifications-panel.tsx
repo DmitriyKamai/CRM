@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Bell, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,90 +10,52 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchNotifications,
+  markNotificationRead,
+  removeNotification,
+  clearAllNotifications,
+  setPanelOpen,
+  selectUnreadCount
+} from "@/store/slices/notifications.slice";
 
-export type NotificationItem = {
-  id: string;
-  title: string;
-  body: string | null;
-  read: boolean;
-  createdAt: string;
-};
+export type { NotificationItem } from "@/store/slices/notifications.slice";
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear();
+  if (sameDay) {
+    return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  }
+  return d.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined
+  });
+}
 
 export function NotificationsPanel() {
-  const [open, setOpen] = useState(false);
-  const [list, setList] = useState<NotificationItem[]>([]);
+  const dispatch = useAppDispatch();
+  const items = useAppSelector(state => state.notifications.items);
+  const open = useAppSelector(state => state.notifications.panelOpen);
+  const unreadCount = useAppSelector(selectUnreadCount);
 
-  const unreadCount = list.filter((n) => !n.read).length;
-
-  function fetchList() {
-    return fetch("/api/notifications")
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: NotificationItem[]) => setList(Array.isArray(data) ? data : []))
-      .catch(() => setList([]));
-  }
-
-  // Загрузка при монтировании — чтобы отображать счётчик непрочитанных
   useEffect(() => {
-    fetchList();
-  }, []);
+    void dispatch(fetchNotifications());
+  }, [dispatch]);
 
   useEffect(() => {
     if (!open) return;
-    // Обновляем список при открытии поповера без отдельного состояния загрузки,
-    // чтобы не получать ошибки от правила `react-hooks/set-state-in-effect`.
-    fetchList();
-  }, [open]);
-
-  async function markRead(id: string) {
-    await fetch(`/api/notifications/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ read: true })
-    });
-    setList((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  }
-
-  async function remove(id: string) {
-    const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
-    if (!res.ok) return;
-    setList((prev) => prev.filter((n) => n.id !== id));
-  }
-
-  async function clearAll() {
-    if (list.length === 0) return;
-    const ids = list.map(n => n.id);
-    setList([]);
-    await Promise.all(
-      ids.map(id =>
-        fetch(`/api/notifications/${id}`, { method: "DELETE" }).catch(() => {})
-      )
-    );
-  }
-
-  function formatDate(iso: string) {
-    const d = new Date(iso);
-    const now = new Date();
-    const sameDay =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
-    if (sameDay) {
-      return d.toLocaleTimeString("ru-RU", {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
-    return d.toLocaleDateString("ru-RU", {
-      day: "numeric",
-      month: "short",
-      year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined
-    });
-  }
+    void dispatch(fetchNotifications());
+  }, [open, dispatch]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={value => dispatch(setPanelOpen(value))}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -109,32 +71,28 @@ export function NotificationsPanel() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-80 p-0"
-        align="end"
-        sideOffset={8}
-      >
+      <PopoverContent className="w-80 p-0" align="end" sideOffset={8}>
         <div className="border-b px-3 py-2 flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">Уведомления</h3>
-          {list.length > 0 && (
+          {items.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-sm text-muted-foreground hover:text-foreground"
-              onClick={clearAll}
+              onClick={() => void dispatch(clearAllNotifications(items.map(n => n.id)))}
             >
               Очистить все
             </Button>
           )}
         </div>
         <div className="max-h-[360px] overflow-y-auto">
-          {list.length === 0 ? (
+          {items.length === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
               Нет уведомлений
             </div>
           ) : (
             <ul className="divide-y">
-              {list.map((n) => (
+              {items.map(n => (
                 <li
                   key={n.id}
                   className={cn(
@@ -144,7 +102,9 @@ export function NotificationsPanel() {
                 >
                   <div
                     className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => !n.read && markRead(n.id)}
+                    onClick={() => {
+                      if (!n.read) void dispatch(markNotificationRead(n.id));
+                    }}
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <p
@@ -175,9 +135,9 @@ export function NotificationsPanel() {
                     size="icon"
                     className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
                     aria-label="Удалить"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
-                      remove(n.id);
+                      void dispatch(removeNotification(n.id));
                     }}
                   >
                     <X className="h-3.5 w-3.5" />

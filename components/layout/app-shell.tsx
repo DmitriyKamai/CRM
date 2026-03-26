@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { HeaderNav } from "@/components/layout/header-nav";
 import { SidebarNav, SidebarNavContent } from "@/components/layout/sidebar-nav";
 import type { PlatformModuleFlags } from "@/lib/platform-modules";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { openMobileMenu, closeMobileMenu } from "@/store/slices/ui.slice";
 
 type AppShellProps = {
   role: "PSYCHOLOGIST" | "CLIENT" | "ADMIN";
@@ -14,24 +15,26 @@ type AppShellProps = {
 };
 
 export function AppShell({ role, children, modules }: AppShellProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const dispatch = useAppDispatch();
+  const mobileMenuOpen = useAppSelector(state => state.ui.mobileMenuOpen);
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Сайдбар от верха до низа экрана (слева) */}
-      {/* До lg контент ~768–1023px слишком узкий рядом с фикс. сайдбаром 280px — переполнение тулбаров. Док — только Sheet. */}
+      {/* До lg контент ~768–1023px слишком узкий рядом с фикс. сайдбаром 280px — переполнение тулбаров. Dok — только Sheet. */}
       <div className="hidden h-full shrink-0 lg:flex">
         <SidebarNav role={role} modules={modules} />
       </div>
-      {/* Хедер и контент справа от сайдбара */}
       <div className="flex flex-1 flex-col min-w-0 min-h-0">
-        <HeaderNav role={role} onMenuClick={() => setMobileMenuOpen(true)} />
+        <HeaderNav
+          role={role}
+          onMenuClick={() => dispatch(openMobileMenu())}
+        />
         <main className="flex-1 min-h-0 overflow-y-auto">
           {children}
         </main>
       </div>
 
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+      <Sheet open={mobileMenuOpen} onOpenChange={open => dispatch(open ? openMobileMenu() : closeMobileMenu())}>
         <SheetContent
           side="left"
           className="surface-glass w-[280px] rounded-none border-l-0 border-t-0 border-b-0 border-r border-r-[hsl(var(--sidebar-border))] p-0"
@@ -40,7 +43,7 @@ export function AppShell({ role, children, modules }: AppShellProps) {
             <SidebarNavContent
               role={role}
               modules={modules}
-              onNavigate={() => setMobileMenuOpen(false)}
+              onNavigate={() => dispatch(closeMobileMenu())}
             />
           </div>
         </SheetContent>
