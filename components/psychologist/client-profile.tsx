@@ -21,7 +21,7 @@ import { ClientProfileProfileTab } from "@/components/psychologist/client-profil
 import { ClientProfileCustomFieldsTabs } from "@/components/psychologist/client-profile-custom-fields-tabs";
 import { ClientProfileDiagnosticsTab } from "@/components/psychologist/client-profile-diagnostics-tab";
 import { ClientProfileAppointmentsTab } from "@/components/psychologist/client-profile-appointments-tab";
-import { ClientProfileHistorySection } from "@/components/psychologist/client-profile-history-section";
+import { ClientProfileHistorySidebar, ClientProfileHistoryTab } from "@/components/psychologist/client-profile-history-section";
 import { ClientProfileDeleteDialog } from "@/components/psychologist/client-profile-delete-dialog";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
@@ -587,7 +587,7 @@ export const PsychologistClientProfile = forwardRef<
         />
 
         <div className="mt-3 flex flex-col lg:flex-row gap-4 lg:items-start min-w-0 w-full">
-          <div className="min-w-0 w-full flex-1">
+          <div className="min-w-0 w-full lg:w-auto flex-1">
         <TabsContent
           value="profile"
           className="mt-0 min-w-0 rounded-lg border bg-card p-4"
@@ -679,9 +679,10 @@ export const PsychologistClientProfile = forwardRef<
 
         {schedulingOn && <ClientProfileAppointmentsTab clientId={props.id} />}
 
-        <ClientProfileHistorySection clientId={props.id} refreshKey={historyTick} />
+        <ClientProfileHistoryTab clientId={props.id} refreshKey={historyTick} />
           </div>
-          
+
+          <ClientProfileHistorySidebar clientId={props.id} refreshKey={historyTick} />
         </div>
       </Tabs>
     </div>
