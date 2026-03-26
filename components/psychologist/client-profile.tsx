@@ -8,7 +8,6 @@ import {
   useSensors
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useRouter } from "next/navigation";
 
 import { TabsContent } from "@/components/ui/tabs";
 import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
@@ -28,6 +27,8 @@ import { useClientProfileFiles } from "@/hooks/use-client-profile-files";
 import { useClientProfileDiagnostics } from "@/hooks/use-client-profile-diagnostics";
 import { useClientProfileStatuses } from "@/hooks/use-client-profile-statuses";
 import { useClientProfileCustomFields } from "@/hooks/use-client-profile-custom-fields";
+import { useClientProfileDeleteAction } from "@/hooks/use-client-profile-delete-action";
+import { useClientProfileRegistrationInvite } from "@/hooks/use-client-profile-registration-invite";
 
 type ClientProfileProps = {
   id: string;
@@ -88,8 +89,6 @@ export const PsychologistClientProfile = forwardRef<
   PsychologistClientProfileHandle,
   ClientProfileProps
 >(function PsychologistClientProfile(props, ref) {
-  const router = useRouter();
-
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -368,62 +367,21 @@ export const PsychologistClientProfile = forwardRef<
     setEditing(false);
   }
 
-  async function handleSendRegistrationInvite() {
-    if (hasAccount) return;
-    const targetEmail = (email || "").trim() || props.email || "";
-    if (!targetEmail) return;
+  const { confirmDelete } = useClientProfileDeleteAction({
+    clientId: props.id,
+    onDeleted: props.onDeleted,
+    setDeleting,
+    setDeleteDialogOpen,
+    setError
+  });
 
-    try {
-      const res = await fetch(`/api/psychologist/clients/${props.id}/invite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email: targetEmail })
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(
-          data?.message ??
-            "Не удалось отправить приглашение. Проверьте настройки почты на сервере."
-        );
-        return;
-      }
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError("Не удалось отправить приглашение. Попробуйте позже.");
-    }
-  }
-
-  async function confirmDelete() {
-    setDeleteDialogOpen(false);
-    setDeleting(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/psychologist/clients/${props.id}`, {
-        method: "DELETE"
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось удалить клиента");
-      }
-
-      if (props.onDeleted) {
-        props.onDeleted();
-      } else {
-        router.push("/psychologist/clients");
-      }
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Не удалось удалить клиента"
-      );
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const { sendInvite: handleSendRegistrationInvite } =
+    useClientProfileRegistrationInvite({
+      clientId: props.id,
+      hasAccount,
+      getTargetEmail: () => (email || "").trim() || props.email || "",
+      setError
+    });
 
   const phoneDisplayText = formatPhoneDisplay(phone);
   const phoneHref = phoneToTelHref(phone);
