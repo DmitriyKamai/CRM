@@ -82,27 +82,7 @@ import { PsychologistClientProfile } from "@/components/psychologist/client-prof
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { openGoogleSheetsPicker } from "@/lib/google-sheet-picker-client";
-
-type ClientDto = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email?: string | null;
-  dateOfBirth?: string | null;
-  phone?: string | null;
-  country?: string | null;
-  city?: string | null;
-  gender?: string | null;
-  maritalStatus?: string | null;
-  notes?: string | null;
-  createdAt: string;
-  hasAccount?: boolean;
-  avatarUrl?: string | null;
-  statusId?: string | null;
-  statusLabel?: string | null;
-  statusColor?: string | null;
-  customFields?: Record<string, unknown>;
-};
+import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
 
 const AVATAR_COLORS = [
   "bg-rose-200 text-rose-800",
@@ -193,9 +173,22 @@ export function PsychologistClientsList({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [clients, setClients] = useState<ClientDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    clients,
+    clientsLoading: loading,
+    clientsError,
+    statuses,
+    customFieldDefs: tableCustomFieldDefs,
+    columnOrder: clientsTableColumnOrder,
+    persistColumnOrder: persistClientsTableColumnOrder,
+    createClient,
+    deleteClient,
+    bulkDeleteClients,
+    updateClientInCache,
+    invalidateClients
+  } = useClientsData();
+
+  const [error, setError] = useState<string | null>(clientsError);
 
   const [addOpen, setAddOpen] = useState(false);
   const [profileClient, setProfileClient] = useState<ClientDto | null>(null);
@@ -261,21 +254,13 @@ export function PsychologistClientsList({
   });
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [statuses, setStatuses] = useState<Array<{ id: string; label: string; color: string }>>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [tableCustomFieldDefs, setTableCustomFieldDefs] = useState<Array<{ id: string; label: string }>>([]);
-  /** undefined — загрузка с сервера; null — в БД нет сохранённого порядка */
-  const [clientsTableColumnOrder, setClientsTableColumnOrder] = useState<string[] | null | undefined>(
-    undefined
-  );
 
   const MIN_LIST_WIDTH = 1;
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const listInnerRef = useRef<HTMLDivElement | null>(null);
-  const loadClientsAbortRef = useRef<AbortController | null>(null);
   const [listScale, setListScale] = useState(1);
   const [listInnerHeight, setListInnerHeight] = useState(0);
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
@@ -352,7 +337,6 @@ export function PsychologistClientsList({
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
-      // Игнорируем нулевую ширину — переходное состояние при монтировании/навигации.
       if (w <= 0) return;
       setListScale(w >= MIN_LIST_WIDTH ? 1 : Math.max(0.3, w / MIN_LIST_WIDTH));
     });
@@ -370,99 +354,6 @@ export function PsychologistClientsList({
     ro.observe(el);
     return () => ro.disconnect();
   }, [listScale, loading, clients.length, statusFilter]);
-
-  const loadClients = useCallback(async () => {
-    loadClientsAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    loadClientsAbortRef.current = ctrl;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/psychologist/clients", { signal: ctrl.signal });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "Не удалось загрузить клиентов");
-      }
-      const data = (await res.json()) as { clients: ClientDto[] };
-      setClients(data.clients);
-      setSelectedIds(new Set());
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось загрузить клиентов");
-    } finally {
-      if (!ctrl.signal.aborted) setLoading(false);
-    }
-  }, []);
-
-  const persistClientsTableColumnOrder = useCallback(async (order: string[]) => {
-    try {
-      const res = await fetch("/api/psychologist/clients-table-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ columnOrder: order })
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { message?: string };
-        toast.error(
-          typeof err?.message === "string" ? err.message : "Не удалось сохранить порядок колонок"
-        );
-        return;
-      }
-    } catch {
-      toast.error("Не удалось сохранить порядок колонок");
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadClients();
-  }, [loadClients]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/psychologist/clients-table-settings");
-        if (!res.ok) throw new Error("bad");
-        const data = (await res.json()) as { columnOrder: string[] | null };
-        if (!cancelled) setClientsTableColumnOrder(data.columnOrder ?? null);
-      } catch {
-        if (!cancelled) setClientsTableColumnOrder(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    async function loadStatuses() {
-      try {
-        const res = await fetch("/api/psychologist/client-statuses");
-        if (!res.ok) return;
-        const data = await res.json().catch(() => null);
-        setStatuses(data?.items ?? []);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    void loadStatuses();
-  }, []);
-
-  useEffect(() => {
-    async function loadCustomFieldDefs() {
-      try {
-        const res = await fetch("/api/psychologist/custom-fields");
-        if (!res.ok) return;
-        const data = await res.json().catch(() => null);
-        const items = data?.items ?? [];
-        setTableCustomFieldDefs(items.map((d: { id: string; label: string }) => ({ id: d.id, label: d.label })));
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    void loadCustomFieldDefs();
-  }, []);
 
   useEffect(() => {
     setProfileEditing(false);
@@ -752,7 +643,7 @@ export function PsychologistClientsList({
       }
       setImportResult(data as { created: number; skipped: number; failed: number; errors: { row: number; message: string }[] });
       if (data.created > 0 || data.skipped > 0) {
-        void loadClients();
+        void invalidateClients();
       }
     } catch (err) {
       console.error(err);
@@ -772,15 +663,7 @@ export function PsychologistClientsList({
         email: form.email.trim() || undefined,
         dateOfBirth: dob ? dob.toISOString() : undefined
       };
-      const res = await fetch("/api/psychologist/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message ?? "Не удалось создать клиента");
-
-      await loadClients();
+      await createClient.mutateAsync(body);
       setForm({ email: "", firstName: "", lastName: "", phone: "", notes: "" });
       setDob(undefined);
       setAddOpen(false);
@@ -816,30 +699,14 @@ export function PsychologistClientsList({
 
   async function confirmBulkDelete() {
     setBulkDeleteDialogOpen(false);
-    setBulkDeleting(true);
     setError(null);
     try {
-      const res = await fetch("/api/psychologist/clients", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds) })
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось удалить выбранных клиентов");
-      }
+      await bulkDeleteClients.mutateAsync(Array.from(selectedIds));
       setSelectedIds(new Set());
       setMultiSelectMode(false);
-      await loadClients();
     } catch (err) {
       console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось удалить выбранных клиентов"
-      );
-    } finally {
-      setBulkDeleting(false);
+      setError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
     }
   }
 
@@ -1120,21 +987,12 @@ export function PsychologistClientsList({
     setSingleDeleting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/psychologist/clients/${profileClient.id}`, {
-        method: "DELETE"
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось удалить клиента");
-      }
+      await deleteClient.mutateAsync(profileClient.id);
       setProfileClient(null);
       router.replace(pathname);
-      await loadClients();
     } catch (err) {
       console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Не удалось удалить клиента"
-      );
+      setError(err instanceof Error ? err.message : "Не удалось удалить клиента");
     } finally {
       setSingleDeleting(false);
       setSingleDeleteDialogOpen(false);
@@ -1507,51 +1365,26 @@ export function PsychologistClientsList({
               setProfileEditing(false);
               setProfileClient(null);
               router.replace(pathname);
-              await loadClients();
+              await invalidateClients();
             }}
             onUpdated={next => {
-              setClients(prev =>
-                prev.map(c =>
-                  c.id === profileClient.id
-                    ? {
-                        ...c,
-                        firstName: next.firstName,
-                        lastName: next.lastName,
-                        email: next.email ?? null,
-                        phone: next.phone ?? null,
-                        country: next.country ?? null,
-                        city: next.city ?? null,
-                        gender: next.gender ?? null,
-                        maritalStatus: next.maritalStatus ?? null,
-                        notes: next.notes ?? null,
-                        dateOfBirth: next.dateOfBirth ?? null,
-                        statusId: next.statusId ?? null,
-                        statusLabel: next.statusLabel ?? null,
-                        statusColor: next.statusColor ?? null
-                      }
-                    : c
-                )
-              );
-              setProfileClient(prev =>
-                prev
-                  ? {
-                      ...prev,
-                      firstName: next.firstName,
-                      lastName: next.lastName,
-                      email: next.email ?? null,
-                      phone: next.phone ?? null,
-                      country: next.country ?? null,
-                      city: next.city ?? null,
-                      gender: next.gender ?? null,
-                      maritalStatus: next.maritalStatus ?? null,
-                      notes: next.notes ?? null,
-                      dateOfBirth: next.dateOfBirth ?? null,
-                      statusId: next.statusId ?? null,
-                      statusLabel: next.statusLabel ?? null,
-                      statusColor: next.statusColor ?? null
-                    }
-                  : prev
-              );
+              const patch = {
+                firstName: next.firstName,
+                lastName: next.lastName,
+                email: next.email ?? null,
+                phone: next.phone ?? null,
+                country: next.country ?? null,
+                city: next.city ?? null,
+                gender: next.gender ?? null,
+                maritalStatus: next.maritalStatus ?? null,
+                notes: next.notes ?? null,
+                dateOfBirth: next.dateOfBirth ?? null,
+                statusId: next.statusId ?? null,
+                statusLabel: next.statusLabel ?? null,
+                statusColor: next.statusColor ?? null
+              };
+              updateClientInCache(profileClient.id, patch);
+              setProfileClient(prev => prev ? { ...prev, ...patch } : prev);
             }}
           />
         </div>
@@ -1633,10 +1466,10 @@ export function PsychologistClientsList({
                       <Button
                         size="sm"
                         variant="destructive"
-                        disabled={selectedIds.size === 0 || bulkDeleting}
+                        disabled={selectedIds.size === 0 || bulkDeleteClients.isPending}
                         onClick={openBulkDeleteDialog}
                       >
-                        {bulkDeleting
+                        {bulkDeleteClients.isPending
                           ? "Удаляем..."
                           : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
                       </Button>
@@ -1739,10 +1572,10 @@ export function PsychologistClientsList({
                         <>
                           <DropdownMenuItem
                             className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                            disabled={selectedIds.size === 0 || bulkDeleting}
+                            disabled={selectedIds.size === 0 || bulkDeleteClients.isPending}
                             onClick={openBulkDeleteDialog}
                           >
-                            {bulkDeleting
+                            {bulkDeleteClients.isPending
                               ? "Удаляем..."
                               : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
                           </DropdownMenuItem>
