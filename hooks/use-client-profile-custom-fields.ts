@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type CustomFieldOption = { value: string; label: string };
 type CustomFieldDef = {
@@ -25,6 +25,22 @@ export function useClientProfileCustomFields(opts: {
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
   const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
+
+  const groupDescriptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const def of customFieldDefs) {
+      const group =
+        def.group && typeof def.group === "string"
+          ? (def.group as string).trim()
+          : "";
+      if (!group || map.has(group)) continue;
+      if (typeof def.description === "string") {
+        const desc = (def.description as string).trim();
+        if (desc) map.set(group, desc);
+      }
+    }
+    return map;
+  }, [customFieldDefs]);
 
   const refetchCustomFieldDefs = useCallback(() => {
     void (async () => {
@@ -74,6 +90,7 @@ export function useClientProfileCustomFields(opts: {
     setCustomFieldValues,
     customFieldsSaving,
     setCustomFieldsSaving,
+    groupDescriptions,
     refetchCustomFieldDefs,
     saveCustomFields
   };

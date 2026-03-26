@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import {
   KeyboardSensor,
   PointerSensor,
@@ -29,6 +29,7 @@ import { useClientProfileStatuses } from "@/hooks/use-client-profile-statuses";
 import { useClientProfileCustomFields } from "@/hooks/use-client-profile-custom-fields";
 import { useClientProfileDeleteAction } from "@/hooks/use-client-profile-delete-action";
 import { useClientProfileRegistrationInvite } from "@/hooks/use-client-profile-registration-invite";
+import { useClientProfileSave } from "@/hooks/use-client-profile-save";
 
 type ClientProfileProps = {
   id: string;
@@ -157,7 +158,8 @@ export const PsychologistClientProfile = forwardRef<
     customFieldsSaving,
     setCustomFieldsSaving,
     refetchCustomFieldDefs,
-    saveCustomFields
+    saveCustomFields,
+    groupDescriptions
   } = useClientProfileCustomFields({
     clientId: props.id,
     setError,
@@ -165,8 +167,10 @@ export const PsychologistClientProfile = forwardRef<
   });
 
   useEffect(() => {
-    if (!diagnosticsOn && activeTab === "diagnostics") setActiveTab("profile");
-    if (!schedulingOn && activeTab === "appointments") setActiveTab("profile");
+    void (async () => {
+      if (!diagnosticsOn && activeTab === "diagnostics") setActiveTab("profile");
+      if (!schedulingOn && activeTab === "appointments") setActiveTab("profile");
+    })();
   }, [diagnosticsOn, schedulingOn, activeTab]);
 
   useEffect(() => {
@@ -186,28 +190,6 @@ export const PsychologistClientProfile = forwardRef<
     tabsHaveOverflow,
     updateTabsScrollState
   } = useClientProfileTabsScrollState(customFieldDefs.length);
-
-  useEffect(() => {
-    setFirstName(props.firstName);
-    setLastName(props.lastName);
-    setEmail(props.email ?? "");
-    setPhone(props.phone ?? "");
-    setNotes(props.notes ?? "");
-    setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
-    setCountry(props.country ?? "");
-    setCity(props.city ?? "");
-    setCountryCode(props.country ? getCountryCodeByName(props.country) : null);
-    setGender(props.gender ?? "");
-    setMaritalStatus(props.maritalStatus ?? "");
-    setStatusId(props.statusId ?? null);
-    setStatusLabel(props.statusLabel ?? null);
-    setStatusColor(props.statusColor ?? null);
-  }, [
-    props.id,
-    props.firstName, props.lastName, props.email, props.phone, props.notes, props.dateOfBirth,
-    props.country, props.city, props.gender, props.maritalStatus,
-    props.statusId, props.statusLabel, props.statusColor
-  ]);
 
   const sortableSensors = useSensors(
     useSensor(PointerSensor, {
@@ -257,115 +239,63 @@ export const PsychologistClientProfile = forwardRef<
     return d.toLocaleDateString("ru-RU");
   }
 
-  const groupDescriptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const def of customFieldDefs) {
-      const group =
-        def.group && typeof def.group === "string"
-          ? (def.group as string).trim()
-          : "";
-      if (!group || map.has(group)) continue;
-      if (typeof def.description === "string") {
-        const desc = (def.description as string).trim();
-        if (desc) {
-          map.set(group, desc);
-        }
-      }
-    }
-    return map;
-  }, [customFieldDefs]);
-
-  async function saveMainProfile(): Promise<void> {
-    setSaving(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = {
-        firstName,
-        lastName,
-        phone: phone || undefined,
-        country: country.trim() || null,
-        city: city.trim() || null,
-        gender: gender || null,
-        maritalStatus: maritalStatus || null,
-        notes: notes || undefined,
-        dateOfBirth: dob ? dob.toISOString() : undefined
-      };
-      if (!hasAccount) {
-        body.email = email.trim() || "";
-      }
-      body.statusId = statusId;
-
-      const res = await fetch(`/api/psychologist/clients/${props.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось сохранить профиль");
-      }
-
-      if (props.onUpdated) {
-        props.onUpdated({
-          firstName,
-          lastName,
-          email: email.trim() || null,
-          phone: phone || null,
-          country: country.trim() || null,
-          city: city.trim() || null,
-          gender: gender || null,
-          maritalStatus: maritalStatus || null,
-          notes: notes || null,
-          dateOfBirth: dob ? dob.toISOString() : null,
-          statusId: statusId ?? null,
-          statusLabel: statusLabel ?? null,
-          statusColor: statusColor ?? null
-        });
-      }
-      setHistoryTick((t) => t + 1);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Не удалось сохранить профиль"
-      );
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveAll() {
-    try {
-      await saveMainProfile();
-      await saveCustomFields();
-      setEditing(false);
-    } catch {
-      // ошибка уже в setError / отображена
-    }
-  }
+  const { saveAll, cancelAll } = useClientProfileSave({
+    clientId: props.id,
+    hasAccount,
+    initial: {
+      firstName: props.firstName,
+      lastName: props.lastName,
+      email: props.email,
+      phone: props.phone,
+      country: props.country,
+      city: props.city,
+      gender: props.gender,
+      maritalStatus: props.maritalStatus,
+      notes: props.notes,
+      dateOfBirth: props.dateOfBirth,
+      statusId: props.statusId,
+      statusLabel: props.statusLabel,
+      statusColor: props.statusColor
+    },
+    state: {
+      firstName,
+      lastName,
+      email,
+      phone,
+      country,
+      city,
+      gender,
+      maritalStatus,
+      notes,
+      dob,
+      statusId,
+      statusLabel,
+      statusColor
+    },
+    setFirstName,
+    setLastName,
+    setEmail,
+    setPhone,
+    setCountry,
+    setCity,
+    setGender,
+    setMaritalStatus,
+    setNotes,
+    setDob,
+    setCountryCode,
+    setStatusId,
+    setStatusLabel,
+    setStatusColor,
+    setSaving,
+    setError,
+    setHistoryTick,
+    setEditing,
+    refetchCustomFieldDefs,
+    saveCustomFields,
+    onUpdated: props.onUpdated
+  });
 
   useImperativeHandle(ref, () => ({ saveAll }));
-
-  function cancelAll() {
-    setFirstName(props.firstName);
-    setLastName(props.lastName);
-    setEmail(props.email ?? "");
-    setPhone(props.phone ?? "");
-    setCountry(props.country ?? "");
-    setCity(props.city ?? "");
-    setGender(props.gender ?? "");
-    setMaritalStatus(props.maritalStatus ?? "");
-    setNotes(props.notes ?? "");
-    setDob(props.dateOfBirth ? new Date(props.dateOfBirth) : undefined);
-    setStatusId(props.statusId ?? null);
-    setStatusLabel(props.statusLabel ?? null);
-    setStatusColor(props.statusColor ?? null);
-    refetchCustomFieldDefs();
-    setEditing(false);
-  }
 
   const { confirmDelete } = useClientProfileDeleteAction({
     clientId: props.id,
