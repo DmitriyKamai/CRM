@@ -10,12 +10,11 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 // Импорты из профиля вынесены в отдельные компоненты, поэтому эти UI-провайдеры
 // больше не требуются здесь.
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
-import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-tabs-nav";
 import { ClientProfileHeader } from "@/components/psychologist/client-profile-header";
 import { ClientProfileProfileTab } from "@/components/psychologist/client-profile-profile-tab";
 import { ClientProfileCustomFieldsTabs } from "@/components/psychologist/client-profile-custom-fields-tabs";
@@ -23,6 +22,7 @@ import { ClientProfileDiagnosticsTab } from "@/components/psychologist/client-pr
 import { ClientProfileAppointmentsTab } from "@/components/psychologist/client-profile-appointments-tab";
 import { ClientProfileHistorySidebar, ClientProfileHistoryTab } from "@/components/psychologist/client-profile-history-section";
 import { ClientProfileDeleteDialog } from "@/components/psychologist/client-profile-delete-dialog";
+import { ClientProfileTabsShell } from "@/components/psychologist/client-profile-tabs-shell";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 type ClientProfileProps = {
@@ -564,34 +564,24 @@ export const PsychologistClientProfile = forwardRef<
         onStatusChange={handleStatusChange}
       />
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => {
-          setActiveTab(v);
-          setDiagnosticsTabActive(v === "diagnostics");
-        }}
-        className="w-full min-w-0"
-      >
-        <ClientProfileTabsNav
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          setDiagnosticsTabActive={setDiagnosticsTabActive}
-          diagnosticsOn={diagnosticsOn}
-          schedulingOn={schedulingOn}
-          customFieldDefs={customFieldDefs}
-          tabsHaveOverflow={tabsHaveOverflow}
-          tabsScrollLeft={tabsScrollLeft}
-          tabsScrollRight={tabsScrollRight}
-          tabsScrollRef={tabsScrollRef}
-          updateTabsScrollState={updateTabsScrollState}
-        />
-
-        <div className="mt-3 flex flex-col lg:flex-row gap-4 lg:items-start min-w-0 w-full">
-          <div className="min-w-0 w-full lg:w-auto flex-1">
-        <TabsContent
-          value="profile"
-          className="mt-0 min-w-0 rounded-lg border bg-card p-4"
-        >
+      <ClientProfileTabsShell
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setDiagnosticsTabActive={setDiagnosticsTabActive}
+        diagnosticsOn={diagnosticsOn}
+        schedulingOn={schedulingOn}
+        customFieldDefs={customFieldDefs}
+        tabsHaveOverflow={tabsHaveOverflow}
+        tabsScrollLeft={tabsScrollLeft}
+        tabsScrollRight={tabsScrollRight}
+        tabsScrollRef={tabsScrollRef}
+        updateTabsScrollState={updateTabsScrollState}
+        left={
+          <>
+            <TabsContent
+              value="profile"
+              className="mt-0 min-w-0 rounded-lg border bg-card p-4"
+            >
           <ClientProfileProfileTab
             email={props.email}
             createdAt={props.createdAt}
@@ -638,7 +628,7 @@ export const PsychologistClientProfile = forwardRef<
             cancelAll={cancelAll}
             saveAll={saveAll}
           />
-        </TabsContent>
+            </TabsContent>
 
         <ClientProfileCustomFieldsTabs
           clientId={props.id}
@@ -680,11 +670,10 @@ export const PsychologistClientProfile = forwardRef<
         {schedulingOn && <ClientProfileAppointmentsTab clientId={props.id} />}
 
         <ClientProfileHistoryTab clientId={props.id} refreshKey={historyTick} />
-          </div>
-
-          <ClientProfileHistorySidebar clientId={props.id} refreshKey={historyTick} />
-        </div>
-      </Tabs>
+          </>
+        }
+        right={<ClientProfileHistorySidebar clientId={props.id} refreshKey={historyTick} />}
+      />
     </div>
   );
 });
