@@ -13,8 +13,10 @@ import {
   type ClientsImportField
 } from "@/hooks/use-clients-import";
 import { useClientsExport } from "@/hooks/use-clients-export";
+import { useGoogleSheetsStatus } from "@/hooks/use-google-sheets-status";
 import { useClientsListScale } from "@/hooks/use-clients-list-scale";
 import { useClientsTableColumns } from "@/hooks/use-clients-table-columns";
+import { downloadClientsImportTemplateCsv } from "@/lib/clients-import-template";
 
 const IMPORT_FIELDS: ClientsImportField[] = [
   { key: "firstName", label: "Имя" },
@@ -56,7 +58,8 @@ export function PsychologistClientsList({
     invalidateClients
   } = useClientsData();
 
-  const [error, setError] = useState<string | null>(clientsError);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const error = actionError ?? clientsError;
 
   const [addOpen, setAddOpen] = useState(false);
   const [profileClient, setProfileClient] = useState<ClientDto | null>(null);
@@ -79,12 +82,11 @@ export function PsychologistClientsList({
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  const [googleSheetsOAuthConfigured, setGoogleSheetsOAuthConfigured] = useState<boolean | null>(
-    null
-  );
-  const [googleSheetsGoogleConnected, setGoogleSheetsGoogleConnected] = useState<boolean | null>(
-    null
-  );
+  const {
+    oauthConfigured: googleSheetsOAuthConfigured,
+    googleConnected: googleSheetsGoogleConnected,
+    refetchGoogleSheetsStatus
+  } = useGoogleSheetsStatus();
 
   const [importOpen, setImportOpen] = useState(false);
   const [importCustomDefs, setImportCustomDefs] = useState<ClientsImportCustomDef[]>([]);
@@ -96,65 +98,27 @@ export function PsychologistClientsList({
     importCustomDefs,
     setImportCustomDefs,
     onImported: invalidateClients,
-    setGlobalError: setError,
+    setGlobalError: setActionError,
     pathname,
     routerReplace: router.replace,
     searchParamsToString: () => searchParams.toString()
   });
-
-  const syncGoogleSheetsFromServer = useCallback(async () => {
-    try {
-      const res = await fetch("/api/psychologist/google-sheets");
-      if (!res.ok) return;
-      const data = (await res.json().catch(() => null)) as {
-        oauthConfigured?: boolean;
-        googleConnected?: boolean;
-      } | null;
-      setGoogleSheetsOAuthConfigured(Boolean(data?.oauthConfigured));
-      setGoogleSheetsGoogleConnected(Boolean(data?.googleConnected));
-    } catch {
-      setGoogleSheetsOAuthConfigured(false);
-      setGoogleSheetsGoogleConnected(false);
-    }
-  }, []);
 
   const clientsExport = useClientsExport({
     clientsCount: clients.length,
     statusFilter,
     googleSheetsOAuthConfigured,
     googleSheetsGoogleConnected,
-    setGoogleSheetsOAuthConfigured: (v) => setGoogleSheetsOAuthConfigured(v),
-    setGoogleSheetsGoogleConnected: (v) => setGoogleSheetsGoogleConnected(v),
-    syncGoogleSheetsFromServer,
-    setError
+    syncGoogleSheetsFromServer: refetchGoogleSheetsStatus,
+    setError: setActionError
   });
-
-  useEffect(() => {
-    void (async () => {
-      await syncGoogleSheetsFromServer();
-    })();
-  }, [syncGoogleSheetsFromServer]);
 
   const listScaleState = useClientsListScale({
     deps: [loading, clients.length, statusFilter]
   });
 
   function downloadTemplate() {
-    try {
-      const headers = IMPORT_FIELDS.map((f) => f.label);
-      const csv = `${headers.join(",")}\n`;
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "clients-template.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Failed to download template", err);
-    }
+    downloadClientsImportTemplateCsv(IMPORT_FIELDS.map((f) => f.label));
   }
 
   const toggleOne = useCallback((id: string) => {
@@ -181,14 +145,14 @@ export function PsychologistClientsList({
 
   async function confirmBulkDelete() {
     setBulkDeleteDialogOpen(false);
-    setError(null);
+    setActionError(null);
     try {
       await bulkDeleteClients.mutateAsync(Array.from(selectedIds));
       setSelectedIds(new Set());
       setMultiSelectMode(false);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
+      setActionError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
     }
   }
 
@@ -218,12 +182,12 @@ export function PsychologistClientsList({
           setProfileClient((prev) => (prev ? { ...prev, ...patch } : prev))
         }
         deleteClientById={async (clientId) => {
-          setError(null);
+          setActionError(null);
           try {
             await deleteClient.mutateAsync(clientId);
           } catch (err) {
             console.error(err);
-            setError(err instanceof Error ? err.message : "Не удалось удалить клиента");
+            setActionError(err instanceof Error ? err.message : "Не удалось удалить клиента");
             throw err;
           }
         }}

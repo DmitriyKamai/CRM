@@ -1,25 +1,28 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+import {
+  fetchGoogleSheetsStatus,
+  GOOGLE_SHEETS_STATUS_QUERY_KEY
+} from "@/hooks/use-google-sheets-status";
 
 export function useClientsExport(opts: {
   clientsCount: number;
   statusFilter: string;
   googleSheetsOAuthConfigured: boolean | null;
   googleSheetsGoogleConnected: boolean | null;
-  setGoogleSheetsOAuthConfigured: (v: boolean) => void;
-  setGoogleSheetsGoogleConnected: (v: boolean) => void;
   syncGoogleSheetsFromServer: () => Promise<void>;
   setError?: (v: string | null) => void;
 }) {
+  const qc = useQueryClient();
   const {
     clientsCount,
     statusFilter,
     googleSheetsOAuthConfigured,
     googleSheetsGoogleConnected,
-    setGoogleSheetsOAuthConfigured,
-    setGoogleSheetsGoogleConnected,
     syncGoogleSheetsFromServer,
     setError
   } = opts;
@@ -59,31 +62,16 @@ export function useClientsExport(opts: {
   const handleExportGoogleSheets = useCallback(async () => {
     if (clientsCount === 0) return;
 
-    type GsJson = {
-      oauthConfigured?: boolean;
-      googleConnected?: boolean;
-    };
-
     let oauthOk = googleSheetsOAuthConfigured;
     let connected = googleSheetsGoogleConnected;
 
     if (oauthOk === null || connected === null) {
-      let data: GsJson | null = null;
-      try {
-        const res = await fetch("/api/psychologist/google-sheets");
-        if (res.ok) data = (await res.json().catch(() => null)) as GsJson | null;
-      } catch {
-        toast.error("Не удалось проверить настройки Google. Обновите страницу и попробуйте снова.");
-        return;
-      }
-      if (!data) {
-        toast.error("Не удалось проверить настройки Google. Обновите страницу и попробуйте снова.");
-        return;
-      }
-      oauthOk = Boolean(data.oauthConfigured);
-      connected = Boolean(data.googleConnected);
-      setGoogleSheetsOAuthConfigured(oauthOk);
-      setGoogleSheetsGoogleConnected(connected);
+      const fresh = await qc.fetchQuery({
+        queryKey: GOOGLE_SHEETS_STATUS_QUERY_KEY,
+        queryFn: fetchGoogleSheetsStatus
+      });
+      oauthOk = fresh.oauthConfigured;
+      connected = fresh.googleConnected;
     }
 
     if (!oauthOk) {
@@ -115,8 +103,11 @@ export function useClientsExport(opts: {
       } | null;
       if (!res.ok) {
         if (res.status === 403) {
-          setGoogleSheetsGoogleConnected(false);
-          await syncGoogleSheetsFromServer();
+          await qc.invalidateQueries({ queryKey: GOOGLE_SHEETS_STATUS_QUERY_KEY });
+          await qc.fetchQuery({
+            queryKey: GOOGLE_SHEETS_STATUS_QUERY_KEY,
+            queryFn: fetchGoogleSheetsStatus
+          });
         }
         throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицу");
       }
@@ -140,8 +131,7 @@ export function useClientsExport(opts: {
     clientsCount,
     googleSheetsGoogleConnected,
     googleSheetsOAuthConfigured,
-    setGoogleSheetsGoogleConnected,
-    setGoogleSheetsOAuthConfigured,
+    qc,
     statusFilter,
     syncGoogleSheetsFromServer
   ]);
