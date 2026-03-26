@@ -68,7 +68,7 @@ async function fetchProgressApi(token: string): Promise<{
 export async function saveProgressApi(
   token: string,
   payload: {
-    answers?: Record<number, AnswerValue>;
+    answers?: Record<number, number>;
     currentStep?: number;
     meta?: Record<string, unknown>;
   }
