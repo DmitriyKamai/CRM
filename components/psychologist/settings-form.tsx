@@ -18,12 +18,10 @@ import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useProfileTabUi } from "@/hooks/use-profile-tab-ui";
 import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
 import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
-import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
-import { useCustomFieldsTabUi } from "@/hooks/use-custom-fields-tab-ui";
+import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
 import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
-import { CustomFieldsTabPanel } from "@/components/psychologist/settings/custom-fields-tab-panel";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
@@ -45,16 +43,6 @@ const PROFESSION_OPTIONS: { value: string; label: string }[] = [
 
 /** Максимум символов в блоке «О себе» */
 const BIO_MAX_LENGTH = 1500;
-
-const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
-  TEXT: "Текст (одна строка)",
-  MULTILINE: "Текст (несколько строк)",
-  NUMBER: "Число",
-  DATE: "Дата",
-  BOOLEAN: "Флажок",
-  SELECT: "Выбор из списка (один вариант)",
-  MULTI_SELECT: "Выбор из списка (несколько вариантов)"
-};
 
 /** Перехватывает ошибки рендера контента настроек и логирует их. */
 class SettingsFormErrorBoundary extends Component<
@@ -135,57 +123,6 @@ export function PsychologistSettingsForm({
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
   const securityTab = useSecurityTabUi();
 
-  const {
-    customFields,
-    customFieldsLoading,
-    customFieldsError: customFieldsQueryError,
-    refetchCustomFields
-  } = useCustomFieldsSettings(activeTab === "customFields");
-  const {
-    effectiveCustomFieldsError,
-    setCustomFieldsError,
-
-    // Вкладки
-    newTabName,
-    setNewTabName,
-    newTabDescription,
-    setNewTabDescription,
-    editingTabGroup,
-    setEditingTabGroup,
-    editingTabName,
-    setEditingTabName,
-    editingTabDescription,
-    setEditingTabDescription,
-    setLocalTabs,
-    createTabDialogOpen,
-    setCreateTabDialogOpen,
-    allTabsForList,
-    availableTabs,
-
-    // Поля
-    newFieldLabel,
-    setNewFieldLabel,
-    newFieldGroup,
-    setNewFieldGroup,
-    newFieldType,
-    setNewFieldType,
-    newFieldOptionLabels,
-    setNewFieldOptionLabels,
-    editingFieldId,
-    setEditingFieldId,
-    editingLabel,
-    setEditingLabel,
-    editingGroup,
-    setEditingGroup,
-    editingDescription,
-    setEditingDescription,
-
-    // Доступно тем компонентам, где нужна только часть API
-    // (например, newFieldType/OptionLabels и т.п.)
-  } = useCustomFieldsTabUi({
-    customFields,
-    customFieldsQueryError
-  });
   const STATUS_COLOR_PRESETS: { value: string }[] = [
     { value: "hsl(217 91% 60%)" },
     { value: "hsl(142 76% 36%)" },
@@ -412,55 +349,9 @@ export function PsychologistSettingsForm({
       </TabsContent>
 
       <TabsContent value="customFields" className="mt-4">
-        {activeTab === "customFields" && (
-          <Section title="Пользовательские поля клиента">
-            <CustomFieldsTabPanel
-              effectiveCustomFieldsError={effectiveCustomFieldsError}
-
-              createTabDialogOpen={createTabDialogOpen}
-              setCreateTabDialogOpen={setCreateTabDialogOpen}
-              newTabName={newTabName}
-              setNewTabName={setNewTabName}
-              newTabDescription={newTabDescription}
-              setNewTabDescription={setNewTabDescription}
-              setLocalTabs={setLocalTabs}
-              setNewFieldGroup={setNewFieldGroup}
-              allTabsForList={allTabsForList}
-              editingTabGroup={editingTabGroup}
-              setEditingTabGroup={setEditingTabGroup}
-              editingTabName={editingTabName}
-              setEditingTabName={setEditingTabName}
-              editingTabDescription={editingTabDescription}
-              setEditingTabDescription={setEditingTabDescription}
-
-              availableTabs={availableTabs}
-              customFieldsLoading={customFieldsLoading}
-              customFields={customFields}
-              newFieldGroup={newFieldGroup}
-              setNewFieldGroupRight={setNewFieldGroup}
-              newFieldLabel={newFieldLabel}
-              setNewFieldLabel={setNewFieldLabel}
-              newFieldType={newFieldType}
-              setNewFieldType={setNewFieldType}
-              newFieldOptionLabels={newFieldOptionLabels}
-              setNewFieldOptionLabels={setNewFieldOptionLabels}
-
-              setCustomFieldsError={setCustomFieldsError}
-              refetchCustomFields={refetchCustomFields}
-
-              editingFieldId={editingFieldId}
-              setEditingFieldId={setEditingFieldId}
-              editingLabel={editingLabel}
-              setEditingLabel={setEditingLabel}
-              editingGroup={editingGroup}
-              setEditingGroup={setEditingGroup}
-              editingDescription={editingDescription}
-              setEditingDescription={setEditingDescription}
-
-              customFieldTypeLabels={CUSTOM_FIELD_TYPE_LABELS}
-            />
-          </Section>
-        )}
+        <Section title="Пользовательские поля клиента">
+          <CustomFieldsTabSection enabled={activeTab === "customFields"} />
+        </Section>
       </TabsContent>
 
       <TabsContent value="statuses" className="mt-4">
