@@ -25,13 +25,13 @@ import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input"
 // Импорты из профиля вынесены в отдельные компоненты, поэтому эти UI-провайдеры
 // больше не требуются здесь.
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
-import { ClientAppointments } from "@/components/psychologist/client-appointments";
-import { ClientHistoryPanel } from "@/components/psychologist/client-history-panel";
 import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-tabs-nav";
 import { ClientProfileHeader } from "@/components/psychologist/client-profile-header";
 import { ClientProfileProfileTab } from "@/components/psychologist/client-profile-profile-tab";
 import { ClientProfileCustomFieldsTabs } from "@/components/psychologist/client-profile-custom-fields-tabs";
 import { ClientProfileDiagnosticsTab } from "@/components/psychologist/client-profile-diagnostics-tab";
+import { ClientProfileAppointmentsTab } from "@/components/psychologist/client-profile-appointments-tab";
+import { ClientProfileHistorySection } from "@/components/psychologist/client-profile-history-section";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 type ClientProfileProps = {
@@ -697,33 +697,11 @@ export const PsychologistClientProfile = forwardRef<
           />
         )}
 
-        {schedulingOn && (
-          <TabsContent
-            value="appointments"
-            className="mt-0 space-y-3 rounded-lg border bg-card p-4"
-          >
-            <ClientAppointments clientId={props.id} />
-          </TabsContent>
-        )}
+        {schedulingOn && <ClientProfileAppointmentsTab clientId={props.id} />}
 
-        <TabsContent
-          value="history"
-          className="mt-0 flex min-h-0 max-h-[min(28rem,52dvh)] flex-col overflow-hidden lg:hidden min-w-0"
-        >
-          <ClientHistoryPanel
-            className="min-h-0 w-full flex-1"
-            clientId={props.id}
-            refreshKey={historyTick}
-          />
-        </TabsContent>
+        <ClientProfileHistorySection clientId={props.id} refreshKey={historyTick} />
           </div>
-          <div className="hidden min-h-0 shrink-0 self-start overflow-hidden lg:sticky lg:top-4 lg:flex lg:max-h-[min(32rem,52dvh)] lg:w-[30rem] lg:max-w-[min(30rem,42vw)] lg:flex-col min-w-0">
-            <ClientHistoryPanel
-              className="w-full min-h-0 flex-1"
-              clientId={props.id}
-              refreshKey={historyTick}
-            />
-          </div>
+          
         </div>
       </Tabs>
     </div>
