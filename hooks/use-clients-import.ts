@@ -596,3 +596,5 @@ export function useClientsImport(opts: {
   };
 }
 
+export type UseClientsImportReturn = ReturnType<typeof useClientsImport>;
+

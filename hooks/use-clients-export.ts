@@ -153,3 +153,5 @@ export function useClientsExport(opts: {
   };
 }
 
+export type UseClientsExportReturn = ReturnType<typeof useClientsExport>;
+

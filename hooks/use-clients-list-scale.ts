@@ -49,3 +49,5 @@ export function useClientsListScale(opts: { deps: unknown[] }) {
   };
 }
 
+export type ClientsListScaleState = ReturnType<typeof useClientsListScale>;
+
