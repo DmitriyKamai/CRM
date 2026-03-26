@@ -2,30 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import {
-  DndContext,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors,
-  type DragEndEvent
+  useSensors
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  useSortable
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  Paperclip,
-  Download,
-  Trash,
-} from "lucide-react";
-import { ru } from "date-fns/locale";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -37,109 +20,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 // Импорты из профиля вынесены в отдельные компоненты, поэтому эти UI-провайдеры
 // больше не требуются здесь.
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
 import { ClientHistoryPanel } from "@/components/psychologist/client-history-panel";
-import { cn } from "@/lib/utils";
-import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-tabs-nav";
 import { ClientProfileHeader } from "@/components/psychologist/client-profile-header";
 import { ClientProfileProfileTab } from "@/components/psychologist/client-profile-profile-tab";
+import { ClientProfileCustomFieldsTabs } from "@/components/psychologist/client-profile-custom-fields-tabs";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
-
-const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
-const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-full md:w-[200px]";
-const FIELD_VALUE_CLASS = "min-w-0 w-full md:min-w-[28rem] md:w-fit";
-const PLAIN_INPUT_CLASS =
-  "border-0 bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-0 min-h-0 w-full min-w-0 md:w-auto md:min-w-[28rem]";
-
-function SortableFieldWrap({
-  id,
-  isEditing,
-  children
-}: {
-  id: string;
-  isEditing: boolean;
-  children: React.ReactNode;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`group flex gap-2 items-stretch ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
-    >
-      {isEditing && (
-        <div
-          {...attributes}
-          {...listeners}
-          className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground rounded self-stretch min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Перетащить для смены порядка"
-        >
-          <div className="absolute inset-0 flex items-stretch justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 5 16"
-              fill="currentColor"
-              className="block h-full w-auto min-w-3 shrink-0 text-muted-foreground"
-              aria-hidden
-            >
-              <circle cx="1.57" cy="2" r="0.3" />
-              <circle cx="1.57" cy="3.86" r="0.3" />
-              <circle cx="1.57" cy="5.71" r="0.3" />
-              <circle cx="1.57" cy="7.57" r="0.3" />
-              <circle cx="1.57" cy="9.43" r="0.3" />
-              <circle cx="1.57" cy="11.29" r="0.3" />
-              <circle cx="1.57" cy="13.14" r="0.3" />
-              <circle cx="1.57" cy="15" r="0.3" />
-              <circle cx="3.43" cy="2" r="0.3" />
-              <circle cx="3.43" cy="3.86" r="0.3" />
-              <circle cx="3.43" cy="5.71" r="0.3" />
-              <circle cx="3.43" cy="7.57" r="0.3" />
-              <circle cx="3.43" cy="9.43" r="0.3" />
-              <circle cx="3.43" cy="11.29" r="0.3" />
-              <circle cx="3.43" cy="13.14" r="0.3" />
-              <circle cx="3.43" cy="15" r="0.3" />
-            </svg>
-          </div>
-        </div>
-      )}
-      {children}
-    </div>
-  );
-}
 
 type ClientProfileProps = {
   id: string;
@@ -1053,7 +945,36 @@ export const PsychologistClientProfile = forwardRef<
           */}
         </TabsContent>
 
-        {Array.from(
+        <ClientProfileCustomFieldsTabs
+          clientId={props.id}
+          customFieldsLoading={customFieldsLoading}
+          customFieldDefs={customFieldDefs}
+          customFieldValues={customFieldValues}
+          setCustomFieldDefs={setCustomFieldDefs}
+          setCustomFieldValues={setCustomFieldValues}
+          customFieldsSaving={customFieldsSaving}
+          setCustomFieldsSaving={setCustomFieldsSaving}
+          isEditing={isEditing}
+          setEditing={setEditing}
+          groupDescriptions={groupDescriptions}
+          sortableSensors={sortableSensors}
+          cfDatePopoverFieldId={cfDatePopoverFieldId}
+          setCfDatePopoverFieldId={setCfDatePopoverFieldId}
+          refetchCustomFieldDefs={refetchCustomFieldDefs}
+          saving={saving}
+          deleting={deleting}
+          cancelAll={cancelAll}
+          saveAll={saveAll}
+          setHistoryTick={setHistoryTick}
+          files={files}
+          filesLoading={filesLoading}
+          filesError={filesError}
+          setFiles={setFiles}
+          setFilesLoading={setFilesLoading}
+          setFilesError={setFilesError}
+        />
+
+        {/*Array.from(
           new Set(
             customFieldDefs
               .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
@@ -1652,6 +1573,7 @@ export const PsychologistClientProfile = forwardRef<
             </TabsContent>
           );
         })}
+        */}
 
         {diagnosticsOn && (
           <TabsContent
