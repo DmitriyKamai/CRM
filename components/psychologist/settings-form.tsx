@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, useEffect, useMemo, useState } from "react";
+import React, { Component, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { signIn, useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -68,6 +68,7 @@ const TelegramAccountBlock = dynamic(
 );
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
+import { useCustomFieldsTabUi } from "@/hooks/use-custom-fields-tab-ui";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
 import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
@@ -229,23 +230,51 @@ export function PsychologistSettingsForm({
     customFieldsError: customFieldsQueryError,
     refetchCustomFields
   } = useCustomFieldsSettings(activeTab === "customFields");
-  const [customFieldsError, setCustomFieldsError] = useState<string | null>(null);
-  const effectiveCustomFieldsError = customFieldsError ?? customFieldsQueryError;
-  const [newTabName, setNewTabName] = useState("");
-  const [newTabDescription, setNewTabDescription] = useState("");
-  const [editingTabGroup, setEditingTabGroup] = useState<string | null>(null);
-  const [editingTabName, setEditingTabName] = useState("");
-  const [editingTabDescription, setEditingTabDescription] = useState("");
-  const [localTabs, setLocalTabs] = useState<{ name: string; description: string }[]>([]);
-  const [createTabDialogOpen, setCreateTabDialogOpen] = useState(false);
-  const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldGroup, setNewFieldGroup] = useState("");
-  const [newFieldType, setNewFieldType] = useState<"TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT">("TEXT");
-  const [newFieldOptionLabels, setNewFieldOptionLabels] = useState<string[]>([]);
-  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  const [editingLabel, setEditingLabel] = useState("");
-  const [editingGroup, setEditingGroup] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
+  const {
+    effectiveCustomFieldsError,
+    setCustomFieldsError,
+
+    // Вкладки
+    newTabName,
+    setNewTabName,
+    newTabDescription,
+    setNewTabDescription,
+    editingTabGroup,
+    setEditingTabGroup,
+    editingTabName,
+    setEditingTabName,
+    editingTabDescription,
+    setEditingTabDescription,
+    setLocalTabs,
+    createTabDialogOpen,
+    setCreateTabDialogOpen,
+    allTabsForList,
+    availableTabs,
+
+    // Поля
+    newFieldLabel,
+    setNewFieldLabel,
+    newFieldGroup,
+    setNewFieldGroup,
+    newFieldType,
+    setNewFieldType,
+    newFieldOptionLabels,
+    setNewFieldOptionLabels,
+    editingFieldId,
+    setEditingFieldId,
+    editingLabel,
+    setEditingLabel,
+    editingGroup,
+    setEditingGroup,
+    editingDescription,
+    setEditingDescription,
+
+    // Доступно тем компонентам, где нужна только часть API
+    // (например, newFieldType/OptionLabels и т.п.)
+  } = useCustomFieldsTabUi({
+    customFields,
+    customFieldsQueryError
+  });
   const STATUS_COLOR_PRESETS: { value: string }[] = [
     { value: "hsl(217 91% 60%)" },
     { value: "hsl(142 76% 36%)" },
@@ -504,57 +533,6 @@ export function PsychologistSettingsForm({
       setPasswordSaving(false);
     }
   }
-
-  const existingGroups = useMemo(
-    () => {
-      const map = new Map<string, { description: string; count: number }>();
-      for (const f of customFields) {
-        const raw =
-          f.group && typeof f.group === "string" ? String(f.group).trim() : "";
-        if (!raw) continue;
-        const entry = map.get(raw) ?? { description: "", count: 0 };
-        entry.count += 1;
-        if (!entry.description && typeof f.description === "string") {
-          const desc = f.description.trim();
-          if (desc) entry.description = desc;
-        }
-        map.set(raw, entry);
-      }
-      return Array.from(map.entries()).map(([name, meta]) => ({
-        name,
-        description: meta.description,
-        count: meta.count
-      }));
-    },
-    [customFields]
-  );
-
-  const availableTabs = useMemo(
-    () => {
-      const fromFields = existingGroups.map((g) => ({
-        name: g.name,
-        description: g.description
-      }));
-      const extras = localTabs.filter(
-        (t) => !fromFields.some((g) => g.name === t.name)
-      );
-      return [...fromFields, ...extras];
-    },
-    [existingGroups, localTabs]
-  );
-
-  const allTabsForList = useMemo(
-    () =>
-      availableTabs.map((t) => {
-        const fromExisting = existingGroups.find((g) => g.name === t.name);
-        return {
-          name: t.name,
-          description: t.description,
-          count: fromExisting?.count ?? 0
-        };
-      }),
-    [availableTabs, existingGroups]
-  );
 
   if (loading) {
     return (
