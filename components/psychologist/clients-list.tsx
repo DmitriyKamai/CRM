@@ -3,20 +3,15 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Calendar as CalendarIcon,
   ArrowUpDown,
   UserCheck,
   Users,
   Plus,
   UploadCloud,
 } from "lucide-react";
-import { ru } from "date-fns/locale";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -29,19 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent
-} from "@/components/ui/popover";
 import { DataTable } from "@/components/ui/data-table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -50,16 +32,15 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import { Calendar } from "@/components/ui/calendar";
-import { PhoneInput, formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
+import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
 import { ClientsActionsToolbar } from "@/components/psychologist/clients-actions-toolbar";
 import { ClientsProfileOverlay } from "@/components/psychologist/clients-profile-overlay";
+import { ClientsCreateDialog } from "@/components/psychologist/clients-create-dialog";
 import { ClientsListScaleShell } from "@/components/psychologist/clients-list-scale-shell";
 import { cn } from "@/lib/utils";
-import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
 import {
   useClientsImport,
@@ -181,25 +162,15 @@ export function PsychologistClientsList({
   // Синхронизация профиля с URL: при переходе по ссылке «Клиенты» в навбаре (без ?profile=) закрываем профиль
   const profileIdFromUrl = searchParams.get("profile");
   useEffect(() => {
-    if (!profileIdFromUrl) {
-      setProfileClient(null);
-      return;
-    }
-    const client = clients.find(c => c.id === profileIdFromUrl);
-    if (client) setProfileClient(client);
+    void (async () => {
+      if (!profileIdFromUrl) {
+        setProfileClient(null);
+        return;
+      }
+      const client = clients.find(c => c.id === profileIdFromUrl);
+      if (client) setProfileClient(client);
+    })();
   }, [profileIdFromUrl, clients]);
-
-  const [creating, setCreating] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [dob, setDob] = useState<Date | undefined>(undefined);
-  const [addDobPopoverOpen, setAddDobPopoverOpen] = useState(false);
-  const [form, setForm] = useState({
-    email: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    notes: ""
-  });
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -257,7 +228,9 @@ export function PsychologistClientsList({
   });
 
   useEffect(() => {
-    void syncGoogleSheetsFromServer();
+    void (async () => {
+      await syncGoogleSheetsFromServer();
+    })();
   }, [syncGoogleSheetsFromServer]);
 
   const listScaleState = useClientsListScale({
@@ -279,28 +252,6 @@ export function PsychologistClientsList({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download template", err);
-    }
-  }
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setFormError(null);
-    try {
-      const body = {
-        ...form,
-        email: form.email.trim() || undefined,
-        dateOfBirth: dob ? dob.toISOString() : undefined
-      };
-      await createClient.mutateAsync(body);
-      setForm({ email: "", firstName: "", lastName: "", phone: "", notes: "" });
-      setDob(undefined);
-      setAddOpen(false);
-    } catch (err) {
-      console.error(err);
-      setFormError(err instanceof Error ? err.message : "Не удалось создать клиента");
-    } finally {
-      setCreating(false);
     }
   }
 
@@ -859,115 +810,11 @@ export function PsychologistClientsList({
             )}
       </ClientsListScaleShell>
 
-        {/* Диалог добавления клиента */}
-        <Dialog open={addOpen} onOpenChange={open => { setAddOpen(open); if (!open) setFormError(null); }}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Новый клиент</DialogTitle>
-              <DialogDescription>
-                Укажите основные данные. Email необязателен; если указан и клиент позже
-                зарегистрируется с этим email — профиль автоматически свяжется с аккаунтом.
-              </DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="add-email">Email (необязательно)</Label>
-                <Input
-                  id="add-email"
-                  type="email"
-                  placeholder="Для связки при регистрации клиента"
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-firstName">Имя</Label>
-                <Input
-                  id="add-firstName"
-                  required
-                  value={form.firstName}
-                  onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-lastName">Фамилия</Label>
-                <Input
-                  id="add-lastName"
-                  required
-                  value={form.lastName}
-                  onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Дата рождения</Label>
-                <Popover open={addDobPopoverOpen} onOpenChange={setAddDobPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="w-full justify-start text-left font-normal bg-card border-input hover:bg-card/90"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                      {dob ? (
-                        dob.toLocaleDateString("ru-RU")
-                      ) : (
-                        <span className="text-muted-foreground">дд.мм.гггг</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto border-none bg-transparent p-0 shadow-none"
-                    align="start"
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={dob}
-                      onSelect={d => {
-                        setDob(d);
-                        if (shouldCloseCalendarPopoverAfterSelect()) setAddDobPopoverOpen(false);
-                      }}
-                      locale={ru}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="add-phone">Телефон</Label>
-                <PhoneInput
-                  id="add-phone"
-                  value={form.phone}
-                  onChange={value => setForm(f => ({ ...f, phone: value }))}
-                />
-              </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="add-notes">Заметки</Label>
-                <Textarea
-                  id="add-notes"
-                  rows={3}
-                  value={form.notes}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                />
-              </div>
-
-              {formError && (
-                <Alert variant="destructive" className="md:col-span-2">
-                  <AlertDescription>{formError}</AlertDescription>
-                </Alert>
-              )}
-
-              <DialogFooter className="md:col-span-2">
-                <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
-                  Отмена
-                </Button>
-                <Button type="submit" disabled={creating}>
-                  {creating ? "Сохраняем..." : "Добавить клиента"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <ClientsCreateDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          onCreateClient={(payload) => createClient.mutateAsync(payload)}
+        />
     </div>
     </TooltipProvider>
   );
