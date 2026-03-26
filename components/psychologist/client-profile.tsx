@@ -26,6 +26,7 @@ import { ClientProfileTabsShell } from "@/components/psychologist/client-profile
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 import { useClientProfileFiles } from "@/hooks/use-client-profile-files";
 import { useClientProfileDiagnostics } from "@/hooks/use-client-profile-diagnostics";
+import { useClientProfileStatuses } from "@/hooks/use-client-profile-statuses";
 
 type ClientProfileProps = {
   id: string;
@@ -136,9 +137,6 @@ export const PsychologistClientProfile = forwardRef<
   const [statusId, setStatusId] = useState<string | null>(props.statusId ?? null);
   const [statusLabel, setStatusLabel] = useState<string | null>(props.statusLabel ?? null);
   const [statusColor, setStatusColor] = useState<string | null>(props.statusColor ?? null);
-  type StatusItem = { id: string; label: string; color: string };
-  const [statuses, setStatuses] = useState<StatusItem[]>([]);
-
   const hasAccount = props.hasAccount ?? false;
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
@@ -179,14 +177,6 @@ export const PsychologistClientProfile = forwardRef<
     mq.addEventListener("change", syncTab);
     return () => mq.removeEventListener("change", syncTab);
   }, [activeTab]);
-
-  const currentStatus = useMemo(
-    () =>
-      statusId != null
-        ? statuses.find((s) => s.id === statusId) ?? null
-        : null,
-    [statusId, statuses]
-  );
 
   const {
     tabsScrollRef,
@@ -243,69 +233,37 @@ export const PsychologistClientProfile = forwardRef<
     refetchCustomFieldDefs();
   }, [props.id, refetchCustomFieldDefs]);
 
-  useEffect(() => {
-    fetch("/api/psychologist/client-statuses")
-      .then((r) => (r?.ok ? r.json() : null))
-      .then((data: { items?: StatusItem[] } | null) => {
-        if (Array.isArray(data?.items)) setStatuses(data.items);
-      })
-      .catch(() => {});
-  }, []);
+  const buildUpdatedPayloadForStatus = useCallback(
+    (applied: { statusId: string | null; statusLabel: string | null; statusColor: string | null }) => ({
+      firstName,
+      lastName,
+      email: email.trim() || null,
+      phone: phone || null,
+      country: country.trim() || null,
+      city: city.trim() || null,
+      gender: gender || null,
+      maritalStatus: maritalStatus || null,
+      notes: notes || null,
+      dateOfBirth: dob ? dob.toISOString() : null,
+      statusId: applied.statusId,
+      statusLabel: applied.statusLabel,
+      statusColor: applied.statusColor
+    }),
+    [firstName, lastName, email, phone, country, city, gender, maritalStatus, notes, dob]
+  );
 
-  const [statusSaving, setStatusSaving] = useState(false);
-
-  async function handleStatusChange(next: string) {
-    const nextId = next === "__none__" ? null : next;
-    const nextStatus =
-      nextId != null ? statuses.find((s) => s.id === nextId) ?? null : null;
-    setStatusSaving(true);
-    setError(null);
-    try {
-      const body: { statusId: string | null } = { statusId: nextId };
-      const res = await fetch(`/api/psychologist/clients/${props.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.message ?? "Не удалось обновить статус");
-      }
-      const appliedId = nextId;
-      const appliedLabel = nextStatus?.label ?? null;
-      const appliedColor = nextStatus?.color ?? null;
-      setStatusId(appliedId);
-      setStatusLabel(appliedLabel);
-      setStatusColor(appliedColor);
-      if (props.onUpdated) {
-        props.onUpdated({
-          firstName,
-          lastName,
-          email: email.trim() || null,
-          phone: phone || null,
-          country: country.trim() || null,
-          city: city.trim() || null,
-          gender: gender || null,
-          maritalStatus: maritalStatus || null,
-          notes: notes || null,
-          dateOfBirth: dob ? dob.toISOString() : null,
-          statusId: appliedId,
-          statusLabel: appliedLabel,
-          statusColor: appliedColor
-        });
-      }
-      setHistoryTick((t) => t + 1);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Не удалось обновить статус"
-      );
-    } finally {
-      setStatusSaving(false);
-    }
-  }
+  const { statuses, currentStatus, statusSaving, handleStatusChange } =
+    useClientProfileStatuses({
+      clientId: props.id,
+      statusId,
+      setStatusId,
+      setStatusLabel,
+      setStatusColor,
+      setError,
+      setHistoryTick,
+      onUpdated: props.onUpdated,
+      buildUpdatedPayload: buildUpdatedPayloadForStatus
+    });
 
   function formatDate(value?: string | null) {
     if (!value) return "—";
