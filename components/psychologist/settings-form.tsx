@@ -2,7 +2,7 @@
 
 import React, { Component, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,7 @@ import { CustomFieldsTabPanel } from "@/components/psychologist/settings/custom-
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
+import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -154,6 +155,12 @@ export function PsychologistSettingsForm({
     profile,
     updateProfileInCache
   });
+  const accountsTab = useAccountsTabUi({
+    accounts,
+    refetchAccounts,
+    updateSession
+  });
+  const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
@@ -167,7 +174,7 @@ export function PsychologistSettingsForm({
     setNewPasswordChecks(evaluatePassword(value));
     if (!touchedNewPassword) setTouchedNewPassword(true);
   };
-  const [unlinkAccountProvider, setUnlinkAccountProvider] = useState<"google" | "apple" | null>(null);
+
   const {
     customFields,
     customFieldsLoading,
@@ -246,28 +253,6 @@ export function PsychologistSettingsForm({
     if (!schedulingEnabled && activeTab === "calendar") setActiveTab("profile");
   }, [schedulingEnabled, activeTab]);
 
-  async function handleUnlinkAccount(provider: "google" | "apple") {
-    setUnlinkAccountProvider(provider);
-    try {
-      const res = await fetch(`/api/user/accounts?provider=${provider}`, { method: "DELETE" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось отвязать");
-        return;
-      }
-      toast.success(provider === "google" ? "Google отвязан" : "Apple отвязан");
-      void refetchAccounts();
-      updateSession?.();
-    } finally {
-      setUnlinkAccountProvider(null);
-    }
-  }
-
-  async function handleLinkGoogle() {
-    await fetch("/api/auth/oauth-link-intent", { method: "POST" });
-    signIn("google", { callbackUrl: "/psychologist/settings" });
-  }
-
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (newPassword !== newPasswordConfirm) {
@@ -328,7 +313,6 @@ export function PsychologistSettingsForm({
     );
   }
 
-  const hasGoogle = accounts.some((a) => a.provider === "google");
   const { saving, hasProfileChanges, image, initials, alt } = profileTab;
   const {
     profilePhotoPublished,
@@ -529,8 +513,8 @@ export function PsychologistSettingsForm({
           <AccountsTabContent
             hasGoogle={hasGoogle}
             unlinkAccountProvider={unlinkAccountProvider}
-            onUnlinkAccount={handleUnlinkAccount}
-            onLinkGoogle={handleLinkGoogle}
+            onUnlinkAccount={onUnlinkAccount}
+            onLinkGoogle={onLinkGoogle}
             telegramBlock={<TelegramAccountBlock />}
           />
         </Section>
