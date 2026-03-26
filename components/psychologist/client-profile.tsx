@@ -24,6 +24,7 @@ import { ClientProfileHistorySidebar, ClientProfileHistoryTab } from "@/componen
 import { ClientProfileDeleteDialog } from "@/components/psychologist/client-profile-delete-dialog";
 import { ClientProfileTabsShell } from "@/components/psychologist/client-profile-tabs-shell";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
+import { useClientProfileFiles } from "@/hooks/use-client-profile-files";
 
 type ClientProfileProps = {
   id: string;
@@ -87,15 +88,6 @@ type CustomFieldDef = {
   options?: { selectOptions?: CustomFieldOption[] } | null;
 };
 
-type ClientFileItem = {
-  id: string;
-  filename: string;
-  mimeType: string;
-  size: number;
-  url: string;
-  createdAt: string;
-};
-
 export type PsychologistClientProfileHandle = {
   saveAll: () => Promise<void>;
 };
@@ -151,9 +143,14 @@ export const PsychologistClientProfile = forwardRef<
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
   const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
-  const [files, setFiles] = useState<ClientFileItem[]>([]);
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [filesError, setFilesError] = useState<string | null>(null);
+  const {
+    files,
+    setFiles,
+    filesLoading,
+    setFilesLoading,
+    filesError,
+    setFilesError
+  } = useClientProfileFiles(props.id);
 
   type DiagnosticItem = {
     id: string;
@@ -245,19 +242,6 @@ export const PsychologistClientProfile = forwardRef<
 
   useEffect(() => {
     refetchCustomFieldDefs();
-
-    setFilesLoading(true);
-    setFilesError(null);
-    fetch(`/api/psychologist/clients/${props.id}/files`)
-      .then((r) => (r?.ok ? r.json() : null))
-      .then((data) => {
-        if (Array.isArray(data?.files)) setFiles(data.files);
-      })
-      .catch((err) => {
-        console.error(err);
-        setFilesError("Не удалось загрузить файлы клиента");
-      })
-      .finally(() => setFilesLoading(false));
   }, [props.id, refetchCustomFieldDefs]);
 
   useEffect(() => {
