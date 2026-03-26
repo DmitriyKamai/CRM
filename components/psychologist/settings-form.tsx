@@ -4,56 +4,19 @@ import React, { Component, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { signIn, useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
-import {
-  DEFAULT_COUNTRY_NAME,
-  DEFAULT_COUNTRY_CODE,
-  getCountryCodeByName
-} from "@/lib/data/countries-ru";
-import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
-import { Calendar as CalendarIcon, User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
-import { Button } from "@/components/ui/button";
-// Calendar (react-day-picker + date-fns locale) lazily loaded to reduce initial compilation size
-const Calendar = dynamic(
-  () => import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
-  { ssr: false }
-);
+import { User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { PhoneInput } from "@/components/ui/phone-input";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-const CountryAutocomplete = dynamic(
-  () => import("@/components/ui/location-autocomplete").then((m) => ({ default: m.CountryAutocomplete })),
-  { ssr: false }
-);
-const CityAutocomplete = dynamic(
-  () => import("@/components/ui/location-autocomplete").then((m) => ({ default: m.CityAutocomplete })),
-  { ssr: false }
-);
 const CalendarSubscriptionBlock = dynamic(
   () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
   { ssr: false }
 );
-import { AvatarUploadBlock } from "@/components/account/avatar-upload-block";
 const TelegramAccountBlock = dynamic(
   () => import("@/components/account/telegram-account-block").then((m) => ({ default: m.TelegramAccountBlock })),
   { ssr: false }
 );
 import { useProfileSettings } from "@/hooks/use-profile-settings";
+import { useProfileTabUi } from "@/hooks/use-profile-tab-ui";
 import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
 import { useCustomFieldsTabUi } from "@/hooks/use-custom-fields-tab-ui";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
@@ -62,6 +25,7 @@ import { AccountsTabContent } from "@/components/psychologist/settings/accounts-
 import { CustomFieldsTabPanel } from "@/components/psychologist/settings/custom-fields-tab-panel";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
+import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -176,20 +140,14 @@ export function PsychologistSettingsForm({
     updateProfileInCache
   } = useProfileSettings();
   const [activeTab, setActiveTab] = useState("profile");
-  const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [dobPopoverOpen, setDobPopoverOpen] = useState(false);
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
-  const [countryCode, setCountryCode] = useState<string | null>(null);
-  const [gender, setGender] = useState("");
-  const [maritalStatus, setMaritalStatus] = useState("");
+  const profileTab = useProfileTabUi({
+    profile,
+    session,
+    updateSession,
+    updateProfileInCache
+  });
   const [bio, setBio] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -349,15 +307,6 @@ export function PsychologistSettingsForm({
   useEffect(() => {
     if (!profile || formHydrated) return;
     setFormHydrated(true);
-    setFirstName(profile.psychologistProfile?.firstName ?? profile.user?.name ?? "");
-    setLastName(profile.psychologistProfile?.lastName ?? "");
-    setEmail(profile.user?.email ?? "");
-    setPhone(profile.psychologistProfile?.phone ?? "");
-    setDateOfBirth(profile.user?.dateOfBirth ?? "");
-    setCountry(profile.psychologistProfile?.country ?? DEFAULT_COUNTRY_NAME);
-    setCity(profile.psychologistProfile?.city ?? "");
-    setGender(profile.psychologistProfile?.gender ?? "");
-    setMaritalStatus(profile.psychologistProfile?.maritalStatus ?? "");
     setBio(profile.psychologistProfile?.bio ?? "");
     setSpecialization(profile.psychologistProfile?.specialization ?? "");
     setContactPhone(profile.psychologistProfile?.contactPhone ?? "");
@@ -365,83 +314,7 @@ export function PsychologistSettingsForm({
     setContactViber(profile.psychologistProfile?.contactViber ?? "");
     setContactWhatsapp(profile.psychologistProfile?.contactWhatsapp ?? "");
     setProfilePhotoPublished(profile.psychologistProfile?.profilePhotoPublished ?? false);
-    setCountryCode(
-      profile.psychologistProfile?.country
-        ? getCountryCodeByName(profile.psychologistProfile.country) ?? null
-        : DEFAULT_COUNTRY_CODE
-    );
   }, [profile, formHydrated]);
-
-  async function handleSaveProfile(e: React.FormEvent) {
-    e.preventDefault();
-    if (!profile) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          phone: phone.trim() || null,
-          country: country.trim() || null,
-          city: city.trim() || null,
-          gender: gender || null,
-          maritalStatus: maritalStatus || null,
-          ...(email.trim() &&
-          email.trim().toLowerCase() !== (profile.user?.email ?? "").trim().toLowerCase()
-            ? { email: email.trim() }
-            : {}),
-          dateOfBirth: dateOfBirth || null
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось сохранить");
-        return;
-      }
-      toast.success("Сохранено");
-      updateSession?.();
-      updateProfileInCache(prev => ({
-        ...prev,
-        user: {
-          ...prev.user,
-          email: email.trim() || prev.user.email,
-          dateOfBirth: dateOfBirth || null
-        },
-        psychologistProfile: prev.psychologistProfile
-          ? {
-              ...prev.psychologistProfile,
-              firstName,
-              lastName,
-              phone: phone.trim() || null,
-              country: country.trim() || null,
-              city: city.trim() || null,
-              gender: gender || null,
-              maritalStatus: maritalStatus || null
-            }
-          : {
-              firstName,
-              lastName,
-              phone: phone.trim() || null,
-              country: country.trim() || null,
-              city: city.trim() || null,
-              gender: gender || null,
-              maritalStatus: maritalStatus || null,
-              specialization: null,
-              bio: null,
-              profilePhotoUrl: null,
-              profilePhotoPublished: false,
-              contactPhone: null,
-              contactTelegram: null,
-              contactViber: null,
-              contactWhatsapp: null
-            }
-      }));
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function handleSaveProfessional(e: React.FormEvent) {
     e.preventDefault();
@@ -548,30 +421,7 @@ export function PsychologistSettingsForm({
   }
 
   const hasGoogle = accounts.some((a) => a.provider === "google");
-  const name = session?.user?.name ?? "";
-  const displayEmail = (email || profile.user?.email) ?? "";
-  const image = session?.user?.image ?? null;
-  const initials = [firstName, lastName].filter(Boolean).join(" ") || name || displayEmail.slice(0, 2);
-
-  const savedFirstName = profile.psychologistProfile?.firstName ?? profile.user?.name ?? "";
-  const savedLastName = profile.psychologistProfile?.lastName ?? "";
-  const savedEmail = profile.user?.email ?? "";
-  const savedPhone = profile.psychologistProfile?.phone ?? "";
-  const savedDateOfBirth = profile.user?.dateOfBirth ?? "";
-  const savedCountry = profile.psychologistProfile?.country ?? "";
-  const savedCity = profile.psychologistProfile?.city ?? "";
-  const savedGender = profile.psychologistProfile?.gender ?? "";
-  const savedMaritalStatus = profile.psychologistProfile?.maritalStatus ?? "";
-  const hasProfileChanges =
-    firstName !== savedFirstName ||
-    lastName !== savedLastName ||
-    (email.trim().toLowerCase()) !== savedEmail.trim().toLowerCase() ||
-    (phone.trim() || "") !== (savedPhone || "") ||
-    (dateOfBirth || "") !== (savedDateOfBirth || "") ||
-    (country.trim() || "") !== (savedCountry || "") ||
-    (city.trim() || "") !== (savedCity || "") ||
-    (gender || "") !== (savedGender || "") ||
-    (maritalStatus || "") !== (savedMaritalStatus || "");
+  const { saving, hasProfileChanges, image, initials, alt } = profileTab;
 
   const savedBio = profile.psychologistProfile?.bio ?? "";
   const savedSpecialization = profile.psychologistProfile?.specialization ?? "";
@@ -699,166 +549,38 @@ export function PsychologistSettingsForm({
         {activeTab === "profile" && (
         <>
         <Section title="Личные данные">
-          <form onSubmit={handleSaveProfile} className="space-y-5 max-w-2xl">
-            <AvatarUploadBlock
-              image={image}
-              initials={initials}
-              alt={name}
-              onSuccess={() => updateSession?.()}
-            />
-
-            {/* Имя и фамилия */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Имя</Label>
-                <Input
-                  id="firstName"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Имя"
-                  maxLength={32}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Фамилия</Label>
-                <Input
-                  id="lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Фамилия"
-                  maxLength={32}
-                />
-              </div>
-            </div>
-
-            {/* Email и телефон */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  autoComplete="email"
-                  maxLength={64}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Телефон</Label>
-                <PhoneInput
-                  id="phone"
-                  value={phone}
-                  onChange={(value) => setPhone(value)}
-                />
-              </div>
-            </div>
-
-            {/* Дата рождения и пол */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Дата рождения</Label>
-                <Popover open={dobPopoverOpen} onOpenChange={setDobPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="w-full justify-start text-left font-normal text-foreground bg-[hsl(var(--input-bg))] data-[empty=true]:text-muted-foreground hover:bg-[hsl(var(--input-bg))]/90"
-                      data-empty={!dateOfBirth}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
-                      {dateOfBirth ? (
-                        format(new Date(dateOfBirth), "d MMMM yyyy", { locale: ru })
-                      ) : (
-                        <span>Выберите дату</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dateOfBirth ? new Date(dateOfBirth) : undefined}
-                      onSelect={d => {
-                        setDateOfBirth(d ? format(d, "yyyy-MM-dd") : "");
-                        if (shouldCloseCalendarPopoverAfterSelect()) setDobPopoverOpen(false);
-                      }}
-                      locale={ru}
-                      initialFocus
-                      defaultMonth={dateOfBirth ? new Date(dateOfBirth) : new Date()}
-                      captionLayout="dropdown"
-                      startMonth={new Date(1920, 0)}
-                      endMonth={new Date()}
-                      reverseYears
-                      hideNavigation
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="psychologist-gender">Пол</Label>
-                <Select
-                  value={gender || "unspecified"}
-                  onValueChange={(value) => setGender(value === "unspecified" ? "" : value)}
-                >
-                  <SelectTrigger id="psychologist-gender">
-                    <SelectValue placeholder="Выберите" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Мужской</SelectItem>
-                    <SelectItem value="female">Женский</SelectItem>
-                    <SelectItem value="unspecified">Не указано</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Страна, город и семейное положение */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="country">Страна</Label>
-                <CountryAutocomplete
-                  id="country"
-                  value={country}
-                  onChange={(name, code) => {
-                    setCountry(name);
-                    setCountryCode(code || null);
-                    if (!name) setCity("");
-                  }}
-                  placeholder="Страна"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">Город</Label>
-                <CityAutocomplete
-                  id="city"
-                  value={city}
-                  onChange={setCity}
-                  countryCode={countryCode}
-                  placeholder="Город"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="marital">Семейное положение</Label>
-                <Select value={maritalStatus || "unspecified"} onValueChange={setMaritalStatus}>
-                  <SelectTrigger id="marital">
-                    <SelectValue placeholder="Выберите" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MARITAL_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Button type="submit" disabled={saving || !hasProfileChanges}>
-              {saving ? "Сохранение…" : "Сохранить"}
-            </Button>
-          </form>
+          <ProfileTabPanel
+            handleSaveProfile={profileTab.handleSaveProfile}
+            saving={saving}
+            hasProfileChanges={hasProfileChanges}
+            image={image}
+            initials={initials}
+            alt={alt}
+            onAvatarSuccess={() => updateSession?.()}
+            firstName={profileTab.firstName}
+            setFirstName={profileTab.setFirstName}
+            lastName={profileTab.lastName}
+            setLastName={profileTab.setLastName}
+            email={profileTab.email}
+            setEmail={profileTab.setEmail}
+            phone={profileTab.phone}
+            setPhone={profileTab.setPhone}
+            dateOfBirth={profileTab.dateOfBirth}
+            dobPopoverOpen={profileTab.dobPopoverOpen}
+            setDobPopoverOpen={profileTab.setDobPopoverOpen}
+            setDateOfBirth={profileTab.setDateOfBirth}
+            gender={profileTab.gender}
+            setGender={profileTab.setGender}
+            country={profileTab.country}
+            setCountry={profileTab.setCountry}
+            countryCode={profileTab.countryCode}
+            setCountryCode={profileTab.setCountryCode}
+            city={profileTab.city}
+            setCity={profileTab.setCity}
+            maritalStatus={profileTab.maritalStatus}
+            setMaritalStatus={profileTab.setMaritalStatus}
+            maritalOptions={MARITAL_OPTIONS}
+          />
         </Section>
         </>
         )}
@@ -999,7 +721,7 @@ export function PsychologistSettingsForm({
             profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
             profilePhotoPublished={profilePhotoPublished}
             initials={initials}
-            alt={name || "Психолог"}
+            alt={alt || "Психолог"}
             publishSaving={savingPublish}
             onPublishChange={handlePublishProfileChange}
             onSuccess={() => void refetchProfile()}
