@@ -3,7 +3,6 @@
 import React, { Component, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { toast } from "sonner";
 import { User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +17,7 @@ const TelegramAccountBlock = dynamic(
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useProfileTabUi } from "@/hooks/use-profile-tab-ui";
 import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
+import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
 import { useCustomFieldsTabUi } from "@/hooks/use-custom-fields-tab-ui";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
@@ -46,13 +46,6 @@ const PROFESSION_OPTIONS: { value: string; label: string }[] = [
 /** Максимум символов в блоке «О себе» */
 const BIO_MAX_LENGTH = 1500;
 
-type PasswordChecks = {
-  length: boolean;
-  letters: boolean;
-  digits: boolean;
-  special: boolean;
-};
-
 const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
   TEXT: "Текст (одна строка)",
   MULTILINE: "Текст (несколько строк)",
@@ -62,26 +55,6 @@ const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
   SELECT: "Выбор из списка (один вариант)",
   MULTI_SELECT: "Выбор из списка (несколько вариантов)"
 };
-
-function evaluatePassword(password: string): PasswordChecks {
-  return {
-    length: password.length >= 8,
-    letters: /[A-Za-zА-Яа-я]/.test(password),
-    digits: /\d/.test(password),
-    special: /[^A-Za-zА-Яа-я0-9\s]/.test(password)
-  };
-}
-
-function getPasswordError(password: string, checks: PasswordChecks): string | null {
-  if (password.length === 0) return null;
-  if (!checks.length) return "Пароль должен быть не короче 8 символов";
-  if (!checks.letters) return "Пароль должен содержать буквы";
-  if (!checks.digits) return "Пароль должен содержать цифры";
-  if (!checks.special) {
-    return "Добавьте специальный символ (например, !, ?, %)";
-  }
-  return null;
-}
 
 /** Перехватывает ошибки рендера контента настроек и логирует их. */
 class SettingsFormErrorBoundary extends Component<
@@ -142,7 +115,6 @@ export function PsychologistSettingsForm({
     updateProfileInCache
   } = useProfileSettings();
   const [activeTab, setActiveTab] = useState("profile");
-  const [passwordSaving, setPasswordSaving] = useState(false);
 
   const profileTab = useProfileTabUi({
     profile,
@@ -161,19 +133,7 @@ export function PsychologistSettingsForm({
     updateSession
   });
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
-  const [newPasswordChecks, setNewPasswordChecks] = useState<PasswordChecks>(
-    () => evaluatePassword("")
-  );
-  const [touchedNewPassword, setTouchedNewPassword] = useState(false);
-
-  const handleNewPasswordChange = (value: string) => {
-    setNewPassword(value);
-    setNewPasswordChecks(evaluatePassword(value));
-    if (!touchedNewPassword) setTouchedNewPassword(true);
-  };
+  const securityTab = useSecurityTabUi();
 
   const {
     customFields,
@@ -250,44 +210,8 @@ export function PsychologistSettingsForm({
   const [editingStatusColor, setEditingStatusColor] = useState("");
 
   useEffect(() => {
-    if (!schedulingEnabled && activeTab === "calendar") setActiveTab("profile");
+    if (!schedulingEnabled && activeTab === "calendar") void (async () => setActiveTab("profile"))();
   }, [schedulingEnabled, activeTab]);
-
-  async function handleChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    if (newPassword !== newPasswordConfirm) {
-      toast.error("Пароли не совпадают");
-      return;
-    }
-    const checks = evaluatePassword(newPassword);
-    const error = getPasswordError(newPassword, checks);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    setPasswordSaving(true);
-    try {
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось сменить пароль");
-        return;
-      }
-      toast.success("Пароль изменён");
-      setCurrentPassword("");
-      setNewPassword("");
-      setNewPasswordConfirm("");
-    } finally {
-      setPasswordSaving(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -335,56 +259,22 @@ export function PsychologistSettingsForm({
     handleSaveProfessional
   } = professionalTab;
 
-  const newPasswordError = touchedNewPassword
-    ? getPasswordError(newPassword, newPasswordChecks)
-    : null;
-  const newPasswordValid = !!newPassword && !newPasswordError;
-
-  const passwordRequirements = [
-    { key: "length" as const, text: "Не менее 8 символов" },
-    { key: "letters" as const, text: "Буквы (A–Z, а–я)" },
-    { key: "digits" as const, text: "Цифры" },
-    { key: "special" as const, text: "Спецсимволы (!, ?, % и т.п.)" }
-  ];
-
-  const passedCount = passwordRequirements.reduce((acc, req) => {
-    return acc + (newPasswordChecks[req.key] ? 1 : 0);
-  }, 0);
-
-  const progressStage = !newPassword
-    ? -1
-    : passedCount <= 0
-      ? -1
-      : passedCount === 1
-        ? 0
-        : passedCount === 2
-          ? 1
-          : passedCount === 3
-            ? 2
-            : 3;
-
-  const progressTrackColor =
-    progressStage === -1
-      ? "bg-muted/40"
-      : progressStage === 0
-        ? "bg-destructive/20"
-        : progressStage === 1
-          ? "bg-amber-500/20"
-          : progressStage === 2
-            ? "bg-yellow-500/20"
-            : "bg-emerald-500/20";
-
-  const progressFillColor =
-    progressStage === 0
-      ? "bg-destructive/60"
-      : progressStage === 1
-        ? "bg-amber-500"
-        : progressStage === 2
-          ? "bg-yellow-500"
-          : "bg-emerald-500";
-
-  const progressFillWidthPct =
-    passedCount === 0 ? 0 : (passedCount / 4) * 100;
+  const {
+    handleChangePassword,
+    currentPassword,
+    onCurrentPasswordChange,
+    newPassword,
+    onNewPasswordChange,
+    newPasswordConfirm,
+    onNewPasswordConfirmChange,
+    newPasswordChecks,
+    newPasswordValid,
+    passwordSaving,
+    passwordRequirements,
+    progressTrackColor,
+    progressFillColor,
+    progressFillWidthPct
+  } = securityTab;
 
   return (
     <SettingsFormErrorBoundary>
@@ -490,11 +380,11 @@ export function PsychologistSettingsForm({
           <SecurityTabForm
             handleChangePassword={handleChangePassword}
             currentPassword={currentPassword}
-            onCurrentPasswordChange={setCurrentPassword}
+            onCurrentPasswordChange={onCurrentPasswordChange}
             newPassword={newPassword}
-            onNewPasswordChange={handleNewPasswordChange}
+            onNewPasswordChange={onNewPasswordChange}
             newPasswordConfirm={newPasswordConfirm}
-            onNewPasswordConfirmChange={setNewPasswordConfirm}
+            onNewPasswordConfirmChange={onNewPasswordConfirmChange}
             newPasswordChecks={newPasswordChecks}
             newPasswordValid={newPasswordValid}
             passwordSaving={passwordSaving}
