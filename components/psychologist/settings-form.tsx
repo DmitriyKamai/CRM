@@ -20,6 +20,7 @@ import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
 import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
+import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
 import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
 import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
@@ -123,28 +124,27 @@ export function PsychologistSettingsForm({
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
   const securityTab = useSecurityTabUi();
 
-  const STATUS_COLOR_PRESETS: { value: string }[] = [
-    { value: "hsl(217 91% 60%)" },
-    { value: "hsl(142 76% 36%)" },
-    { value: "hsl(43 96% 56%)" },
-    { value: "hsl(0 84% 60%)" },
-    { value: "hsl(280 65% 60%)" },
-    { value: "hsl(24 95% 53%)" },
-    { value: "hsl(326 78% 60%)" },
-    { value: "hsl(199 89% 48%)" },
-    { value: "hsl(215 16% 47%)" }
-  ];
+  const clientStatusesTab = useClientStatusesTabUi();
   const {
     clientStatuses,
     clientStatusesLoading,
     refetchClientStatuses
   } = useClientStatusesSettings(activeTab === "statuses");
-  const [newStatusLabel, setNewStatusLabel] = useState("");
-  const [newStatusColor, setNewStatusColor] = useState(STATUS_COLOR_PRESETS[0]?.value ?? "hsl(217 91% 60%)");
-  const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
-  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
-  const [editingStatusLabel, setEditingStatusLabel] = useState("");
-  const [editingStatusColor, setEditingStatusColor] = useState("");
+  const {
+    STATUS_COLOR_PRESETS,
+    addStatusDialogOpen,
+    setAddStatusDialogOpen,
+    newStatusLabel,
+    setNewStatusLabel,
+    newStatusColor,
+    setNewStatusColor,
+    editingStatusId,
+    setEditingStatusId,
+    editingStatusLabel,
+    setEditingStatusLabel,
+    editingStatusColor,
+    setEditingStatusColor
+  } = clientStatusesTab;
 
   useEffect(() => {
     if (!schedulingEnabled && activeTab === "calendar") void (async () => setActiveTab("profile"))();
