@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import {
   KeyboardSensor,
   PointerSensor,
@@ -30,6 +30,7 @@ import { useClientProfileCustomFields } from "@/hooks/use-client-profile-custom-
 import { useClientProfileDeleteAction } from "@/hooks/use-client-profile-delete-action";
 import { useClientProfileRegistrationInvite } from "@/hooks/use-client-profile-registration-invite";
 import { useClientProfileSave } from "@/hooks/use-client-profile-save";
+import { useClientProfileTabsState } from "@/hooks/use-client-profile-tabs-state";
 
 type ClientProfileProps = {
   id: string;
@@ -166,22 +167,12 @@ export const PsychologistClientProfile = forwardRef<
     setHistoryTick
   });
 
-  useEffect(() => {
-    void (async () => {
-      if (!diagnosticsOn && activeTab === "diagnostics") setActiveTab("profile");
-      if (!schedulingOn && activeTab === "appointments") setActiveTab("profile");
-    })();
-  }, [diagnosticsOn, schedulingOn, activeTab]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const syncTab = () => {
-      if (mq.matches && activeTab === "history") setActiveTab("profile");
-    };
-    syncTab();
-    mq.addEventListener("change", syncTab);
-    return () => mq.removeEventListener("change", syncTab);
-  }, [activeTab]);
+  useClientProfileTabsState({
+    activeTab,
+    setActiveTab,
+    diagnosticsOn,
+    schedulingOn
+  });
 
   const {
     tabsScrollRef,
