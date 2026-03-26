@@ -25,6 +25,7 @@ import { ClientProfileDeleteDialog } from "@/components/psychologist/client-prof
 import { ClientProfileTabsShell } from "@/components/psychologist/client-profile-tabs-shell";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 import { useClientProfileFiles } from "@/hooks/use-client-profile-files";
+import { useClientProfileDiagnostics } from "@/hooks/use-client-profile-diagnostics";
 
 type ClientProfileProps = {
   id: string;
@@ -152,19 +153,17 @@ export const PsychologistClientProfile = forwardRef<
     setFilesError
   } = useClientProfileFiles(props.id);
 
-  type DiagnosticItem = {
-    id: string;
-    testTitle: string;
-    createdAt: string;
-    interpretation: string | null;
-  };
-  const [diagnosticsList, setDiagnosticsList] = useState<DiagnosticItem[]>(props.diagnostics ?? []);
-  const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
-  const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [historyTick, setHistoryTick] = useState(0);
   const schedulingOn = props.schedulingEnabled !== false;
   const diagnosticsOn = props.diagnosticsEnabled !== false;
+  const [diagnosticsTabActive, setDiagnosticsTabActive] = useState(false);
+  const { diagnosticsList, diagnosticsLoading } = useClientProfileDiagnostics({
+    clientId: props.id,
+    enabled: diagnosticsOn,
+    active: diagnosticsTabActive,
+    initial: props.diagnostics ?? []
+  });
 
   useEffect(() => {
     if (!diagnosticsOn && activeTab === "diagnostics") setActiveTab("profile");
@@ -243,18 +242,6 @@ export const PsychologistClientProfile = forwardRef<
   useEffect(() => {
     refetchCustomFieldDefs();
   }, [props.id, refetchCustomFieldDefs]);
-
-  useEffect(() => {
-    if (!diagnosticsOn || !diagnosticsTabActive || !props.id) return;
-    setDiagnosticsLoading(true);
-    fetch(`/api/psychologist/clients/${props.id}/diagnostics`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { diagnostics?: DiagnosticItem[] } | null) => {
-        if (Array.isArray(data?.diagnostics)) setDiagnosticsList(data.diagnostics);
-      })
-      .catch(() => {})
-      .finally(() => setDiagnosticsLoading(false));
-  }, [diagnosticsOn, diagnosticsTabActive, props.id]);
 
   useEffect(() => {
     fetch("/api/psychologist/client-statuses")
