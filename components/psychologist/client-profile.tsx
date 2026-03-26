@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import {
   DndContext,
   closestCenter,
@@ -25,9 +25,6 @@ import {
   Paperclip,
   Download,
   Trash,
-  ChevronLeft,
-  ChevronRight,
-  History
 } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
@@ -44,7 +41,7 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -73,6 +70,8 @@ import { ClientAppointments } from "@/components/psychologist/client-appointment
 import { ClientHistoryPanel } from "@/components/psychologist/client-history-panel";
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
+import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-tabs-nav";
+import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
 const FIELD_LABEL_CLASS = "text-sm text-muted-foreground shrink-0 w-full md:w-[200px]";
@@ -316,11 +315,6 @@ export const PsychologistClientProfile = forwardRef<
     return () => mq.removeEventListener("change", syncTab);
   }, [activeTab]);
 
-  const tabsScrollRef = useRef<HTMLDivElement>(null);
-  const [tabsScrollLeft, setTabsScrollLeft] = useState(false);
-  const [tabsScrollRight, setTabsScrollRight] = useState(false);
-  const [tabsHaveOverflow, setTabsHaveOverflow] = useState(false);
-
   const currentStatus = useMemo(
     () =>
       statusId != null
@@ -329,34 +323,13 @@ export const PsychologistClientProfile = forwardRef<
     [statusId, statuses]
   );
 
-  const updateTabsScrollState = useCallback(() => {
-    const el = tabsScrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setTabsHaveOverflow(scrollWidth > clientWidth);
-    setTabsScrollLeft(scrollLeft > 0);
-    setTabsScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-  }, []);
-
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    const run = () => {
-      updateTabsScrollState();
-      const el = tabsScrollRef.current;
-      if (el) {
-        const ro = new ResizeObserver(updateTabsScrollState);
-        ro.observe(el);
-        cleanup = () => ro.disconnect();
-      }
-    };
-    const t1 = setTimeout(run, 0);
-    const t2 = setTimeout(run, 350);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      cleanup?.();
-    };
-  }, [updateTabsScrollState, customFieldDefs.length]);
+  const {
+    tabsScrollRef,
+    tabsScrollLeft,
+    tabsScrollRight,
+    tabsHaveOverflow,
+    updateTabsScrollState
+  } = useClientProfileTabsScrollState(customFieldDefs.length);
 
   useEffect(() => {
     setFirstName(props.firstName);
@@ -846,113 +819,19 @@ export const PsychologistClientProfile = forwardRef<
         }}
         className="w-full min-w-0"
       >
-        {/* Узкие экраны: выбор вкладки из селекта */}
-        <div className="w-full lg:hidden">
-          <Select
-            value={activeTab}
-            onValueChange={(v) => {
-              setActiveTab(v);
-              setDiagnosticsTabActive(v === "diagnostics");
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Выберите вкладку" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="profile">Личные данные</SelectItem>
-              {Array.from(
-                new Set(
-                  customFieldDefs
-                    .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
-                    .filter((g) => g.length > 0)
-                )
-              ).map((group) => (
-                <SelectItem key={`cf-${group}`} value={`cf-${group}`}>
-                  {group}
-                </SelectItem>
-              ))}
-              {diagnosticsOn && (
-                <SelectItem value="diagnostics">Психологическая диагностика</SelectItem>
-              )}
-              {schedulingOn && <SelectItem value="appointments">Записи</SelectItem>}
-              <SelectItem value="history">История</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {/* Широкие экраны: вкладки со стрелками */}
-        <div className="hidden w-full min-w-0 overflow-hidden lg:block">
-          <div className="flex items-center gap-1 min-w-0">
-            {tabsHaveOverflow && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-10 w-9 shrink-0 rounded-md"
-                aria-label="Предыдущие вкладки"
-                disabled={!tabsScrollLeft}
-                onClick={() => {
-                  tabsScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" });
-                }}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <div
-              ref={tabsScrollRef}
-              className="overflow-x-auto overflow-y-hidden min-w-0 flex-1 basis-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-              onScroll={updateTabsScrollState}
-            >
-              <TabsList className="inline-flex w-max h-10 flex-nowrap">
-              <TabsTrigger value="profile" className="whitespace-nowrap shrink-0">
-                Личные данные
-              </TabsTrigger>
-              {Array.from(
-                new Set(
-                  customFieldDefs
-                    .map((d) => (d.group && typeof d.group === "string" ? d.group.trim() : ""))
-                    .filter((g) => g.length > 0)
-                )
-              ).map((group) => (
-                <TabsTrigger key={`cf-${group}`} value={`cf-${group}`} className="whitespace-nowrap shrink-0">
-                  {group}
-                </TabsTrigger>
-              ))}
-              {diagnosticsOn && (
-                <TabsTrigger value="diagnostics" className="whitespace-nowrap shrink-0">
-                  Психологическая диагностика
-                </TabsTrigger>
-              )}
-              {schedulingOn && (
-                <TabsTrigger value="appointments" className="whitespace-nowrap shrink-0">
-                  Записи
-                </TabsTrigger>
-              )}
-              <TabsTrigger
-                value="history"
-                className="whitespace-nowrap shrink-0 lg:hidden inline-flex items-center gap-1.5"
-              >
-                <History className="h-4 w-4 shrink-0" aria-hidden />
-                История
-              </TabsTrigger>
-            </TabsList>
-            </div>
-            {tabsHaveOverflow && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-10 w-9 shrink-0 rounded-md"
-                aria-label="Следующие вкладки"
-                disabled={!tabsScrollRight}
-                onClick={() => {
-                  tabsScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" });
-                }}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
+        <ClientProfileTabsNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          setDiagnosticsTabActive={setDiagnosticsTabActive}
+          diagnosticsOn={diagnosticsOn}
+          schedulingOn={schedulingOn}
+          customFieldDefs={customFieldDefs}
+          tabsHaveOverflow={tabsHaveOverflow}
+          tabsScrollLeft={tabsScrollLeft}
+          tabsScrollRight={tabsScrollRight}
+          tabsScrollRef={tabsScrollRef}
+          updateTabsScrollState={updateTabsScrollState}
+        />
 
         <div className="mt-3 flex flex-col lg:flex-row gap-4 lg:items-start min-w-0 w-full">
           <div className="min-w-0 w-full flex-1">
