@@ -1,8 +1,8 @@
 "use client";
 
-import React, { Component, useCallback, useEffect, useMemo, useState } from "react";
+import React, { Component, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -66,6 +66,9 @@ const TelegramAccountBlock = dynamic(
   () => import("@/components/account/telegram-account-block").then((m) => ({ default: m.TelegramAccountBlock })),
   { ssr: false }
 );
+import { useProfileSettings } from "@/hooks/use-profile-settings";
+import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
+import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -84,52 +87,11 @@ const PROFESSION_OPTIONS: { value: string; label: string }[] = [
 /** Максимум символов в блоке «О себе» */
 const BIO_MAX_LENGTH = 1500;
 
-type Profile = {
-  user: {
-    name: string | null;
-    email: string;
-    image: string | null;
-    dateOfBirth: string | null;
-    role: string;
-  };
-  psychologistProfile: {
-    firstName: string;
-    lastName: string;
-    phone: string | null;
-    country: string | null;
-    city: string | null;
-    gender: string | null;
-    maritalStatus: string | null;
-    specialization: string | null;
-    bio: string | null;
-    profilePhotoUrl: string | null;
-    profilePhotoPublished: boolean;
-    contactPhone: string | null;
-    contactTelegram: string | null;
-    contactViber: string | null;
-    contactWhatsapp: string | null;
-  } | null;
-};
-
-type Account = { provider: string; label: string };
-
 type PasswordChecks = {
   length: boolean;
   letters: boolean;
   digits: boolean;
   special: boolean;
-};
-
-type CustomFieldOption = { value: string; label: string };
-type CustomFieldDef = {
-  id: string;
-  key?: string | null;
-  label: string;
-  type: "TEXT" | "MULTILINE" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "MULTI_SELECT" | string;
-  group?: string | null;
-  description?: string | null;
-  options?: { selectOptions?: CustomFieldOption[] } | null;
-  order?: number | null;
 };
 
 const CUSTOM_FIELD_TYPE_LABELS: Record<string, string> = {
@@ -212,10 +174,15 @@ export function PsychologistSettingsForm({
   schedulingEnabled?: boolean;
 }) {
   const { data: session, update: updateSession } = useSession();
+  const {
+    profile,
+    loading,
+    accounts,
+    refetchProfile,
+    refetchAccounts,
+    updateProfileInCache
+  } = useProfileSettings();
   const [activeTab, setActiveTab] = useState("profile");
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
 
@@ -247,9 +214,14 @@ export function PsychologistSettingsForm({
   const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
   const [savingPublish, setSavingPublish] = useState(false);
   const [unlinkAccountProvider, setUnlinkAccountProvider] = useState<"google" | "apple" | null>(null);
-  const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
-  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
+  const {
+    customFields,
+    customFieldsLoading,
+    customFieldsError: customFieldsQueryError,
+    refetchCustomFields
+  } = useCustomFieldsSettings(activeTab === "customFields");
   const [customFieldsError, setCustomFieldsError] = useState<string | null>(null);
+  const effectiveCustomFieldsError = customFieldsError ?? customFieldsQueryError;
   const [newTabName, setNewTabName] = useState("");
   const [newTabDescription, setNewTabDescription] = useState("");
   const [editingTabGroup, setEditingTabGroup] = useState<string | null>(null);
@@ -265,71 +237,28 @@ export function PsychologistSettingsForm({
   const [editingLabel, setEditingLabel] = useState("");
   const [editingGroup, setEditingGroup] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  type ClientStatusItem = { id: string; key?: string; label: string; color: string; order: number };
   const STATUS_COLOR_PRESETS: { value: string }[] = [
-    { value: "hsl(217 91% 60%)" }, // синий
-    { value: "hsl(142 76% 36%)" }, // зелёный
-    { value: "hsl(43 96% 56%)" }, // жёлтый
-    { value: "hsl(0 84% 60%)" }, // красный
-    { value: "hsl(280 65% 60%)" }, // фиолетовый
-    { value: "hsl(24 95% 53%)" }, // оранжевый
-    { value: "hsl(326 78% 60%)" }, // розовый
-    { value: "hsl(199 89% 48%)" }, // голубой
-    { value: "hsl(215 16% 47%)" } // серый
+    { value: "hsl(217 91% 60%)" },
+    { value: "hsl(142 76% 36%)" },
+    { value: "hsl(43 96% 56%)" },
+    { value: "hsl(0 84% 60%)" },
+    { value: "hsl(280 65% 60%)" },
+    { value: "hsl(24 95% 53%)" },
+    { value: "hsl(326 78% 60%)" },
+    { value: "hsl(199 89% 48%)" },
+    { value: "hsl(215 16% 47%)" }
   ];
-  const [clientStatuses, setClientStatuses] = useState<ClientStatusItem[]>([]);
-  const [clientStatusesLoading, setClientStatusesLoading] = useState(false);
+  const {
+    clientStatuses,
+    clientStatusesLoading,
+    refetchClientStatuses
+  } = useClientStatusesSettings(activeTab === "statuses");
   const [newStatusLabel, setNewStatusLabel] = useState("");
   const [newStatusColor, setNewStatusColor] = useState(STATUS_COLOR_PRESETS[0]?.value ?? "hsl(217 91% 60%)");
   const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
   const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [editingStatusLabel, setEditingStatusLabel] = useState("");
   const [editingStatusColor, setEditingStatusColor] = useState("");
-
-  const refetchAccounts = useCallback(() => {
-    fetch("/api/user/accounts")
-      .then((r) => (r?.ok ? r.json() : { accounts: [] }))
-      .then((a) => {
-        if (a?.accounts) setAccounts(a.accounts);
-      });
-  }, []);
-
-  const refetchCustomFields = useCallback(() => {
-    setCustomFieldsLoading(true);
-    setCustomFieldsError(null);
-    fetch("/api/psychologist/custom-fields")
-      .then((r) => (r?.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.items) setCustomFields(data.items);
-      })
-      .catch((err) => {
-        console.error(err);
-        setCustomFieldsError("Не удалось загрузить пользовательские поля");
-      })
-      .finally(() => setCustomFieldsLoading(false));
-  }, []);
-
-  const refetchClientStatuses = useCallback(() => {
-    setClientStatusesLoading(true);
-    fetch("/api/psychologist/client-statuses")
-      .then((r) => (r?.ok ? r.json() : null))
-      .then((data: { items?: ClientStatusItem[] } | null) => {
-        if (Array.isArray(data?.items)) setClientStatuses(data.items);
-      })
-      .catch(() => {})
-      .finally(() => setClientStatusesLoading(false));
-  }, []);
-
-  const refetchProfile = useCallback(() => {
-    fetch("/api/user/profile")
-      .then((r) => (r?.ok ? r.json() : null))
-      .then((p) => {
-        if (p) {
-          setProfile(p);
-          setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
-        }
-      });
-  }, []);
 
   useEffect(() => {
     if (!schedulingEnabled && activeTab === "calendar") setActiveTab("profile");
@@ -349,7 +278,7 @@ export function PsychologistSettingsForm({
         return;
       }
       setProfilePhotoPublished(published);
-      setProfile((prev): Profile | null =>
+      updateProfileInCache(prev =>
         prev?.psychologistProfile
           ? {
               ...prev,
@@ -377,74 +306,39 @@ export function PsychologistSettingsForm({
         return;
       }
       toast.success(provider === "google" ? "Google отвязан" : "Apple отвязан");
-      refetchAccounts();
+      void refetchAccounts();
       updateSession?.();
     } finally {
       setUnlinkAccountProvider(null);
     }
   }
 
+  const [formHydrated, setFormHydrated] = useState(false);
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/user/profile")
-      .then((r) => {
-        if (r.status === 401) {
-          signOut({ callbackUrl: "/auth/login" });
-          return Promise.reject(new Error("unauthorized"));
-        }
-        return r.ok ? r.json() : null;
-      })
-      .then((p) => {
-        if (cancelled) return undefined;
-        if (p) {
-          setProfile(p);
-          setFirstName(p.psychologistProfile?.firstName ?? p.user?.name ?? "");
-          setLastName(p.psychologistProfile?.lastName ?? "");
-          setEmail(p.user?.email ?? "");
-          setPhone(p.psychologistProfile?.phone ?? "");
-          setDateOfBirth(p.user?.dateOfBirth ?? "");
-          setCountry(
-            p.psychologistProfile?.country ?? DEFAULT_COUNTRY_NAME
-          );
-          setCity(p.psychologistProfile?.city ?? "");
-          setGender(p.psychologistProfile?.gender ?? "");
-          setMaritalStatus(p.psychologistProfile?.maritalStatus ?? "");
-          setBio(p.psychologistProfile?.bio ?? "");
-          setSpecialization(p.psychologistProfile?.specialization ?? "");
-          setContactPhone(p.psychologistProfile?.contactPhone ?? "");
-          setContactTelegram(p.psychologistProfile?.contactTelegram ?? "");
-          setContactViber(p.psychologistProfile?.contactViber ?? "");
-          setContactWhatsapp(p.psychologistProfile?.contactWhatsapp ?? "");
-          setProfilePhotoPublished(p.psychologistProfile?.profilePhotoPublished ?? false);
-          setCountryCode(
-            p.psychologistProfile?.country
-              ? getCountryCodeByName(p.psychologistProfile.country) ?? null
-              : DEFAULT_COUNTRY_CODE
-          );
-        }
-        return fetch("/api/user/accounts");
-      })
-      .then((r) => (r?.ok ? r.json() : { accounts: [] }))
-      .then((a) => {
-        if (!cancelled && a?.accounts) setAccounts(a.accounts);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "customFields") {
-      refetchCustomFields();
-    }
-    if (activeTab === "statuses") {
-      refetchClientStatuses();
-    }
-  }, [activeTab, refetchCustomFields, refetchClientStatuses]);
+    if (!profile || formHydrated) return;
+    setFormHydrated(true);
+    setFirstName(profile.psychologistProfile?.firstName ?? profile.user?.name ?? "");
+    setLastName(profile.psychologistProfile?.lastName ?? "");
+    setEmail(profile.user?.email ?? "");
+    setPhone(profile.psychologistProfile?.phone ?? "");
+    setDateOfBirth(profile.user?.dateOfBirth ?? "");
+    setCountry(profile.psychologistProfile?.country ?? DEFAULT_COUNTRY_NAME);
+    setCity(profile.psychologistProfile?.city ?? "");
+    setGender(profile.psychologistProfile?.gender ?? "");
+    setMaritalStatus(profile.psychologistProfile?.maritalStatus ?? "");
+    setBio(profile.psychologistProfile?.bio ?? "");
+    setSpecialization(profile.psychologistProfile?.specialization ?? "");
+    setContactPhone(profile.psychologistProfile?.contactPhone ?? "");
+    setContactTelegram(profile.psychologistProfile?.contactTelegram ?? "");
+    setContactViber(profile.psychologistProfile?.contactViber ?? "");
+    setContactWhatsapp(profile.psychologistProfile?.contactWhatsapp ?? "");
+    setProfilePhotoPublished(profile.psychologistProfile?.profilePhotoPublished ?? false);
+    setCountryCode(
+      profile.psychologistProfile?.country
+        ? getCountryCodeByName(profile.psychologistProfile.country) ?? null
+        : DEFAULT_COUNTRY_CODE
+    );
+  }, [profile, formHydrated]);
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -476,46 +370,42 @@ export function PsychologistSettingsForm({
       }
       toast.success("Сохранено");
       updateSession?.();
-      setProfile((prev): Profile | null =>
-        prev
+      updateProfileInCache(prev => ({
+        ...prev,
+        user: {
+          ...prev.user,
+          email: email.trim() || prev.user.email,
+          dateOfBirth: dateOfBirth || null
+        },
+        psychologistProfile: prev.psychologistProfile
           ? {
-              ...prev,
-              user: {
-                ...prev.user,
-                email: email.trim() || prev.user.email,
-                dateOfBirth: dateOfBirth || null
-              },
-              psychologistProfile: prev.psychologistProfile
-                ? {
-                    ...prev.psychologistProfile,
-                    firstName,
-                    lastName,
-                    phone: phone.trim() || null,
-                    country: country.trim() || null,
-                    city: city.trim() || null,
-                    gender: gender || null,
-                    maritalStatus: maritalStatus || null
-                  }
-                : {
-                    firstName,
-                    lastName,
-                    phone: phone.trim() || null,
-                    country: country.trim() || null,
-                    city: city.trim() || null,
-                    gender: gender || null,
-                    maritalStatus: maritalStatus || null,
-                    specialization: null,
-                    bio: null,
-                    profilePhotoUrl: null,
-                    profilePhotoPublished: false,
-                    contactPhone: null,
-                    contactTelegram: null,
-                    contactViber: null,
-                    contactWhatsapp: null
-                  }
+              ...prev.psychologistProfile,
+              firstName,
+              lastName,
+              phone: phone.trim() || null,
+              country: country.trim() || null,
+              city: city.trim() || null,
+              gender: gender || null,
+              maritalStatus: maritalStatus || null
             }
-          : null
-      );
+          : {
+              firstName,
+              lastName,
+              phone: phone.trim() || null,
+              country: country.trim() || null,
+              city: city.trim() || null,
+              gender: gender || null,
+              maritalStatus: maritalStatus || null,
+              specialization: null,
+              bio: null,
+              profilePhotoUrl: null,
+              profilePhotoPublished: false,
+              contactPhone: null,
+              contactTelegram: null,
+              contactViber: null,
+              contactWhatsapp: null
+            }
+      }));
     } finally {
       setSaving(false);
     }
@@ -544,26 +434,22 @@ export function PsychologistSettingsForm({
         return;
       }
       toast.success("Сохранено");
-      setProfile((prev): Profile | null =>
-        prev
+      updateProfileInCache(prev => ({
+        ...prev,
+        psychologistProfile: prev.psychologistProfile
           ? {
-              ...prev,
-              psychologistProfile: prev.psychologistProfile
-                ? {
-                    ...prev.psychologistProfile,
-                    bio: bio.trim() || null,
-                    specialization: specialization || null,
-                    profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
-                    profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished,
-                    contactPhone: contactPhone.trim() || null,
-                    contactTelegram: contactTelegram.trim() || null,
-                    contactViber: contactViber.trim() || null,
-                    contactWhatsapp: contactWhatsapp.trim() || null
-                  }
-                : prev.psychologistProfile
+              ...prev.psychologistProfile,
+              bio: bio.trim() || null,
+              specialization: specialization || null,
+              profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
+              profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished,
+              contactPhone: contactPhone.trim() || null,
+              contactTelegram: contactTelegram.trim() || null,
+              contactViber: contactViber.trim() || null,
+              contactWhatsapp: contactWhatsapp.trim() || null
             }
-          : null
-      );
+          : prev.psychologistProfile
+      }));
     } finally {
       setSavingProfessional(false);
     }
@@ -1173,9 +1059,9 @@ export function PsychologistSettingsForm({
         {activeTab === "customFields" && (
           <Section title="Пользовательские поля клиента">
             <div className="space-y-4">
-              {customFieldsError && (
+              {effectiveCustomFieldsError && (
                 <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-                  {customFieldsError}
+                  {effectiveCustomFieldsError}
                 </div>
               )}
               <div className="space-y-3 rounded-lg border bg-card p-3">
@@ -2103,7 +1989,7 @@ export function PsychologistSettingsForm({
             schedulingEnabled={schedulingEnabled}
             initials={initials}
             alt={name || "Психолог"}
-            onSuccess={refetchProfile}
+            onSuccess={() => void refetchProfile()}
             onPublishChange={handlePublishProfileChange}
             publishSaving={savingPublish}
           />
