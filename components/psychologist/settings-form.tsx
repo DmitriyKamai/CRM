@@ -71,8 +71,7 @@ import { useCustomFieldsSettings } from "@/hooks/use-custom-fields-settings";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
 import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
-import { CustomFieldsFieldsPanel } from "@/components/psychologist/settings/custom-fields-fields-panel";
-import { CustomFieldsTabsPanel } from "@/components/psychologist/settings/custom-fields-tabs-panel";
+import { CustomFieldsTabPanel } from "@/components/psychologist/settings/custom-fields-tab-panel";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
   { value: "single", label: "Не в браке" },
@@ -938,58 +937,51 @@ export function PsychologistSettingsForm({
       <TabsContent value="customFields" className="mt-4">
         {activeTab === "customFields" && (
           <Section title="Пользовательские поля клиента">
-            <div className="space-y-4">
-              {effectiveCustomFieldsError && (
-                <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-                  {effectiveCustomFieldsError}
-                </div>
-              )}
-              <CustomFieldsTabsPanel
-                createTabDialogOpen={createTabDialogOpen}
-                setCreateTabDialogOpen={setCreateTabDialogOpen}
-                newTabName={newTabName}
-                setNewTabName={setNewTabName}
-                newTabDescription={newTabDescription}
-                setNewTabDescription={setNewTabDescription}
-                setLocalTabs={setLocalTabs}
-                setNewFieldGroup={setNewFieldGroup}
-                allTabsForList={allTabsForList}
-                editingTabGroup={editingTabGroup}
-                setEditingTabGroup={setEditingTabGroup}
-                editingTabName={editingTabName}
-                setEditingTabName={setEditingTabName}
-                editingTabDescription={editingTabDescription}
-                setEditingTabDescription={setEditingTabDescription}
-                customFields={customFields}
-                refetchCustomFields={refetchCustomFields}
-                setCustomFieldsError={setCustomFieldsError}
-              />
+            <CustomFieldsTabPanel
+              effectiveCustomFieldsError={effectiveCustomFieldsError}
 
-              <CustomFieldsFieldsPanel
-                availableTabs={availableTabs}
-                customFieldsLoading={customFieldsLoading}
-                customFields={customFields}
-                newFieldGroup={newFieldGroup}
-                setNewFieldGroup={setNewFieldGroup}
-                newFieldLabel={newFieldLabel}
-                setNewFieldLabel={setNewFieldLabel}
-                newFieldType={newFieldType}
-                setNewFieldType={setNewFieldType}
-                newFieldOptionLabels={newFieldOptionLabels}
-                setNewFieldOptionLabels={setNewFieldOptionLabels}
-                setCustomFieldsError={setCustomFieldsError}
-                refetchCustomFields={refetchCustomFields}
-                editingFieldId={editingFieldId}
-                setEditingFieldId={setEditingFieldId}
-                editingLabel={editingLabel}
-                setEditingLabel={setEditingLabel}
-                editingGroup={editingGroup}
-                setEditingGroup={setEditingGroup}
-                editingDescription={editingDescription}
-                setEditingDescription={setEditingDescription}
-                customFieldTypeLabels={CUSTOM_FIELD_TYPE_LABELS}
-              />
-            </div>
+              createTabDialogOpen={createTabDialogOpen}
+              setCreateTabDialogOpen={setCreateTabDialogOpen}
+              newTabName={newTabName}
+              setNewTabName={setNewTabName}
+              newTabDescription={newTabDescription}
+              setNewTabDescription={setNewTabDescription}
+              setLocalTabs={setLocalTabs}
+              setNewFieldGroup={setNewFieldGroup}
+              allTabsForList={allTabsForList}
+              editingTabGroup={editingTabGroup}
+              setEditingTabGroup={setEditingTabGroup}
+              editingTabName={editingTabName}
+              setEditingTabName={setEditingTabName}
+              editingTabDescription={editingTabDescription}
+              setEditingTabDescription={setEditingTabDescription}
+
+              availableTabs={availableTabs}
+              customFieldsLoading={customFieldsLoading}
+              customFields={customFields}
+              newFieldGroup={newFieldGroup}
+              setNewFieldGroupRight={setNewFieldGroup}
+              newFieldLabel={newFieldLabel}
+              setNewFieldLabel={setNewFieldLabel}
+              newFieldType={newFieldType}
+              setNewFieldType={setNewFieldType}
+              newFieldOptionLabels={newFieldOptionLabels}
+              setNewFieldOptionLabels={setNewFieldOptionLabels}
+
+              setCustomFieldsError={setCustomFieldsError}
+              refetchCustomFields={refetchCustomFields}
+
+              editingFieldId={editingFieldId}
+              setEditingFieldId={setEditingFieldId}
+              editingLabel={editingLabel}
+              setEditingLabel={setEditingLabel}
+              editingGroup={editingGroup}
+              setEditingGroup={setEditingGroup}
+              editingDescription={editingDescription}
+              setEditingDescription={setEditingDescription}
+
+              customFieldTypeLabels={CUSTOM_FIELD_TYPE_LABELS}
+            />
           </Section>
         )}
       </TabsContent>
