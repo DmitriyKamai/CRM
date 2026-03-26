@@ -10,10 +10,6 @@ import {
   Plus,
   Trash2,
   Pencil,
-  Download,
-  ChevronDown,
-  Upload,
-  FileSpreadsheet,
   UploadCloud,
 } from "lucide-react";
 import { ru } from "date-fns/locale";
@@ -45,14 +41,6 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import {
   Popover,
   PopoverTrigger,
   PopoverContent
@@ -71,6 +59,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
+import { ClientsActionsToolbar } from "@/components/psychologist/clients-actions-toolbar";
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
@@ -858,196 +847,27 @@ export function PsychologistClientsList({
                   </p>
                 )}
               </div>
-              <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0 lg:justify-end">
-                {/* Десктоп: кнопки в ряд (сайдбар с lg — здесь тоже lg) */}
-                <div className="hidden flex-wrap items-center gap-2 lg:flex lg:justify-end">
-                  {multiSelectMode ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={selectedIds.size === 0 || bulkDeleteClients.isPending}
-                        onClick={openBulkDeleteDialog}
-                      >
-                        {bulkDeleteClients.isPending
-                          ? "Удаляем..."
-                          : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedIds(new Set());
-                          setMultiSelectMode(false);
-                        }}
-                      >
-                        Отменить выделение
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedIds(new Set());
-                        setMultiSelectMode(true);
-                      }}
-                    >
-                      Выбрать несколько
-                    </Button>
-                  )}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={clientsExport.exporting || clients.length === 0}
-                      >
-                        <Download className="h-4 w-4 mr-1.5" />
-                        {clientsExport.exporting ? "Экспорт…" : "Экспорт"}
-                        <ChevronDown className="h-4 w-4 ml-1.5 opacity-70" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => clientsExport.handleExport("csv")}
-                        disabled={clientsExport.exporting}
-                      >
-                        Скачать CSV
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => clientsExport.handleExport("json")}
-                        disabled={clientsExport.exporting}
-                      >
-                        Скачать JSON
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => clientsExport.handleExport("xlsx")}
-                        disabled={clientsExport.exporting}
-                      >
-                        Скачать XLSX
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => void clientsExport.handleExportGoogleSheets()}
-                        disabled={
-                          clientsExport.exporting ||
-                          clients.length === 0 ||
-                          googleSheetsOAuthConfigured === false
-                        }
-                      >
-                        <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                        В Google Таблицу
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-                    <Upload className="h-4 w-4 mr-1.5" />
-                    Импорт
-                  </Button>
-                  <Button size="sm" onClick={() => setAddOpen(true)}>
-                    Добавить клиента
-                  </Button>
-                </div>
-
-                {/* Узкий экран: одно меню «Действия» (без вложенного Sub — на тач-устройствах он часто не открывается) */}
-                <div className="flex w-full justify-end lg:hidden">
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0 gap-1.5"
-                        aria-haspopup="menu"
-                      >
-                        Действия
-                        <ChevronDown className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      sideOffset={6}
-                      className="w-[min(100vw-2rem,20rem)]"
-                    >
-                      {multiSelectMode ? (
-                        <>
-                          <DropdownMenuItem
-                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                            disabled={selectedIds.size === 0 || bulkDeleteClients.isPending}
-                            onClick={openBulkDeleteDialog}
-                          >
-                            {bulkDeleteClients.isPending
-                              ? "Удаляем..."
-                              : `Удалить выбранных${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedIds(new Set());
-                              setMultiSelectMode(false);
-                            }}
-                          >
-                            Отменить выделение
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                        </>
-                      ) : (
-                        <>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedIds(new Set());
-                              setMultiSelectMode(true);
-                            }}
-                          >
-                            Выбрать несколько
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                        </>
-                      )}
-                      <DropdownMenuLabel className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
-                        <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {clientsExport.exporting ? "Экспорт…" : "Экспорт"}
-                      </DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => clientsExport.handleExport("csv")}
-                        disabled={clientsExport.exporting || clients.length === 0}
-                      >
-                        Скачать CSV
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => clientsExport.handleExport("json")}
-                        disabled={clientsExport.exporting || clients.length === 0}
-                      >
-                        Скачать JSON
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => clientsExport.handleExport("xlsx")}
-                        disabled={clientsExport.exporting || clients.length === 0}
-                      >
-                        Скачать XLSX
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => void clientsExport.handleExportGoogleSheets()}
-                        disabled={
-                          clientsExport.exporting ||
-                          clients.length === 0 ||
-                          googleSheetsOAuthConfigured === false
-                        }
-                      >
-                        <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                        В Google Таблицу
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setImportOpen(true)}>
-                        <Upload className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                        Импорт
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setAddOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                        Добавить клиента
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+              <ClientsActionsToolbar
+                clientsCount={clients.length}
+                googleSheetsOAuthConfigured={googleSheetsOAuthConfigured}
+                exporting={clientsExport.exporting}
+                onExport={clientsExport.handleExport}
+                onExportGoogleSheets={clientsExport.handleExportGoogleSheets}
+                multiSelectMode={multiSelectMode}
+                selectedCount={selectedIds.size}
+                bulkDeleting={bulkDeleteClients.isPending}
+                onEnableMultiSelect={() => {
+                  setSelectedIds(new Set());
+                  setMultiSelectMode(true);
+                }}
+                onCancelMultiSelect={() => {
+                  setSelectedIds(new Set());
+                  setMultiSelectMode(false);
+                }}
+                onOpenBulkDeleteDialog={openBulkDeleteDialog}
+                onOpenImport={() => setImportOpen(true)}
+                onOpenAddClient={() => setAddOpen(true)}
+              />
             </div>
 
             {/* Импорт */}
