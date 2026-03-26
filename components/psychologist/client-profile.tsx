@@ -10,16 +10,6 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { formatPhoneDisplay, phoneToTelHref } from "@/components/ui/phone-input";
 // Импорты из профиля вынесены в отдельные компоненты, поэтому эти UI-провайдеры
@@ -32,6 +22,7 @@ import { ClientProfileCustomFieldsTabs } from "@/components/psychologist/client-
 import { ClientProfileDiagnosticsTab } from "@/components/psychologist/client-profile-diagnostics-tab";
 import { ClientProfileAppointmentsTab } from "@/components/psychologist/client-profile-appointments-tab";
 import { ClientProfileHistorySection } from "@/components/psychologist/client-profile-history-section";
+import { ClientProfileDeleteDialog } from "@/components/psychologist/client-profile-delete-dialog";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 type ClientProfileProps = {
@@ -548,22 +539,11 @@ export const PsychologistClientProfile = forwardRef<
 
   return (
     <div className="space-y-4 min-w-0 w-full overflow-x-auto">
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить клиента из списка?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Удалить этого клиента из вашего списка? Его записи и тесты в системе сохранены.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Удалить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ClientProfileDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+      />
 
       <ClientProfileHeader
         showEditButton={props.onEditingChange == null && (activeTab === "profile" || activeTab.startsWith("cf-"))}
