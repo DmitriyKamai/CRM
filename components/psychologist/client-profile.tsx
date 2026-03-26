@@ -20,8 +20,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   Mail,
-  Pencil,
-  UserCheck,
   Paperclip,
   Download,
   Trash,
@@ -63,7 +61,6 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CountryAutocomplete, CityAutocomplete } from "@/components/ui/location-autocomplete";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { ClientAppointments } from "@/components/psychologist/client-appointments";
@@ -71,6 +68,7 @@ import { ClientHistoryPanel } from "@/components/psychologist/client-history-pan
 import { cn } from "@/lib/utils";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import { ClientProfileTabsNav } from "@/components/psychologist/client-profile-tabs-nav";
+import { ClientProfileHeader } from "@/components/psychologist/client-profile-header";
 import { useClientProfileTabsScrollState } from "@/hooks/use-client-profile-tabs-scroll";
 
 const FIELD_ROW_CLASS = "flex flex-col gap-1 py-3 border-b border-border last:border-b-0 md:flex-row md:items-center md:gap-4";
@@ -692,124 +690,24 @@ export const PsychologistClientProfile = forwardRef<
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Кнопка редактирования (личные данные + пользовательские поля) когда управление снаружи не передано */}
-      {props.onEditingChange == null && (activeTab === "profile" || activeTab.startsWith("cf-")) && (
-        <div className="flex justify-end">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant={isEditing ? "secondary" : "outline"}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setEditing(!isEditing)}
-                  disabled={saving || deleting || customFieldsSaving}
-                >
-                  <Pencil className="h-4 w-4" />
-                  <span className="sr-only">
-                    {isEditing ? "Завершить редактирование" : "Редактировать"}
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isEditing ? "Завершить редактирование" : "Редактировать личные данные и дополнительные поля"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      )}
+      <ClientProfileHeader
+        showEditButton={props.onEditingChange == null && (activeTab === "profile" || activeTab.startsWith("cf-"))}
+        isEditing={isEditing}
+        onToggleEditing={() => setEditing(!isEditing)}
+        editButtonDisabled={saving || deleting || customFieldsSaving}
 
-      {/* Аватар, имя, значок зарегистрирован, статус — над вкладками */}
-      <div className="flex flex-wrap items-center gap-3">
-        {(() => {
-          const AVATAR_COLORS = [
-            "bg-rose-200 text-rose-800",
-            "bg-violet-200 text-violet-800",
-            "bg-sky-200 text-sky-800",
-            "bg-emerald-200 text-emerald-800",
-            "bg-amber-200 text-amber-800",
-            "bg-pink-200 text-pink-800",
-            "bg-teal-200 text-teal-800",
-            "bg-indigo-200 text-indigo-800",
-          ];
-          let hash = 0;
-          for (let i = 0; i < props.id.length; i++) {
-            hash = (hash * 31 + props.id.charCodeAt(i)) >>> 0;
-          }
-          const avatarColor = AVATAR_COLORS[hash % AVATAR_COLORS.length];
-          const initials = `${props.firstName[0] ?? ""}${props.lastName[0] ?? ""}`.toUpperCase();
-          return (
-            <Avatar className="h-12 w-12 shrink-0 border border-border">
-              <AvatarImage
-                src={props.avatarUrl ?? undefined}
-                alt={`${props.lastName} ${props.firstName}`}
-                className="object-cover"
-              />
-              <AvatarFallback className={cn("font-semibold text-sm", avatarColor)}>
-                {initials || "?"}
-              </AvatarFallback>
-            </Avatar>
-          );
-        })()}
-        <span className="text-2xl font-semibold leading-tight tracking-tight">
-          {props.lastName} {props.firstName}
-        </span>
-        {hasAccount && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none cursor-help">
-                  <UserCheck className="h-6 w-6" aria-hidden />
-                  <span className="sr-only">Зарегистрирован</span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                Клиент зарегистрирован
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        <Select
-          value={statusId ?? "__none__"}
-          onValueChange={val => {
-            void handleStatusChange(val);
-          }}
-          disabled={statusSaving}
-        >
-          <SelectTrigger
-            className={cn(
-              "h-8 w-full min-w-0 basis-full rounded-md border-0 px-3 text-xs font-semibold shadow-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-ring md:w-auto md:min-w-[180px] md:basis-auto relative [&>*:first-child]:flex-1 [&>*:first-child]:min-w-0 [&>*:first-child]:flex [&>*:first-child]:justify-center [&>*:first-child]:text-center [&>svg]:relative [&>svg]:z-10 [&>svg]:shrink-0 [&>svg]:ml-1",
-              currentStatus
-                ? "text-white data-[placeholder]:text-white [&>svg]:text-white [&>svg]:opacity-100"
-                : "text-foreground bg-[hsl(var(--input-bg))] data-[placeholder]:text-muted-foreground"
-            )}
-            style={currentStatus ? { backgroundColor: currentStatus.color } : undefined}
-          >
-            <SelectValue placeholder="Статус" />
-          </SelectTrigger>
-          <SelectContent className="min-w-[var(--radix-select-trigger-width)] [&>*:nth-child(2)]:space-y-[5px]">
-            <SelectItem value="__none__" className="h-7 py-1 justify-center !pl-2 pr-2 cursor-pointer">
-              <span className="text-sm">Без статуса</span>
-            </SelectItem>
-            {statuses.map(s => (
-              <SelectItem
-                key={s.id}
-                value={s.id}
-                className="relative p-0 min-h-7 h-7 overflow-hidden rounded-md cursor-pointer [&>*:first-child]:z-10"
-              >
-                <span
-                  className="absolute inset-0 z-0 flex items-center justify-center rounded-md text-xs font-medium text-white"
-                  style={{ backgroundColor: s.color }}
-                  title={s.label.length > 16 ? s.label : undefined}
-                >
-                  {s.label.length > 16 ? `${s.label.slice(0, 16)}…` : s.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        id={props.id}
+        firstName={props.firstName}
+        lastName={props.lastName}
+        avatarUrl={props.avatarUrl}
+        hasAccount={hasAccount}
+
+        statuses={statuses}
+        statusId={statusId}
+        currentStatus={currentStatus}
+        statusSaving={statusSaving}
+        onStatusChange={handleStatusChange}
+      />
 
       <Tabs
         value={activeTab}
