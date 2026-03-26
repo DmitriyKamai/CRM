@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -98,12 +99,30 @@ async function apiUpdateSlotTime(params: {
 export function useScheduleSlots() {
   const qc = useQueryClient();
 
-  const { data: slots = [], isLoading } = useQuery({
+  const query = useQuery({
     queryKey: SLOTS_QUERY_KEY,
     queryFn: fetchSlots,
     retry: 2,
-    retryDelay: 500
+    retryDelay: 500,
+    // Пока сеть offline — не пытаться делать запросы.
+    networkMode: "online",
+    // При смене сети / реконнекте держим расписание актуальным.
+    refetchOnReconnect: true,
+    // Уменьшаем риск "свежих, но устаревших" данных после реконнекта.
+    staleTime: 30_000
   });
+
+  // Даже если кэш формально ещё свежий, при возврате сети делаем явное обновление.
+  // Это важно из-за того, что `GET /api/schedule/slots` содержит side-effects (очистка "застрявших" слотов).
+  useEffect(() => {
+    const onOnline = () => {
+      qc.invalidateQueries({ queryKey: SLOTS_QUERY_KEY });
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [qc]);
+
+  const { data: slots = [], isLoading } = query;
 
   const createSlot = useMutation({
     mutationFn: apiCreateSlot,

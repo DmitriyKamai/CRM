@@ -191,6 +191,39 @@ types/
 
 ### Паттерны кода
 
+#### State management (обязательно)
+
+- Разделяйте состояние по ответственности:
+  - **server state** (данные API, кэш, инвалидации, мутации) — через **TanStack Query**.
+  - **client global state** (кросс-страничный UI/domain state) — через **Redux Toolkit**.
+  - **локальный state формы/виджета** — через `useState` внутри компонента/таба.
+- Не дублируйте одни и те же данные одновременно в Redux и Query-кэше.
+- Для новых API-сценариев по умолчанию делайте custom hook в `hooks/` с `useQuery` / `useMutation`, а не `fetch` в `useEffect`.
+
+Текущие Redux slices:
+- `store/slices/ui.slice.ts`
+- `store/slices/notifications.slice.ts`
+- `store/slices/analytics.slice.ts`
+- `store/slices/diagnostics-progress.slice.ts`
+
+#### Query-first hooks (актуальные)
+
+- Расписание:
+  - `hooks/use-schedule-slots.ts`
+  - `hooks/use-schedule-clients.ts`
+- Клиенты:
+  - `hooks/use-clients-data.ts`
+- Настройки:
+  - `hooks/use-profile-settings.ts`
+  - `hooks/use-custom-fields-settings.ts`
+  - `hooks/use-client-statuses-settings.ts`
+- Диагностика:
+  - `hooks/use-smil-questions.ts`
+  - `hooks/use-smil-progress.ts`
+  - `hooks/use-smil-submit.ts`
+  - `hooks/use-diagnostic-progress.ts`
+  - `hooks/use-diagnostic-submit.ts`
+
 #### Auth guards (`lib/security/api-guards.ts`)
 
 Все API-роуты используют guard-функции:
@@ -234,6 +267,29 @@ if (mod) return mod; // 403 если модуль отключён
 #### Обработка ошибок
 
 `lib/api-error.ts` содержит `handleApiError(error, context)` — ZodError → 400, остальное → 500 с логированием.
+
+### Последние архитектурные изменения (важно)
+
+1. `components/schedule/psychologist-schedule.tsx` декомпозирован:
+   - вынесены `components/schedule/create-appointment-dialog.tsx` и `components/schedule/slot-detail-popover.tsx`;
+   - вынесены утилиты в `lib/schedule-utils.ts`;
+   - сетевые операции перенесены в query-hooks.
+2. `components/psychologist/clients-list.tsx` частично декомпозирован:
+   - загрузка клиентов/статусов/кастомных полей/порядка колонок перенесена в `hooks/use-clients-data.ts`.
+3. `components/psychologist/settings-form.tsx` частично декомпозирован:
+   - загрузка профиля и аккаунтов перенесена в `hooks/use-profile-settings.ts`;
+   - загрузка custom fields/statuses перенесена в `hooks/use-custom-fields-settings.ts` и `hooks/use-client-statuses-settings.ts`.
+
+### Правила для дальнейшего рефакторинга
+
+- Крупные экраны дробить в порядке:
+  1) hooks (данные и бизнес-логика),
+  2) подкомпоненты (UI-блоки),
+  3) утилиты (`lib/*`).
+- Перед добавлением нового `useEffect` с `fetch` проверьте, можно ли выразить сценарий через Query hook.
+- Для мутаций всегда определяйте стратегию:
+  - оптимистичное обновление (`setQueryData`) и/или
+  - `invalidateQueries` после успешного действия.
 
 ### Тесты
 
