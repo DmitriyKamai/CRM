@@ -25,6 +25,7 @@ const AVATAR_COLORS = [
 
 const CLIENTS_TABLE_SORT_HEADER_BTN_CLASS =
   "inline-flex h-8 w-max max-w-full shrink-0 items-center justify-start gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground";
+const CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS = "flex min-h-8 items-center";
 
 type CustomFieldDefLike = { label: string };
 
@@ -158,16 +159,24 @@ export function useClientsTableColumns(opts: {
         ),
         cell: ({ row }) => {
           const { statusLabel, statusColor } = row.original;
-          if (!statusLabel) return <span className="text-xs text-muted-foreground">—</span>;
+          if (!statusLabel) {
+            return (
+              <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+                <span className="text-xs text-muted-foreground">—</span>
+              </div>
+            );
+          }
           const displayLabel = statusLabel.length > 16 ? `${statusLabel.slice(0, 16)}…` : statusLabel;
           return (
-            <span
-              className="inline-flex min-w-[8rem] items-center justify-center rounded-md px-2 py-0.5 text-[11px] font-medium text-white whitespace-nowrap"
-              style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
-              title={statusLabel.length > 16 ? statusLabel : undefined}
-            >
-              {displayLabel}
-            </span>
+            <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+              <span
+                className="inline-flex min-w-[8rem] items-center justify-center rounded-md px-2 py-0.5 text-[11px] font-medium text-white whitespace-nowrap"
+                style={{ backgroundColor: statusColor ?? "hsl(217 91% 60%)" }}
+                title={statusLabel.length > 16 ? statusLabel : undefined}
+              >
+                {displayLabel}
+              </span>
+            </div>
           );
         }
       },
@@ -223,16 +232,28 @@ export function useClientsTableColumns(opts: {
         ),
         cell: ({ row }) => {
           const v = row.original.dateOfBirth;
-          if (!v) return <span className="text-muted-foreground">—</span>;
+          if (!v) {
+            return (
+              <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+                <span className="text-muted-foreground">—</span>
+              </div>
+            );
+          }
           try {
             const d = typeof v === "string" ? new Date(v) : v;
             return (
-              <span className="inline-block min-w-[8rem] text-muted-foreground whitespace-nowrap">
-                {d.toLocaleDateString("ru-RU")}
-              </span>
+              <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+                <span className="inline-block min-w-[8rem] text-muted-foreground whitespace-nowrap">
+                  {d.toLocaleDateString("ru-RU")}
+                </span>
+              </div>
             );
           } catch {
-            return <span className="text-muted-foreground">—</span>;
+            return (
+              <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+                <span className="text-muted-foreground">—</span>
+              </div>
+            );
           }
         }
       },
@@ -244,12 +265,14 @@ export function useClientsTableColumns(opts: {
           </span>
         ),
         cell: ({ row }) => (
-          <span
-            className="inline-block max-w-[10rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
-            title={row.original.country ?? ""}
-          >
-            {row.original.country ?? "—"}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span
+              className="inline-block max-w-[10rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
+              title={row.original.country ?? ""}
+            >
+              {row.original.country ?? "—"}
+            </span>
+          </div>
         )
       },
       {
@@ -260,12 +283,14 @@ export function useClientsTableColumns(opts: {
           </span>
         ),
         cell: ({ row }) => (
-          <span
-            className="inline-block max-w-[10rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
-            title={row.original.city ?? ""}
-          >
-            {row.original.city ?? "—"}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span
+              className="inline-block max-w-[10rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
+              title={row.original.city ?? ""}
+            >
+              {row.original.city ?? "—"}
+            </span>
+          </div>
         )
       },
       {
@@ -276,9 +301,11 @@ export function useClientsTableColumns(opts: {
           </span>
         ),
         cell: ({ row }) => (
-          <span className="inline-block min-w-[6rem] text-muted-foreground whitespace-nowrap">
-            {row.original.gender ?? "—"}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span className="inline-block min-w-[6rem] text-muted-foreground whitespace-nowrap">
+              {row.original.gender ?? "—"}
+            </span>
+          </div>
         )
       },
       {
@@ -289,12 +316,14 @@ export function useClientsTableColumns(opts: {
           </span>
         ),
         cell: ({ row }) => (
-          <span
-            className="inline-block max-w-[12rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
-            title={row.original.maritalStatus ?? ""}
-          >
-            {row.original.maritalStatus ?? "—"}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span
+              className="inline-block max-w-[12rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
+              title={row.original.maritalStatus ?? ""}
+            >
+              {row.original.maritalStatus ?? "—"}
+            </span>
+          </div>
         )
       },
       {
@@ -306,15 +335,23 @@ export function useClientsTableColumns(opts: {
         ),
         cell: ({ row }) => {
           const n = row.original.notes;
-          if (!n || !n.trim()) return <span className="text-muted-foreground">—</span>;
+          if (!n || !n.trim()) {
+            return (
+              <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+                <span className="text-muted-foreground">—</span>
+              </div>
+            );
+          }
           const short = n.length > 40 ? `${n.slice(0, 40)}…` : n;
           return (
-            <span
-              className="inline-block max-w-[18rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
-              title={n}
-            >
-              {short}
-            </span>
+            <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+              <span
+                className="inline-block max-w-[18rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
+                title={n}
+              >
+                {short}
+              </span>
+            </div>
           );
         }
       },
@@ -332,9 +369,11 @@ export function useClientsTableColumns(opts: {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="inline-block min-w-[14rem] text-muted-foreground whitespace-nowrap">
-            {row.original.email ?? "—"}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span className="inline-block min-w-[14rem] text-muted-foreground whitespace-nowrap">
+              {row.original.email ?? "—"}
+            </span>
+          </div>
         )
       },
       {
@@ -350,19 +389,23 @@ export function useClientsTableColumns(opts: {
           const label = formatPhoneDisplay(p);
           if (!href || label === "—") {
             return (
-              <span className="inline-block min-w-[10rem] text-muted-foreground whitespace-nowrap">
-                {label}
-              </span>
+              <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+                <span className="inline-block min-w-[10rem] text-muted-foreground whitespace-nowrap">
+                  {label}
+                </span>
+              </div>
             );
           }
           return (
-            <a
-              href={href}
-              className="inline-block min-w-[10rem] text-primary underline-offset-2 hover:underline whitespace-nowrap"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {label}
-            </a>
+            <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+              <a
+                href={href}
+                className="inline-block min-w-[10rem] text-primary underline-offset-2 hover:underline whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {label}
+              </a>
+            </div>
           );
         }
       },
@@ -381,9 +424,11 @@ export function useClientsTableColumns(opts: {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="inline-block min-w-[8rem] text-muted-foreground whitespace-nowrap">
-            {new Date(row.original.createdAt).toLocaleDateString("ru-RU")}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span className="inline-block min-w-[8rem] text-muted-foreground whitespace-nowrap">
+              {new Date(row.original.createdAt).toLocaleDateString("ru-RU")}
+            </span>
+          </div>
         )
       },
       ...tableCustomFieldDefs.map((def) => ({
@@ -391,12 +436,14 @@ export function useClientsTableColumns(opts: {
         accessorFn: (row: ClientDto) => (row.customFields ?? {})[def.label],
         header: () => <span className="text-xs font-medium text-muted-foreground">{def.label}</span>,
         cell: ({ row }: { row: { original: ClientDto } }) => (
-          <span
-            className="inline-block max-w-[12rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
-            title={String((row.original.customFields ?? {})[def.label] ?? "")}
-          >
-            {formatCustomFieldValue((row.original.customFields ?? {})[def.label])}
-          </span>
+          <div className={CLIENTS_TABLE_CELL_ALIGN_WITH_NAME_CLASS}>
+            <span
+              className="inline-block max-w-[12rem] overflow-hidden text-ellipsis text-muted-foreground whitespace-nowrap"
+              title={String((row.original.customFields ?? {})[def.label] ?? "")}
+            >
+              {formatCustomFieldValue((row.original.customFields ?? {})[def.label])}
+            </span>
+          </div>
         )
       }))
     ],
