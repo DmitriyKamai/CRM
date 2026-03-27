@@ -56,6 +56,14 @@
 | `schedule/slots/cleanup` | POST | Явная очистка застрявших/прошлых пустых слотов текущего психолога |
 | `schedule/slots/[id]` | PATCH/DELETE | Управление слотом |
 | `cron/schedule-slot-cleanup` | GET | Фоновая глобальная очистка (Bearer `CRON_SECRET`, Vercel Cron `*/15 * * * *`) |
+
+## Календарь (ICS)
+
+| Роут | Метод | Описание |
+|------|-------|----------|
+| `calendar/feed-url` | GET | `{ url, lastFetchedAt, createdAt }` — ссылка на ICS и время последнего успешного запроса фида |
+| `calendar/feed-url` | POST | Перевыпуск токена; тело ответа как у GET |
+| `calendar/feed` | GET | ICS по `?token=` (обновляет `lastFetchedAt` у токена) |
 | `schedule/psychologists` | GET | Список психологов (публичный) |
 | `schedule/psychologists/[id]/slots` | GET | Свободные слоты (публичный) |
 | `appointments` | POST | Запись на приём |

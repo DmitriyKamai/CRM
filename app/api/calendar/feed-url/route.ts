@@ -43,7 +43,15 @@ export async function GET(request: NextRequest) {
     const token = await getOrCreateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);
     const url = `${baseUrl}/api/calendar/feed?token=${encodeURIComponent(token)}`;
-    return NextResponse.json({ url });
+    const meta = await prisma.calendarFeedToken.findUnique({
+      where: { psychologistId: ctx.psychologistId },
+      select: { lastFetchedAt: true, createdAt: true }
+    });
+    return NextResponse.json({
+      url,
+      lastFetchedAt: meta?.lastFetchedAt?.toISOString() ?? null,
+      createdAt: meta?.createdAt?.toISOString() ?? null
+    });
   } catch (err) {
     console.error("[GET /api/calendar/feed-url]", err);
     return NextResponse.json(
@@ -77,6 +85,10 @@ export async function POST(request: NextRequest) {
     const token = await rotateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);
     const url = `${baseUrl}/api/calendar/feed?token=${encodeURIComponent(token)}`;
+    const meta = await prisma.calendarFeedToken.findUnique({
+      where: { psychologistId: ctx.psychologistId },
+      select: { lastFetchedAt: true, createdAt: true }
+    });
 
     await safeLogAudit({
       action: "CALENDAR_FEED_TOKEN_ROTATE",
@@ -88,7 +100,11 @@ export async function POST(request: NextRequest) {
       ip
     });
 
-    return NextResponse.json({ url });
+    return NextResponse.json({
+      url,
+      lastFetchedAt: meta?.lastFetchedAt?.toISOString() ?? null,
+      createdAt: meta?.createdAt?.toISOString() ?? null
+    });
   } catch (err) {
     console.error("[POST /api/calendar/feed-url]", err);
     return NextResponse.json(

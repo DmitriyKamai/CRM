@@ -219,10 +219,12 @@ model PsychologistProfile {
 
 /// Секретная ссылка ICS-календаря (можно перевыпустить — старая перестаёт работать).
 model CalendarFeedToken {
-  id             String   @id @default(cuid())
-  token          String   @unique
-  psychologistId String   @unique
-  createdAt      DateTime @default(now())
+  id             String    @id @default(cuid())
+  token          String    @unique
+  psychologistId String    @unique
+  createdAt      DateTime  @default(now())
+  /// Когда внешний календарь последний раз успешно запросил ICS (best-effort).
+  lastFetchedAt  DateTime?
 
   psychologist PsychologistProfile @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
 

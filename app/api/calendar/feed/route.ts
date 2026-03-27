@@ -84,6 +84,15 @@ export async function GET(request: NextRequest) {
 
     const ics = buildIcs(slotsForIcs, calendarName);
 
+    void prisma.calendarFeedToken
+      .update({
+        where: { token },
+        data: { lastFetchedAt: new Date() }
+      })
+      .catch(() => {
+        /* не блокируем выдачу фида */
+      });
+
     return new NextResponse(ics, {
       status: 200,
       headers: {

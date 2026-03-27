@@ -44,7 +44,7 @@ export async function rotateCalendarFeedToken(
   await prisma.calendarFeedToken.upsert({
     where: { psychologistId },
     create: { psychologistId, token },
-    update: { token }
+    update: { token, lastFetchedAt: null }
   });
   return token;
 }
