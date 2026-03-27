@@ -4,6 +4,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
 import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
+import { getClientsQuerySchema } from "@/lib/clients/clients-query-schema";
+import { buildClientsWhere } from "@/lib/clients/build-clients-where";
 import { requirePsychologist, requireRoles } from "@/lib/security/api-guards";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 
@@ -29,18 +31,40 @@ const bulkDeleteSchema = z.object({
   ids: z.array(z.string().min(1)).min(1)
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     return await withPrismaLock(async () => {
       const auth = await requireRoles(["PSYCHOLOGIST"]);
       if (!auth.ok) return auth.response;
+      const { searchParams } = new URL(request.url);
+      const parsedQuery = getClientsQuerySchema.safeParse({
+        page: searchParams.get("page") ?? undefined,
+        pageSize: searchParams.get("pageSize") ?? undefined,
+        statusId: searchParams.get("statusId") ?? undefined,
+        q: searchParams.get("q") ?? undefined
+      });
+      if (!parsedQuery.success) {
+        return NextResponse.json(
+          { message: "Некорректные параметры пагинации" },
+          { status: 400 }
+        );
+      }
+      const { page, pageSize, statusId, q } = parsedQuery.data;
       const profile = await prisma.psychologistProfile.findUnique({
         where: { userId: auth.userId },
         select: { id: true }
       });
 
       if (!profile) {
-        return NextResponse.json({ clients: [] });
+        return NextResponse.json({
+          clients: [],
+          pagination: {
+            page,
+            pageSize,
+            total: 0,
+            totalPages: 1
+          }
+        });
       }
 
       const selectBase = {
@@ -75,9 +99,14 @@ export async function GET() {
         maritalStatus?: string | null;
       };
 
+      const where = buildClientsWhere(profile.id, { statusId, q });
+      const total = await prisma.clientProfile.count({ where });
+
       const clients = (await prisma.clientProfile.findMany({
-        where: { psychologistId: profile.id },
+        where,
         orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
         select: {
           ...selectBase,
           country: true,
@@ -141,7 +170,13 @@ export async function GET() {
             statusColor: c.status?.color ?? null,
             ...(customFields && Object.keys(customFields).length > 0 ? { customFields } : {})
           };
-        })
+        }),
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / pageSize))
+        }
       });
     });
   } catch (err) {

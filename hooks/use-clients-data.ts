@@ -26,20 +26,44 @@ export type ClientDto = {
 
 export type ClientStatus = { id: string; label: string; color: string };
 export type CustomFieldDef = { id: string; label: string };
+export type ClientsPaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
 
 const CLIENTS_KEY = ["psychologist-clients"] as const;
 const STATUSES_KEY = ["psychologist-client-statuses"] as const;
 const CUSTOM_FIELDS_KEY = ["psychologist-custom-field-defs"] as const;
 const COL_ORDER_KEY = ["psychologist-clients-table-column-order"] as const;
 
-async function fetchClients(): Promise<ClientDto[]> {
-  const res = await fetch("/api/psychologist/clients");
+type FetchClientsParams = {
+  page: number;
+  pageSize: number;
+  statusId?: string;
+  search?: string;
+};
+
+async function fetchClients(params: FetchClientsParams): Promise<{
+  clients: ClientDto[];
+  pagination: ClientsPaginationMeta;
+}> {
+  const qs = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize)
+  });
+  if (params.statusId) qs.set("statusId", params.statusId);
+  if (params.search) qs.set("q", params.search);
+  const res = await fetch(`/api/psychologist/clients?${qs.toString()}`);
   if (!res.ok) {
     const d = await res.json().catch(() => null);
     throw new Error(d?.message ?? "Не удалось загрузить клиентов");
   }
-  const data = (await res.json()) as { clients: ClientDto[] };
-  return data.clients;
+  return (await res.json()) as {
+    clients: ClientDto[];
+    pagination: ClientsPaginationMeta;
+  };
 }
 
 async function fetchStatuses(): Promise<ClientStatus[]> {
@@ -104,15 +128,31 @@ async function bulkDeleteClientsApi(ids: string[]): Promise<void> {
   if (!res.ok) throw new Error(data?.message ?? "Не удалось удалить выбранных клиентов");
 }
 
-export function useClientsData() {
+export function useClientsData(params?: {
+  page?: number;
+  pageSize?: number;
+  statusId?: string;
+  search?: string;
+}) {
+  const page = Math.max(1, params?.page ?? 1);
+  const pageSize = Math.min(50, Math.max(20, params?.pageSize ?? 20));
+  const statusId = params?.statusId;
+  const rawSearch = (params?.search ?? "").trim();
+  const search = rawSearch.length >= 2 ? rawSearch : "";
   const qc = useQueryClient();
 
-  const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useQuery({
-    queryKey: CLIENTS_KEY,
-    queryFn: fetchClients,
+  const {
+    data: clientsData,
+    isLoading: clientsLoading,
+    isFetching: clientsFetching,
+    error: clientsError
+  } = useQuery({
+    queryKey: [...CLIENTS_KEY, page, pageSize, statusId ?? "ALL", search],
+    queryFn: () => fetchClients({ page, pageSize, statusId, search: search || undefined }),
     // Списки клиентов редко должны обновляться "на каждый рендер".
     staleTime: 5 * 60 * 1000,
-    refetchOnReconnect: false
+    refetchOnReconnect: false,
+    placeholderData: (previousData) => previousData
   });
 
   const { data: statuses = [] } = useQuery({
@@ -160,8 +200,15 @@ export function useClientsData() {
   });
 
   function updateClientInCache(id: string, patch: Partial<ClientDto>) {
-    qc.setQueryData<ClientDto[]>(CLIENTS_KEY, prev =>
-      prev?.map(c => (c.id === id ? { ...c, ...patch } : c))
+    qc.setQueriesData<{ clients: ClientDto[]; pagination: ClientsPaginationMeta }>(
+      { queryKey: CLIENTS_KEY },
+      prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          clients: prev.clients.map(c => (c.id === id ? { ...c, ...patch } : c))
+        };
+      }
     );
   }
 
@@ -170,9 +217,16 @@ export function useClientsData() {
   }
 
   return {
-    clients,
+    clients: clientsData?.clients ?? [],
     clientsLoading,
+    clientsFetching,
     clientsError: clientsError ? (clientsError as Error).message : null,
+    pagination: clientsData?.pagination ?? {
+      page,
+      pageSize,
+      total: 0,
+      totalPages: 1
+    },
     statuses,
     customFieldDefs,
     columnOrder: columnOrder ?? null,

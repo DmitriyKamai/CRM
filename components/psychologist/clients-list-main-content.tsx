@@ -21,7 +21,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
 import { ClientsActionsToolbar } from "@/components/psychologist/clients-actions-toolbar";
 import { ClientsListScaleShell } from "@/components/psychologist/clients-list-scale-shell";
-import type { ClientDto, CustomFieldDef } from "@/hooks/use-clients-data";
+import { ClientsListControls } from "@/components/psychologist/clients-list-controls";
+import { ClientsListPagination } from "@/components/psychologist/clients-list-pagination";
+import type { ClientDto, ClientsPaginationMeta, CustomFieldDef } from "@/hooks/use-clients-data";
 import type {
   ClientsImportCustomDef,
   ClientsImportField,
@@ -47,6 +49,13 @@ export function ClientsListMainContent(props: {
   clients: ClientDto[];
   loading: boolean;
   visibleClients: ClientDto[];
+  pagination: ClientsPaginationMeta;
+  onPageChange: (page: number) => void;
+  searchInput: string;
+  onSearchInputChange: (value: string) => void;
+  isSearchTooShort: boolean;
+  pageSize: number;
+  onPageSizeChange: (value: number) => void;
   googleSheetsOAuthConfigured: boolean | null;
   clientsExport: Pick<
     UseClientsExportReturn,
@@ -83,6 +92,13 @@ export function ClientsListMainContent(props: {
     clients,
     loading,
     visibleClients,
+    pagination,
+    onPageChange,
+    searchInput,
+    onSearchInputChange,
+    isSearchTooShort,
+    pageSize,
+    onPageSizeChange,
     googleSheetsOAuthConfigured,
     clientsExport,
     bulkDeletePending,
@@ -145,7 +161,7 @@ export function ClientsListMainContent(props: {
           )}
         </div>
         <ClientsActionsToolbar
-          clientsCount={clients.length}
+          clientsCount={pagination.total}
           googleSheetsOAuthConfigured={googleSheetsOAuthConfigured}
           exporting={clientsExport.exporting}
           onExport={clientsExport.handleExport}
@@ -255,19 +271,27 @@ export function ClientsListMainContent(props: {
           </div>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={visibleClients}
-          filterColumnId="search"
-          filterPlaceholder="Поиск по имени, email или телефону..."
-          columnLabels={getClientsColumnLabels(tableCustomFieldDefs)}
-          initialColumnVisibility={getClientsInitialColumnVisibility(tableCustomFieldDefs)}
-          visibilityStorageKey="psychologist-clients-table-columns"
-          minTableWidthClassName="min-w-[56rem] xl:min-w-[1500px]"
-          initialColumnOrder={clientsTableColumnOrder}
-          onColumnOrderPersist={persistClientsTableColumnOrder}
-          onRowClick={onRowClick}
-        />
+        <div className="space-y-3">
+          <ClientsListControls
+            searchInput={searchInput}
+            onSearchInputChange={onSearchInputChange}
+            isSearchTooShort={isSearchTooShort}
+            pageSize={pageSize}
+            onPageSizeChange={onPageSizeChange}
+          />
+          <DataTable
+            columns={columns}
+            data={visibleClients}
+            columnLabels={getClientsColumnLabels(tableCustomFieldDefs)}
+            initialColumnVisibility={getClientsInitialColumnVisibility(tableCustomFieldDefs)}
+            visibilityStorageKey="psychologist-clients-table-columns"
+            minTableWidthClassName="min-w-[56rem] xl:min-w-[1500px]"
+            initialColumnOrder={clientsTableColumnOrder}
+            onColumnOrderPersist={persistClientsTableColumnOrder}
+            onRowClick={onRowClick}
+          />
+          <ClientsListPagination pagination={pagination} onPageChange={onPageChange} />
+        </div>
       )}
     </ClientsListScaleShell>
   );

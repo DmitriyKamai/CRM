@@ -281,6 +281,8 @@ model ClientProfile {
   @@index([psychologistId])
   @@index([email])
   @@index([statusId])
+  @@index([psychologistId, createdAt(sort: Desc)])
+  @@index([psychologistId, statusId, createdAt(sort: Desc)])
 
   testResults         TestResult[]
   appointments        Appointment[]      @relation("ClientAppointments")

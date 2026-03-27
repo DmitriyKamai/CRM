@@ -1,12 +1,12 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClientsListMainContent } from "@/components/psychologist/clients-list-main-content";
 import { ClientsProfileOverlay } from "@/components/psychologist/clients-profile-overlay";
 import { ClientsCreateDialog } from "@/components/psychologist/clients-create-dialog";
-import { useClientsData, type ClientDto } from "@/hooks/use-clients-data";
+import { useClientsData } from "@/hooks/use-clients-data";
 import {
   useClientsImport,
   type ClientsImportCustomDef,
@@ -16,6 +16,9 @@ import { useClientsExport } from "@/hooks/use-clients-export";
 import { useGoogleSheetsStatus } from "@/hooks/use-google-sheets-status";
 import { useClientsListScale } from "@/hooks/use-clients-list-scale";
 import { useClientsTableColumns } from "@/hooks/use-clients-table-columns";
+import { useClientsListQueryState } from "@/hooks/use-clients-list-query-state";
+import { useClientsSelection } from "@/hooks/use-clients-selection";
+import { useClientsProfileUrlSync } from "@/hooks/use-clients-profile-url-sync";
 import { downloadClientsImportTemplateCsv } from "@/lib/clients-import-template";
 
 const IMPORT_FIELDS: ClientsImportField[] = [
@@ -42,11 +45,18 @@ export function PsychologistClientsList({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryState = useClientsListQueryState();
+  const statusFilter = queryState.statusFilter;
+  const page = queryState.page;
+  const searchQuery = queryState.searchQuery;
+  const setPage = queryState.setPage;
 
   const {
     clients,
     clientsLoading: loading,
+    clientsFetching,
     clientsError,
+    pagination,
     statuses,
     customFieldDefs: tableCustomFieldDefs,
     columnOrder: clientsTableColumnOrder,
@@ -56,31 +66,20 @@ export function PsychologistClientsList({
     bulkDeleteClients,
     updateClientInCache,
     invalidateClients
-  } = useClientsData();
+  } = useClientsData({
+    page,
+    pageSize: queryState.pageSize,
+    statusId: statusFilter === "ALL" ? undefined : statusFilter,
+    search: searchQuery
+  });
 
   const [actionError, setActionError] = useState<string | null>(null);
   const error = actionError ?? clientsError;
 
   const [addOpen, setAddOpen] = useState(false);
-  const [profileClient, setProfileClient] = useState<ClientDto | null>(null);
-
-  // Синхронизация профиля с URL: при переходе по ссылке «Клиенты» в навбаре (без ?profile=) закрываем профиль
-  const profileIdFromUrl = searchParams.get("profile");
-  useEffect(() => {
-    void (async () => {
-      if (!profileIdFromUrl) {
-        setProfileClient(null);
-        return;
-      }
-      const client = clients.find(c => c.id === profileIdFromUrl);
-      if (client) setProfileClient(client);
-    })();
-  }, [profileIdFromUrl, clients]);
-
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { profileClient, setProfileClient, openProfile, closeProfile } = useClientsProfileUrlSync(clients);
+  const selection = useClientsSelection(clients.map(c => c.id));
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const {
     oauthConfigured: googleSheetsOAuthConfigured,
@@ -105,7 +104,7 @@ export function PsychologistClientsList({
   });
 
   const clientsExport = useClientsExport({
-    clientsCount: clients.length,
+    clientsCount: pagination.total,
     statusFilter,
     googleSheetsOAuthConfigured,
     googleSheetsGoogleConnected,
@@ -134,32 +133,21 @@ export function PsychologistClientsList({
   }, [clientsExport, pathname, router, searchParams]);
 
   const listScaleState = useClientsListScale({
-    deps: [loading, clients.length, statusFilter]
+    deps: [loading, clients.length, statusFilter, page, searchQuery]
   });
+
+  useEffect(() => {
+    if (page > pagination.totalPages) {
+      setPage(pagination.totalPages);
+    }
+  }, [page, setPage, pagination.totalPages]);
 
   function downloadTemplate() {
     downloadClientsImportTemplateCsv(IMPORT_FIELDS.map((f) => f.label));
   }
 
-  const toggleOne = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const toggleAll = useCallback((checked: boolean) => {
-    if (!checked) {
-      setSelectedIds(new Set());
-      return;
-    }
-    setSelectedIds(new Set(clients.map(c => c.id)));
-  }, [clients]);
-
   function openBulkDeleteDialog() {
-    if (selectedIds.size === 0) return;
+    if (selection.selectedCount === 0) return;
     setBulkDeleteDialogOpen(true);
   }
 
@@ -167,9 +155,8 @@ export function PsychologistClientsList({
     setBulkDeleteDialogOpen(false);
     setActionError(null);
     try {
-      await bulkDeleteClients.mutateAsync(Array.from(selectedIds));
-      setSelectedIds(new Set());
-      setMultiSelectMode(false);
+      await bulkDeleteClients.mutateAsync(selection.selectedIdsArray);
+      selection.cancelMultiSelect();
     } catch (err) {
       console.error(err);
       setActionError(err instanceof Error ? err.message : "Не удалось удалить выбранных клиентов");
@@ -178,10 +165,10 @@ export function PsychologistClientsList({
 
   const { columns } = useClientsTableColumns({
     clientsCount: clients.length,
-    selectedIds,
-    multiSelectMode,
-    toggleAll,
-    toggleOne,
+    selectedIds: selection.selectedIds,
+    multiSelectMode: selection.multiSelectMode,
+    toggleAll: selection.toggleAll,
+    toggleOne: selection.toggleOne,
     tableCustomFieldDefs
   });
 
@@ -192,10 +179,7 @@ export function PsychologistClientsList({
         client={profileClient}
         schedulingEnabled={schedulingEnabled}
         diagnosticsEnabled={diagnosticsEnabled}
-        onBack={() => {
-          setProfileClient(null);
-          router.replace(pathname);
-        }}
+        onBack={closeProfile}
         onInvalidateClients={invalidateClients}
         onUpdateClientInCache={updateClientInCache}
         onLocalPatchClient={(patch) =>
@@ -215,11 +199,6 @@ export function PsychologistClientsList({
     );
   }
 
-  const visibleClients =
-    statusFilter === "ALL"
-      ? clients
-      : clients.filter((c) => c.statusId === statusFilter);
-
   return (
     <TooltipProvider>
       <div className="px-3 py-4 sm:px-6">
@@ -227,21 +206,24 @@ export function PsychologistClientsList({
           listScaleState={listScaleState}
           statuses={statuses}
           statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          multiSelectMode={multiSelectMode}
-          selectedIds={selectedIds}
-          onEnableMultiSelect={() => {
-            setSelectedIds(new Set());
-            setMultiSelectMode(true);
+          onStatusFilterChange={(next) => {
+            queryState.onStatusFilterChange(next);
           }}
-          onCancelMultiSelect={() => {
-            setSelectedIds(new Set());
-            setMultiSelectMode(false);
-          }}
+          multiSelectMode={selection.multiSelectMode}
+          selectedIds={selection.selectedIds}
+          onEnableMultiSelect={selection.enableMultiSelect}
+          onCancelMultiSelect={selection.cancelMultiSelect}
           onOpenBulkDeleteDialog={openBulkDeleteDialog}
           clients={clients}
-          loading={loading}
-          visibleClients={visibleClients}
+          loading={loading || clientsFetching}
+          visibleClients={clients}
+          pagination={pagination}
+          onPageChange={queryState.setPage}
+          searchInput={queryState.searchInput}
+          onSearchInputChange={queryState.setSearchInput}
+          isSearchTooShort={queryState.isSearchTooShort}
+          pageSize={queryState.pageSize}
+          onPageSizeChange={queryState.onPageSizeChange}
           googleSheetsOAuthConfigured={googleSheetsOAuthConfigured}
           clientsExport={clientsExport}
           bulkDeletePending={bulkDeleteClients.isPending}
@@ -260,12 +242,9 @@ export function PsychologistClientsList({
           clientsTableColumnOrder={clientsTableColumnOrder}
           persistClientsTableColumnOrder={persistClientsTableColumnOrder}
           onRowClick={
-            multiSelectMode
-              ? (client) => toggleOne(client.id)
-              : (client) => {
-                  setProfileClient(client);
-                  router.replace(`${pathname}?profile=${client.id}`);
-                }
+            selection.multiSelectMode
+              ? (client) => selection.toggleOne(client.id)
+              : openProfile
           }
           onOpenAddClient={() => setAddOpen(true)}
         />
