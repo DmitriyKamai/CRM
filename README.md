@@ -1,202 +1,147 @@
-## Psychologist CRM
+# Empatix
 
-CRM для психологов и их клиентов:
+CRM для психологов и их клиентов: клиентская база, расписание и запись на приём, психологические диагностики, администрирование и интеграции.
 
-- **Для психолога**: профили клиентов, опросник Шмишека, отправка ссылок на диагностику, расписание приёмов, пользовательские поля.
-- **Для клиента**: запись к психологу, просмотр результатов диагностики, рекомендации.
-- **Админка**: управление пользователями, ролями и диагностическими опросниками.
+| Роль | Возможности |
+|------|-------------|
+| **Психолог** | Клиенты (в т.ч. офлайн без аккаунта), статусы и пользовательские поля, импорт/экспорт, расписание, ссылки на тесты, рекомендации, подписка на календарь (ICS), опционально Google Таблицы |
+| **Клиент** | Запись к психологу, личный кабинет, прохождение тестов по ссылке |
+| **Администратор** | Пользователи и роли, модули платформы, аудит, управление тестами |
 
-Основной стек:
+## Стек
 
-- **Next.js 16 (App Router) + React + TypeScript**
-- **Tailwind CSS** + собственные компоненты в стиле `shadcn/ui`
-- **NextAuth v4** для аутентификации (email/пароль, Google, Apple ID)
-- **PostgreSQL + Prisma** для работы с данными
+- **Next.js 16** (App Router), **React**, **TypeScript**
+- **Prisma** + **PostgreSQL**
+- **NextAuth** (email/пароль, Google, Apple — по настройке `.env`)
+- **TanStack Query** (server state), **Redux Toolkit** (часть клиентского UI-state)
+- **Tailwind CSS**, компоненты в духе **shadcn/ui** (Radix)
+- Заголовки безопасности и CSP — **`proxy.ts`** (в Next.js 16 вместо `middleware.ts`)
 
-### Аутентификация и роли
-
-- Используется **NextAuth v4** с:
-  - провайдером `credentials` (email + пароль);
-  - OAuth-провайдерами **Google** и **Apple ID** (нужно задать переменные окружения).
-- Бэкенд аутентификации:
-  - конфигурация в `lib/auth.ts` (`authOptions`, провайдеры, коллбэки с ролью пользователя);
-  - обработчик `/api/auth/[...nextauth]` в `app/api/auth/[...nextauth]/route.ts`.
-- Регистрация:
-  - API `POST /api/auth/register` создаёт пользователя с ролью `CLIENT` или `PSYCHOLOGIST` и соответствующий профиль;
-  - UI-страницы:
-    - `/auth/login` – вход (email/пароль + кнопки входа через Google/Apple);
-    - `/auth/register/psychologist` – регистрация психолога;
-    - `/auth/register/client` – регистрация клиента.
-- **Первый администратор**: в `.env` задайте `INITIAL_ADMIN_EMAIL=ваш@email.com`. Пользователь с этим email при первом входе (логин или OAuth) получит роль `ADMIN` и доступ в `/admin`. Дальше новых админов можно назначать в разделе «Пользователи» админки.
-
-### Windows: `EPERM` при `prisma generate`
-
-Сообщение вида `operation not permitted, rename ... query_engine-windows.dll.node` значит, что **файл движка Prisma занят** другим процессом.
-
-1. Остановите **все** процессы Node: dev-сервер (`npm run dev:*`), бота, тесты, лишние терминалы в Cursor/VS Code.
-2. Закройте вкладки, где открыт проект из OneDrive/синхронизируемой папки (по возможности держите репозиторий вне облака).
-3. В корне репозитория выполните:
-   ```bash
-   npm run prisma:generate:clean
-   ```
-   Скрипт удаляет `node_modules/.prisma` и снова вызывает `prisma generate`.
-
-4. **Если EPERM не исчезает** — DLL всё ещё занят (часто Cursor, расширение Prisma или `node`). Закройте **Cursor / VS Code полностью**, откройте **отдельный PowerShell** (`Win+R` → `powershell`), перейдите в папку проекта и выполните:
-   ```powershell
-   cd <корень-репозитория>   # например D:\CRM
-   .\scripts\prisma-generate-windows.ps1 -KillNode
-   ```
-   (`-KillNode` гасит все `node.exe`, поэтому **не** запускайте это через `npm run` — сначала закройте редактор.) Скрипт удалит `node_modules\.prisma` и вызовет `prisma generate`.
-
-Если снова EPERM — антивирус / облачная синхронизация папки или перезагрузка ПК, затем повторите шаг 4.
-
-### Windows: сборка падает с кодом `3221225477` (или `0xC0000005`)
-
-Это **падение нативного процесса** (часто Turbopack / SWC / память), не обычная JS-ошибка.
-
-1. **`npm run build` уже вызывает `next build --webpack`** — в Next.js 16 дефолтная сборка через Turbopack на Windows нередко падает; Webpack стабильнее.
-2. Задан **`NODE_OPTIONS=--max-old-space-size=8192`**. При нехватке памяти поднимите, например:  
-   `$env:NODE_OPTIONS="--max-old-space-size=12288"`
-3. **React Compiler по умолчанию выключен** в `next.config.mjs`. Включать только при необходимости:  
-   `$env:NEXT_REACT_COMPILER="1"`
-4. Очистите кэш и пересоберите:
-   ```powershell
-   Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
-   npm run build
-   ```
-5. Только Next (без миграций), чтобы проверить, что падает именно сборка: `npm run build:next`
-6. **Node 20/22 LTS**, проект вне OneDrive, по возможности исключение папки в антивирусе; при необходимости — сборка из **WSL**.
-
-ESLint при **`next build`** в Next.js 16 не настраивается через `next.config` — перед деплоем гоняйте **`npm run lint`**.
-
-На Windows при **0xC0000005** после сборки в `next.config.mjs` для **win32** включено: **`experimental.cpus`** (по умолчанию 2, переопределение **`NEXT_BUILD_CPUS=1`**), **`workerThreads: true`**, **`webpackBuildWorker: false`**. После обновления конфига снова выполните **`npm run build`**.
-
-### Как запускать проект
-
-1. Установите зависимости:
+## Быстрый старт
 
 ```bash
 npm install
+cp .env.example .env
+# Заполните DATABASE_URL, DIRECT_DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
+npm run prisma:migrate
+npm run prisma:seed   # опционально: вопросы Шмишека, Павлова, СМИЛ
 ```
 
-2. Запустите дев-сервер:
+### Режимы разработки
+
+| Команда | Назначение |
+|---------|------------|
+| **`npm run dev:turbopack`** | Dev с HMR (Turbopack). На части страниц возможны сбои — см. ниже. |
+| **`npm run dev:no`** | Dev с HMR (**Webpack**) — обычно стабильнее на Windows. |
+| **`npm run dev`** / **`npm run dev:stable`** | **Не hot-reload:** `next build && next start` — как мини-прод для проверки. |
+
+Откройте [http://localhost:3000](http://localhost:3000).
+
+**Сеть / телефон:** в `.env` укажите `NEXTAUTH_URL` с IP вашего ПК в LAN (например `http://192.168.1.10:3000`), иначе сессия с других устройств может не работать.
+
+**Страница `/psychologist/settings` в dev:** при падениях процесса используйте `npm run dev:no` или `npm run dev:stable`.
+
+### Проверки перед коммитом / деплоем
 
 ```bash
-npm run dev
+npm run lint
+npm run typecheck
+npm run test
 ```
 
-3. Откройте `http://localhost:3000` в браузере.
+Полная production-сборка (миграции + webpack-сборка): **`npm run build`**.
 
-**Если заходите с другого устройства** (телефон, планшет по Wi‑Fi): в `.env` задайте `NEXTAUTH_URL` с адресом вашего ПК в сети, например `NEXTAUTH_URL=http://192.168.1.10:3000`, и перезапустите `npm run dev`. Иначе возможна ошибка «network error» при запросе сессии.
+## Скрипты npm (выборочно)
 
-**Страница настроек в dev:** в режиме `npm run dev:turbopack` или `npm run dev:no` процесс dev-сервера может завершаться при открытии `/psychologist/settings`. В production (`npm run start`) страница работает стабильно. Если нужно поработать с настройками без падений, запустите сборку и прод-сервер: `npm run dev:stable` (это `next build && next start`). После изменений в коде перезапустите `npm run dev:stable`.
+| Скрипт | Описание |
+|--------|----------|
+| `build` | `prisma generate`, миграции deploy, `next build --webpack` |
+| `build:next` | Только сборка Next без миграций |
+| `prisma:migrate` | Локально: `prisma migrate dev` |
+| `prisma:migrate:deploy` | Применить миграции из репозитория (CI/прод) |
+| `prisma:seed` | Сиды вопросов Шмишека, Павлова, СМИЛ |
+| `bot` | Telegram-бот (нужен `TELEGRAM_BOT_TOKEN`) |
+| `icons:build` | Пересборка `app/icon.svg` после обновления шрифта Tangerine |
 
-### Структура проекта (вкратце)
+## Структура репозитория
 
-- `app/` – маршруты Next.js (лендинг, auth, кабинеты психолога/клиента, админка).
-- `components/` – переиспользуемые UI-компоненты (кнопки, формы и т.д.).
-- `lib/` – утилиты и доменная логика (валидация, доступ к БД, расчёт результатов тестов).
-- `prisma/` – схема БД (`schema.prisma`) и миграции.
+| Путь | Содержимое |
+|------|------------|
+| `app/` | Маршруты App Router, API `app/api/*` |
+| `components/` | UI по зонам (`psychologist/`, `client/`, `admin/`, `ui/`) |
+| `hooks/` | Хуки данных и сценариев (в т.ч. TanStack Query) |
+| `lib/` | Доменная логика, guards, rate-limit, диагностики, календарь |
+| `prisma/` | `schema.prisma`, миграции, сиды |
+| `store/` | Redux slices |
+| `agent-docs/` | Расширенная документация для разработки (API, архитектура, дерево) |
+| `proxy.ts` | CSP и прочие заголовки (не добавлять `middleware.ts`) |
+| `vercel.json` | Cron (например очистка слотов расписания каждые 15 минут) |
 
-### Миграции базы данных
+Подробнее о каталогах: [`agent-docs/project-structure.md`](agent-docs/project-structure.md).
 
-1. **Локально** (создаёт/применяет миграции и обновляет клиент Prisma):
-   ```bash
-   npm run prisma:migrate
-   ```
-   Нужны `DATABASE_URL` (и при использовании Neon в `schema.prisma` — `DIRECT_DATABASE_URL` для dev по желанию).
+## Аутентификация и роли
 
-2. **Только применить уже лежащие в репозитории миграции** (как на проде / CI):
-   ```bash
-   npm run prisma:migrate:deploy
-   ```
-   Скрипт `scripts/migrate-deploy.js` отключает advisory lock (удобно для Neon) и вызывает `prisma migrate deploy`. Если задан только `DATABASE_URL`, миграции пойдут через него; для Neon в проде рекомендуется задать ещё **`DIRECT_DATABASE_URL`** (строка без `-pooler` в хосте).
+- Конфигурация: `lib/auth.ts`, роут `app/api/auth/[...nextauth]/route.ts`.
+- Регистрация: `POST /api/auth/register`, страницы `/auth/register/psychologist`, `/auth/register/client`.
+- **Первый админ:** в `.env` задайте `INITIAL_ADMIN_EMAIL` — пользователь с этим email получит роль `ADMIN` при входе.
 
-3. После миграций при необходимости:
-   ```bash
-   npm run prisma:generate
-   ```
+## Расписание
 
-При сборке (`npm run build`) миграции выполняются автоматически перед `next build`.
+- Слоты и записи: модели `ScheduleSlot`, `Appointment`.
+- **Чтение без побочных эффектов:** `GET /api/schedule/slots`.
+- **Очистка БД:** `POST /api/schedule/slots/cleanup` (вызывается клиентом перед загрузкой слотов) и фоновый **`GET /api/cron/schedule-slot-cleanup`** раз в 15 минут — нужен **`CRON_SECRET`** в окружении (см. `.env.example`, `vercel.json`).
+- Запись клиента: публичные слоты и `POST /api/appointments`.
 
-### Схема БД (Prisma)
+## Календарь ICS (Google / Apple)
 
-Основные сущности:
+- Секретная ссылка: `GET /api/calendar/feed-url` (сессия психолога), фид: `GET /api/calendar/feed?token=…`.
+- В интерфейсе: настройки психолога (вкладка календаря) и сворачиваемый блок на странице расписания — подписка в один клик, копирование URL, статус последнего запроса фида внешним календарём.
 
-- **User**: базовый пользователь + роль (`CLIENT`, `PSYCHOLOGIST`, `ADMIN`), используется NextAuth.
-- **PsychologistProfile / ClientProfile**: отдельные профили психолога и клиента, связанные с `User`.
-- **Test / TestQuestion / TestScale / TestResult / DiagnosticLink**: модель психологических тестов (на старте – опросник Шмишека), вопросы, шкалы, результаты и ссылки для прохождения.
-- **ScheduleSlot / Appointment**: слоты расписания и конкретные записи на приём.
-- **CalendarFeedToken**: секретный токен подписки на ICS-календарь психолога (см. `SECURITY.md`).
-- **CustomFieldDefinition / CustomFieldValue**: пользовательские поля, которые психолог может заводить для клиентов и приёмов.
-- **Recommendation**: текстовые рекомендации от психолога клиенту, при желании привязанные к результату теста.
+## Диагностики
 
-Для просмотра полной схемы см. файл `prisma/schema.prisma`.
+Поддерживаются методики **Шмишек**, **Павлова**, **СМИЛ** (логика в `lib/diagnostics/*`, публичное прохождение `/diagnostics/[token]`).
 
-### Модуль психологической диагностики (опросник Шмишека)
+```bash
+npm run prisma:seed
+```
 
-- Структура теста:
-  - Модели `Test`, `TestQuestion`, `TestScale`, `TestResult`, `DiagnosticLink`.
-  - Логика расчёта и интерпретации — в `lib/diagnostics/shmishek.ts`.
-  - Демо-наполнение БД (вопросы и шкалы) — скрипт `prisma/seed-shmishek.ts`.
-- Как подготовить тест:
-  1. Настроить `DATABASE_URL` в `.env`.
-  2. Применить миграции: `npm run prisma:migrate`.
-  3. Заполнить БД демо-структурой Шмишека: `npm run prisma:seed-shmishek`.
-- Прохождение теста:
-  - Психолог создаёт ссылку на тест через `POST /api/diagnostics/shmishek/link`
-    (нужна сессия психолога; опционально можно передать `clientId` и `maxUses`).
-  - Клиент переходит по ссылке вида `/diagnostics/[token]` и заполняет форму
-    (`app/diagnostics/[token]/page.tsx`, компонент `ShmishekTestForm`).
-  - Результат сохраняется в `TestResult` и содержит:
-    - сырые ответы (`rawAnswers`),
-    - баллы по шкалам (`scaleScores`),
-    - развёрнутую текстовую интерпретацию (`interpretation`).
+Демо-формулировки в сидах не претендуют на юридическую валидность опросников для клинической практики — при необходимости замените материалы.
 
-Тексты вопросов в демо-версии упрощены и не претендуют на полное соответствие
-классическому опроснику Шмишека. Для реальной работы рекомендуется заменить их
-на утверждённые формулировки и при необходимости адаптировать шкалы и пороги.
+## Переменные окружения
 
-### Расписание и запись на приём
+Ориентир — **`.env.example`**. Для продакшена см. **[`DEPLOY.md`](DEPLOY.md)** (Neon, Vercel, Redis/Upstash, Google Sheets encryption, `CRON_SECRET`).
 
-- Модели:
-  - `ScheduleSlot` — слот расписания психолога (время начала/окончания, статус).
-  - `Appointment` — конкретная запись клиента на приём.
-- API:
-  - `GET /api/schedule/slots` — список слотов текущего психолога (без записи в БД).
-  - `POST /api/schedule/slots/cleanup` — очистка застрявших и прошлых пустых слотов (вызывается клиентом перед загрузкой списка).
-  - `POST /api/schedule/slots` — создание слота (психолог, `start`, `durationMinutes`).
-  - Фон: Vercel Cron раз в 15 минут — `GET /api/cron/schedule-slot-cleanup` с `CRON_SECRET` (см. `vercel.json`, `.env.example`).
-  - `GET /api/schedule/psychologists` — список психологов для выбора клиентом.
-  - `GET /api/schedule/psychologists/[id]/slots` — свободные слоты выбранного психолога.
-  - `POST /api/appointments` — создание записи клиентом по выбранному `slotId`.
-- Интерфейсы:
-  - `/psychologist/schedule` — кабинет психолога, создание слотов и просмотр расписания
-    (компонент `PsychologistSchedule`).
-  - `/client/psychologists` — список психологов.
-  - `/client/psychologists/[id]` — выбор свободного слота и запись к выбранному психологу
-    (компонент `ClientBooking`).
+## Безопасность
 
-Доступ к API и страницам для управления расписанием ограничен по ролям:
-создавать слоты может только психолог, а записываться на приём — только клиент.
+Подробно: **[`SECURITY.md`](SECURITY.md)** — rate limiting, ICS-токены, аудит, CSP.
 
-### Безопасность и защита данных
+## Документация для разработки
 
-- **Базовые меры**:
-  - Предполагается использование только HTTPS (на уровне хостинга).
-  - В `next.config.mjs` настраиваются заголовки `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`.
-- **Аутентификация и роли**:
-  - NextAuth с JWT-сессиями, роль пользователя (`CLIENT`, `PSYCHOLOGIST`, `ADMIN`) прокидывается в токен и проверяется во всех чувствительных API/страницах.
-- **Rate limiting**:
-  - Утилита `lib/rate-limit.ts` ограничивает частоту:
-    - регистрации (`/api/auth/register`),
-    - генерации диагностических ссылок (`/api/diagnostics/shmishek/link`),
-    - создания записей на приём (`/api/appointments`).
-- **Хранение персональных данных**:
-  - В БД хранятся только необходимые поля; расширяемые данные — через пользовательские поля.
-  - Для особо чувствительных данных (заметки психолога и т.п.) при выходе в прод рекомендуется добавить шифрование на уровне приложения и менеджер секретов.
-- **Логи и аудит**:
-  - Ключевые действия (регистрация, изменение ролей, создание записей и результатов тестов) логируются на сервере.
-  - Структура кода упрощает добавление отдельной таблицы `AuditLog` и интеграцию с внешней системой логирования.
+- **[`AGENTS.md`](AGENTS.md)** — правила для ИИ-агентов и ссылки на детали.
+- **[`agent-docs/api.md`](agent-docs/api.md)** — обзор API.
+- **[`agent-docs/architecture.md`](agent-docs/architecture.md)** — паттерны кода.
+- **[`DEPLOY.md`](DEPLOY.md)** — деплой и env.
 
-Папка `crm-app/` сейчас содержит исходный шаблон, созданный `create-next-app`. Основное приложение собирается из корня репозитория, поэтому папку `crm-app/` можно игнорировать или удалить позже, когда убедимся, что все нужные части перенесены.
+## Windows: Prisma `EPERM` (rename query engine)
+
+1. Остановите все процессы Node (dev, тесты, бот).
+2. По возможности держите проект вне OneDrive.
+3. `npm run prisma:generate:clean`
+4. Если не помогло — закройте IDE, в PowerShell: `.\scripts\prisma-generate-windows.ps1 -KillNode` (см. комментарии в скрипте).
+
+## Windows: падение сборки `0xC0000005` / Turbopack
+
+1. Сборка уже идёт через **Webpack** (`next build --webpack` в `package.json`).
+2. Задан запас по памяти (`NODE_OPTIONS`); при нехватке — увеличьте `max-old-space-size`.
+3. Очистка `.next` и повтор `npm run build` или `npm run build:next`.
+4. В `next.config.mjs` для Windows ограничение CPU и отключение `webpackBuildWorker` — см. файл.
+
+ESLint при `next build` отдельно не вшит — перед релизом запускайте **`npm run lint`**.
+
+## Схема БД
+
+Полная модель — **`prisma/schema.prisma`**. Кратко: `User`, `PsychologistProfile`, `ClientProfile` (допускается без `userId` — «офлайн-клиент»), расписание, записи, тесты и результаты, `DiagnosticLink`, пользовательские поля, файлы (Vercel Blob), `CalendarFeedToken`, `AuditLog`, `PlatformSettings` (модули `scheduling` / `diagnostics`).
+
+---
+
+*Основное приложение собирается из корня репозитория.*
