@@ -256,7 +256,7 @@ export function DataTable<TData, TValue>({
               <Button
                 variant="outline"
                 size="icon"
-                className="-order-1 ml-auto h-8 w-8 shrink-0 self-start p-0 sm:order-3 sm:ml-0 sm:self-auto"
+                className="order-3 h-8 w-8 shrink-0 self-start p-0 sm:ml-0 sm:self-auto"
                 aria-label="Настройка таблицы"
               >
                 <Settings2 className="h-4 w-4" />

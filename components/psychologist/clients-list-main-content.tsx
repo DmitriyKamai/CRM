@@ -293,7 +293,7 @@ export function ClientsListMainContent(props: {
             onColumnOrderPersist={persistClientsTableColumnOrder}
             onRowClick={onRowClick}
             topControls={
-              <div className="flex min-w-0 w-full flex-wrap items-start gap-2 sm:flex-1 sm:items-center">
+              <div className="flex min-w-0 w-[calc(100%-2.5rem)] flex-wrap items-start gap-2 sm:w-auto sm:flex-1 sm:items-center">
                 <div className="order-1 flex w-full items-center justify-end gap-2 sm:order-2 sm:ml-auto sm:w-auto sm:justify-end">
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
                     Строк на странице:
