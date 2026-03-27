@@ -294,7 +294,7 @@ export function ClientsListMainContent(props: {
             onRowClick={onRowClick}
             topControls={
               <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2 sm:items-center">
-                <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:ml-auto sm:w-auto">
+                <div className="order-1 flex w-full items-center justify-end gap-2 sm:order-2 sm:w-auto sm:justify-start">
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
                     Строк на странице:
                   </span>
@@ -317,7 +317,7 @@ export function ClientsListMainContent(props: {
                   placeholder="Поиск по имени, email или телефону..."
                   value={searchInput}
                   onChange={(e) => onSearchInputChange(e.target.value)}
-                  className="order-2 h-8 min-w-[180px] flex-1 sm:min-w-[240px] sm:max-w-[300px] lg:max-w-[340px]"
+                  className="order-2 h-8 min-w-[180px] flex-1 sm:order-1 sm:min-w-[240px] sm:max-w-[300px] lg:max-w-[340px]"
                 />
               </div>
             }
