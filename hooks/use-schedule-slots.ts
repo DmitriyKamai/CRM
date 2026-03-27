@@ -9,7 +9,27 @@ import { signOutIfSessionInvalid } from "@/lib/session-stale-client";
 
 const SLOTS_QUERY_KEY = ["schedule-slots"] as const;
 
+async function apiCleanupScheduleSlots(): Promise<void> {
+  const res = await fetch("/api/schedule/slots/cleanup", { method: "POST" });
+  let body: unknown = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+  if (!res.ok) {
+    if (await signOutIfSessionInvalid(res.status, body)) return;
+    let msg = "Не удалось обновить расписание";
+    if (body && typeof body === "object" && body !== null) {
+      const m = (body as { message?: unknown }).message;
+      if (typeof m === "string") msg = m;
+    }
+    throw new Error(msg);
+  }
+}
+
 async function fetchSlots(): Promise<SlotDto[]> {
+  await apiCleanupScheduleSlots();
   const res = await fetch("/api/schedule/slots");
   let body: unknown = null;
   try {
@@ -112,8 +132,7 @@ export function useScheduleSlots() {
     staleTime: 30_000
   });
 
-  // Даже если кэш формально ещё свежий, при возврате сети делаем явное обновление.
-  // Это важно из-за того, что `GET /api/schedule/slots` содержит side-effects (очистка "застрявших" слотов).
+  // При возврате сети перезагружаем слоты (включая POST cleanup перед GET).
   useEffect(() => {
     const onOnline = () => {
       qc.invalidateQueries({ queryKey: SLOTS_QUERY_KEY });

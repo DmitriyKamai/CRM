@@ -52,8 +52,10 @@
 
 | Роут | Метод | Описание |
 |------|-------|----------|
-| `schedule/slots` | GET/POST | Слоты психолога |
+| `schedule/slots` | GET/POST | Слоты психолога (GET только чтение) |
+| `schedule/slots/cleanup` | POST | Явная очистка застрявших/прошлых пустых слотов текущего психолога |
 | `schedule/slots/[id]` | PATCH/DELETE | Управление слотом |
+| `cron/schedule-slot-cleanup` | GET | Фоновая глобальная очистка (Bearer `CRON_SECRET`, Vercel Cron `*/15 * * * *`) |
 | `schedule/psychologists` | GET | Список психологов (публичный) |
 | `schedule/psychologists/[id]/slots` | GET | Свободные слоты (публичный) |
 | `appointments` | POST | Запись на приём |

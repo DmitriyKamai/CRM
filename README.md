@@ -163,8 +163,10 @@ npm run dev
   - `ScheduleSlot` — слот расписания психолога (время начала/окончания, статус).
   - `Appointment` — конкретная запись клиента на приём.
 - API:
-  - `GET /api/schedule/slots` — список слотов текущего психолога.
+  - `GET /api/schedule/slots` — список слотов текущего психолога (без записи в БД).
+  - `POST /api/schedule/slots/cleanup` — очистка застрявших и прошлых пустых слотов (вызывается клиентом перед загрузкой списка).
   - `POST /api/schedule/slots` — создание слота (психолог, `start`, `durationMinutes`).
+  - Фон: Vercel Cron раз в 15 минут — `GET /api/cron/schedule-slot-cleanup` с `CRON_SECRET` (см. `vercel.json`, `.env.example`).
   - `GET /api/schedule/psychologists` — список психологов для выбора клиентом.
   - `GET /api/schedule/psychologists/[id]/slots` — свободные слоты выбранного психолога.
   - `POST /api/appointments` — создание записи клиентом по выбранному `slotId`.
