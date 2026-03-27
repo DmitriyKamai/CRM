@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClientsListMainContent } from "@/components/psychologist/clients-list-main-content";
 import { ClientsProfileOverlay } from "@/components/psychologist/clients-profile-overlay";
@@ -112,6 +112,26 @@ export function PsychologistClientsList({
     syncGoogleSheetsFromServer: refetchGoogleSheetsStatus,
     setError: setActionError
   });
+  const handledExportOAuthQueryRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const qs = searchParams.toString();
+    const sp = new URLSearchParams(qs);
+    const oauthState = sp.get("sheet_oauth");
+    const sheetIntent = sp.get("sheet_intent");
+    if (oauthState !== "ok" || sheetIntent !== "export") return;
+    if (handledExportOAuthQueryRef.current === qs) return;
+    handledExportOAuthQueryRef.current = qs;
+
+    void (async () => {
+      await clientsExport.handleExportGoogleSheets({ forceRefreshStatus: true });
+      sp.delete("sheet_oauth");
+      sp.delete("sheet_intent");
+      sp.delete("openImport");
+      const next = sp.toString();
+      router.replace(next ? `${pathname}?${next}` : pathname);
+    })();
+  }, [clientsExport, pathname, router, searchParams]);
 
   const listScaleState = useClientsListScale({
     deps: [loading, clients.length, statusFilter]

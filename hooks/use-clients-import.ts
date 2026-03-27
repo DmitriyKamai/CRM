@@ -172,7 +172,8 @@ export function useClientsImport(opts: {
     if (openImport) setImportOpen(true);
 
     if (v === "ok" && sheetIntent === "export") {
-      toast.success("Google подключён. Снова нажмите «Экспорт» → «В Google Таблицу».");
+      // Экспортный OAuth-сценарий обрабатывает оркестратор clients-list.tsx.
+      return;
     } else if (v === "ok") {
       toast.success("Google подключён: можно загружать данные из Google Таблицы для импорта");
     } else if (v === "access_denied") {

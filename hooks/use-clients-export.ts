@@ -59,13 +59,13 @@ export function useClientsExport(opts: {
     [setError, statusFilter]
   );
 
-  const handleExportGoogleSheets = useCallback(async () => {
+  const handleExportGoogleSheets = useCallback(async (opts?: { forceRefreshStatus?: boolean }) => {
     if (clientsCount === 0) return;
 
     let oauthOk = googleSheetsOAuthConfigured;
     let connected = googleSheetsGoogleConnected;
 
-    if (oauthOk === null || connected === null) {
+    if (opts?.forceRefreshStatus || oauthOk === null || connected === null) {
       const fresh = await qc.fetchQuery({
         queryKey: GOOGLE_SHEETS_STATUS_QUERY_KEY,
         queryFn: fetchGoogleSheetsStatus
@@ -104,10 +104,15 @@ export function useClientsExport(opts: {
       if (!res.ok) {
         if (res.status === 403) {
           await qc.invalidateQueries({ queryKey: GOOGLE_SHEETS_STATUS_QUERY_KEY });
-          await qc.fetchQuery({
+          const fresh = await qc.fetchQuery({
             queryKey: GOOGLE_SHEETS_STATUS_QUERY_KEY,
             queryFn: fetchGoogleSheetsStatus
           });
+          // Если Google был отключён между кликами, сразу запускаем OAuth на этом же нажатии.
+          if (fresh.oauthConfigured && !fresh.googleConnected) {
+            window.location.assign("/api/psychologist/google-sheets/oauth/start?intent=export");
+            return;
+          }
         }
         throw new Error(data?.message ?? "Не удалось выгрузить в Google Таблицу");
       }
