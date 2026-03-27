@@ -7,7 +7,8 @@ import { cleanupScheduleSlotsGlobal } from "@/lib/schedule-slot-cleanup";
  * Vercel Cron: GET с расписанием из `vercel.json`.
  *
  * Временно: раз в сутки (`0 3 * * *`, 03:00 UTC) — лимит плана Vercel на частоту cron.
- * В проде после снятия лимита верните в `vercel.json` более частый интервал, например `*/15 * * * *`.
+ * В проде после снятия лимита верните в `vercel.json` более частый интервал, например каждые 15 минут:
+ * `0,15,30,45 * * * *` (тот же смысл, что стандартный cron с шагом 15 по минутам).
  *
  * Заголовок Authorization: Bearer <CRON_SECRET> (задаётся в Vercel при включённом CRON_SECRET).
  */
