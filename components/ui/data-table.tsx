@@ -240,7 +240,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-3">
-      <div className="flex w-full min-w-0 flex-wrap items-start gap-2 sm:items-center">
+      <div className="relative flex w-full min-w-0 flex-wrap items-start gap-2 sm:items-center">
         {filterColumn && (
           <Input
             placeholder={filterPlaceholder ?? "Поиск..."}
@@ -256,7 +256,7 @@ export function DataTable<TData, TValue>({
               <Button
                 variant="outline"
                 size="icon"
-                className="order-3 h-8 w-8 shrink-0 self-start p-0 sm:ml-0 sm:self-auto"
+                className="absolute right-0 top-0 h-8 w-8 shrink-0 p-0 sm:static sm:order-3 sm:self-auto"
                 aria-label="Настройка таблицы"
               >
                 <Settings2 className="h-4 w-4" />
