@@ -75,7 +75,7 @@ npm run test
 | `store/` | Redux slices |
 | `agent-docs/` | Расширенная документация для разработки (API, архитектура, дерево) |
 | `proxy.ts` | CSP и прочие заголовки (не добавлять `middleware.ts`) |
-| `vercel.json` | Cron (например очистка слотов расписания каждые 15 минут) |
+| `vercel.json` | Cron очистки слотов (сейчас раз в сутки из‑за лимита Vercel; в проде при возможности — чаще, см. комментарий в `app/api/cron/schedule-slot-cleanup/route.ts`) |
 
 Подробнее о каталогах: [`agent-docs/project-structure.md`](agent-docs/project-structure.md).
 
@@ -89,7 +89,7 @@ npm run test
 
 - Слоты и записи: модели `ScheduleSlot`, `Appointment`.
 - **Чтение без побочных эффектов:** `GET /api/schedule/slots`.
-- **Очистка БД:** `POST /api/schedule/slots/cleanup` (вызывается клиентом перед загрузкой слотов) и фоновый **`GET /api/cron/schedule-slot-cleanup`** раз в 15 минут — нужен **`CRON_SECRET`** в окружении (см. `.env.example`, `vercel.json`).
+- **Очистка БД:** `POST /api/schedule/slots/cleanup` (вызывается клиентом перед загрузкой слотов) и фоновый **`GET /api/cron/schedule-slot-cleanup`** (сейчас по cron раз в сутки; при апгрейде Vercel можно снова ставить каждые 15 минут в `vercel.json`) — нужен **`CRON_SECRET`** в окружении (см. `.env.example`, `vercel.json`).
 - Запись клиента: публичные слоты и `POST /api/appointments`.
 
 ## Календарь ICS (Google / Apple)

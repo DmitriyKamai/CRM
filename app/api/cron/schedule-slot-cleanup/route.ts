@@ -4,7 +4,11 @@ import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { cleanupScheduleSlotsGlobal } from "@/lib/schedule-slot-cleanup";
 
 /**
- * Vercel Cron: GET каждые 15 минут.
+ * Vercel Cron: GET с расписанием из `vercel.json`.
+ *
+ * Временно: раз в сутки (`0 3 * * *`, 03:00 UTC) — лимит плана Vercel на частоту cron.
+ * В проде после снятия лимита верните в `vercel.json` более частый интервал, например `*/15 * * * *`.
+ *
  * Заголовок Authorization: Bearer <CRON_SECRET> (задаётся в Vercel при включённом CRON_SECRET).
  */
 export async function GET(request: Request) {

@@ -55,7 +55,7 @@
 | `schedule/slots` | GET/POST | Слоты психолога (GET только чтение) |
 | `schedule/slots/cleanup` | POST | Явная очистка застрявших/прошлых пустых слотов текущего психолога |
 | `schedule/slots/[id]` | PATCH/DELETE | Управление слотом |
-| `cron/schedule-slot-cleanup` | GET | Фоновая глобальная очистка (Bearer `CRON_SECRET`, Vercel Cron `*/15 * * * *`) |
+| `cron/schedule-slot-cleanup` | GET | Фоновая глобальная очистка (Bearer `CRON_SECRET`, Vercel Cron сейчас раз в сутки `0 3 * * *`; при снятии лимита Vercel — вернуть `*/15 * * * *` в `vercel.json`) |
 
 ## Календарь (ICS)
 
