@@ -64,6 +64,8 @@ export interface DataTableProps<TData, TValue> {
   onColumnOrderPersist?: (order: string[]) => void | Promise<void>;
   /** Id колонок, которые всегда слева и не участвуют в диалоге переупорядочивания */
   columnOrderFixedIds?: string[];
+  /** Внешние контролы тулбара (например поиск/пагинация) */
+  topControls?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -79,7 +81,8 @@ export function DataTable<TData, TValue>({
   minTableWidthClassName,
   initialColumnOrder,
   onColumnOrderPersist,
-  columnOrderFixedIds: columnOrderFixedIdsProp
+  columnOrderFixedIds: columnOrderFixedIdsProp,
+  topControls
 }: DataTableProps<TData, TValue>) {
   const reorderEnabled = Boolean(onColumnOrderPersist);
 
@@ -246,13 +249,14 @@ export function DataTable<TData, TValue>({
             className="h-8 min-w-0 flex-1 max-w-sm"
           />
         )}
+        {topControls}
         {showSettingsMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
                 size="icon"
-                className="ml-auto h-8 w-8 shrink-0 p-0"
+                className="order-2 h-8 w-8 shrink-0 p-0 sm:order-3"
                 aria-label="Настройка таблицы"
               >
                 <Settings2 className="h-4 w-4" />

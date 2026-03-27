@@ -17,11 +17,18 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { DataTable } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientsImportDialog } from "@/components/psychologist/clients-import-dialog";
 import { ClientsActionsToolbar } from "@/components/psychologist/clients-actions-toolbar";
 import { ClientsListScaleShell } from "@/components/psychologist/clients-list-scale-shell";
-import { ClientsListControls } from "@/components/psychologist/clients-list-controls";
 import { ClientsListPagination } from "@/components/psychologist/clients-list-pagination";
 import type { ClientDto, ClientsPaginationMeta, CustomFieldDef } from "@/hooks/use-clients-data";
 import type {
@@ -272,13 +279,9 @@ export function ClientsListMainContent(props: {
         </div>
       ) : (
         <div className="space-y-3">
-          <ClientsListControls
-            searchInput={searchInput}
-            onSearchInputChange={onSearchInputChange}
-            isSearchTooShort={isSearchTooShort}
-            pageSize={pageSize}
-            onPageSizeChange={onPageSizeChange}
-          />
+          {isSearchTooShort && (
+            <p className="text-xs text-muted-foreground">Введите минимум 2 символа для поиска</p>
+          )}
           <DataTable
             columns={columns}
             data={visibleClients}
@@ -289,6 +292,35 @@ export function ClientsListMainContent(props: {
             initialColumnOrder={clientsTableColumnOrder}
             onColumnOrderPersist={persistClientsTableColumnOrder}
             onRowClick={onRowClick}
+            topControls={
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <Input
+                  placeholder="Поиск по имени, email или телефону..."
+                  value={searchInput}
+                  onChange={(e) => onSearchInputChange(e.target.value)}
+                  className="order-1 h-8 min-w-[220px] flex-1 sm:min-w-[320px] lg:min-w-[420px]"
+                />
+                <div className="order-3 flex basis-full items-center gap-2 sm:order-2 sm:ml-auto sm:basis-auto">
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    Строк на странице:
+                  </span>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={(value) => onPageSizeChange(Number(value))}
+                  >
+                    <SelectTrigger className="h-8 w-[92px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="30">30</SelectItem>
+                      <SelectItem value="40">40</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            }
           />
           <ClientsListPagination pagination={pagination} onPageChange={onPageChange} />
         </div>
