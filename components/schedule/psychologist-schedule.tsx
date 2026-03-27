@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
+import { ScheduleCalendarSubscription } from "@/components/schedule/schedule-calendar-subscription";
 import { ScheduleGridSkeleton } from "@/components/schedule/schedule-skeleton";
 import { CreateAppointmentDialog } from "@/components/schedule/create-appointment-dialog";
 import { SlotDetailPopover } from "@/components/schedule/slot-detail-popover";
@@ -295,55 +296,63 @@ export function PsychologistSchedule() {
             }}
           >
             <div className="hidden md:block md:col-start-1 md:row-start-1 min-h-0 min-w-0" aria-hidden />
-            <div className="flex min-w-0 flex-col gap-3 row-start-1 md:col-start-1 md:row-start-2">
-              <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
-                <Calendar
-                  mode="single"
-                  selected={currentDate}
-                  month={displayedMonth}
-                  onSelect={handleCalendarSelect}
-                  onMonthChange={handleCalendarMonthChange}
-                  locale={ru}
-                  initialFocus
-                  components={{ DayButton: ScheduleDayButton }}
-                  className="max-w-full min-w-0 [--cell-size:2rem]"
-                />
-              </div>
-
-              <div className="flex min-w-0 max-w-full flex-col gap-3 overflow-x-clip break-words">
-                {holidaysThisMonth.length > 0 && (
-                  <div className="hidden space-y-1 text-xs text-muted-foreground md:block">
-                    <div className="text-sm font-semibold text-foreground">
-                      Праздничные дни<span className="hidden sm:inline"> месяца</span>
-                    </div>
-                    <ul className="space-y-0.5">
-                      {holidaysThisMonth.map(([md, title]) => (
-                        <li key={md} className="flex gap-2">
-                          <span className="shrink-0 whitespace-nowrap tabular-nums text-left font-medium text-foreground">
-                            {md.slice(3, 5)}.{currentMonthKey}
-                          </span>
-                          <span className="min-w-0 break-words">{title}</span>
-                        </li>
-                      ))}
-                    </ul>
+            <div className="row-start-1 flex min-w-0 flex-col gap-3 md:col-start-1 md:row-start-2">
+              <div className="w-fit max-w-full min-w-0 self-start">
+                <div className="flex flex-col gap-3">
+                  <div className="min-w-0 max-w-full justify-self-stretch overflow-x-auto overflow-y-visible overscroll-x-contain [touch-action:pan-x_pan-y]">
+                    <Calendar
+                      mode="single"
+                      selected={currentDate}
+                      month={displayedMonth}
+                      onSelect={handleCalendarSelect}
+                      onMonthChange={handleCalendarMonthChange}
+                      locale={ru}
+                      initialFocus
+                      components={{ DayButton: ScheduleDayButton }}
+                      className="max-w-full min-w-0 [--cell-size:2rem]"
+                    />
                   </div>
-                )}
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <div className="hidden text-sm font-semibold text-foreground md:block">Условные обозначения</div>
-                  <ul className="space-y-0.5">
-                    <li className="flex items-center gap-2">
-                      <span className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)} aria-hidden />
-                      <span className="min-w-0">Свободный слот</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)} aria-hidden />
-                      <span className="min-w-0">Запись, ожидающая подтверждения</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)} aria-hidden />
-                      <span className="min-w-0">Подтверждённая запись</span>
-                    </li>
-                  </ul>
+
+                  <div className="flex min-w-0 max-w-full flex-col gap-3 overflow-x-clip break-words">
+                    {holidaysThisMonth.length > 0 && (
+                      <div className="hidden space-y-1 text-xs text-muted-foreground md:block">
+                        <div className="text-sm font-semibold text-foreground">
+                          Праздничные дни<span className="hidden sm:inline"> месяца</span>
+                        </div>
+                        <ul className="space-y-0.5">
+                          {holidaysThisMonth.map(([md, title]) => (
+                            <li key={md} className="flex gap-2">
+                              <span className="shrink-0 whitespace-nowrap tabular-nums text-left font-medium text-foreground">
+                                {md.slice(3, 5)}.{currentMonthKey}
+                              </span>
+                              <span className="min-w-0 break-words">{title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div className="hidden text-sm font-semibold text-foreground md:block">Условные обозначения</div>
+                      <ul className="space-y-0.5">
+                        <li className="flex items-center gap-2">
+                          <span className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_FREE)} aria-hidden />
+                          <span className="min-w-0">Свободный слот</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_PENDING)} aria-hidden />
+                          <span className="min-w-0">Запись, ожидающая подтверждения</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className={cn("h-3 w-3 shrink-0 rounded-sm border", SLOT_STYLE_CONFIRMED)} aria-hidden />
+                          <span className="min-w-0">Подтверждённая запись</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="hidden min-w-0 w-full md:block">
+                    <ScheduleCalendarSubscription />
+                  </div>
                 </div>
               </div>
             </div>
@@ -431,6 +440,10 @@ export function PsychologistSchedule() {
                   </Card>
                 </div>
               </div>
+            </div>
+
+            <div className="row-start-4 min-w-0 w-full md:hidden">
+              <ScheduleCalendarSubscription className="rounded-lg border border-border/80 bg-muted/10 px-3 py-3" />
             </div>
           </div>
         </div>
