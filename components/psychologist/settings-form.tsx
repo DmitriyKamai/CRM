@@ -385,7 +385,7 @@ export function PsychologistSettingsForm({
       {schedulingEnabled && (
         <TabsContent value="calendar" className="mt-4">
           {activeTab === "calendar" && (
-            <Section title="Подписка на календарь">
+            <Section title="Подписаться на календарь">
               <CalendarSubscriptionBlock />
             </Section>
           )}

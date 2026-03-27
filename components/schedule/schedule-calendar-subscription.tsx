@@ -16,7 +16,7 @@ export function ScheduleCalendarSubscription({ className }: { className?: string
 
   return (
     <div className={cn("min-w-0 space-y-2", className)}>
-      <h3 className="text-sm font-semibold text-foreground">Подписка на календарь</h3>
+      <h3 className="text-sm font-semibold text-foreground">Подписаться на календарь</h3>
 
       {query.isLoading && (
         <p className="text-xs text-muted-foreground">Подготовка ссылки…</p>
