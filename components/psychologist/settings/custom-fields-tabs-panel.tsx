@@ -17,6 +17,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export type CustomFieldsTabRow = { name: string; description?: string; count: number };
 
@@ -95,7 +96,9 @@ export const CustomFieldsTabsPanel: FC<Props> = ({
               </DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <Label htmlFor="new-tab-name-dialog">Название вкладки</Label>
+                  <Label htmlFor="new-tab-name-dialog">
+                    Название вкладки <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="new-tab-name-dialog"
                     placeholder="Например, Анамнез"
@@ -122,7 +125,10 @@ export const CustomFieldsTabsPanel: FC<Props> = ({
                   onClick={() => {
                     const name = newTabName.trim();
                     const description = newTabDescription.trim();
-                    if (!name) return;
+                    if (!name) {
+                      toast.error("Введите название вкладки");
+                      return;
+                    }
                     setLocalTabs((prev) => {
                       const without = prev.filter((t) => t.name !== name);
                       return [...without, { name, description }];

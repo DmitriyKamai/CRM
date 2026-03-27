@@ -23,6 +23,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export type AvailableTab = { name: string; description?: string };
 
@@ -113,7 +114,9 @@ export const CustomFieldsFieldsPanel: FC<Props> = ({
             <div className="mt-2 space-y-3">
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label htmlFor="cf-group-dialog">Вкладка</Label>
+                  <Label htmlFor="cf-group-dialog">
+                    Вкладка <span className="text-destructive">*</span>
+                  </Label>
                   <Select value={newFieldGroup} onValueChange={(v) => setNewFieldGroup(v)}>
                     <SelectTrigger id="cf-group-dialog">
                       <SelectValue placeholder="Выберите вкладку" />
@@ -128,7 +131,9 @@ export const CustomFieldsFieldsPanel: FC<Props> = ({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="cf-label-dialog">Название поля</Label>
+                  <Label htmlFor="cf-label-dialog">
+                    Название поля <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="cf-label-dialog"
                     placeholder="Например, Основной запрос"
@@ -139,7 +144,9 @@ export const CustomFieldsFieldsPanel: FC<Props> = ({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="cf-type-dialog">Тип поля</Label>
+                  <Label htmlFor="cf-type-dialog">
+                    Тип поля <span className="text-destructive">*</span>
+                  </Label>
                   <Select
                     value={newFieldType}
                     onValueChange={(v) =>
@@ -218,7 +225,21 @@ export const CustomFieldsFieldsPanel: FC<Props> = ({
                 type="button"
                 onClick={async () => {
                   setCustomFieldsError(null);
-                  if (!newFieldLabel.trim() || !newFieldGroup.trim()) return;
+                  if (!newFieldGroup.trim()) {
+                    toast.error("Выберите вкладку");
+                    return;
+                  }
+                  if (!newFieldLabel.trim()) {
+                    toast.error("Введите название поля");
+                    return;
+                  }
+                  if (
+                    (newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") &&
+                    newFieldOptionLabels.every((label) => label.trim().length === 0)
+                  ) {
+                    toast.error("Добавьте хотя бы один вариант");
+                    return;
+                  }
 
                   const existingKeys = new Set(
                     customFields.map((f) => String(f.key ?? "")).filter(Boolean)
