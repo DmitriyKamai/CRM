@@ -63,7 +63,8 @@
 |------|-------|----------|
 | `calendar/feed-url` | GET | `{ url, lastFetchedAt, createdAt }` — ссылка на ICS и время последнего успешного запроса фида |
 | `calendar/feed-url` | POST | Перевыпуск токена; тело ответа как у GET |
-| `calendar/feed` | GET | ICS по `?token=` (обновляет `lastFetchedAt` у токена) |
+| `calendar/feed/[token]` | GET | ICS по токену в path (основной URL из `feed-url`; обновляет `lastFetchedAt`) |
+| `calendar/feed` | GET | ICS по `?token=` (совместимость) |
 | `schedule/psychologists` | GET | Список психологов (публичный) |
 | `schedule/psychologists/[id]/slots` | GET | Свободные слоты (публичный) |
 | `appointments` | POST | Запись на приём |

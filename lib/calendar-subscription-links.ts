@@ -6,5 +6,7 @@ export function toWebCalSubscribeUrl(httpsFeedUrl: string): string {
 
 /** Ссылка «открыть в Google Календаре» (подписка по URL). */
 export function toGoogleCalendarSubscribeUrl(httpsFeedUrl: string): string {
-  return `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(httpsFeedUrl)}`;
+  const u = new URL(httpsFeedUrl);
+  const webcal = `webcal://${u.host}${u.pathname}${u.search}`;
+  return `https://www.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`;
 }

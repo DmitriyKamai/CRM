@@ -22,7 +22,7 @@
 
 ### ICS-календарь по ссылке — почему это не «взлом по желанию»
 
-**`GET /api/calendar/feed?token=…`** — секретная ссылка (как подписка по URL в Google/Apple Calendar).
+**`GET /api/calendar/feed/<token>`** (и устаревший **`?token=`**) — секретная ссылка (подписка по URL в Google/Apple Calendar).
 
 - Токен — случайные **256 бит**, хранится в `CalendarFeedToken` (один активный на профиль). Выдача: **`GET /api/calendar/feed-url`**, перевыпуск: **`POST /api/calendar/feed-url`** (сессия психолога) — прежний URL перестаёт работать.
 - **Подобрать чужой токен нереалистично**; **утёкший** токен даёт лишь **чтение ICS**, не доступ к аккаунту.
@@ -31,7 +31,7 @@
 
 | Область | Поведение |
 |--------|-----------|
-| **`GET /api/calendar/feed?token=…`** | Чтение ICS при валидном токене из БД. |
+| **`GET /api/calendar/feed/<token>`** | Чтение ICS при валидном токене из БД. |
 | **`GET` / `POST /api/calendar/feed-url`** | Текущая ссылка / **перевыпуск** токена. |
 | **`POST /api/auth/register`**, **`forgot-password`**, **`reset-password`** | Публичные; уже с rate limit по IP / email. |
 | **`POST /api/auth/[...nextauth]`** | NextAuth (логин, OAuth callback и т.д.). |

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     const token = await getOrCreateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);
-    const url = `${baseUrl}/api/calendar/feed?token=${encodeURIComponent(token)}`;
+    const url = `${baseUrl}/api/calendar/feed/${token}`;
     const meta = await prisma.calendarFeedToken.findUnique({
       where: { psychologistId: ctx.psychologistId },
       select: { lastFetchedAt: true, createdAt: true }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     const token = await rotateCalendarFeedToken(prisma, ctx.psychologistId);
     const baseUrl = calendarBaseUrl(request);
-    const url = `${baseUrl}/api/calendar/feed?token=${encodeURIComponent(token)}`;
+    const url = `${baseUrl}/api/calendar/feed/${token}`;
     const meta = await prisma.calendarFeedToken.findUnique({
       where: { psychologistId: ctx.psychologistId },
       select: { lastFetchedAt: true, createdAt: true }
