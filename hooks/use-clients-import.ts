@@ -119,6 +119,7 @@ export function useClientsImport(opts: {
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const resumeImportWithoutResetRef = useRef(false);
   const skipGoogleSheetsProfileUrlOnceRef = useRef(false);
+  const handledOAuthQueryRef = useRef<string | null>(null);
 
   const [googleSheetsImportUrl, setGoogleSheetsImportUrl] = useState("");
   const [googleSheetsImportLoading, setGoogleSheetsImportLoading] = useState(false);
@@ -165,6 +166,8 @@ export function useClientsImport(opts: {
     const openImport = sp.get("openImport") === "1";
     const sheetIntent = sp.get("sheet_intent");
     if (!v && !openImport) return;
+    if (handledOAuthQueryRef.current === qs) return;
+    handledOAuthQueryRef.current = qs;
 
     if (openImport) setImportOpen(true);
 

@@ -126,8 +126,7 @@ export function useScheduleSlots() {
 
   const createSlot = useMutation({
     mutationFn: apiCreateSlot,
-    onSuccess: () => qc.invalidateQueries({ queryKey: SLOTS_QUERY_KEY }),
-    onError: (e: Error) => toast.error(e.message)
+    onSuccess: () => qc.invalidateQueries({ queryKey: SLOTS_QUERY_KEY })
   });
 
   const confirmAppointment = useMutation({

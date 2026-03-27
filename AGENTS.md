@@ -274,8 +274,15 @@ if (mod) return mod; // 403 если модуль отключён
    - вынесены `components/schedule/create-appointment-dialog.tsx` и `components/schedule/slot-detail-popover.tsx`;
    - вынесены утилиты в `lib/schedule-utils.ts`;
    - сетевые операции перенесены в query-hooks.
-2. `components/psychologist/clients-list.tsx` частично декомпозирован:
-   - загрузка клиентов/статусов/кастомных полей/порядка колонок перенесена в `hooks/use-clients-data.ts`.
+2. `components/psychologist/clients-list.tsx` декомпозирован до оркестратора:
+   - загрузка клиентов/статусов/кастомных полей/порядка колонок — `hooks/use-clients-data.ts`;
+   - импорт клиентов — `hooks/use-clients-import.ts` + `components/psychologist/clients-import-dialog.tsx`;
+   - экспорт клиентов — `hooks/use-clients-export.ts`;
+   - масштабирование списка — `hooks/use-clients-list-scale.ts` + `components/psychologist/clients-list-scale-shell.tsx`;
+   - конфигурация колонок таблицы — `hooks/use-clients-table-columns.tsx`;
+   - основной UI-блок списка вынесен в `components/psychologist/clients-list-main-content.tsx`;
+   - профиль клиента в overlay — `components/psychologist/clients-profile-overlay.tsx`;
+   - диалог создания клиента — `components/psychologist/clients-create-dialog.tsx`;
 3. `components/psychologist/settings-form.tsx` частично декомпозирован:
    - загрузка профиля и аккаунтов перенесена в `hooks/use-profile-settings.ts`;
    - загрузка custom fields/statuses перенесена в `hooks/use-custom-fields-settings.ts` и `hooks/use-client-statuses-settings.ts`.
@@ -286,6 +293,12 @@ if (mod) return mod; // 403 если модуль отключён
   1) hooks (данные и бизнес-логика),
   2) подкомпоненты (UI-блоки),
   3) утилиты (`lib/*`).
+- Придерживайтесь `single responsibility` на всех уровнях:
+  - **компонент** отвечает за один UI-сценарий;
+  - **hook** отвечает за один источник/тип данных или один workflow;
+  - **утилита** решает одну вычислительную задачу без UI-побочек.
+- Оркестратор страницы/экрана не должен содержать массивную JSX-разметку и сетевую логику одновременно: orchestration в контейнере, реализация — в дочерних блоках и hooks.
+- Новые части UI по умолчанию проектируйте как независимые блоки с явными входами/выходами (props/callbacks), чтобы их можно было переиспользовать и тестировать изолированно.
 - Перед добавлением нового `useEffect` с `fetch` проверьте, можно ли выразить сценарий через Query hook.
 - Для мутаций всегда определяйте стратегию:
   - оптимистичное обновление (`setQueryData`) и/или
