@@ -43,13 +43,13 @@ export function OAuthGoogleIcon({ className }: { className?: string }) {
   );
 }
 
-/** Монохромный знак Apple, наследует `currentColor`. */
+/** Монохромный знак Apple, наследует `currentColor`. Плотный viewBox (без полей 24×24), визуально ближе к размеру Google при 16×16. */
 export function OAuthAppleIcon({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
+      viewBox="0.25 2.9 17.5 17.5"
       width={16}
       height={16}
       className={cn("block shrink-0 text-foreground", className)}
