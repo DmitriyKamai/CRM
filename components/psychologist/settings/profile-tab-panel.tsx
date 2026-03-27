@@ -115,7 +115,7 @@ export const ProfileTabPanel: FC<Props> = ({
   maritalOptions
 }) => {
   return (
-    <form onSubmit={handleSaveProfile} className="space-y-5 max-w-2xl">
+    <form onSubmit={handleSaveProfile} className="w-full space-y-5">
         <AvatarUploadBlock
           image={image}
           initials={initials}

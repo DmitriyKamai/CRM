@@ -71,8 +71,8 @@ export const ProfessionalTabPanel: FC<Props> = ({
   setContactWhatsapp
 }) => {
   return (
-    <div>
-      <div className="max-w-2xl">
+    <div className="w-full">
+      <div className="w-full">
         <ProfilePhotoUploadBlock
           profilePhotoUrl={profilePhotoUrl}
           profilePhotoPublished={profilePhotoPublished}
@@ -85,7 +85,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
         />
       </div>
 
-      <form onSubmit={handleSaveProfessional} className="space-y-5 max-w-2xl">
+      <form onSubmit={handleSaveProfessional} className="w-full space-y-5">
         {/* О себе */}
         <div className="space-y-2">
           <Label htmlFor="bio">О себе</Label>

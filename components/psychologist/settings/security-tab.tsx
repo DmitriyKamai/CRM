@@ -50,7 +50,10 @@ export const SecurityTabForm: FC<Props> = ({
   progressFillWidthPct
 }) => {
   return (
-    <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+    <form
+      onSubmit={handleChangePassword}
+      className="mx-auto w-full max-w-sm space-y-4"
+    >
       <div className="space-y-2">
         <Label htmlFor="currentPassword">Текущий пароль</Label>
         <Input

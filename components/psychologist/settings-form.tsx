@@ -80,11 +80,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border-border/80">
+    <Card className="min-w-0 border-border/80">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
+      <CardContent className="min-w-0 space-y-4">{children}</CardContent>
     </Card>
   );
 }
@@ -216,7 +216,7 @@ export function PsychologistSettingsForm({
   return (
     <SettingsFormErrorBoundary>
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
-      <TabsList className="flex h-auto w-full min-w-0 flex-wrap justify-start gap-1 bg-muted/80 p-1">
+      <TabsList className="flex h-auto w-full min-w-0 flex-wrap justify-center gap-1 rounded-lg bg-muted/80 p-1 sm:justify-start">
         <TabsTrigger
           value="profile"
           className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
