@@ -1,20 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ru } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
-import { CalendarSubscriptionBlock } from "@/components/schedule/calendar-subscription";
 import { ScheduleGridSkeleton } from "@/components/schedule/schedule-skeleton";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from "@/components/ui/collapsible";
 import { CreateAppointmentDialog } from "@/components/schedule/create-appointment-dialog";
 import { SlotDetailPopover } from "@/components/schedule/slot-detail-popover";
 import { useScheduleSlots } from "@/hooks/use-schedule-slots";
@@ -351,18 +345,6 @@ export function PsychologistSchedule() {
                     </li>
                   </ul>
                 </div>
-                <Collapsible
-                  defaultOpen
-                  className="rounded-lg border border-border/80 bg-muted/20"
-                >
-                  <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/40 [&[data-state=open]]:rounded-t-lg [&[data-state=closed]]:rounded-lg">
-                    <span>Подписка на календарь (Google / Apple)</span>
-                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="border-t border-border/80 px-3 pb-3 pt-2">
-                    <CalendarSubscriptionBlock variant="embedded" />
-                  </CollapsibleContent>
-                </Collapsible>
               </div>
             </div>
 
