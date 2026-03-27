@@ -21,6 +21,7 @@ import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
+import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settings/calendar-feed-token-rotate-section";
 import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
 import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
@@ -313,24 +314,31 @@ export function PsychologistSettingsForm({
 
       <TabsContent value="security" className="mt-4">
         {activeTab === "security" && (
-        <Section title="Смена пароля">
-          <SecurityTabForm
-            handleChangePassword={handleChangePassword}
-            currentPassword={currentPassword}
-            onCurrentPasswordChange={onCurrentPasswordChange}
-            newPassword={newPassword}
-            onNewPasswordChange={onNewPasswordChange}
-            newPasswordConfirm={newPasswordConfirm}
-            onNewPasswordConfirmChange={onNewPasswordConfirmChange}
-            newPasswordChecks={newPasswordChecks}
-            newPasswordValid={newPasswordValid}
-            passwordSaving={passwordSaving}
-            passwordRequirements={passwordRequirements}
-            progressTrackColor={progressTrackColor}
-            progressFillColor={progressFillColor}
-            progressFillWidthPct={progressFillWidthPct}
-          />
-        </Section>
+          <div className="space-y-4">
+            <Section title="Смена пароля">
+              <SecurityTabForm
+                handleChangePassword={handleChangePassword}
+                currentPassword={currentPassword}
+                onCurrentPasswordChange={onCurrentPasswordChange}
+                newPassword={newPassword}
+                onNewPasswordChange={onNewPasswordChange}
+                newPasswordConfirm={newPasswordConfirm}
+                onNewPasswordConfirmChange={onNewPasswordConfirmChange}
+                newPasswordChecks={newPasswordChecks}
+                newPasswordValid={newPasswordValid}
+                passwordSaving={passwordSaving}
+                passwordRequirements={passwordRequirements}
+                progressTrackColor={progressTrackColor}
+                progressFillColor={progressFillColor}
+                progressFillWidthPct={progressFillWidthPct}
+              />
+            </Section>
+            {schedulingEnabled && (
+              <Section title="Ссылка подписки на календарь">
+                <CalendarFeedTokenRotateSection />
+              </Section>
+            )}
+          </div>
         )}
       </TabsContent>
 
