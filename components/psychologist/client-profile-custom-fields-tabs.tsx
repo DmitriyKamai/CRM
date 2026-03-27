@@ -11,7 +11,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Paperclip, Download, Trash } from "lucide-react";
+import { Paperclip, Download, Trash, GripVertical } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -88,20 +88,15 @@ function SortableFieldWrap({
       className={`group flex gap-2 items-stretch ${isDragging ? "opacity-50 shadow-md rounded-md z-10 bg-card" : ""}`}
     >
       {isEditing && (
-        <div
+        <button
+          type="button"
           {...attributes}
           {...listeners}
-          className="relative flex shrink-0 w-6 cursor-grab active:cursor-grabbing touch-none text-muted-foreground rounded self-stretch min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity"
+          className="touch-none self-stretch rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 cursor-grab active:cursor-grabbing"
           aria-label="Перетащить для смены порядка"
         >
-          <div className="absolute inset-0 flex items-stretch justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 16" fill="currentColor" className="block h-full w-auto min-w-3 shrink-0 text-muted-foreground">
-              <circle cx="2.5" cy="2.5" r="1.2" />
-              <circle cx="2.5" cy="8" r="1.2" />
-              <circle cx="2.5" cy="13.5" r="1.2" />
-            </svg>
-          </div>
-        </div>
+          <GripVertical className="h-4 w-4 shrink-0" />
+        </button>
       )}
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>
