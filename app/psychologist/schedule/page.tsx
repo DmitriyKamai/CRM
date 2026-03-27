@@ -22,7 +22,9 @@ export default async function PsychologistSchedulePage() {
       </h1>
       <p className="text-sm text-muted-foreground">
         Здесь вы можете создавать слоты в расписании, которые будут доступны
-        клиентам для записи.
+        клиентам для записи. Под мини-календарём — блок подписки на экспорт в
+        Google Календарь и Календарь Apple (ICS); то же есть в настройках, вкладка
+        «Календарь».
       </p>
       <PsychologistSchedule />
     </div>

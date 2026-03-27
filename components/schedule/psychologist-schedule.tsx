@@ -351,9 +351,12 @@ export function PsychologistSchedule() {
                     </li>
                   </ul>
                 </div>
-                <Collapsible className="rounded-lg border border-border/80 bg-muted/20">
+                <Collapsible
+                  defaultOpen
+                  className="rounded-lg border border-border/80 bg-muted/20"
+                >
                   <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/40 [&[data-state=open]]:rounded-t-lg [&[data-state=closed]]:rounded-lg">
-                    <span>Календарь в Google / Apple</span>
+                    <span>Подписка на календарь (Google / Apple)</span>
                     <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </CollapsibleTrigger>
                   <CollapsibleContent className="border-t border-border/80 px-3 pb-3 pt-2">
