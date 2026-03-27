@@ -43,15 +43,15 @@ export function OAuthGoogleIcon({ className }: { className?: string }) {
   );
 }
 
-/** Монохромный знак Apple, наследует `currentColor`. Полный viewBox 24×24 — иначе кривые Безье обрезаются справа и снизу. */
+/** Монохромный знак Apple, наследует `currentColor`. 20×20 — визуально ближе к цветному Google 16×16 из‑за полей в viewBox 24×24. */
 export function OAuthAppleIcon({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      width={16}
-      height={16}
+      width={20}
+      height={20}
       className={cn("block shrink-0 overflow-visible text-foreground", className)}
     >
       <path
