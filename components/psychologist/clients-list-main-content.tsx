@@ -293,14 +293,8 @@ export function ClientsListMainContent(props: {
             onColumnOrderPersist={persistClientsTableColumnOrder}
             onRowClick={onRowClick}
             topControls={
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                <Input
-                  placeholder="Поиск по имени, email или телефону..."
-                  value={searchInput}
-                  onChange={(e) => onSearchInputChange(e.target.value)}
-                  className="order-1 h-8 min-w-[220px] flex-1 sm:min-w-[320px] lg:min-w-[420px]"
-                />
-                <div className="order-3 flex basis-full items-center gap-2 sm:order-2 sm:ml-auto sm:basis-auto">
+              <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2 sm:items-center">
+                <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:ml-auto sm:w-auto">
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
                     Строк на странице:
                   </span>
@@ -319,6 +313,12 @@ export function ClientsListMainContent(props: {
                     </SelectContent>
                   </Select>
                 </div>
+                <Input
+                  placeholder="Поиск по имени, email или телефону..."
+                  value={searchInput}
+                  onChange={(e) => onSearchInputChange(e.target.value)}
+                  className="order-2 h-8 min-w-[180px] flex-1 sm:min-w-[240px] sm:max-w-[300px] lg:max-w-[340px]"
+                />
               </div>
             }
           />
