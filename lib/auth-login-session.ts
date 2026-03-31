@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { UAParser } from "ua-parser-js";
 
@@ -130,9 +130,36 @@ type JwtLike = Record<string, unknown> & {
   id?: string;
   sub?: string;
   exp?: number;
+  iat?: number;
   loginSessionKey?: string;
   loginSessionRevoked?: boolean;
 };
+
+/**
+ * Параллельные запросы с одним и тем же cookie без loginSessionKey иначе получали разные UUID
+ * и плодили дубликаты. Для уже выданного токена ключ стабилен от userId + iat (+ секрет).
+ * При свежем входе (`user` в jwt) по-прежнему выдаём случайный UUID.
+ */
+function assignLoginSessionKeyIfMissing(
+  token: JwtLike,
+  userId: string,
+  isFreshSignIn: boolean
+): void {
+  if (token.loginSessionKey && typeof token.loginSessionKey === "string") return;
+  if (isFreshSignIn) {
+    token.loginSessionKey = randomUUID();
+    return;
+  }
+  const iat = typeof token.iat === "number" ? token.iat : undefined;
+  const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? "";
+  if (iat !== undefined && secret.length > 0) {
+    token.loginSessionKey = createHash("sha256")
+      .update(`empatix:loginSession:${userId}:${iat}:${secret}`)
+      .digest("hex");
+    return;
+  }
+  token.loginSessionKey = randomUUID();
+}
 
 function markLoginSessionRevoked(token: JwtLike): void {
   token.loginSessionRevoked = true;
@@ -157,10 +184,8 @@ export async function syncAuthLoginSessionForJwt(params: {
   const userId = (user?.id ?? token.id ?? token.sub) as string | undefined;
   if (!userId) return;
 
-  if (!token.loginSessionKey || typeof token.loginSessionKey !== "string") {
-    token.loginSessionKey = randomUUID();
-  }
-  const sessionKey = token.loginSessionKey;
+  assignLoginSessionKeyIfMissing(token, userId, Boolean(user));
+  const sessionKey = token.loginSessionKey as string;
 
   try {
     const row = await prisma.authLoginSession.findUnique({
@@ -221,10 +246,21 @@ export async function syncAuthLoginSessionForJwt(params: {
     if (!row) {
       const geo = await resolveGeo(headers);
       const dev = parseUa(ua);
-      await prisma.authLoginSession.create({
-        data: {
+      await prisma.authLoginSession.upsert({
+        where: { sessionKey },
+        create: {
           userId,
           sessionKey,
+          userAgent: ua,
+          browser: dev.browser,
+          os: dev.os,
+          deviceLabel: dev.deviceLabel,
+          country: geo.country,
+          city: geo.city,
+          lastSeenAt: new Date()
+        },
+        update: {
+          userId,
           userAgent: ua,
           browser: dev.browser,
           os: dev.os,
@@ -274,7 +310,21 @@ export async function revokeLoginSessionByKey(sessionKey: string): Promise<void>
   }
 }
 
-export async function listActiveLoginSessionsForUser(userId: string) {
+export type LoginSessionListRow = {
+  id: string;
+  sessionKey: string;
+  browser: string | null;
+  os: string | null;
+  deviceLabel: string | null;
+  country: string | null;
+  city: string | null;
+  createdAt: Date;
+  lastSeenAt: Date;
+};
+
+export async function listActiveLoginSessionsForUser(
+  userId: string
+): Promise<LoginSessionListRow[]> {
   return prisma.authLoginSession.findMany({
     where: { userId, revokedAt: null },
     orderBy: { lastSeenAt: "desc" },
@@ -290,4 +340,42 @@ export async function listActiveLoginSessionsForUser(userId: string) {
       lastSeenAt: true
     }
   });
+}
+
+/** Одно отображаемое место входа: совпадающий браузер/ОС/гео схлопываем (после бага с параллельными UUID). */
+export function dedupeLoginSessionsForDisplay(
+  rows: LoginSessionListRow[],
+  currentSessionKey: string | null
+): LoginSessionListRow[] {
+  const groups = new Map<string, LoginSessionListRow[]>();
+  for (const r of rows) {
+    const k = [
+      r.deviceLabel ?? "",
+      r.country ?? "",
+      r.city ?? "",
+      r.browser ?? "",
+      r.os ?? ""
+    ].join("\u0001");
+    const arr = groups.get(k) ?? [];
+    arr.push(r);
+    groups.set(k, arr);
+  }
+  const out: LoginSessionListRow[] = [];
+  for (const arr of groups.values()) {
+    const byCurrent =
+      currentSessionKey !== null
+        ? arr.find((x) => x.sessionKey === currentSessionKey)
+        : undefined;
+    if (byCurrent) {
+      out.push(byCurrent);
+      continue;
+    }
+    const sorted = [...arr].sort(
+      (a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime()
+    );
+    const best = sorted[0];
+    if (best) out.push(best);
+  }
+  out.sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
+  return out;
 }
