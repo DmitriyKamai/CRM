@@ -3,36 +3,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { UAParser } from "ua-parser-js";
 
 import { getAuthRequestHeaders } from "@/lib/auth-request-context";
+import { getClientIpFromHeaderRecord, isNonPublicClientIp } from "@/lib/client-ip";
 import { prisma } from "@/lib/db";
 
-/** Не совпадает с JWE jti NextAuth (он меняется при каждом encode). */
-export const LOGIN_SESSION_KEY_CLAIM = "loginSessionKey" as const;
-
 const LAST_SEEN_TOUCH_MS = 5 * 60 * 1000;
-
-function clientIpFromHeaders(headers: Record<string, string> | null): string {
-  if (!headers) return "unknown";
-  const forwarded = headers["x-forwarded-for"] ?? headers["X-Forwarded-For"];
-  const first = forwarded?.split(",")[0]?.trim();
-  return (
-    first ??
-    headers["x-real-ip"] ??
-    headers["X-Real-IP"] ??
-    "unknown"
-  );
-}
-
-function isPrivateOrUnknownIp(ip: string): boolean {
-  if (!ip || ip === "unknown") return true;
-  if (ip === "::1" || ip.startsWith("127.") || ip.startsWith("10.")) return true;
-  if (ip.startsWith("192.168.")) return true;
-  if (ip.startsWith("172.")) {
-    const p = ip.split(".");
-    const n = parseInt(p[1] ?? "", 10);
-    if (!Number.isNaN(n) && n >= 16 && n <= 31) return true;
-  }
-  return false;
-}
 
 function geoFromPlatformHeaders(
   headers: Record<string, string> | null
@@ -61,7 +35,7 @@ async function fetchGeoByIp(
   if (process.env.AUTH_LOGIN_SESSION_GEO === "0") {
     return { country: null, city: null };
   }
-  if (isPrivateOrUnknownIp(ip)) return { country: null, city: null };
+  if (isNonPublicClientIp(ip)) return { country: null, city: null };
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), 2500);
   try {
@@ -137,8 +111,9 @@ type JwtLike = Record<string, unknown> & {
  * Параллельные запросы с одним и тем же cookie без loginSessionKey иначе получали разные UUID
  * и плодили дубликаты. Для уже выданного токена ключ стабилен от userId + iat (+ секрет).
  * При свежем входе (`user` в jwt) по-прежнему выдаём случайный UUID.
+ * @internal экспорт для юнит-тестов
  */
-function assignLoginSessionKeyIfMissing(
+export function assignLoginSessionKeyIfMissing(
   token: JwtLike,
   userId: string,
   isFreshSignIn: boolean
@@ -279,6 +254,9 @@ export async function syncAuthLoginSessionForJwt(params: {
     });
   } catch (e) {
     console.error("[auth-login-session] sync:", e);
+    if (process.env.AUTH_LOGIN_SESSION_STRICT === "1") {
+      markLoginSessionRevoked(token);
+    }
   }
 }
 
@@ -317,7 +295,7 @@ export async function enrichAuthLoginSessionGeo(params: {
     if (!row) return { updated: false };
     if (row.country && row.city) return { updated: false };
 
-    const ip = clientIpFromHeaders(headers);
+    const ip = headers ? getClientIpFromHeaderRecord(headers) : "unknown";
     const geo = await fetchGeoByIp(ip);
     if (!geo.country && !geo.city) return { updated: false };
 

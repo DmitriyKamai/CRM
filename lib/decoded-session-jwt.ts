@@ -11,12 +11,10 @@ export async function getDecodedSessionJwt() {
   for (const [k, v] of Object.entries(cookies)) {
     if (v !== undefined) cookiesFlat[k] = v;
   }
+  /** Минимальная форма req, совместимая с getToken в нашем App Router. */
+  const reqLike = { headers, cookies: cookiesFlat };
   return getToken({
-    // next-auth/jwt ожидает форму req из Pages Router; для App Router достаточно headers + cookies.
-    req: {
-      headers,
-      cookies: cookiesFlat
-    } as Parameters<typeof getToken>[0]["req"],
+    req: reqLike as unknown as Parameters<typeof getToken>[0]["req"],
     secret
   });
 }

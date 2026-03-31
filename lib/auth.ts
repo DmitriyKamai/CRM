@@ -6,7 +6,9 @@ import bcrypt from "bcryptjs";
 // GoogleProvider and AppleProvider are loaded conditionally at runtime
 // to avoid bundling openid-client/jose/oauth into the server compilation graph
 
+import { safeLogAudit } from "@/lib/audit-log";
 import { revokeLoginSessionByKey, syncAuthLoginSessionForJwt } from "@/lib/auth-login-session";
+import { getLoginSessionKeyFromJwtPayload } from "@/lib/login-session-jwt";
 import { prisma } from "@/lib/db";
 
 function safeNoop<T>(fn: () => T): T | null {
@@ -295,11 +297,23 @@ export const authOptions: NextAuthOptions = {
   callbacks: buildCallbacks(null),
   events: {
     async signOut({ token }) {
-      const key =
-        token && typeof (token as { loginSessionKey?: string }).loginSessionKey === "string"
-          ? (token as { loginSessionKey: string }).loginSessionKey
-          : null;
+      const key = getLoginSessionKeyFromJwtPayload(token ?? undefined);
       if (key) await revokeLoginSessionByKey(key);
+      const actorId =
+        token && typeof (token as { sub?: string }).sub === "string"
+          ? (token as { sub: string }).sub
+          : token && typeof (token as { id?: string }).id === "string"
+            ? (token as { id: string }).id
+            : null;
+      await safeLogAudit({
+        action: "auth.session.sign_out",
+        actorUserId: actorId,
+        actorRole:
+          token && typeof (token as { role?: string }).role === "string"
+            ? (token as { role: string }).role
+            : null,
+        meta: { hadLoginSessionKey: Boolean(key) }
+      });
     }
   }
 };

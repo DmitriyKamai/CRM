@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { enrichAuthLoginSessionGeo } from "@/lib/auth-login-session";
 import { getDecodedSessionJwt } from "@/lib/decoded-session-jwt";
+import { getLoginSessionKeyFromJwtPayload } from "@/lib/login-session-jwt";
 import { requireAuth } from "@/lib/security/api-guards";
 
 /** Ленивое гео по IP при открытии блока активных сессий (не в jwt callback). */
@@ -11,8 +12,7 @@ export async function POST() {
   if (!auth.ok) return auth.response;
 
   const jwt = await getDecodedSessionJwt();
-  const loginSessionKey =
-    jwt && typeof jwt.loginSessionKey === "string" ? jwt.loginSessionKey : null;
+  const loginSessionKey = getLoginSessionKeyFromJwtPayload(jwt ?? undefined);
 
   if (!loginSessionKey) {
     return NextResponse.json(

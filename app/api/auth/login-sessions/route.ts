@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth-login-session";
 import { deviceFormFactorFromUserAgent } from "@/lib/device-form-factor";
 import { getDecodedSessionJwt } from "@/lib/decoded-session-jwt";
+import { getLoginSessionKeyFromJwtPayload } from "@/lib/login-session-jwt";
 import { requireAuth } from "@/lib/security/api-guards";
 
 export async function GET() {
@@ -13,8 +14,7 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   const jwt = await getDecodedSessionJwt();
-  const loginSessionKey =
-    jwt && typeof jwt.loginSessionKey === "string" ? jwt.loginSessionKey : null;
+  const loginSessionKey = getLoginSessionKeyFromJwtPayload(jwt ?? undefined);
 
   const rows = await listActiveLoginSessionsForUser(auth.userId);
   const visible = dedupeLoginSessionsForDisplay(rows, loginSessionKey);

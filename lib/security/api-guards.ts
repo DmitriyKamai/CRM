@@ -2,6 +2,7 @@ import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { SESSION_INVALID_CODE } from "@/lib/api-error-codes";
+import { getClientIpFromRequest } from "@/lib/client-ip";
 import { prisma } from "@/lib/db";
 import { getAppSessionInRouteHandler } from "@/lib/server-session";
 
@@ -26,9 +27,7 @@ export type SessionUser = {
 };
 
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first ?? request.headers.get("x-real-ip") ?? "unknown";
+  return getClientIpFromRequest(request);
 }
 
 export function sessionUser(session: Session | null): SessionUser | null {
@@ -55,7 +54,8 @@ export async function requireAuth(): Promise<
   const session = await getAppSessionInRouteHandler();
   const user = sessionUser(session);
   const userId = user?.id?.trim();
-  if (!session?.user || !userId) {
+
+  if (!session?.user) {
     return {
       ok: false,
       response: NextResponse.json(
@@ -64,6 +64,16 @@ export async function requireAuth(): Promise<
       )
     };
   }
+
+  if (!userId) {
+    return {
+      ok: false,
+      response: sessionInvalidResponse(
+        "Сессия завершена или устарела. Войдите снова."
+      )
+    };
+  }
+
   return { ok: true, session, userId, user: user! };
 }
 
