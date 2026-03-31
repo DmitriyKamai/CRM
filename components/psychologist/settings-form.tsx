@@ -334,14 +334,14 @@ export function PsychologistSettingsForm({
                 progressFillWidthPct={progressFillWidthPct}
               />
             </Section>
+            <Section title="Активные сессии">
+              <ActiveSessionsSection active={activeTab === "security"} />
+            </Section>
             {schedulingEnabled && (
               <Section title="Ссылка подписки на календарь">
                 <CalendarFeedTokenRotateSection />
               </Section>
             )}
-            <Section title="Активные сессии">
-              <ActiveSessionsSection active={activeTab === "security"} />
-            </Section>
           </div>
         )}
       </TabsContent>
