@@ -7,12 +7,8 @@ export function setupNodeInstrumentation() {
   try {
     getDataEncryptionKey();
   } catch (e) {
-    // Не падаем при старте: на Vercel без секрета иначе 500 на всех маршрутах.
-    // Запись/расшифровка envelope всё равно потребует ключ в env.
-    console.error(
-      "[server-encryption] DATA_ENCRYPTION_KEY недоступен или неверен — задайте секрет в окружении (Vercel → Settings → Environment Variables).",
-      e
-    );
+    console.error("[server-encryption] Проверка DATA_ENCRYPTION_KEY не пройдена:", e);
+    throw e;
   }
 
   const heapStats = () => {
