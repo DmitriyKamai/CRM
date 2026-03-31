@@ -7,6 +7,7 @@ export type LoginSessionRow = {
   browser: string | null;
   os: string | null;
   deviceLabel: string | null;
+  deviceFormFactor: "desktop" | "mobile" | "tablet" | "unknown";
   country: string | null;
   city: string | null;
   createdAt: string;

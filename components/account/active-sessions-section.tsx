@@ -2,9 +2,10 @@
 
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Loader2, MonitorSmartphone } from "lucide-react";
+import { Loader2, Monitor, Smartphone, Tablet } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { LoginSessionRow } from "@/hooks/use-login-sessions";
 import { useLoginSessions } from "@/hooks/use-login-sessions";
 
 type Props = {
@@ -16,6 +17,16 @@ function formatLocation(country: string | null, city: string | null): string {
   const parts = [city, country].filter(Boolean);
   return parts.length ? parts.join(", ") : "Местоположение не определено";
 }
+
+const formFactorMeta: Record<
+  LoginSessionRow["deviceFormFactor"],
+  { label: string; Icon: typeof Monitor }
+> = {
+  desktop: { label: "Компьютер", Icon: Monitor },
+  mobile: { label: "Телефон", Icon: Smartphone },
+  tablet: { label: "Планшет", Icon: Tablet },
+  unknown: { label: "Устройство", Icon: Monitor }
+};
 
 export function ActiveSessionsSection({ active }: Props) {
   const { data, isLoading, isError, error, refetch, revokeMutation } =
@@ -57,14 +68,21 @@ export function ActiveSessionsSection({ active }: Props) {
 
       {!isLoading && !isError && sessions.length > 0 && (
         <ul className="space-y-3">
-          {sessions.map((s) => (
+          {sessions.map((s) => {
+            const { label, Icon } = formFactorMeta[s.deviceFormFactor];
+            return (
             <li
               key={s.id}
               className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between"
             >
-              <div className="flex gap-2 min-w-0">
-                <MonitorSmartphone className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
-                <div className="min-w-0 space-y-0.5">
+              <div className="flex gap-3 min-w-0">
+                <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
+                  <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground text-center max-w-[4.5rem] leading-tight">
+                    {label}
+                  </span>
+                </div>
+                <div className="min-w-0 space-y-0.5 flex-1">
                   <p className="text-sm font-medium text-foreground">
                     {s.deviceLabel ?? "Браузер"}
                     {s.isCurrent && (
@@ -83,7 +101,8 @@ export function ActiveSessionsSection({ active }: Props) {
                 </div>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 

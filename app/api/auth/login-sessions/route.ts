@@ -4,6 +4,7 @@ import {
   dedupeLoginSessionsForDisplay,
   listActiveLoginSessionsForUser
 } from "@/lib/auth-login-session";
+import { deviceFormFactorFromUserAgent } from "@/lib/device-form-factor";
 import { getDecodedSessionJwt } from "@/lib/decoded-session-jwt";
 import { requireAuth } from "@/lib/security/api-guards";
 
@@ -22,6 +23,7 @@ export async function GET() {
     browser: r.browser,
     os: r.os,
     deviceLabel: r.deviceLabel,
+    deviceFormFactor: deviceFormFactorFromUserAgent(r.userAgent),
     country: r.country,
     city: r.city,
     createdAt: r.createdAt.toISOString(),

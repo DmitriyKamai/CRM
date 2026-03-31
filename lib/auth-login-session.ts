@@ -313,6 +313,7 @@ export async function revokeLoginSessionByKey(sessionKey: string): Promise<void>
 export type LoginSessionListRow = {
   id: string;
   sessionKey: string;
+  userAgent: string | null;
   browser: string | null;
   os: string | null;
   deviceLabel: string | null;
@@ -331,6 +332,7 @@ export async function listActiveLoginSessionsForUser(
     select: {
       id: true,
       sessionKey: true,
+      userAgent: true,
       browser: true,
       os: true,
       deviceLabel: true,
