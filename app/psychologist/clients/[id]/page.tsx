@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
+import { decryptClientNotesFromDb } from "@/lib/server-encryption/client-profile-storage";
+import { decryptTestResultInterpretationFromDb } from "@/lib/server-encryption/test-result-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -140,7 +142,7 @@ export default async function PsychologistClientProfilePage({
         city={city}
         gender={gender}
         maritalStatus={maritalStatus}
-        notes={client.notes ?? null}
+        notes={decryptClientNotesFromDb(client.notes)}
         createdAt={client.createdAt.toISOString()}
         statusId={client.status?.id ?? null}
         statusLabel={client.status?.label ?? null}
@@ -149,7 +151,7 @@ export default async function PsychologistClientProfilePage({
           id: r.id,
           testTitle: r.test?.title ?? "Диагностика",
           createdAt: r.createdAt.toISOString(),
-          interpretation: r.interpretation ?? null
+          interpretation: decryptTestResultInterpretationFromDb(r.interpretation)
         }))}
       />
     </div>

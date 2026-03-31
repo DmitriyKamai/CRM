@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { requirePsychologist } from "@/lib/security/api-guards";
+import { decryptTestResultInterpretationFromDb } from "@/lib/server-encryption/test-result-storage";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -47,7 +48,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
     id: r.id,
     testTitle: r.test?.title ?? "Диагностика",
     createdAt: r.createdAt.toISOString(),
-    interpretation: r.interpretation ?? null
+    interpretation: decryptTestResultInterpretationFromDb(r.interpretation)
   }));
 
   return NextResponse.json({ diagnostics });

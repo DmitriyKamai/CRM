@@ -13,7 +13,8 @@
 Стек: Next.js 16 (App Router), TypeScript, Prisma ORM, PostgreSQL.
 
 Роли: `PSYCHOLOGIST`, `CLIENT`, `ADMIN`.  
-Первый администратор назначается через `INITIAL_ADMIN_EMAIL` в `.env`.
+Первый администратор назначается через `INITIAL_ADMIN_EMAIL` в `.env`.  
+Серверное шифрование чувствительных полей требует `DATA_ENCRYPTION_KEY` (32 байта в base64, см. `.env.example`); без ключа процесс не стартует.
 
 ---
 

@@ -2,6 +2,11 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
+import {
+  encryptTestResultInterpretationForDb,
+  encryptTestResultRawAnswersForDb,
+  encryptTestResultScaleScoresForDb
+} from "@/lib/server-encryption/test-result-storage";
 
 import type { DiagnosticLinkWithRelations } from "./link-validation";
 
@@ -24,9 +29,9 @@ export async function saveTestResultAndIncrement({
         testId: link.testId,
         clientId: link.clientId ?? null,
         psychologistId: link.psychologistId ?? null,
-        rawAnswers,
-        scaleScores,
-        interpretation
+        rawAnswers: encryptTestResultRawAnswersForDb(rawAnswers as Prisma.JsonValue),
+        scaleScores: encryptTestResultScaleScoresForDb(scaleScores as Prisma.JsonValue),
+        interpretation: encryptTestResultInterpretationForDb(interpretation)
       }
     });
     await tx.diagnosticLink.update({

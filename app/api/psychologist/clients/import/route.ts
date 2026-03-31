@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { safeLogAudit } from "@/lib/audit-log";
@@ -6,6 +7,8 @@ import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
+import { encryptClientNotesForDb } from "@/lib/server-encryption/client-profile-storage";
+import { encryptCustomFieldValueForDb } from "@/lib/server-encryption/custom-field-storage";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -203,17 +206,18 @@ export async function POST(request: Request) {
             const existingVal = await prisma.customFieldValue.findFirst({
               where: { clientId, definitionId: def.id }
             });
+            const encrypted = encryptCustomFieldValueForDb(value as Prisma.JsonValue);
             if (existingVal) {
               await prisma.customFieldValue.update({
                 where: { id: existingVal.id },
-                data: { value: value as object }
+                data: { value: encrypted }
               });
             } else {
               await prisma.customFieldValue.create({
                 data: {
                   definitionId: def.id,
                   clientId,
-                  value: value as object
+                  value: encrypted
                 }
               });
             }
@@ -238,7 +242,11 @@ export async function POST(request: Request) {
                 gender: row.gender != null ? String(row.gender).trim() || null : null,
                 maritalStatus:
                   row.maritalStatus != null ? String(row.maritalStatus).trim() || null : null,
-                notes: row.notes != null ? String(row.notes).trim() || null : null,
+                notes: encryptClientNotesForDb(
+                  row.notes != null && String(row.notes).trim() !== ""
+                    ? String(row.notes).trim()
+                    : null
+                ),
                 statusId: statusId ?? undefined
               }
             });
@@ -267,7 +275,11 @@ export async function POST(request: Request) {
                 gender: row.gender != null ? String(row.gender).trim() || null : null,
                 maritalStatus:
                   row.maritalStatus != null ? String(row.maritalStatus).trim() || null : null,
-                notes: row.notes != null ? String(row.notes).trim() || null : null,
+                notes: encryptClientNotesForDb(
+                  row.notes != null && String(row.notes).trim() !== ""
+                    ? String(row.notes).trim()
+                    : null
+                ),
                 statusId: statusId ?? undefined
               }
             });
@@ -292,7 +304,11 @@ export async function POST(request: Request) {
             gender: row.gender != null ? String(row.gender).trim() || null : null,
             maritalStatus:
               row.maritalStatus != null ? String(row.maritalStatus).trim() || null : null,
-            notes: row.notes != null ? String(row.notes).trim() || null : null,
+            notes: encryptClientNotesForDb(
+              row.notes != null && String(row.notes).trim() !== ""
+                ? String(row.notes).trim()
+                : null
+            ),
             statusId: statusId ?? undefined
           }
         });

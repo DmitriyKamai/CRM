@@ -1,7 +1,16 @@
 // Node.js-only instrumentation — dynamically imported from instrumentation.ts
 // Only runs when NEXT_RUNTIME === "nodejs"
+import { getDataEncryptionKey } from "./server-encryption/key-provider";
+
 // #region agent log
 export function setupNodeInstrumentation() {
+  try {
+    getDataEncryptionKey();
+  } catch (e) {
+    console.error("[server-encryption] Проверка DATA_ENCRYPTION_KEY не пройдена:", e);
+    throw e;
+  }
+
   const heapStats = () => {
     const m = process.memoryUsage();
     const usedMb = Math.round(m.heapUsed / 1024 / 1024);

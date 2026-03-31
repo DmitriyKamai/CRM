@@ -11,6 +11,10 @@ import {
 import { prisma } from "@/lib/db";
 import { logZodError } from "@/lib/log-validation-error";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
+import {
+  decryptCustomFieldValueFromDb,
+  encryptCustomFieldValueForDb
+} from "@/lib/server-encryption/custom-field-storage";
 
 type ParamsPromise = {
   params: Promise<{
@@ -43,7 +47,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
 
   const map: Record<string, unknown> = {};
   for (const v of values) {
-    map[v.definitionId] = v.value;
+    map[v.definitionId] = decryptCustomFieldValueFromDb(v.value);
   }
 
   return NextResponse.json({
@@ -98,25 +102,32 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       if (!allowedIds.has(definitionId)) continue;
       const def = defById.get(definitionId);
       if (!def) continue;
-      const oldVal = snapshot.has(definitionId) ? snapshot.get(definitionId) : undefined;
+      const oldStored = snapshot.has(definitionId) ? snapshot.get(definitionId) : undefined;
+      const oldPlain =
+        oldStored !== undefined ? decryptCustomFieldValueFromDb(oldStored) : undefined;
       const empty = raw === null || raw === undefined || raw === "";
       const existingRow = existingRows.find(r => r.definitionId === definitionId);
 
       if (empty) {
         if (!existingRow) continue;
         toDelete.push(definitionId);
-        changes.push({ label: def.label, from: formatCustomFieldValueForHistory(oldVal, def), to: "—" });
+        changes.push({
+          label: def.label,
+          from: formatCustomFieldValueForHistory(oldPlain, def),
+          to: "—"
+        });
         continue;
       }
-      if (jsonValueEqual(oldVal, raw)) continue;
+      if (jsonValueEqual(oldPlain, raw)) continue;
+      const encrypted = encryptCustomFieldValueForDb(raw as Prisma.JsonValue);
       if (existingRow) {
-        toUpdate.push({ id: existingRow.id, value: raw as Prisma.InputJsonValue });
+        toUpdate.push({ id: existingRow.id, value: encrypted });
       } else {
-        toCreate.push({ definitionId, value: raw as Prisma.InputJsonValue });
+        toCreate.push({ definitionId, value: encrypted });
       }
       changes.push({
         label: def.label,
-        from: snapshot.has(definitionId) ? formatCustomFieldValueForHistory(oldVal, def) : "—",
+        from: snapshot.has(definitionId) ? formatCustomFieldValueForHistory(oldPlain, def) : "—",
         to: formatCustomFieldValueForHistory(raw, def)
       });
     }

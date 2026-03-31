@@ -12,6 +12,10 @@ import {
   profileFieldLabel
 } from "@/lib/client-profile-display";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
+import {
+  decryptClientNotesFromDb,
+  encryptClientNotesForDb
+} from "@/lib/server-encryption/client-profile-storage";
 
 type ParamsPromise = {
   params: Promise<{
@@ -78,7 +82,7 @@ export async function GET(_req: Request, { params }: ParamsPromise) {
       city: client.city,
       gender: client.gender,
       maritalStatus: client.maritalStatus,
-      notes: client.notes,
+      notes: decryptClientNotesFromDb(client.notes),
       createdAt: client.createdAt,
       email: client.user?.email ?? client.email ?? null,
       hasAccount: !!client.userId,
@@ -137,7 +141,10 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       city: data.city !== undefined ? data.city : existing.city,
       gender: data.gender !== undefined ? data.gender : existing.gender,
       maritalStatus: data.maritalStatus !== undefined ? data.maritalStatus : existing.maritalStatus,
-      notes: data.notes !== undefined ? data.notes : existing.notes
+      notes:
+        data.notes !== undefined
+          ? encryptClientNotesForDb(data.notes.trim() === "" ? null : data.notes)
+          : existing.notes
     };
 
     // Email редактируем только если у клиента ещё нет аккаунта
@@ -228,12 +235,16 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
         to: formatMaritalHistory(updateData.maritalStatus)
       });
     }
-    if (updateData.notes !== undefined && str(existing.notes) !== str(updateData.notes)) {
-      profileChanges.push({
-        field: "notes",
-        from: existing.notes || "—",
-        to: updateData.notes || "—"
-      });
+    if (data.notes !== undefined) {
+      const fromPlain = decryptClientNotesFromDb(existing.notes) ?? "";
+      const toPlain = data.notes.trim() === "" ? "" : data.notes;
+      if (fromPlain !== toPlain) {
+        profileChanges.push({
+          field: "notes",
+          from: fromPlain || "—",
+          to: toPlain || "—"
+        });
+      }
     }
     if (
       existing.userId == null &&
@@ -294,7 +305,10 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       });
     }
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      ...updated,
+      notes: decryptClientNotesFromDb(updated.notes)
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       logZodError("PATCH /api/psychologist/clients/[id]", error);

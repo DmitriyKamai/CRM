@@ -4,6 +4,11 @@ import { prisma } from "@/lib/db";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { requireClient } from "@/lib/security/api-guards";
+import {
+  decryptRecommendationBodyFromDb,
+  decryptRecommendationTitleFromDb
+} from "@/lib/server-encryption/recommendation-storage";
+import { decryptTestResultInterpretationFromDb } from "@/lib/server-encryption/test-result-storage";
 
 async function handleGet(): Promise<Response> {
   return withPrismaLock(async () => {
@@ -107,7 +112,7 @@ async function handleGet(): Promise<Response> {
             id: r.id,
             testTitle: r.test.title,
             createdAt: r.createdAt.toISOString(),
-            interpretation: r.interpretation
+            interpretation: decryptTestResultInterpretationFromDb(r.interpretation)
           }));
 
           const pendingLinksRaw = await prisma.diagnosticLink.findMany({
@@ -173,8 +178,8 @@ async function handleGet(): Promise<Response> {
         });
         recommendations = recs.map((r) => ({
           id: r.id,
-          title: r.title,
-          body: r.body,
+          title: decryptRecommendationTitleFromDb(r.title),
+          body: decryptRecommendationBodyFromDb(r.body),
           createdAt: r.createdAt.toISOString(),
           psychologistName: `${r.psychologist.lastName} ${r.psychologist.firstName}`.trim()
         }));

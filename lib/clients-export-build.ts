@@ -1,4 +1,8 @@
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/db";
+import { decryptClientNotesFromDb } from "@/lib/server-encryption/client-profile-storage";
+import { decryptCustomFieldValueFromDb } from "@/lib/server-encryption/custom-field-storage";
 
 /** Формат дат в экспорте: ДД.ММ.ГГГГ, при наличии времени — пробел и ЧЧ:ММ:СС. */
 export function formatExportDate(value: Date | string | null | undefined): string {
@@ -170,14 +174,18 @@ export async function buildClientsExportTable(
       c.status?.label ?? ""
     ];
     const customRow = defs.map((d) => {
-      const raw = valueByClientDef.get(`${c.id}:${d.id}`);
+      const rawStored = valueByClientDef.get(`${c.id}:${d.id}`);
+      const raw =
+        rawStored === undefined || rawStored === null
+          ? null
+          : decryptCustomFieldValueFromDb(rawStored as Prisma.JsonValue);
       const display =
         d.type === "SELECT" || d.type === "MULTI_SELECT" || d.type === "BOOLEAN" || d.type === "DATE"
           ? valueToDisplay(raw, d.type, d.options)
           : jsonValueToCsv(raw);
       return display;
     });
-    const tailRow = [c.notes ?? "", created];
+    const tailRow = [decryptClientNotesFromDb(c.notes) ?? "", created];
     rows.push([...baseRow, ...customRow, ...tailRow]);
   }
 

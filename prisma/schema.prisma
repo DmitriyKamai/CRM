@@ -468,6 +468,7 @@ model Appointment {
   start                  DateTime
   end                    DateTime
   status                 AppointmentStatus @default(SCHEDULED)
+  /// При записи из API использовать encryptAppointmentNotesForDb (lib/server-encryption).
   notes                  String?           @db.Text
   proposedByPsychologist Boolean           @default(false)
   createdAt              DateTime          @default(now())

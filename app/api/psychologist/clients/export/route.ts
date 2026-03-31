@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 
 import { safeLogAudit } from "@/lib/audit-log";
 import {
@@ -9,6 +10,8 @@ import {
 import { buildClientsXlsxBuffer } from "@/lib/clients-xlsx-build";
 import { prisma } from "@/lib/db";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
+import { decryptClientNotesFromDb } from "@/lib/server-encryption/client-profile-storage";
+import { decryptCustomFieldValueFromDb } from "@/lib/server-encryption/custom-field-storage";
 
 function escapeCsvCell(value: string): string {
   const s = String(value ?? "");
@@ -92,7 +95,9 @@ export async function GET(request: Request) {
       const jsonItems = clients.map((c) => {
         const customFields: Record<string, unknown> = {};
         for (const d of defs) {
-          const raw = valueByClientDef.get(`${c.id}:${d.id}`);
+          const rawStored = valueByClientDef.get(`${c.id}:${d.id}`);
+          if (rawStored === undefined || rawStored === null) continue;
+          const raw = decryptCustomFieldValueFromDb(rawStored as Prisma.JsonValue);
           if (raw === undefined || raw === null) continue;
           const display =
             d.type === "SELECT" || d.type === "MULTI_SELECT"
@@ -119,7 +124,7 @@ export async function GET(request: Request) {
           maritalStatus: c.maritalStatus ?? null,
           status: c.status?.label ?? null,
           customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
-          notes: c.notes ?? null,
+          notes: decryptClientNotesFromDb(c.notes),
           createdAt: formatExportDate(c.createdAt)
         };
       });

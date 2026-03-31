@@ -8,6 +8,11 @@ import { getClientsQuerySchema } from "@/lib/clients/clients-query-schema";
 import { buildClientsWhere } from "@/lib/clients/build-clients-where";
 import { requirePsychologist, requireRoles } from "@/lib/security/api-guards";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
+import { decryptCustomFieldValueFromDb } from "@/lib/server-encryption/custom-field-storage";
+import {
+  decryptClientNotesFromDb,
+  encryptClientNotesForDb
+} from "@/lib/server-encryption/client-profile-storage";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -144,7 +149,7 @@ export async function GET(request: Request) {
           customByClient.set(v.clientId, row);
         }
         const label = defIdToLabel.get(v.definitionId);
-        if (label != null) row[label] = v.value as unknown;
+        if (label != null) row[label] = decryptCustomFieldValueFromDb(v.value) as unknown;
       }
 
       return NextResponse.json({
@@ -160,7 +165,7 @@ export async function GET(request: Request) {
             city: c.city ?? null,
             gender: c.gender ?? null,
             maritalStatus: c.maritalStatus ?? null,
-            notes: c.notes,
+            notes: decryptClientNotesFromDb(c.notes),
             createdAt: c.createdAt,
             email: c.user?.email ?? c.email ?? null,
             hasAccount: !!c.userId,
@@ -193,6 +198,9 @@ export async function POST(request: Request) {
     const ctx = await requirePsychologist();
     if (!ctx.ok) return ctx.response;
     const psych = { id: ctx.psychologistId };
+
+    const notesForDb = (notes: string | undefined) =>
+      encryptClientNotesForDb(notes?.trim() ? notes : null);
 
     async function getDefaultStatusId(psychologistId: string): Promise<string | null> {
       // Пытаемся найти статус с ключом NEW
@@ -281,7 +289,7 @@ export async function POST(request: Request) {
             city: parsed.city ?? undefined,
             gender: parsed.gender ?? undefined,
             maritalStatus: parsed.maritalStatus ?? undefined,
-            notes: parsed.notes,
+            notes: notesForDb(parsed.notes),
             statusId: statusIdToUse
           }
         });
@@ -291,7 +299,10 @@ export async function POST(request: Request) {
           actorUserId: ctx.userId,
           meta: { source: "manual" }
         });
-        return NextResponse.json(clientProfile, { status: 201 });
+        return NextResponse.json(
+          { ...clientProfile, notes: decryptClientNotesFromDb(clientProfile.notes) },
+          { status: 201 }
+        );
       }
 
       // Нет пользователя — проверяем уникальность email у этого психолога
@@ -318,7 +329,7 @@ export async function POST(request: Request) {
           city: parsed.city ?? undefined,
           gender: parsed.gender ?? undefined,
           maritalStatus: parsed.maritalStatus ?? undefined,
-          notes: parsed.notes,
+          notes: notesForDb(parsed.notes),
           statusId: statusIdToUse
         }
       });
@@ -328,7 +339,10 @@ export async function POST(request: Request) {
         actorUserId: ctx.userId,
         meta: { source: "manual" }
       });
-      return NextResponse.json(clientProfile, { status: 201 });
+      return NextResponse.json(
+        { ...clientProfile, notes: decryptClientNotesFromDb(clientProfile.notes) },
+        { status: 201 }
+      );
     }
 
     // Без email — только профиль у психолога
@@ -343,7 +357,7 @@ export async function POST(request: Request) {
         city: parsed.city ?? undefined,
         gender: parsed.gender ?? undefined,
         maritalStatus: parsed.maritalStatus ?? undefined,
-        notes: parsed.notes,
+        notes: notesForDb(parsed.notes),
         statusId: statusIdToUse
       }
     });
@@ -353,7 +367,10 @@ export async function POST(request: Request) {
       actorUserId: ctx.userId,
       meta: { source: "manual" }
     });
-    return NextResponse.json(clientProfile, { status: 201 });
+    return NextResponse.json(
+      { ...clientProfile, notes: decryptClientNotesFromDb(clientProfile.notes) },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       logZodError("POST /api/psychologist/clients", error);
