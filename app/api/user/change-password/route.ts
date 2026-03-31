@@ -5,49 +5,28 @@ import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/security/api-guards";
 import { getClientIp } from "@/lib/security/api-guards";
 import { safeLogAudit } from "@/lib/audit-log";
+import { changePasswordSchema } from "@/lib/schemas";
 
 export async function POST(request: Request) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
 
-  let body: { currentPassword?: string; newPassword?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ message: "Неверный JSON" }, { status: 400 });
   }
 
-  const { currentPassword, newPassword } = body;
-  if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
+  const parseResult = changePasswordSchema.safeParse(body);
+  if (!parseResult.success) {
     return NextResponse.json(
-      { message: "Укажите текущий и новый пароль" },
+      { message: "Ошибка валидации", issues: parseResult.error.issues },
       { status: 400 }
     );
   }
-  if (newPassword.length < 8) {
-    return NextResponse.json(
-      { message: "Новый пароль не менее 8 символов" },
-      { status: 400 }
-    );
-  }
-  if (!/[A-Za-zА-Яа-я]/.test(newPassword)) {
-    return NextResponse.json(
-      { message: "Новый пароль должен содержать буквы" },
-      { status: 400 }
-    );
-  }
-  if (!/\d/.test(newPassword)) {
-    return NextResponse.json(
-      { message: "Новый пароль должен содержать цифры" },
-      { status: 400 }
-    );
-  }
-  if (!/[^A-Za-zА-Яа-я0-9\s]/.test(newPassword)) {
-    return NextResponse.json(
-      { message: "Добавьте в новый пароль специальный символ (например, !, ?, %)" },
-      { status: 400 }
-    );
-  }
+
+  const { currentPassword, newPassword } = parseResult.data;
 
   const userId = auth.userId;
   const user = await prisma.user.findUnique({

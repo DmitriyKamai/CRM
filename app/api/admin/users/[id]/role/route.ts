@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/security/api-guards";
 import { getClientIp } from "@/lib/security/api-guards";
 import { safeLogAudit } from "@/lib/audit-log";
+import { updateUserRoleSchema } from "@/lib/schemas";
 
 type ParamsPromise = {
   params: Promise<{ id: string }>;
@@ -15,15 +16,22 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
-  const body = await request.json().catch(() => null);
-  const nextRole = body?.role as string | undefined;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "Неверный JSON" }, { status: 400 });
+  }
 
-  if (!nextRole || !["CLIENT", "PSYCHOLOGIST", "ADMIN"].includes(nextRole)) {
+  const parseResult = updateUserRoleSchema.safeParse(body);
+  if (!parseResult.success) {
     return NextResponse.json(
-      { message: "Неверная роль" },
+      { message: "Ошибка валидации", issues: parseResult.error.issues },
       { status: 400 }
     );
   }
+
+  const { role: nextRole } = parseResult.data;
 
   if (nextRole !== "ADMIN") {
     const target = await prisma.user.findUnique({

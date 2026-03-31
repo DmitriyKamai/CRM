@@ -1,217 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
 
-type AppointmentStatus =
-  | "PENDING_CONFIRMATION"
-  | "SCHEDULED"
-  | "COMPLETED"
-  | "CANCELED"
-  | "NO_SHOW";
-
-type AppointmentItem = {
-  id: string;
-  start: string;
-  end: string;
-  psychologistName: string;
-  status: AppointmentStatus;
-  proposedByPsychologist?: boolean;
-};
-
-type DiagnosticItem = {
-  id: string;
-  testTitle: string;
-  createdAt: string;
-  interpretation?: string | null;
-};
-
-type PendingDiagnosticLink = {
-  id: string;
-  token: string;
-  testTitle: string;
-  psychologistName: string;
-  createdAt: string;
-  hasProgress?: boolean;
-};
-
-type RecommendationItem = {
-  id: string;
-  title: string;
-  body: string;
-  createdAt: string;
-  psychologistName: string;
-};
-
-type DashboardData = {
-  name: string;
-  upcomingAppointments: number;
-  upcomingAppointmentsList: AppointmentItem[];
-  testResults: number;
-  diagnosticResults: DiagnosticItem[];
-  pendingDiagnosticLinks: PendingDiagnosticLink[];
-  recommendations: RecommendationItem[];
-};
+import { useClientDashboard } from "@/hooks/use-client-dashboard";
+import { AppointmentsTab } from "@/app/client/appointments-tab";
+import { DashboardMetrics } from "@/app/client/dashboard-metrics";
+import { DiagnosticsTab } from "@/app/client/diagnostics-tab";
+import { RecommendationsTab } from "@/app/client/recommendations-tab";
 
 type ClientDashboardClientProps = {
   schedulingEnabled?: boolean;
   diagnosticsEnabled?: boolean;
 };
 
-function formatAppointmentDateTime(start: string, end: string): string {
-  const d = new Date(start);
-  const e = new Date(end);
-  const date = d.toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-  const timeStart = d.toLocaleTimeString("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-  const timeEnd = e.toLocaleTimeString("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-  return `${date}, ${timeStart}–${timeEnd}`;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
-}
-
 export function ClientDashboardClient({
   schedulingEnabled = true,
   diagnosticsEnabled = true
 }: ClientDashboardClientProps) {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
-  const [cancelPendingId, setCancelPendingId] = useState<string | null>(null);
+  const {
+    data,
+    isLoading,
+    error,
+    updateAppointment,
+    loadHistory,
+    history,
+    isHistoryLoading
+  } = useClientDashboard();
 
-  // История прошедших записей — загружается лениво
-  const [history, setHistory] = useState<AppointmentItem[] | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch("/api/client/dashboard");
-        if (cancelled) return;
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          if (res.status === 401) {
-            window.location.href = "/auth/login?callbackUrl=/client";
-            return;
-          }
-          if (res.status === 403) {
-            window.location.href = "/?forbidden=1";
-            return;
-          }
-          setError(body?.error ?? "Не удалось загрузить данные");
-          setLoading(false);
-          return;
-        }
-        const json = (await res.json()) as DashboardData;
-        if (cancelled) return;
-        setData(json);
-      } catch (err) {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : "Ошибка сети";
-        setError(
-          msg.includes("fetch") ||
-            msg.includes("Failed to fetch") ||
-            msg.includes("CONNECTION_REFUSED")
-            ? "Сервер недоступен (он мог завершиться при запросе к API). Запустите снова npm run dev и обновите страницу. Если используете Neon — проверьте, что база «разбужена» в консоли Neon."
-            : msg
-        );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function updateAppointment(id: string, status: "SCHEDULED" | "CANCELED") {
-    setUpdatingAppointmentId(id);
-    try {
-      const res = await fetch(`/api/client/appointments/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(body?.message ?? "Не удалось обновить запись");
-      }
-      setData(prev => {
-        if (!prev) return prev;
-        if (status === "CANCELED") {
-          return {
-            ...prev,
-            upcomingAppointmentsList: prev.upcomingAppointmentsList.filter(a => a.id !== id),
-            upcomingAppointments: Math.max(0, prev.upcomingAppointments - 1)
-          };
-        }
-        return {
-          ...prev,
-          upcomingAppointmentsList: prev.upcomingAppointmentsList.map(a =>
-            a.id === id ? { ...a, status: status as "PENDING_CONFIRMATION" | "SCHEDULED" } : a
-          )
-        };
-      });
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Не удалось обновить запись");
-    } finally {
-      setUpdatingAppointmentId(null);
-    }
-  }
-
-  async function loadHistory() {
-    if (history !== null || historyLoading) return;
-    setHistoryLoading(true);
-    try {
-      const res = await fetch("/api/client/appointments?filter=past");
-      const body = await res.json().catch(() => null);
-      if (res.ok && Array.isArray(body)) {
-        setHistory(body as AppointmentItem[]);
-      }
-    } catch {
-      // best-effort
-    } finally {
-      setHistoryLoading(false);
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">Загрузка кабинета…</p>
@@ -262,67 +80,12 @@ export function ClientDashboardClient({
       </section>
 
       {metricsCardCount > 0 && (
-      <section
-        className={`grid gap-3 ${
-          metricsCardCount >= 3
-            ? "md:grid-cols-3"
-            : metricsCardCount === 2
-              ? "md:grid-cols-2"
-              : "md:grid-cols-1"
-        }`}
-      >
-        {schedulingEnabled && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
-                Предстоящие приёмы
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold text-foreground">
-                {data.upcomingAppointments}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {diagnosticsEnabled && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
-                Результаты тестов
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold text-foreground">
-                {data.testResults}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-normal text-muted-foreground uppercase">
-              Каталог психологов
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-xs text-muted-foreground">
-            <ul className="list-disc list-inside space-y-1">
-              <li>
-                <Link
-                  href="/client/psychologists"
-                  className="text-primary/90 transition-colors hover:text-primary"
-                >
-                  {schedulingEnabled
-                    ? "Выбрать психолога и записаться"
-                    : "Найти психолога"}
-                </Link>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-      </section>
+        <DashboardMetrics
+          upcomingAppointments={data.upcomingAppointments}
+          testResults={data.testResults}
+          schedulingEnabled={schedulingEnabled}
+          diagnosticsEnabled={diagnosticsEnabled}
+        />
       )}
 
       <Tabs defaultValue={defaultTab} className="space-y-4">
@@ -333,282 +96,25 @@ export function ClientDashboardClient({
         </TabsList>
 
         {schedulingEnabled && (
-        <TabsContent value="appointments" className="space-y-3">
-          {data.upcomingAppointmentsList.length === 0 ? (
-            <Card>
-              <CardContent className="py-6 text-sm text-muted-foreground">
-                У вас пока нет предстоящих записей.
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Ближайшие записи</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <ul className="space-y-2">
-                  {data.upcomingAppointmentsList.map(apt => (
-                    <li
-                      key={apt.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm"
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          <span className="font-medium text-foreground">
-                            {apt.psychologistName}
-                          </span>
-                          {apt.status === "PENDING_CONFIRMATION" && (
-                            <span className="rounded bg-amber-500/15 px-2 py-0.5 text-sm text-amber-900 dark:text-amber-200">
-                              Ожидает подтверждения
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatAppointmentDateTime(apt.start, apt.end)}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        {apt.status === "PENDING_CONFIRMATION" &&
-                          apt.proposedByPsychologist && (
-                            <Button
-                              size="sm"
-                              className="h-8 text-sm"
-                              disabled={updatingAppointmentId === apt.id}
-                              onClick={() => updateAppointment(apt.id, "SCHEDULED")}
-                            >
-                              Подтвердить
-                            </Button>
-                          )}
-                        {(apt.status === "PENDING_CONFIRMATION" ||
-                          apt.status === "SCHEDULED") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-sm"
-                            disabled={updatingAppointmentId === apt.id}
-                            onClick={() => setCancelPendingId(apt.id)}
-                          >
-                            Отменить
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-          {/* История прошедших записей */}
-          <div>
-            {history === null ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground"
-                onClick={() => void loadHistory()}
-                disabled={historyLoading}
-              >
-                {historyLoading ? "Загрузка…" : "Показать историю записей"}
-              </Button>
-            ) : history.length === 0 ? (
-              <p className="text-xs text-muted-foreground">История записей пуста.</p>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">История записей</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <ul className="space-y-2">
-                    {history.map(apt => {
-                      const statusLabel: Record<AppointmentStatus, string> = {
-                        SCHEDULED: "Ожидает нового статуса",
-                        COMPLETED: "Состоялась",
-                        CANCELED: "Отменена",
-                        NO_SHOW: "Не состоялась",
-                        PENDING_CONFIRMATION: "Ожидала подтверждения"
-                      };
-                      const statusColor: Record<AppointmentStatus, string> = {
-                        SCHEDULED: "text-blue-600 dark:text-blue-400",
-                        COMPLETED: "text-emerald-600 dark:text-emerald-400",
-                        CANCELED: "text-muted-foreground line-through",
-                        NO_SHOW: "text-destructive",
-                        PENDING_CONFIRMATION: "text-muted-foreground"
-                      };
-                      return (
-                        <li
-                          key={apt.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"
-                        >
-                          <div className="space-y-0.5">
-                            <span className="font-medium text-foreground">
-                              {apt.psychologistName}
-                            </span>
-                            <div className="text-xs text-muted-foreground">
-                              {formatAppointmentDateTime(apt.start, apt.end)}
-                            </div>
-                          </div>
-                          <span className={`text-xs ${statusColor[apt.status]}`}>
-                            {statusLabel[apt.status]}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <AlertDialog
-            open={!!cancelPendingId}
-            onOpenChange={open => { if (!open) setCancelPendingId(null); }}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Отменить запись?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Запись будет отменена. Слот освободится.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Нет</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    if (cancelPendingId) {
-                      void updateAppointment(cancelPendingId, "CANCELED");
-                      setCancelPendingId(null);
-                    }
-                  }}
-                >
-                  Да, отменить
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </TabsContent>
+          <TabsContent value="appointments" className="space-y-3">
+            <AppointmentsTab
+              data={data}
+              updateAppointment={updateAppointment}
+              loadHistory={loadHistory}
+              history={history}
+              isHistoryLoading={isHistoryLoading}
+            />
+          </TabsContent>
         )}
 
         {diagnosticsEnabled && (
-        <TabsContent value="diagnostics" className="space-y-3">
-          {data.pendingDiagnosticLinks && data.pendingDiagnosticLinks.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Тесты к прохождению</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Психолог отправил вам эти тесты. Пройдите их по ссылке.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <ul className="space-y-2">
-                  {data.pendingDiagnosticLinks.map(link => (
-                    <li
-                      key={link.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
-                    >
-                      <div>
-                        <div className="font-medium text-foreground">
-                          {link.testTitle}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {link.psychologistName} · {formatDate(link.createdAt)}
-                        </div>
-                      </div>
-                      <Button size="sm" variant="default" asChild>
-                        <Link href={`/diagnostics/${link.token}`}>
-                          {link.hasProgress ? "Продолжить" : "Пройти тест"}
-                        </Link>
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-          {data.diagnosticResults.length === 0 && (!data.pendingDiagnosticLinks || data.pendingDiagnosticLinks.length === 0) ? (
-            <Card>
-              <CardContent className="py-6 text-sm text-muted-foreground">
-                Результаты психологической диагностики пока не сохранены. Если
-                психолог отправит вам тест, он появится здесь в блоке «Тесты к
-                прохождению».
-              </CardContent>
-            </Card>
-          ) : data.diagnosticResults.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">
-                  Результаты психологической диагностики
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <ul className="space-y-2">
-                  {data.diagnosticResults.map(r => (
-                    <li
-                      key={r.id}
-                      className="rounded-md border border-border bg-card px-3 py-2"
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-medium text-foreground">
-                          {r.testTitle}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(r.createdAt)}
-                        </span>
-                      </div>
-                      {r.interpretation && (
-                        <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
-                          {r.interpretation}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ) : null}
-        </TabsContent>
+          <TabsContent value="diagnostics" className="space-y-3">
+            <DiagnosticsTab data={data} />
+          </TabsContent>
         )}
 
         <TabsContent value="recommendations" className="space-y-3">
-          {data.recommendations.length === 0 ? (
-            <Card>
-              <CardContent className="py-6 text-sm text-muted-foreground">
-                Рекомендации от психолога пока не добавлены.
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Рекомендации психолога</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <ul className="space-y-2">
-                  {data.recommendations.map(rec => (
-                    <li
-                      key={rec.id}
-                      className="rounded-md border border-border bg-card px-3 py-2"
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium text-foreground">
-                            {rec.title}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {rec.psychologistName}
-                          </span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(rec.createdAt)}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
-                        {rec.body}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+          <RecommendationsTab data={data} />
         </TabsContent>
       </Tabs>
     </div>

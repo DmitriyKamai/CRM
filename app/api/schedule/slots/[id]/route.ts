@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { getClientIp, requirePsychologist } from "@/lib/security/api-guards";
 import { safeLogAudit } from "@/lib/audit-log";
+import { updateSlotSchema } from "@/lib/schemas";
 
 type ParamsPromise = {
   params: Promise<{
@@ -19,11 +20,22 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
   const mod = await assertModuleEnabled("scheduling");
   if (mod) return mod;
 
-  const body = await request.json().catch(() => null);
-  const status = body?.status as "FREE" | "BOOKED" | "CANCELED" | undefined;
-  const start = typeof body?.start === "string" ? (body.start as string) : undefined;
-  const durationMinutes =
-    typeof body?.durationMinutes === "number" ? (body.durationMinutes as number) : undefined;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "Неверный JSON" }, { status: 400 });
+  }
+
+  const parseResult = updateSlotSchema.safeParse(body);
+  if (!parseResult.success) {
+    return NextResponse.json(
+      { message: "Ошибка валидации", issues: parseResult.error.issues },
+      { status: 400 }
+    );
+  }
+
+  const { status, start, durationMinutes } = parseResult.data;
 
   if (!status && !start && !durationMinutes) {
     return NextResponse.json(
@@ -52,14 +64,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
 
   let nextStart = existing.start;
   if (start) {
-    const parsed = new Date(start);
-    if (Number.isNaN(parsed.getTime())) {
-      return NextResponse.json(
-        { message: "Неверный формат даты начала" },
-        { status: 400 }
-      );
-    }
-    nextStart = parsed;
+    nextStart = new Date(start);
   }
 
   const currentDurationMinutes =

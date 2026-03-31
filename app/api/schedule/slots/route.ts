@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
 import { requirePsychologist } from "@/lib/security/api-guards";
+import { createSlotSchema } from "@/lib/schemas";
 
 export async function GET() {
   try {
@@ -70,88 +71,73 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-  const mod = await assertModuleEnabled("scheduling");
-  if (mod) return mod;
-  const ctx = await requirePsychologist();
-  if (!ctx.ok) return ctx.response;
+    const mod = await assertModuleEnabled("scheduling");
+    if (mod) return mod;
+    const ctx = await requirePsychologist();
+    if (!ctx.ok) return ctx.response;
 
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json(
-      { message: "Некорректное тело запроса" },
-      { status: 400 }
-    );
-  }
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ message: "Неверный JSON" }, { status: 400 });
+    }
 
-  const { start, durationMinutes } = body as {
-    start?: string;
-    durationMinutes?: number;
-  };
+    const parseResult = createSlotSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { message: "Ошибка валидации", issues: parseResult.error.issues },
+        { status: 400 }
+      );
+    }
 
-  if (!start || typeof start !== "string") {
-    return NextResponse.json(
-      { message: "Не указано время начала" },
-      { status: 400 }
-    );
-  }
+    const { start, durationMinutes } = parseResult.data;
 
-  const duration =
-    typeof durationMinutes === "number" && durationMinutes > 0
-      ? durationMinutes
-      : 50;
+    const startDate = new Date(start);
+    const now = new Date();
+    if (startDate.getTime() <= now.getTime()) {
+      return NextResponse.json(
+        { message: "Нельзя создать слот на прошедшее время" },
+        { status: 400 }
+      );
+    }
 
-  const startDate = new Date(start);
-  if (Number.isNaN(startDate.getTime())) {
-    return NextResponse.json(
-      { message: "Неверный формат даты" },
-      { status: 400 }
-    );
-  }
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
 
-  const now = new Date();
-  if (startDate.getTime() <= now.getTime()) {
-    return NextResponse.json(
-      { message: "Нельзя создать слот на прошедшее время" },
-      { status: 400 }
-    );
-  }
-
-  const endDate = new Date(startDate.getTime() + duration * 60 * 1000);
-
-  // Проверяем, нет ли пересечения по времени с уже существующими слотами
-  // Условие пересечения интервалов:
-  // newStart < existingEnd && newEnd > existingStart
-  const overlapping = await prisma.scheduleSlot.findFirst({
-    where: {
-      psychologistId: ctx.psychologistId,
-      start: {
-        lt: endDate
-      },
-      end: {
-        gt: startDate
+    // Проверяем, нет ли пересечения по времени с уже существующими слотами
+    // Условие пересечения интервалов:
+    // newStart < existingEnd && newEnd > existingStart
+    const overlapping = await prisma.scheduleSlot.findFirst({
+      where: {
+        psychologistId: ctx.psychologistId,
+        start: {
+          lt: endDate
+        },
+        end: {
+          gt: startDate
+        }
       }
+    });
+
+    if (overlapping) {
+      return NextResponse.json(
+        {
+          message:
+            "Новый слот пересекается по времени с уже существующим. Измените время начала или длительность."
+        },
+        { status: 409 }
+      );
     }
-  });
 
-  if (overlapping) {
-    return NextResponse.json(
-      {
-        message:
-          "Новый слот пересекается по времени с уже существующим. Измените время начала или длительность."
-      },
-      { status: 409 }
-    );
-  }
+    const slot = await prisma.scheduleSlot.create({
+      data: {
+        psychologistId: ctx.psychologistId,
+        start: startDate,
+        end: endDate
+      }
+    });
 
-  const slot = await prisma.scheduleSlot.create({
-    data: {
-      psychologistId: ctx.psychologistId,
-      start: startDate,
-      end: endDate
-    }
-  });
-
-  return NextResponse.json(slot, { status: 201 });
+    return NextResponse.json(slot, { status: 201 });
   } catch (err) {
     console.error("[POST /api/schedule/slots]", err);
     return NextResponse.json(
