@@ -19,9 +19,9 @@ export default async function PsychologistSettingsPage() {
   const modules = await getPlatformModuleFlags();
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="mx-auto w-full max-w-2xl space-y-4">
-        <h1 className="text-xl font-semibold text-foreground">Настройки профиля</h1>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-4xl space-y-4 xl:max-w-6xl 2xl:max-w-7xl">
+        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Настройки профиля</h1>
         <p className="text-sm text-muted-foreground">
           Личные данные, безопасность, аккаунты и календарь — по вкладкам.
         </p>
