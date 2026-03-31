@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 
 export default async function ChooseRolePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login");

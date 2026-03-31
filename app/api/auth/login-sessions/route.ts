@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+
+import { listActiveLoginSessionsForUser } from "@/lib/auth-login-session";
+import { getDecodedSessionJwt } from "@/lib/decoded-session-jwt";
+import { requireAuth } from "@/lib/security/api-guards";
+
+export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
+  const jwt = await getDecodedSessionJwt();
+  const loginSessionKey =
+    jwt && typeof jwt.loginSessionKey === "string" ? jwt.loginSessionKey : null;
+
+  const rows = await listActiveLoginSessionsForUser(auth.userId);
+  const sessions = rows.map((r) => ({
+    id: r.id,
+    browser: r.browser,
+    os: r.os,
+    deviceLabel: r.deviceLabel,
+    country: r.country,
+    city: r.city,
+    createdAt: r.createdAt.toISOString(),
+    lastSeenAt: r.lastSeenAt.toISOString(),
+    isCurrent: loginSessionKey !== null && r.sessionKey === loginSessionKey
+  }));
+
+  return NextResponse.json({ sessions });
+}

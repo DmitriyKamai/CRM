@@ -34,6 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
+import { ActiveSessionsSection } from "@/components/account/active-sessions-section";
 import { TelegramAccountBlock } from "@/components/account/telegram-account-block";
 
 const MARITAL_OPTIONS: { value: string; label: string }[] = [
@@ -596,6 +597,7 @@ export function ClientSettingsForm() {
 
         <TabsContent value="security" className="mt-4">
           {activeTab === "security" && (
+            <>
             <Section title="Смена пароля">
               <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
                 <div className="space-y-2">
@@ -675,6 +677,10 @@ export function ClientSettingsForm() {
                 </Button>
               </form>
             </Section>
+            <Section title="Активные сессии">
+              <ActiveSessionsSection active={activeTab === "security"} />
+            </Section>
+            </>
           )}
         </TabsContent>
 

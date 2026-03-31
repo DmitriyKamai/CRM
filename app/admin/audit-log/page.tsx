@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { AuditLogTable } from "@/components/admin/audit-log-table";
 
 export default async function AdminAuditLogPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/admin/audit-log");

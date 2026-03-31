@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { PsychologistClientsList } from "@/components/psychologist/clients-list";
 
 export default async function PsychologistClientsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/psychologist/clients");

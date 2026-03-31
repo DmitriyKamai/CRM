@@ -1,0 +1,123 @@
+"use client";
+
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+import { Loader2, MonitorSmartphone } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { useLoginSessions } from "@/hooks/use-login-sessions";
+
+type Props = {
+  /** Загружать список только когда вкладка открыта. */
+  active: boolean;
+};
+
+function formatLocation(country: string | null, city: string | null): string {
+  const parts = [city, country].filter(Boolean);
+  return parts.length ? parts.join(", ") : "Местоположение не определено";
+}
+
+export function ActiveSessionsSection({ active }: Props) {
+  const { data, isLoading, isError, error, refetch, revokeMutation } =
+    useLoginSessions(active);
+
+  const sessions = data?.sessions ?? [];
+  const othersCount = sessions.filter((s) => !s.isCurrent).length;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        Устройства, с которых выполнен вход. Завершение остальных сессий не затронет
+        текущий браузер.
+      </p>
+
+      {isLoading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Загрузка…
+        </div>
+      )}
+
+      {isError && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <p className="text-sm text-destructive">
+            {error instanceof Error ? error.message : "Не удалось загрузить список"}
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+            Повторить
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && !isError && sessions.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Активных сессий пока нет. Они появятся после следующего входа.
+        </p>
+      )}
+
+      {!isLoading && !isError && sessions.length > 0 && (
+        <ul className="space-y-3">
+          {sessions.map((s) => (
+            <li
+              key={s.id}
+              className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between"
+            >
+              <div className="flex gap-2 min-w-0">
+                <MonitorSmartphone className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    {s.deviceLabel ?? "Браузер"}
+                    {s.isCurrent && (
+                      <span className="ml-2 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                        текущая сессия
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatLocation(s.country, s.city)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Последняя активность:{" "}
+                    {format(new Date(s.lastSeenAt), "d MMM yyyy, HH:mm", { locale: ru })}
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!isLoading && !isError && othersCount > 0 && (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={revokeMutation.isPending}
+          onClick={() => void revokeMutation.mutateAsync()}
+        >
+          {revokeMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Завершение…
+            </>
+          ) : (
+            `Завершить остальные (${othersCount})`
+          )}
+        </Button>
+      )}
+
+      {revokeMutation.isError && (
+        <p className="text-sm text-destructive">
+          {revokeMutation.error instanceof Error
+            ? revokeMutation.error.message
+            : "Не удалось завершить сессии"}
+        </p>
+      )}
+
+      {revokeMutation.isSuccess && revokeMutation.data.revokedCount > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Завершено сессий: {revokeMutation.data.revokedCount}
+        </p>
+      )}
+    </div>
+  );
+}

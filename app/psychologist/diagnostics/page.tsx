@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { PsychologistDiagnosticsClient } from "@/components/psychologist/diagnostics-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function PsychologistDiagnosticsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/psychologist/diagnostics");

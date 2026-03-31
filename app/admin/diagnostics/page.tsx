@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { TestsTable } from "@/components/admin/tests-table";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
 
 export default async function AdminDiagnosticsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/admin/diagnostics");

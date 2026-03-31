@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { Button } from "@/components/ui/button";
 import { HeaderNav } from "@/components/layout/header-nav";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,7 +18,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
     forbiddenParam === "1" ||
     (Array.isArray(forbiddenParam) && forbiddenParam.includes("1"));
 
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (session?.user && role === "UNSPECIFIED") {
     redirect("/auth/choose-role");

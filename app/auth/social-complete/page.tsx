@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { prisma } from "@/lib/db";
 
 type Props = {
@@ -9,7 +7,7 @@ type Props = {
 };
 
 export default async function SocialCompletePage({ searchParams }: Props) {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login");

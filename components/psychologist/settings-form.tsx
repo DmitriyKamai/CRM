@@ -21,6 +21,7 @@ import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
+import { ActiveSessionsSection } from "@/components/account/active-sessions-section";
 import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settings/calendar-feed-token-rotate-section";
 import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
 import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
@@ -338,6 +339,9 @@ export function PsychologistSettingsForm({
                 <CalendarFeedTokenRotateSection />
               </Section>
             )}
+            <Section title="Активные сессии">
+              <ActiveSessionsSection active={activeTab === "security"} />
+            </Section>
           </div>
         )}
       </TabsContent>

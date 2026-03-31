@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
+import { runWithAuthRequestContext } from "@/lib/auth-request-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 async function wrappedHandler(
@@ -37,7 +38,13 @@ async function wrappedHandler(
   }
 
   try {
-    const result = await NextAuth(req, context, getAuthOptions(req));
+    const headersObj: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headersObj[key] = value;
+    });
+    const result = await runWithAuthRequestContext(headersObj, async () =>
+      NextAuth(req, context, getAuthOptions(req))
+    );
     return result;
   } catch (err) {
     console.error("[NextAuth] handler error:", err);

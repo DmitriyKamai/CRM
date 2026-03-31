@@ -92,6 +92,30 @@ model User {
   auditLogs AuditLog[] @relation("AuditLogActor")
 
   clientHistoryEventsAuthored ClientHistoryEvent[] @relation("ClientHistoryActor")
+
+  /// Сессии входа (браузер) для списка устройств и отзыва «остальные».
+  authLoginSessions AuthLoginSession[]
+}
+
+/// Активная браузерная сессия: стабильный ключ в JWT (`loginSessionKey`), не путать с JWE jti NextAuth.
+model AuthLoginSession {
+  id          String    @id @default(cuid())
+  userId      String
+  sessionKey  String    @unique
+  userAgent   String?   @db.Text
+  browser     String?
+  os          String?
+  deviceLabel String?
+  country     String?
+  city        String?
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  revokedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, revokedAt])
 }
 
 /// Одноразовые токены для привязки Telegram (ссылка с сайта → бот).

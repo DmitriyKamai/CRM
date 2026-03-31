@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { ModulesSettingsClient } from "@/components/admin/modules-settings-client";
 
 export default async function AdminModulesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/admin/modules");
   }

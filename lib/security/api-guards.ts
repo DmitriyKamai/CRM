@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { SESSION_INVALID_CODE } from "@/lib/api-error-codes";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAppSessionInRouteHandler } from "@/lib/server-session";
 
 /** 401: сессия есть, данных в БД нет (сброс БД, удалён пользователь/профиль). Клиент делает signOut. */
 export function sessionInvalidResponse(
@@ -41,7 +40,7 @@ export function sessionUser(session: Session | null): SessionUser | null {
  * Текущая сессия (без проверки userId — удобно для необязательной авторизации).
  */
 export async function getAppSession(): Promise<Session | null> {
-  return getServerSession(authOptions);
+  return getAppSessionInRouteHandler();
 }
 
 type AuthFailure = { ok: false; response: NextResponse };
@@ -53,7 +52,7 @@ export async function requireAuth(): Promise<
   | { ok: true; session: Session; userId: string; user: SessionUser }
   | AuthFailure
 > {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSessionInRouteHandler();
   const user = sessionUser(session);
   const userId = user?.id?.trim();
   if (!session?.user || !userId) {

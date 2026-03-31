@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 // GoogleProvider and AppleProvider are loaded conditionally at runtime
 // to avoid bundling openid-client/jose/oauth into the server compilation graph
 
+import { revokeLoginSessionByKey, syncAuthLoginSessionForJwt } from "@/lib/auth-login-session";
 import { prisma } from "@/lib/db";
 
 function safeNoop<T>(fn: () => T): T | null {
@@ -197,6 +198,15 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
         token.email = user.email;
         token.picture = user.image ?? null;
       }
+
+      await syncAuthLoginSessionForJwt({
+        token,
+        user: user?.id ? { id: user.id as string } : undefined
+      });
+      if (token.loginSessionRevoked) {
+        return token;
+      }
+
       // При явном обновлении токена (signIn, update) — обновляем данные из БД.
       // Пока в JWT роль UNSPECIFIED, тоже читаем БД: после выбора роли на сервере токен
       // иначе не обновится (!token.role для строки "UNSPECIFIED" ложно → вечный рассинхрон).
@@ -248,6 +258,16 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
     },
     async session({ session, token }) {
       if (!session.user || !token) return session;
+      if (token.loginSessionRevoked) {
+        return {
+          ...session,
+          user: {
+            name: null,
+            email: null,
+            image: null
+          }
+        };
+      }
       if (token.id) session.user.id = token.id;
       // Всегда пробрасываем роль из JWT (в т.ч. UNSPECIFIED), не только «truthy».
       session.user.role = token.role ?? null;
@@ -271,7 +291,16 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: "/auth/login" },
   providers: buildProviders(),
-  callbacks: buildCallbacks(null)
+  callbacks: buildCallbacks(null),
+  events: {
+    async signOut({ token }) {
+      const key =
+        token && typeof (token as { loginSessionKey?: string }).loginSessionKey === "string"
+          ? (token as { loginSessionKey: string }).loginSessionKey
+          : null;
+      if (key) await revokeLoginSessionByKey(key);
+    }
+  }
 };
 
 /** Вариант с проверкой «привязки»: один Google/Apple не может быть привязан к разным пользователям. */

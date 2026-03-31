@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { ClientDashboardClient } from "./client-dashboard-client";
 
@@ -10,7 +8,7 @@ import { ClientDashboardClient } from "./client-dashboard-client";
  * чтобы при рендере сервером не выполнять код, который может ронять процесс.
  */
 export default async function ClientDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/client");
   }

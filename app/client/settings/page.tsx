@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { ClientSettingsLoader } from "./settings-loader";
 
 export default async function ClientSettingsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/client/settings");
   }

@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { PsychologistSchedule } from "@/components/schedule/psychologist-schedule";
 
 export default async function PsychologistSchedulePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect("/auth/login?callbackUrl=/psychologist/schedule");

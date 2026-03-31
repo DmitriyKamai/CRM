@@ -1,6 +1,4 @@
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { prisma } from "@/lib/db";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
 import { PsychologistDashboardClient } from "@/components/psychologist/psychologist-dashboard-client";
@@ -8,7 +6,7 @@ import { PsychologistDashboardClient } from "@/components/psychologist/psycholog
 export default async function PsychologistDashboardPage() {
   const [modules, session] = await Promise.all([
     getPlatformModuleFlags(),
-    getServerSession(authOptions)
+    getCachedAppSession()
   ]);
 
   let clientsCount = 0;

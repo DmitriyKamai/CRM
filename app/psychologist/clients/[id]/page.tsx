@@ -1,7 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { getCachedAppSession } from "@/lib/server-session";
 import { prisma } from "@/lib/db";
 import { PsychologistClientProfile } from "@/components/psychologist/client-profile";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
@@ -20,7 +18,7 @@ export default async function PsychologistClientProfilePage({
   params
 }: PageProps) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getCachedAppSession();
 
   if (!session?.user) {
     redirect(`/auth/login?callbackUrl=/psychologist/clients/${id}`);

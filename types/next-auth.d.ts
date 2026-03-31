@@ -20,5 +20,9 @@ declare module "next-auth/jwt" {
     name?: string | null;
     email?: string | null;
     picture?: string | null;
+    /** Стабильный ключ строки AuthLoginSession (не путать с JWE jti NextAuth). */
+    loginSessionKey?: string;
+    /** Сессия отозвана (другие устройства или БД) — не восстанавливать пользователя в session callback. */
+    loginSessionRevoked?: boolean;
   }
 }
