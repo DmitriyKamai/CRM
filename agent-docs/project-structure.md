@@ -15,6 +15,7 @@ lib/                          # Серверная бизнес-логика
 ├── db.ts                     # Prisma-клиент (singleton)
 ├── rate-limit.ts             # Rate limiter: Upstash → Redis → in-memory
 ├── google-sheets-refresh-token-crypto.ts  # AES-256-GCM для refresh token Google Sheets
+├── server-encryption/        # AES-256-GCM для полей клиента/диагностик (DATA_ENCRYPTION_KEY)
 ├── api-error.ts              # Стандартизированная обработка ошибок API
 ├── audit-log.ts              # Аудит-лог (best-effort запись)
 ├── client-history.ts         # Лента истории действий по клиенту

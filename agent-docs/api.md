@@ -30,6 +30,8 @@
 | `profile-photo` | POST/DELETE | Фото профиля |
 | `google-sheets/*` | - | Интеграция с Google Sheets |
 
+Значения заметок и пользовательских полей в ответах могут быть **расшифрованы на сервере** (envelope); при проблеме с ключом или данными поле может прийти пустым — см. `SECURITY.md`.
+
 `GET /api/psychologist/clients` работает с server-side пагинацией и поиском:
 - query: `page` (>=1), `pageSize` (20..50), `statusId?`, `q?` (поиск от 2 символов);
 - сортировка: `createdAt desc`;

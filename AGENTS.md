@@ -14,7 +14,7 @@
 
 Роли: `PSYCHOLOGIST`, `CLIENT`, `ADMIN`.  
 Первый администратор назначается через `INITIAL_ADMIN_EMAIL` в `.env`.  
-Серверное шифрование чувствительных полей требует `DATA_ENCRYPTION_KEY` (32 байта в base64, см. `.env.example`). На **Vercel** добавьте тот же ключ в Project → Settings → Environment Variables (Production/Preview), иначе расшифровка envelope вернёт пусто и в логах будет предупреждение.
+Серверное шифрование чувствительных полей (AES-256-GCM, `lib/server-encryption/`): в `.env` задайте **`DATA_ENCRYPTION_KEY`** — 32 байта в base64 (см. `.env.example`). **В production** ключ обязателен для корректного чтения/записи уже зашифрованных данных. Если ключа нет или он не совпадает с данными в БД, расшифровка envelope в лог пишет ошибку и возвращает пустое значение (маршруты не падают с 500). На **Vercel** добавьте тот же ключ в Project → Settings → Environment Variables для Production (и Preview при необходимости). Одноразовая упаковка существующих plaintext-полей: `npm run encrypt:sensitive-fields` (против БД с тем же ключом).
 
 ---
 

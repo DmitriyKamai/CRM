@@ -28,6 +28,7 @@
 - `npm run build` запускает `prisma generate` + `migrate-deploy` + `next build`.
 - Без Redis/Upstash rate limit работает in-memory в рамках одного процесса.
 - `ClientProfile` может быть без `userId` (офлайн-клиент).
+- Чувствительные строки в БД (заметки клиента, значения кастомных полей, часть диагностик и рекомендаций и т.д.) могут храниться в виде **серверного envelope** (`lib/server-encryption/`). Ключ **`DATA_ENCRYPTION_KEY`**, поведение при отсутствии/ошибке ключа — см. **`SECURITY.md`**, **`DEPLOY.md`**, **`.env.example`**.
 
 ## Быстрые ссылки
 
