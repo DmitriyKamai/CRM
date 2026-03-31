@@ -14,7 +14,7 @@
 
 Роли: `PSYCHOLOGIST`, `CLIENT`, `ADMIN`.  
 Первый администратор назначается через `INITIAL_ADMIN_EMAIL` в `.env`.  
-Серверное шифрование чувствительных полей требует `DATA_ENCRYPTION_KEY` (32 байта в base64, см. `.env.example`); без ключа процесс не стартует.
+Серверное шифрование чувствительных полей требует `DATA_ENCRYPTION_KEY` (32 байта в base64, см. `.env.example`). На **Vercel** добавьте тот же ключ в Project → Settings → Environment Variables (Production/Preview), иначе расшифровка envelope вернёт пусто и в логах будет предупреждение.
 
 ---
 

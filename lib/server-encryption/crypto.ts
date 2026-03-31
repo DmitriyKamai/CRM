@@ -76,17 +76,25 @@ export function decryptStringFromStorage(
     return stored;
   }
 
-  const key = getDataEncryptionKey();
-  const iv = Buffer.from(parsed.iv, "base64");
-  const ct = Buffer.from(parsed.ct, "base64");
-  const tag = Buffer.from(parsed.tag, "base64");
+  try {
+    const key = getDataEncryptionKey();
+    const iv = Buffer.from(parsed.iv, "base64");
+    const ct = Buffer.from(parsed.ct, "base64");
+    const tag = Buffer.from(parsed.tag, "base64");
 
-  const decipher = createDecipheriv(ALG, key, iv, { authTagLength: TAG_LENGTH });
-  decipher.setAAD(Buffer.from(aadLabel, "utf8"));
-  decipher.setAuthTag(tag);
+    const decipher = createDecipheriv(ALG, key, iv, { authTagLength: TAG_LENGTH });
+    decipher.setAAD(Buffer.from(aadLabel, "utf8"));
+    decipher.setAuthTag(tag);
 
-  const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
-  return plain.toString("utf8");
+    const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
+    return plain.toString("utf8");
+  } catch (err) {
+    console.error(
+      "[server-encryption] decryptStringFromStorage: не удалось расшифровать (проверьте DATA_ENCRYPTION_KEY и целостность данных)",
+      err instanceof Error ? err.message : err
+    );
+    return null;
+  }
 }
 
 /**
