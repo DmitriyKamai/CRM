@@ -88,13 +88,11 @@ async function fetchGeoByIp(
   }
 }
 
-async function resolveGeo(
+/** Только заголовки платформы — без внешних запросов (jwt callback). */
+function resolveGeoForJwtSync(
   headers: Record<string, string> | null
-): Promise<{ country: string | null; city: string | null }> {
-  const fromHeaders = geoFromPlatformHeaders(headers);
-  if (fromHeaders.country || fromHeaders.city) return fromHeaders;
-  const ip = clientIpFromHeaders(headers);
-  return fetchGeoByIp(ip);
+): { country: string | null; city: string | null } {
+  return geoFromPlatformHeaders(headers);
 }
 
 function parseUa(uaRaw: string | null): {
@@ -213,7 +211,7 @@ export async function syncAuthLoginSessionForJwt(params: {
     const ua = uaHeader ?? null;
 
     if (user) {
-      const geo = await resolveGeo(headers);
+      const geo = resolveGeoForJwtSync(headers);
       const dev = parseUa(ua);
       await prisma.authLoginSession.upsert({
         where: { sessionKey },
@@ -244,7 +242,7 @@ export async function syncAuthLoginSessionForJwt(params: {
     }
 
     if (!row) {
-      const geo = await resolveGeo(headers);
+      const geo = resolveGeoForJwtSync(headers);
       const dev = parseUa(ua);
       await prisma.authLoginSession.upsert({
         where: { sessionKey },
@@ -299,6 +297,44 @@ export async function revokeOtherLoginSessions(
   return res.count;
 }
 
+const DEDUPE_CLUSTER_MS = 2 * 60 * 1000;
+
+/**
+ * Дозаполнение страны/города по IP при открытии настроек (вне jwt).
+ * Не вызывает внешний API, если в строке уже есть и страна, и город.
+ */
+export async function enrichAuthLoginSessionGeo(params: {
+  userId: string;
+  sessionKey: string;
+  headers: Record<string, string>;
+}): Promise<{ updated: boolean }> {
+  const { userId, sessionKey, headers } = params;
+  try {
+    const row = await prisma.authLoginSession.findFirst({
+      where: { userId, sessionKey, revokedAt: null },
+      select: { id: true, country: true, city: true }
+    });
+    if (!row) return { updated: false };
+    if (row.country && row.city) return { updated: false };
+
+    const ip = clientIpFromHeaders(headers);
+    const geo = await fetchGeoByIp(ip);
+    if (!geo.country && !geo.city) return { updated: false };
+
+    await prisma.authLoginSession.update({
+      where: { id: row.id },
+      data: {
+        country: row.country ?? geo.country,
+        city: row.city ?? geo.city
+      }
+    });
+    return { updated: true };
+  } catch (e) {
+    console.error("[auth-login-session] enrich geo:", e);
+    return { updated: false };
+  }
+}
+
 export async function revokeLoginSessionByKey(sessionKey: string): Promise<void> {
   try {
     await prisma.authLoginSession.updateMany({
@@ -344,7 +380,10 @@ export async function listActiveLoginSessionsForUser(
   });
 }
 
-/** Одно отображаемое место входа: совпадающий браузер/ОС/гео схлопываем (после бага с параллельными UUID). */
+/**
+ * Схлопывание только «гоночных» дубликатов: один отпечаток и createdAt в пределах 2 минут от начала кластера.
+ * Разнесённые по времени устройства с тем же отпечатком остаются отдельными строками.
+ */
 export function dedupeLoginSessionsForDisplay(
   rows: LoginSessionListRow[],
   currentSessionKey: string | null
@@ -362,22 +401,50 @@ export function dedupeLoginSessionsForDisplay(
     arr.push(r);
     groups.set(k, arr);
   }
+
   const out: LoginSessionListRow[] = [];
+
   for (const arr of groups.values()) {
-    const byCurrent =
-      currentSessionKey !== null
-        ? arr.find((x) => x.sessionKey === currentSessionKey)
-        : undefined;
-    if (byCurrent) {
-      out.push(byCurrent);
+    if (arr.length === 1) {
+      out.push(arr[0]!);
       continue;
     }
+
     const sorted = [...arr].sort(
-      (a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime()
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
     );
-    const best = sorted[0];
-    if (best) out.push(best);
+
+    let i = 0;
+    while (i < sorted.length) {
+      const cluster: LoginSessionListRow[] = [sorted[i]!];
+      const clusterStart = sorted[i]!.createdAt.getTime();
+      let j = i + 1;
+      while (j < sorted.length) {
+        if (sorted[j]!.createdAt.getTime() - clusterStart <= DEDUPE_CLUSTER_MS) {
+          cluster.push(sorted[j]!);
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      const byCurrent =
+        currentSessionKey !== null
+          ? cluster.find((x) => x.sessionKey === currentSessionKey)
+          : undefined;
+      if (byCurrent) {
+        out.push(byCurrent);
+      } else {
+        const best = [...cluster].sort(
+          (a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime()
+        )[0]!;
+        out.push(best);
+      }
+
+      i = j;
+    }
   }
+
   out.sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
   return out;
 }

@@ -1,12 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Loader2, Monitor, Smartphone, Tablet } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import type { LoginSessionRow } from "@/hooks/use-login-sessions";
 import { useLoginSessions } from "@/hooks/use-login-sessions";
+
+const GEO_ENRICH_STORAGE_PREFIX = "empatix_login_geo_enrich:";
 
 type Props = {
   /** Загружать список только когда вкладка открыта. */
@@ -29,6 +34,55 @@ const formFactorMeta: Record<
 };
 
 export function ActiveSessionsSection({ active }: Props) {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const userId =
+    session?.user && "id" in session.user && session.user.id
+      ? session.user.id
+      : undefined;
+
+  useEffect(() => {
+    if (!active || !userId) return;
+
+    const storageKey = `${GEO_ENRICH_STORAGE_PREFIX}${userId}`;
+    try {
+      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(storageKey)) {
+        return;
+      }
+    } catch {
+      /* sessionStorage недоступен */
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/login-sessions/enrich-geo", {
+          method: "POST"
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          try {
+            if (typeof sessionStorage !== "undefined") {
+              sessionStorage.setItem(storageKey, "1");
+            }
+          } catch {
+            /* ignore */
+          }
+          const body = (await res.json().catch(() => ({}))) as { updated?: boolean };
+          if (body.updated) {
+            void queryClient.invalidateQueries({ queryKey: ["auth", "login-sessions"] });
+          }
+        }
+      } catch {
+        /* сеть — повторим при следующем открытии вкладки */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [active, userId, queryClient]);
+
   const { data, isLoading, isError, error, refetch, revokeMutation } =
     useLoginSessions(active);
 

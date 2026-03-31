@@ -6,6 +6,8 @@ declare module "next-auth" {
   }
 
   interface Session {
+    /** Сессия отозвана — клиент должен выполнить signOut. */
+    requiresReauth?: boolean;
     user: {
       id?: string;
       role?: string | null;

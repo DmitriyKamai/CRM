@@ -261,6 +261,7 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
       if (token.loginSessionRevoked) {
         return {
           ...session,
+          requiresReauth: true,
           user: {
             name: null,
             email: null,
