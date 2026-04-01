@@ -2,22 +2,24 @@
 
 import dynamic from "next/dynamic";
 
-const dynamicOpts = {
-  ssr: false as const,
-  loading: () => (
+function SettingsFormDynamicLoading() {
+  return (
     <div className="animate-pulse space-y-4">
       <div className="h-10 rounded-lg bg-muted" />
       <div className="h-64 rounded-lg bg-muted" />
     </div>
-  )
-};
+  );
+}
 
 const ClientSettingsForm = dynamic(
   () =>
     import("@/components/client/settings-form").then((m) => ({
       default: m.ClientSettingsForm
     })),
-  dynamicOpts
+  {
+    ssr: false,
+    loading: SettingsFormDynamicLoading
+  }
 );
 
 const PsychologistSettingsForm = dynamic(
@@ -25,7 +27,10 @@ const PsychologistSettingsForm = dynamic(
     import("@/components/psychologist/settings-form").then((m) => ({
       default: m.PsychologistSettingsForm
     })),
-  dynamicOpts
+  {
+    ssr: false,
+    loading: SettingsFormDynamicLoading
+  }
 );
 
 export function SettingsPageEntry({
