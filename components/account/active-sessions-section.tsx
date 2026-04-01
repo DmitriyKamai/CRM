@@ -127,24 +127,28 @@ export function ActiveSessionsSection({ active }: Props) {
             return (
             <li
               key={s.id}
-              className="flex flex-col gap-1 rounded-lg border border-border/80 bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between"
+              className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2.5"
             >
-              <div className="flex gap-3 min-w-0">
-                <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
-                  <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground text-center max-w-[4.5rem] leading-tight">
+              <div className="flex min-w-0 gap-3">
+                <div className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5">
+                  <div className="flex h-10 w-full items-center justify-center">
+                    <Icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+                  </div>
+                  <span className="text-center text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
                     {label}
                   </span>
                 </div>
-                <div className="min-w-0 space-y-0.5 flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {s.deviceLabel ?? "Браузер"}
+                <div className="min-w-0 flex-1 space-y-0.5 pt-0.5">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="text-sm font-medium text-foreground">
+                      {s.deviceLabel ?? "Браузер"}
+                    </span>
                     {s.isCurrent && (
-                      <span className="ml-2 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                      <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">
                         текущая сессия
                       </span>
                     )}
-                  </p>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {formatLocation(s.country, s.city)}
                   </p>

@@ -1,10 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { UAParser } from "ua-parser-js";
-
 import { getAuthRequestHeaders } from "@/lib/auth-request-context";
 import { getClientIpFromHeaderRecord, isNonPublicClientIp } from "@/lib/client-ip";
 import { prisma } from "@/lib/db";
+import { parseLoginSessionUserAgent } from "@/lib/login-session-ua";
 
 const LAST_SEEN_TOUCH_MS = 5 * 60 * 1000;
 
@@ -67,35 +66,6 @@ function resolveGeoForJwtSync(
   headers: Record<string, string> | null
 ): { country: string | null; city: string | null } {
   return geoFromPlatformHeaders(headers);
-}
-
-function parseUa(uaRaw: string | null): {
-  browser: string | null;
-  os: string | null;
-  deviceLabel: string | null;
-} {
-  if (!uaRaw?.trim()) {
-    return { browser: null, os: null, deviceLabel: null };
-  }
-  const p = new UAParser(uaRaw);
-  const browser = [p.getBrowser().name, p.getBrowser().version?.split(".")[0]]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  const os = [p.getOS().name, p.getOS().version?.split(".")[0]]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  const device = p.getDevice();
-  const deviceType = device.type ? `${device.type}` : "";
-  const deviceLabel = [browser || "Браузер", os || null, deviceType || null]
-    .filter(Boolean)
-    .join(" · ");
-  return {
-    browser: browser || null,
-    os: os || null,
-    deviceLabel: deviceLabel || null
-  };
 }
 
 type JwtLike = Record<string, unknown> & {
@@ -187,7 +157,7 @@ export async function syncAuthLoginSessionForJwt(params: {
 
     if (user) {
       const geo = resolveGeoForJwtSync(headers);
-      const dev = parseUa(ua);
+      const dev = parseLoginSessionUserAgent(ua);
       await prisma.authLoginSession.upsert({
         where: { sessionKey },
         create: {
@@ -218,7 +188,7 @@ export async function syncAuthLoginSessionForJwt(params: {
 
     if (!row) {
       const geo = resolveGeoForJwtSync(headers);
-      const dev = parseUa(ua);
+      const dev = parseLoginSessionUserAgent(ua);
       await prisma.authLoginSession.upsert({
         where: { sessionKey },
         create: {
