@@ -47,8 +47,8 @@ const ADMIN_NAV: NavItem[] = [
 ];
 
 const SETTINGS_HREF: Record<string, string> = {
-  PSYCHOLOGIST: "/psychologist/settings",
-  CLIENT: "/client/settings",
+  PSYCHOLOGIST: "/settings",
+  CLIENT: "/settings",
   ADMIN: "/admin",
 };
 

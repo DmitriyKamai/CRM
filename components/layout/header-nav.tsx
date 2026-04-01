@@ -56,8 +56,8 @@ function ThemeToggle() {
 }
 
 const SETTINGS_HREF: Record<string, string> = {
-  PSYCHOLOGIST: "/psychologist/settings",
-  CLIENT: "/client/settings",
+  PSYCHOLOGIST: "/settings",
+  CLIENT: "/settings",
   ADMIN: "/admin",
 };
 

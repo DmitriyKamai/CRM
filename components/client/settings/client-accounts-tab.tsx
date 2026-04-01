@@ -86,7 +86,7 @@ export function ClientAccountsTab({
               size="sm"
               onClick={async () => {
                 await fetch("/api/auth/oauth-link-intent", { method: "POST" });
-                signIn("google", { callbackUrl: "/client/settings" });
+                signIn("google", { callbackUrl: "/settings" });
               }}
             >
               <span className="flex items-center gap-1">

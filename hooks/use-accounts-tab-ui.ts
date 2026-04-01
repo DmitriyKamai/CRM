@@ -37,7 +37,7 @@ export function useAccountsTabUi({ accounts, refetchAccounts, updateSession }: P
 
   async function handleLinkGoogle() {
     await fetch("/api/auth/oauth-link-intent", { method: "POST" });
-    await signIn("google", { callbackUrl: "/psychologist/settings" });
+    await signIn("google", { callbackUrl: "/settings" });
   }
 
   return {
