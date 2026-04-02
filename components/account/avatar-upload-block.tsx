@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ImageCropDialog } from "@/components/account/image-crop-dialog";
 import { toast } from "sonner";
 
 type Props = {
@@ -16,12 +17,10 @@ export function AvatarUploadBlock({ image, initials, alt, onSuccess }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-
+  const uploadCroppedFile = async (file: File) => {
     setUploading(true);
     try {
       const form = new FormData();
@@ -40,6 +39,14 @@ export function AvatarUploadBlock({ image, initials, alt, onSuccess }: Props) {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setPendingFile(file);
+    setCropOpen(true);
   };
 
   const handleRemove = async () => {
@@ -73,7 +80,7 @@ export function AvatarUploadBlock({ image, initials, alt, onSuccess }: Props) {
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
-            onChange={handleFile}
+            onChange={handleFilePick}
           />
           <Button
             type="button"
@@ -98,9 +105,24 @@ export function AvatarUploadBlock({ image, initials, alt, onSuccess }: Props) {
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          JPEG, PNG, WebP или GIF, не более 2 МБ. Или используйте аватар из Google/Apple, привязав аккаунт в разделе «Аккаунты».
+          JPEG, PNG, WebP или GIF, не более 2 МБ. После выбора файла можно указать область и размер. Или
+          используйте аватар из Google/Apple в разделе «Аккаунты».
         </p>
       </div>
+
+      <ImageCropDialog
+        open={cropOpen}
+        onOpenChange={(open) => {
+          setCropOpen(open);
+          if (!open) setPendingFile(null);
+        }}
+        file={pendingFile}
+        aspect={1}
+        title="Обрежьте аватар"
+        description="Кадрируйте лицо в квадрате. Масштаб и размер итогового файла можно изменить ниже."
+        defaultOutputSize={512}
+        onCroppedFile={(f) => uploadCroppedFile(f)}
+      />
     </div>
   );
 }

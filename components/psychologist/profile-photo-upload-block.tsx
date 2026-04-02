@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ImageCropDialog } from "@/components/account/image-crop-dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -32,12 +33,10 @@ export function ProfilePhotoUploadBlock({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-
+  const uploadCroppedFile = async (file: File) => {
     setUploading(true);
     try {
       const form = new FormData();
@@ -56,6 +55,14 @@ export function ProfilePhotoUploadBlock({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setPendingFile(file);
+    setCropOpen(true);
   };
 
   const handleRemove = async () => {
@@ -101,7 +108,7 @@ export function ProfilePhotoUploadBlock({
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
               className="hidden"
-              onChange={handleFile}
+              onChange={handleFilePick}
             />
             <Button
               type="button"
@@ -127,11 +134,25 @@ export function ProfilePhotoUploadBlock({
           </div>
           <p className="text-xs text-muted-foreground">
             {schedulingEnabled
-              ? "Фото для карточки в разделе «Записаться к психологу». JPEG, PNG, WebP или GIF, не более 2 МБ."
-              : "Фото профиля. JPEG, PNG, WebP или GIF, не более 2 МБ."}
+              ? "Фото для карточки «Записаться к психологу». JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование и размер."
+              : "Фото профиля. JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование и размер."}
           </p>
         </div>
       </div>
+
+      <ImageCropDialog
+        open={cropOpen}
+        onOpenChange={(open) => {
+          setCropOpen(open);
+          if (!open) setPendingFile(null);
+        }}
+        file={pendingFile}
+        aspect={1}
+        title="Обрежьте фото профиля"
+        description="Выберите область для квадратной карточки. Настройте масштаб и размер сохраняемого файла."
+        defaultOutputSize={720}
+        onCroppedFile={(f) => uploadCroppedFile(f)}
+      />
       {schedulingEnabled && (
         <div className="flex items-center justify-between rounded-lg border border-border/80 p-4">
           <div className="space-y-0.5">
