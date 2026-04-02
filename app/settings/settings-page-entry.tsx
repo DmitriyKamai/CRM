@@ -3,7 +3,9 @@
 import { dynamicSettingsForm } from "@/lib/settings/dynamic-settings-form";
 
 const ClientSettingsForm = dynamicSettingsForm(() =>
-  import("@/components/client/settings-form").then((m) => ({ default: m.ClientSettingsForm }))
+  import("@/components/client/settings/client-settings-form").then((m) => ({
+    default: m.ClientSettingsForm
+  }))
 );
 
 const PsychologistSettingsForm = dynamicSettingsForm(() =>
