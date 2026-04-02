@@ -1,18 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import type { Profile } from "@/hooks/use-profile-settings";
+import type { Profile } from "@/hooks/use-user-settings";
+import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
+
+type UpdateSessionFn = (() => unknown) | undefined;
 
 type Props = {
   profile: Profile | null;
-  updateProfileInCache: (updater: (prev: Profile) => Profile) => void;
+  profileSyncVersion: number;
+  updateSession?: UpdateSessionFn;
+  patchProfile: UseMutationResult<unknown, Error, object>;
 };
 
-export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
-  const [savingProfessional, setSavingProfessional] = useState(false);
+export function useProfessionalTabUi({ profile, profileSyncVersion, updateSession, patchProfile }: Props) {
+  const queryClient = useQueryClient();
   const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
   const [publishSaving, setSavingPublish] = useState(false);
 
@@ -23,10 +29,8 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
   const [contactViber, setContactViber] = useState("");
   const [contactWhatsapp, setContactWhatsapp] = useState("");
 
-  const [formHydrated, setFormHydrated] = useState(false);
   useEffect(() => {
-    if (!profile || formHydrated) return;
-    setFormHydrated(true);
+    if (!profile) return;
 
     setBio(profile.psychologistProfile?.bio ?? "");
     setSpecialization(profile.psychologistProfile?.specialization ?? "");
@@ -35,26 +39,19 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
     setContactViber(profile.psychologistProfile?.contactViber ?? "");
     setContactWhatsapp(profile.psychologistProfile?.contactWhatsapp ?? "");
     setProfilePhotoPublished(profile.psychologistProfile?.profilePhotoPublished ?? false);
-  }, [profile, formHydrated]);
+  }, [profile, profileSyncVersion]);
+
+  async function syncProfileAfterPatch() {
+    await queryClient.invalidateQueries({ queryKey: userSettingsKeys.profile() });
+    await updateSession?.();
+  }
 
   async function handlePublishProfileChange(published: boolean) {
     setSavingPublish(true);
     try {
       await patchUserProfile({ profilePhotoPublished: published });
-
+      await syncProfileAfterPatch();
       setProfilePhotoPublished(published);
-      updateProfileInCache((prev) =>
-        prev?.psychologistProfile
-          ? {
-              ...prev,
-              psychologistProfile: {
-                ...prev.psychologistProfile,
-                profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
-                profilePhotoPublished: published
-              }
-            }
-          : prev
-      );
       toast.success(published ? "Профиль опубликован" : "Профиль снят с публикации");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
@@ -67,39 +64,14 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
     e.preventDefault();
     if (!profile) return;
 
-    setSavingProfessional(true);
-    try {
-      await patchUserProfile({
-        bio: bio.trim() || null,
-        specialization: specialization || null,
-        contactPhone: contactPhone.trim() || null,
-        contactTelegram: contactTelegram.trim() || null,
-        contactViber: contactViber.trim() || null,
-        contactWhatsapp: contactWhatsapp.trim() || null
-      });
-
-      toast.success("Сохранено");
-      updateProfileInCache((prev) => ({
-        ...prev,
-        psychologistProfile: prev.psychologistProfile
-          ? {
-              ...prev.psychologistProfile,
-              bio: bio.trim() || null,
-              specialization: specialization || null,
-              profilePhotoUrl: prev.psychologistProfile.profilePhotoUrl ?? null,
-              profilePhotoPublished: prev.psychologistProfile.profilePhotoPublished,
-              contactPhone: contactPhone.trim() || null,
-              contactTelegram: contactTelegram.trim() || null,
-              contactViber: contactViber.trim() || null,
-              contactWhatsapp: contactWhatsapp.trim() || null
-            }
-          : prev.psychologistProfile
-      }));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
-    } finally {
-      setSavingProfessional(false);
-    }
+    await patchProfile.mutateAsync({
+      bio: bio.trim() || null,
+      specialization: specialization || null,
+      contactPhone: contactPhone.trim() || null,
+      contactTelegram: contactTelegram.trim() || null,
+      contactViber: contactViber.trim() || null,
+      contactWhatsapp: contactWhatsapp.trim() || null
+    });
   }
 
   const savedBio = profile?.psychologistProfile?.bio ?? "";
@@ -118,14 +90,12 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
     (contactWhatsapp.trim() || "") !== (savedContactWhatsapp || "");
 
   return {
-    // Для верстки/UX
     profilePhotoPublished,
     publishSaving,
 
-    savingProfessional,
+    savingProfessional: patchProfile.isPending,
     hasProfessionalChanges,
 
-    // Данные формы
     bio,
     setBio,
     specialization,
@@ -139,9 +109,7 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
     contactWhatsapp,
     setContactWhatsapp,
 
-    // Обработчики
     handleSaveProfessional,
     handlePublishProfileChange
   };
 }
-

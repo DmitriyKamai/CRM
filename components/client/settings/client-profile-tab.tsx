@@ -4,10 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
-import {
-  type ClientSettingsProfile,
-  type PatchClientProfileBody
-} from "@/hooks/use-client-settings";
+import type { ClientSettingsProfile } from "@/hooks/use-client-settings";
 import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { PersonalProfileForm } from "@/components/settings/shared/personal-profile-form";
@@ -17,7 +14,7 @@ export function ClientProfileTab({
   updateProfile
 }: {
   profile: ClientSettingsProfile;
-  updateProfile: UseMutationResult<void, Error, PatchClientProfileBody>;
+  updateProfile: UseMutationResult<unknown, Error, object>;
 }) {
   const { data: session, update: updateSession } = useSession();
   const [firstName, setFirstName] = useState(() => {

@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import type { UseMutationResult } from "@tanstack/react-query";
 
-import type { Profile } from "@/hooks/use-profile-settings";
+import type { Profile } from "@/hooks/use-user-settings";
 import { DEFAULT_COUNTRY_CODE, DEFAULT_COUNTRY_NAME, getCountryCodeByName } from "@/lib/data/countries-ru";
-import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
 
 type SessionLike = {
   user?: {
@@ -15,19 +14,14 @@ type SessionLike = {
   };
 } | null;
 
-type UpdateSessionFn = (() => unknown) | undefined;
-
 type Props = {
   profile: Profile | null;
   session: SessionLike;
-  updateSession?: UpdateSessionFn;
-  updateProfileInCache: (updater: (prev: Profile) => Profile) => void;
+  patchProfile: UseMutationResult<unknown, Error, object>;
+  profileSyncVersion: number;
 };
 
-export function useProfileTabUi({ profile, session, updateSession, updateProfileInCache }: Props) {
-  const [saving, setSaving] = useState(false);
-  const [formHydrated, setFormHydrated] = useState(false);
-
+export function useProfileTabUi({ profile, session, patchProfile, profileSyncVersion }: Props) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -43,9 +37,9 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
   const [gender, setGender] = useState("");
   const [maritalStatus, setMaritalStatus] = useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect -- синхронизация формы с данными Query после refetch */
   useEffect(() => {
-    if (!profile || formHydrated) return;
-    setFormHydrated(true);
+    if (!profile) return;
 
     setFirstName(profile.psychologistProfile?.firstName ?? profile.user?.name ?? "");
     setLastName(profile.psychologistProfile?.lastName ?? "");
@@ -62,7 +56,8 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
         ? getCountryCodeByName(profile.psychologistProfile.country) ?? null
         : DEFAULT_COUNTRY_CODE
     );
-  }, [profile, formHydrated]);
+  }, [profile, profileSyncVersion]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const name = session?.user?.name ?? "";
   const image = session?.user?.image ?? null;
@@ -96,80 +91,31 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
     e.preventDefault();
     if (!profile) return;
 
-    setSaving(true);
-    try {
-      await patchUserProfile({
-        firstName,
-        lastName,
-        phone: phone.trim() || null,
-        country: country.trim() || null,
-        city: city.trim() || null,
-        gender: gender || null,
-        maritalStatus: maritalStatus || null,
-        ...(email.trim() &&
-        email.trim().toLowerCase() !== (profile.user?.email ?? "").trim().toLowerCase()
-          ? { email: email.trim() }
-          : {}),
-        dateOfBirth: dateOfBirth || null
-      });
-
-      toast.success("Сохранено");
-      updateSession?.();
-      updateProfileInCache((prev) => ({
-        ...prev,
-        user: {
-          ...prev.user,
-          email: email.trim() || prev.user.email,
-          dateOfBirth: dateOfBirth || null
-        },
-        psychologistProfile: prev.psychologistProfile
-          ? {
-              ...prev.psychologistProfile,
-              firstName,
-              lastName,
-              phone: phone.trim() || null,
-              country: country.trim() || null,
-              city: city.trim() || null,
-              gender: gender || null,
-              maritalStatus: maritalStatus || null
-            }
-          : {
-              firstName,
-              lastName,
-              phone: phone.trim() || null,
-              country: country.trim() || null,
-              city: city.trim() || null,
-              gender: gender || null,
-              maritalStatus: maritalStatus || null,
-              specialization: null,
-              bio: null,
-              profilePhotoUrl: null,
-              profilePhotoPublished: false,
-              contactPhone: null,
-              contactTelegram: null,
-              contactViber: null,
-              contactWhatsapp: null
-            }
-      }));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
-    } finally {
-      setSaving(false);
-    }
+    await patchProfile.mutateAsync({
+      firstName,
+      lastName,
+      phone: phone.trim() || null,
+      country: country.trim() || null,
+      city: city.trim() || null,
+      gender: gender || null,
+      maritalStatus: maritalStatus || null,
+      ...(email.trim() &&
+      email.trim().toLowerCase() !== (profile.user?.email ?? "").trim().toLowerCase()
+        ? { email: email.trim() }
+        : {}),
+      dateOfBirth: dateOfBirth || null
+    });
   }
 
   return {
-    // Оркестрация формы
     handleSaveProfile,
-    saving,
+    saving: patchProfile.isPending,
     hasProfileChanges,
 
-    // Для UI (аватар/подпись)
     image,
     initials,
     alt: name,
 
-    // Текущие значения
     firstName,
     lastName,
     email,
@@ -182,7 +128,6 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
     gender,
     maritalStatus,
 
-    // Сеттеры
     setFirstName,
     setLastName,
     setEmail,
@@ -196,4 +141,3 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
     setMaritalStatus
   };
 }
-

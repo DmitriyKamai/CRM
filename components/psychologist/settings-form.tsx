@@ -49,20 +49,23 @@ export function PsychologistSettingsForm({
     accounts,
     refetchProfile,
     refetchAccounts,
-    updateProfileInCache
+    profileDataUpdatedAt,
+    updateProfile
   } = useProfileSettings();
   const [activeTab, setActiveTab] = useState("profile");
 
   const profileTab = useProfileTabUi({
     profile,
     session,
-    updateSession,
-    updateProfileInCache
+    patchProfile: updateProfile,
+    profileSyncVersion: profileDataUpdatedAt
   });
 
   const professionalTab = useProfessionalTabUi({
     profile,
-    updateProfileInCache
+    profileSyncVersion: profileDataUpdatedAt,
+    updateSession,
+    patchProfile: updateProfile
   });
   const accountsTab = useAccountsTabUi({
     accounts,

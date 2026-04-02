@@ -31,9 +31,8 @@ export type PatchClientProfileBody = {
 export type UserSettingsVariant = "client" | "psychologist";
 
 /**
- * Единый хук данных и действий экрана настроек.
- * - `client`: полный loading (профиль + аккаунты), мутации профиля/пароля, флаги для формы клиента.
- * - `psychologist`: loading только по профилю; плюс ручное обновление кэша и refetch (сохранения в таб-хуках).
+ * Единый хук экрана настроек: Query и мутации.
+ * PATCH профиля через `updateProfile` → тост «Сохранено», invalidate профиля, обновление сессии.
  */
 export function useUserSettings(options: { variant: UserSettingsVariant }) {
   const queryClient = useQueryClient();
@@ -41,7 +40,7 @@ export function useUserSettings(options: { variant: UserSettingsVariant }) {
   const { profileQuery, accountsQuery } = useUserSettingsQueries();
 
   const updateProfileMutation = useMutation({
-    mutationFn: (body: PatchClientProfileBody) => patchUserProfile(body),
+    mutationFn: (body: object) => patchUserProfile(body),
     onSuccess: async () => {
       toast.success("Сохранено");
       await queryClient.invalidateQueries({ queryKey: userSettingsKeys.profile() });
@@ -72,12 +71,6 @@ export function useUserSettings(options: { variant: UserSettingsVariant }) {
     return queryClient.invalidateQueries({ queryKey: userSettingsKeys.profile() });
   }
 
-  function updateProfileInCache(updater: (prev: Profile) => Profile) {
-    queryClient.setQueryData<Profile>(userSettingsKeys.profile(), (prev) =>
-      prev ? updater(prev) : prev
-    );
-  }
-
   return {
     profile,
     accounts,
@@ -86,7 +79,6 @@ export function useUserSettings(options: { variant: UserSettingsVariant }) {
     profileDataUpdatedAt: profileQuery.dataUpdatedAt,
     updateProfile: updateProfileMutation,
     changePassword: changePasswordMutation,
-    updateProfileInCache,
     refetchProfile,
     refetchAccounts
   };
