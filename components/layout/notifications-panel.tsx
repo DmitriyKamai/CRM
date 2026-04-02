@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Bell, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,14 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  fetchNotifications,
-  markNotificationRead,
-  removeNotification,
-  clearAllNotifications,
-  setPanelOpen,
-  selectUnreadCount
-} from "@/store/slices/notifications.slice";
+  useClearAllNotificationsMutation,
+  useMarkNotificationReadMutation,
+  useNotificationsList,
+  useRemoveNotificationMutation
+} from "@/hooks/use-notifications";
 
-export type { NotificationItem } from "@/store/slices/notifications.slice";
+export type { NotificationItem } from "@/lib/notifications/types";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -40,22 +37,16 @@ function formatDate(iso: string) {
 }
 
 export function NotificationsPanel() {
-  const dispatch = useAppDispatch();
-  const items = useAppSelector(state => state.notifications.items);
-  const open = useAppSelector(state => state.notifications.panelOpen);
-  const unreadCount = useAppSelector(selectUnreadCount);
+  const [open, setOpen] = useState(false);
+  const { data: items = [] } = useNotificationsList(open);
+  const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
-  useEffect(() => {
-    void dispatch(fetchNotifications());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (!open) return;
-    void dispatch(fetchNotifications());
-  }, [open, dispatch]);
+  const markRead = useMarkNotificationReadMutation();
+  const remove = useRemoveNotificationMutation();
+  const clearAll = useClearAllNotificationsMutation();
 
   return (
-    <Popover open={open} onOpenChange={value => dispatch(setPanelOpen(value))}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -79,7 +70,8 @@ export function NotificationsPanel() {
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-sm text-muted-foreground hover:text-foreground"
-              onClick={() => void dispatch(clearAllNotifications(items.map(n => n.id)))}
+              disabled={clearAll.isPending}
+              onClick={() => void clearAll.mutateAsync(items.map((n) => n.id))}
             >
               Очистить все
             </Button>
@@ -92,7 +84,7 @@ export function NotificationsPanel() {
             </div>
           ) : (
             <ul className="divide-y">
-              {items.map(n => (
+              {items.map((n) => (
                 <li
                   key={n.id}
                   className={cn(
@@ -103,7 +95,7 @@ export function NotificationsPanel() {
                   <div
                     className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => {
-                      if (!n.read) void dispatch(markNotificationRead(n.id));
+                      if (!n.read) void markRead.mutateAsync(n.id);
                     }}
                   >
                     <div className="flex items-baseline justify-between gap-2">
@@ -135,9 +127,10 @@ export function NotificationsPanel() {
                     size="icon"
                     className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
                     aria-label="Удалить"
-                    onClick={e => {
+                    disabled={remove.isPending}
+                    onClick={(e) => {
                       e.stopPropagation();
-                      void dispatch(removeNotification(n.id));
+                      void remove.mutateAsync(n.id);
                     }}
                   >
                     <X className="h-3.5 w-3.5" />
