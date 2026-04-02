@@ -1,9 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-import { TabsContent } from "@/components/ui/tabs";
-import { BIO_MAX_LENGTH, PROFESSION_OPTIONS } from "@/lib/settings/professional-profile";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SettingsFormTabsLayout } from "@/components/settings/shared/settings-form-tabs-layout";
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
@@ -13,19 +9,14 @@ import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-
 import { useSettingsFormShell } from "@/hooks/use-settings-form-shell";
 import { usePersonalProfileTabUi } from "@/hooks/use-personal-profile-tab-ui";
 import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
-import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
-import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
-import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
+import { usePsychologistSettingsActiveTab } from "@/hooks/use-psychologist-settings-active-tab";
 import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settings/calendar-feed-token-rotate-section";
-import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
-import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
 import { PsychologistProfileSettingsTab } from "@/components/psychologist/settings/psychologist-profile-settings-tab";
 import { PsychologistTabsList } from "@/components/psychologist/settings/psychologist-tabs-list";
-
-const CalendarSubscriptionBlock = dynamic(
-  () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
-  { ssr: false }
-);
+import { PsychologistSettingsCustomFieldsTab } from "@/components/psychologist/settings/psychologist-settings-custom-fields-tab";
+import { PsychologistSettingsStatusesTab } from "@/components/psychologist/settings/psychologist-settings-statuses-tab";
+import { PsychologistSettingsCalendarTab } from "@/components/psychologist/settings/psychologist-settings-calendar-tab";
+import { PsychologistSettingsProfessionalTab } from "@/components/psychologist/settings/psychologist-settings-professional-tab";
 
 export function PsychologistSettingsForm({
   schedulingEnabled = true
@@ -43,7 +34,8 @@ export function PsychologistSettingsForm({
     securityTab,
     accountsTab
   } = useSettingsFormShell("psychologist");
-  const [activeTab, setActiveTab] = useState("profile");
+
+  const { activeTab, setActiveTab } = usePsychologistSettingsActiveTab(schedulingEnabled);
 
   const profileTab = usePersonalProfileTabUi({
     profile,
@@ -58,35 +50,14 @@ export function PsychologistSettingsForm({
     updateSession,
     patchProfile: updateProfile
   });
+
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
-
-  const clientStatusesTab = useClientStatusesTabUi();
-  const { clientStatuses, clientStatusesLoading, refetchClientStatuses } =
-    useClientStatusesSettings(activeTab === "statuses");
-
-  useEffect(() => {
-    if (!schedulingEnabled && activeTab === "calendar") void (async () => setActiveTab("profile"))();
-  }, [schedulingEnabled, activeTab]);
 
   if (loading) return <SettingsFormLoadingState />;
   if (!profile) return <SettingsFormErrorState variant="network" />;
   if (!profile.user) return <SettingsFormErrorState variant="default" />;
 
   const { initials, alt } = profileTab;
-  const {
-    profilePhotoPublished,
-    publishSaving,
-    savingProfessional,
-    hasProfessionalChanges,
-    bio, setBio,
-    specialization, setSpecialization,
-    contactPhone, setContactPhone,
-    contactTelegram, setContactTelegram,
-    contactViber, setContactViber,
-    contactWhatsapp, setContactWhatsapp,
-    handlePublishProfileChange,
-    handleSaveProfessional
-  } = professionalTab;
 
   return (
     <SettingsFormTabsLayout
@@ -120,80 +91,18 @@ export function PsychologistSettingsForm({
         />
       }
     >
-      <TabsContent value="customFields" className="mt-4">
-        <SettingsSection title="Пользовательские поля клиента">
-          <CustomFieldsTabSection enabled={activeTab === "customFields"} />
-        </SettingsSection>
-      </TabsContent>
-
-      <TabsContent value="statuses" className="mt-4">
-        {activeTab === "statuses" && (
-          <SettingsSection title="Статусы клиентов">
-            <ClientStatusesTabPanel
-              clientStatuses={clientStatuses}
-              clientStatusesLoading={clientStatusesLoading}
-              STATUS_COLOR_PRESETS={clientStatusesTab.STATUS_COLOR_PRESETS}
-              addStatusDialogOpen={clientStatusesTab.addStatusDialogOpen}
-              setAddStatusDialogOpen={clientStatusesTab.setAddStatusDialogOpen}
-              newStatusLabel={clientStatusesTab.newStatusLabel}
-              setNewStatusLabel={clientStatusesTab.setNewStatusLabel}
-              newStatusColor={clientStatusesTab.newStatusColor}
-              setNewStatusColor={clientStatusesTab.setNewStatusColor}
-              editingStatusId={clientStatusesTab.editingStatusId}
-              setEditingStatusId={clientStatusesTab.setEditingStatusId}
-              editingStatusLabel={clientStatusesTab.editingStatusLabel}
-              setEditingStatusLabel={clientStatusesTab.setEditingStatusLabel}
-              editingStatusColor={clientStatusesTab.editingStatusColor}
-              setEditingStatusColor={clientStatusesTab.setEditingStatusColor}
-              refetchClientStatuses={refetchClientStatuses}
-            />
-          </SettingsSection>
-        )}
-      </TabsContent>
-
-      {schedulingEnabled && (
-        <TabsContent value="calendar" className="mt-4">
-          {activeTab === "calendar" && (
-            <SettingsSection title="Подписаться на календарь">
-              <CalendarSubscriptionBlock />
-            </SettingsSection>
-          )}
-        </TabsContent>
-      )}
-
-      <TabsContent value="professional" className="mt-4">
-        {activeTab === "professional" && (
-          <SettingsSection title="Профессиональный профиль">
-            <ProfessionalTabPanel
-              schedulingEnabled={schedulingEnabled}
-              profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
-              profilePhotoPublished={profilePhotoPublished}
-              initials={initials}
-              alt={alt || "Психолог"}
-              publishSaving={publishSaving}
-              onPublishChange={handlePublishProfileChange}
-              onSuccess={() => void refetchProfile()}
-              handleSaveProfessional={handleSaveProfessional}
-              savingProfessional={savingProfessional}
-              hasProfessionalChanges={hasProfessionalChanges}
-              bio={bio}
-              setBio={setBio}
-              BIO_MAX_LENGTH={BIO_MAX_LENGTH}
-              specialization={specialization}
-              setSpecialization={setSpecialization}
-              PROFESSION_OPTIONS={PROFESSION_OPTIONS}
-              contactPhone={contactPhone}
-              setContactPhone={setContactPhone}
-              contactTelegram={contactTelegram}
-              setContactTelegram={setContactTelegram}
-              contactViber={contactViber}
-              setContactViber={setContactViber}
-              contactWhatsapp={contactWhatsapp}
-              setContactWhatsapp={setContactWhatsapp}
-            />
-          </SettingsSection>
-        )}
-      </TabsContent>
+      <PsychologistSettingsCustomFieldsTab activeTab={activeTab} />
+      <PsychologistSettingsStatusesTab activeTab={activeTab} />
+      <PsychologistSettingsCalendarTab schedulingEnabled={schedulingEnabled} activeTab={activeTab} />
+      <PsychologistSettingsProfessionalTab
+        activeTab={activeTab}
+        schedulingEnabled={schedulingEnabled}
+        profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
+        professionalTab={professionalTab}
+        initials={initials}
+        alt={alt || "Психолог"}
+        onRefetchProfile={refetchProfile}
+      />
     </SettingsFormTabsLayout>
   );
 }
