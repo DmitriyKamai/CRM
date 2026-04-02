@@ -16,8 +16,8 @@
 
 | Роут | Метод | Описание |
 |------|-------|----------|
-| `profile` | GET | Личные поля из `User`; у `PSYCHOLOGIST` — `psychologistProfile` (профессиональные поля); у `CLIENT` — `clientAccountProfile` или `null` (модель `ClientAccountProfile` 1:1, ленивое создание). У психолога `clientAccountProfile` — `null` |
-| `profile` | PATCH | Обновление `User` (личные поля); у психолога — поля `psychologistProfile`; у клиента — опционально вложенный объект `clientAccountProfile` (частичное обновление, `upsert` по `userId`) |
+| `profile` | GET | Личные поля из `User`; у `PSYCHOLOGIST` дополнительно `psychologistProfile` (профессиональные поля) |
+| `profile` | PATCH | Обновление `User` (личные поля); у психолога — также поля `psychologistProfile` |
 | `avatar` | POST/DELETE | Аватар (`User.image`) |
 | `change-password` | POST | Смена пароля |
 | `accounts` | GET/DELETE | Связанные OAuth-аккаунты |

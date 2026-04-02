@@ -25,15 +25,4 @@ export type UserSettingsProfile = {
     contactViber: string | null;
     contactWhatsapp: string | null;
   } | null;
-  /**
-   * Только для CLIENT: настройки кабинета (не CRM-карточка у психолога).
-   * `null` — строка в БД ещё не создана; форма показывает значения по умолчанию.
-   */
-  clientAccountProfile: {
-    timezone: string | null;
-    locale: string | null;
-    preferredName: string | null;
-    sessionRemindersEnabled: boolean;
-    marketingEmailsOptIn: boolean;
-  } | null;
 };

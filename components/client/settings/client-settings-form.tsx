@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { TabsContent } from "@/components/ui/tabs";
 import { useClientSettings } from "@/hooks/use-client-settings";
 import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
@@ -12,7 +11,6 @@ import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/s
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
 import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-block.lazy";
-import { ClientAccountPreferencesTab } from "./client-account-preferences-tab";
 import { ClientProfileTab } from "./client-profile-tab";
 
 export function ClientSettingsForm() {
@@ -79,16 +77,6 @@ export function ClientSettingsForm() {
           telegramBlock={<TelegramAccountBlockLazy />}
         />
       }
-    >
-      <TabsContent value="preferences" className="mt-4">
-        {activeTab === "preferences" && profile ? (
-          <ClientAccountPreferencesTab
-            profile={profile}
-            updateProfile={updateProfile}
-            profileSyncVersion={profileDataUpdatedAt}
-          />
-        ) : null}
-      </TabsContent>
-    </SettingsFormTabsLayout>
+    />
   );
 }
