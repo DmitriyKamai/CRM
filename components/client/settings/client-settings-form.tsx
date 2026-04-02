@@ -2,16 +2,11 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { useClientSettings } from "@/hooks/use-client-settings";
 import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
-import { SettingsFormErrorBoundary } from "@/components/settings/shared/settings-form-error-boundary";
-import {
-  SettingsAccountsTabTrigger,
-  SettingsProfileTabTrigger,
-  SettingsSecurityTabTrigger
-} from "@/components/settings/shared/settings-core-tab-triggers";
+import { SettingsFormTabsLayout } from "@/components/settings/shared/settings-form-tabs-layout";
+import { ClientSettingsTabsList } from "@/components/settings/shared/client-settings-tabs-list";
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
@@ -53,45 +48,35 @@ export function ClientSettingsForm() {
   }
 
   return (
-    <SettingsFormErrorBoundary logPrefix="[ClientSettingsForm]">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
-        <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1 bg-muted/80">
-          <SettingsProfileTabTrigger variant="client" />
-          <SettingsSecurityTabTrigger variant="client" />
-          <SettingsAccountsTabTrigger variant="client" />
-        </TabsList>
-
-        <TabsContent value="profile" className="mt-4">
-          {activeTab === "profile" && profile && (
-            <ClientProfileTab
-              profile={profile}
-              updateProfile={updateProfile}
-              profileSyncVersion={profileDataUpdatedAt}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="security" className="mt-4">
-          {activeTab === "security" && (
-            <SettingsSecurityTab
-              securityTab={securityTab}
-              activeForSessions={activeTab === "security"}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="accounts" className="mt-4">
-          {activeTab === "accounts" && (
-            <SettingsAccountsTab
-              hasGoogle={hasGoogle}
-              unlinkAccountProvider={unlinkAccountProvider}
-              onUnlinkAccount={onUnlinkAccount}
-              onLinkGoogle={onLinkGoogle}
-              telegramBlock={<TelegramAccountBlockLazy />}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
-    </SettingsFormErrorBoundary>
+    <SettingsFormTabsLayout
+      logPrefix="[ClientSettingsForm]"
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      tabsList={<ClientSettingsTabsList />}
+      profileSlot={
+        profile ? (
+          <ClientProfileTab
+            profile={profile}
+            updateProfile={updateProfile}
+            profileSyncVersion={profileDataUpdatedAt}
+          />
+        ) : null
+      }
+      securitySlot={
+        <SettingsSecurityTab
+          securityTab={securityTab}
+          activeForSessions={activeTab === "security"}
+        />
+      }
+      accountsSlot={
+        <SettingsAccountsTab
+          hasGoogle={hasGoogle}
+          unlinkAccountProvider={unlinkAccountProvider}
+          onUnlinkAccount={onUnlinkAccount}
+          onLinkGoogle={onLinkGoogle}
+          telegramBlock={<TelegramAccountBlockLazy />}
+        />
+      }
+    />
   );
 }
