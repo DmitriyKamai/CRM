@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { useClientSettings } from "@/hooks/use-client-settings";
-import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
-import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
+import { useSettingsFormShell } from "@/hooks/use-settings-form-shell";
 import { SettingsFormTabsLayout } from "@/components/settings/shared/settings-form-tabs-layout";
 import { ClientSettingsTabsList } from "@/components/settings/shared/client-settings-tabs-list";
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
@@ -14,27 +11,17 @@ import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-
 import { ClientProfileTab } from "./client-profile-tab";
 
 export function ClientSettingsForm() {
-  const { update: updateSession } = useSession();
   const {
+    session,
+    updateSession,
     profile,
-    accounts,
     loading,
     profileError,
     profileDataUpdatedAt,
     updateProfile,
-    changePassword,
-    refetchAccounts
-  } = useClientSettings();
-
-  const securityTab = useSecurityTabUi({
-    submitChangePassword: (body) => changePassword.mutateAsync(body)
-  });
-
-  const accountsTab = useAccountsTabUi({
-    accounts,
-    refetchAccounts,
-    updateSession
-  });
+    securityTab,
+    accountsTab
+  } = useSettingsFormShell("client");
   const { hasGoogle, unlinkAccountProvider, onUnlinkAccount, onLinkGoogle } = accountsTab;
 
   const [activeTab, setActiveTab] = useState("profile");
@@ -59,6 +46,8 @@ export function ClientSettingsForm() {
             profile={profile}
             updateProfile={updateProfile}
             profileSyncVersion={profileDataUpdatedAt}
+            session={session ?? null}
+            updateSession={updateSession}
           />
         ) : null
       }

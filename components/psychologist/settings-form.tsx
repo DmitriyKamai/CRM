@@ -2,30 +2,26 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useSession } from "next-auth/react";
 import { TabsContent } from "@/components/ui/tabs";
 import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
 import { BIO_MAX_LENGTH, PROFESSION_OPTIONS } from "@/lib/settings/professional-profile";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { PersonalProfileSettingsSection } from "@/components/settings/shared/personal-profile-settings-section";
 import { SettingsFormTabsLayout } from "@/components/settings/shared/settings-form-tabs-layout";
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
 import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-block.lazy";
-import { useProfileSettings } from "@/hooks/use-profile-settings";
+import { useSettingsFormShell } from "@/hooks/use-settings-form-shell";
 import { usePersonalProfileTabUi } from "@/hooks/use-personal-profile-tab-ui";
 import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
-import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
 import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settings/calendar-feed-token-rotate-section";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
-import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
 import { PsychologistTabsList } from "@/components/psychologist/settings/psychologist-tabs-list";
-import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
-import { postChangePassword } from "@/lib/user-settings/post-change-password";
 
 const CalendarSubscriptionBlock = dynamic(
   () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
@@ -37,16 +33,17 @@ export function PsychologistSettingsForm({
 }: {
   schedulingEnabled?: boolean;
 }) {
-  const { data: session, update: updateSession } = useSession();
   const {
+    session,
+    updateSession,
     profile,
     loading,
-    accounts,
     refetchProfile,
-    refetchAccounts,
     profileDataUpdatedAt,
-    updateProfile
-  } = useProfileSettings();
+    updateProfile,
+    securityTab,
+    accountsTab
+  } = useSettingsFormShell("psychologist");
   const [activeTab, setActiveTab] = useState("profile");
 
   const profileTab = usePersonalProfileTabUi({
@@ -62,9 +59,7 @@ export function PsychologistSettingsForm({
     updateSession,
     patchProfile: updateProfile
   });
-  const accountsTab = useAccountsTabUi({ accounts, refetchAccounts, updateSession });
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
-  const securityTab = useSecurityTabUi({ submitChangePassword: postChangePassword });
 
   const clientStatusesTab = useClientStatusesTabUi();
   const { clientStatuses, clientStatusesLoading, refetchClientStatuses } =
@@ -101,40 +96,38 @@ export function PsychologistSettingsForm({
       onTabChange={setActiveTab}
       tabsList={<PsychologistTabsList schedulingEnabled={schedulingEnabled} />}
       profileSlot={
-        <SettingsSection title="Личные данные">
-          <ProfileTabPanel
-            handleSaveProfile={profileTab.handleSaveProfile}
-            saving={saving}
-            hasProfileChanges={hasProfileChanges}
-            image={image}
-            initials={initials}
-            alt={alt}
-            onAvatarSuccess={() => updateSession?.()}
-            firstName={profileTab.firstName}
-            setFirstName={profileTab.setFirstName}
-            lastName={profileTab.lastName}
-            setLastName={profileTab.setLastName}
-            email={profileTab.email}
-            setEmail={profileTab.setEmail}
-            phone={profileTab.phone}
-            setPhone={profileTab.setPhone}
-            dateOfBirth={profileTab.dateOfBirth}
-            dobPopoverOpen={profileTab.dobPopoverOpen}
-            setDobPopoverOpen={profileTab.setDobPopoverOpen}
-            setDateOfBirth={profileTab.setDateOfBirth}
-            gender={profileTab.gender}
-            setGender={profileTab.setGender}
-            country={profileTab.country}
-            setCountry={profileTab.setCountry}
-            countryCode={profileTab.countryCode}
-            setCountryCode={profileTab.setCountryCode}
-            city={profileTab.city}
-            setCity={profileTab.setCity}
-            maritalStatus={profileTab.maritalStatus}
-            setMaritalStatus={profileTab.setMaritalStatus}
-            maritalOptions={MARITAL_OPTIONS}
-          />
-        </SettingsSection>
+        <PersonalProfileSettingsSection
+          handleSaveProfile={profileTab.handleSaveProfile}
+          saving={saving}
+          hasProfileChanges={hasProfileChanges}
+          image={image}
+          initials={initials}
+          alt={alt}
+          onAvatarSuccess={() => void updateSession?.()}
+          firstName={profileTab.firstName}
+          setFirstName={profileTab.setFirstName}
+          lastName={profileTab.lastName}
+          setLastName={profileTab.setLastName}
+          email={profileTab.email}
+          setEmail={profileTab.setEmail}
+          phone={profileTab.phone}
+          setPhone={profileTab.setPhone}
+          dateOfBirth={profileTab.dateOfBirth}
+          dobPopoverOpen={profileTab.dobPopoverOpen}
+          setDobPopoverOpen={profileTab.setDobPopoverOpen}
+          setDateOfBirth={profileTab.setDateOfBirth}
+          gender={profileTab.gender}
+          setGender={profileTab.setGender}
+          country={profileTab.country}
+          setCountry={profileTab.setCountry}
+          countryCode={profileTab.countryCode}
+          setCountryCode={profileTab.setCountryCode}
+          city={profileTab.city}
+          setCity={profileTab.setCity}
+          maritalStatus={profileTab.maritalStatus}
+          setMaritalStatus={profileTab.setMaritalStatus}
+          maritalOptions={MARITAL_OPTIONS}
+        />
       }
       securitySlot={
         <SettingsSecurityTab
