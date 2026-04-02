@@ -50,7 +50,7 @@ export async function getCalendarFeedResponse(
 
     const profile = await prisma.psychologistProfile.findUnique({
       where: { id: psychologistId },
-      select: { id: true, firstName: true, lastName: true }
+      select: { id: true, user: { select: { firstName: true, lastName: true, name: true } } }
     });
     if (!profile) {
       return new NextResponse("Календарь не найден", { status: 404 });
@@ -71,7 +71,8 @@ export async function getCalendarFeedResponse(
       }
     });
 
-    const calendarName = `Расписание${profile.lastName || profile.firstName ? ` — ${[profile.lastName, profile.firstName].filter(Boolean).join(" ")}` : ""}`;
+    const psychName = [profile.user?.lastName, profile.user?.firstName].filter(Boolean).join(" ").trim() || profile.user?.name || "";
+    const calendarName = `Расписание${psychName ? ` — ${psychName}` : ""}`;
     const slotsForIcs = slots.map(slot => {
       const appt = slot.appointment;
       const isActive =

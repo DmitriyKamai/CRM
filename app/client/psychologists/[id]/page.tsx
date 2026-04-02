@@ -84,14 +84,10 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
   let errorMessage: string | null = null;
 
   try {
-    psychologist = await prisma.psychologistProfile.findUnique({
+    const raw = await prisma.psychologistProfile.findUnique({
       where: { id },
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
-        country: true,
-        city: true,
         specialization: true,
         bio: true,
         profilePhotoUrl: true,
@@ -99,9 +95,29 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
         contactPhone: true,
         contactTelegram: true,
         contactViber: true,
-        contactWhatsapp: true
+        contactWhatsapp: true,
+        user: { select: { firstName: true, lastName: true, name: true, country: true, city: true } }
       }
     });
+    if (raw) {
+      psychologist = {
+        id: raw.id,
+        firstName: raw.user.firstName ?? (raw.user.name ?? "").split(" ")[0] ?? "",
+        lastName: raw.user.lastName ?? (raw.user.name ?? "").split(" ").slice(1).join(" ") ?? "",
+        country: raw.user.country ?? null,
+        city: raw.user.city ?? null,
+        specialization: raw.specialization ?? null,
+        bio: raw.bio ?? null,
+        profilePhotoUrl: raw.profilePhotoUrl ?? null,
+        profilePhotoPublished: raw.profilePhotoPublished,
+        contactPhone: raw.contactPhone ?? null,
+        contactTelegram: raw.contactTelegram ?? null,
+        contactViber: raw.contactViber ?? null,
+        contactWhatsapp: raw.contactWhatsapp ?? null
+      };
+    } else {
+      psychologist = null;
+    }
 
     if (!psychologist || !psychologist.profilePhotoPublished) {
       notFound();

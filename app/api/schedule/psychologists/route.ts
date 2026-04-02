@@ -10,21 +10,20 @@ export async function GET() {
   const psychologists = await prisma.psychologistProfile.findMany({
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      specialization: true
+      specialization: true,
+      user: { select: { firstName: true, lastName: true, name: true } }
     },
-    orderBy: {
-      lastName: "asc"
-    }
+    orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }]
   });
 
   return NextResponse.json(
     psychologists.map(p => ({
       id: p.id,
-      fullName: `${p.lastName} ${p.firstName}`,
+      fullName:
+        [p.user.lastName, p.user.firstName].filter(Boolean).join(" ").trim() ||
+        p.user.name ||
+        "Психолог",
       specialization: p.specialization ?? null
     }))
   );
 }
-

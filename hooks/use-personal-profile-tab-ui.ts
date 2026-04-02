@@ -21,7 +21,11 @@ type Props = {
   profileSyncVersion: number;
 };
 
-export function useProfileTabUi({ profile, session, patchProfile, profileSyncVersion }: Props) {
+/**
+ * Единый хук состояния формы личных данных для любой роли (клиент и психолог).
+ * Все поля читаются только из profile.user — дублирования нет.
+ */
+export function usePersonalProfileTabUi({ profile, session, patchProfile, profileSyncVersion }: Props) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,20 +44,26 @@ export function useProfileTabUi({ profile, session, patchProfile, profileSyncVer
   /* eslint-disable react-hooks/set-state-in-effect -- синхронизация формы с данными Query после refetch */
   useEffect(() => {
     if (!profile) return;
+    const u = profile.user;
 
-    setFirstName(profile.psychologistProfile?.firstName ?? profile.user?.name ?? "");
-    setLastName(profile.psychologistProfile?.lastName ?? "");
-    setEmail(profile.user?.email ?? "");
-    setPhone(profile.psychologistProfile?.phone ?? "");
-    setDateOfBirth(profile.user?.dateOfBirth ?? "");
-    setCountry(profile.psychologistProfile?.country ?? DEFAULT_COUNTRY_NAME);
-    setCity(profile.psychologistProfile?.city ?? "");
-    setGender(profile.psychologistProfile?.gender ?? "");
-    setMaritalStatus(profile.psychologistProfile?.maritalStatus ?? "");
+    // firstName/lastName: отдельные поля или парсинг из name
+    const parts = (u.name ?? "").trim().split(/\s+/).filter(Boolean);
+    setFirstName(u.firstName ?? parts[0] ?? "");
+    setLastName(u.lastName ?? parts.slice(1).join(" ") ?? "");
+
+    setEmail(u.email ?? "");
+    setPhone(u.phone ?? "");
+    setDateOfBirth(u.dateOfBirth ?? "");
+
+    const userCountry = u.country ?? "";
+    setCountry(userCountry || DEFAULT_COUNTRY_NAME);
+    setCity(u.city ?? "");
+    setGender(u.gender ?? "");
+    setMaritalStatus(u.maritalStatus ?? "");
 
     setCountryCode(
-      profile.psychologistProfile?.country
-        ? getCountryCodeByName(profile.psychologistProfile.country) ?? null
+      userCountry
+        ? getCountryCodeByName(userCountry) ?? null
         : DEFAULT_COUNTRY_CODE
     );
   }, [profile, profileSyncVersion]);
@@ -66,15 +76,17 @@ export function useProfileTabUi({ profile, session, patchProfile, profileSyncVer
   const initials =
     [firstName, lastName].filter(Boolean).join(" ") || name || displayEmail.slice(0, 2) || "";
 
-  const savedFirstName = profile?.psychologistProfile?.firstName ?? profile?.user?.name ?? "";
-  const savedLastName = profile?.psychologistProfile?.lastName ?? "";
-  const savedEmail = profile?.user?.email ?? "";
-  const savedPhone = profile?.psychologistProfile?.phone ?? "";
-  const savedDateOfBirth = profile?.user?.dateOfBirth ?? "";
-  const savedCountry = profile?.psychologistProfile?.country ?? "";
-  const savedCity = profile?.psychologistProfile?.city ?? "";
-  const savedGender = profile?.psychologistProfile?.gender ?? "";
-  const savedMaritalStatus = profile?.psychologistProfile?.maritalStatus ?? "";
+  const u = profile?.user;
+  const parts = (u?.name ?? "").trim().split(/\s+/).filter(Boolean);
+  const savedFirstName = u?.firstName ?? parts[0] ?? "";
+  const savedLastName = u?.lastName ?? parts.slice(1).join(" ") ?? "";
+  const savedEmail = u?.email ?? "";
+  const savedPhone = u?.phone ?? "";
+  const savedDateOfBirth = u?.dateOfBirth ?? "";
+  const savedCountry = u?.country ?? "";
+  const savedCity = u?.city ?? "";
+  const savedGender = u?.gender ?? "";
+  const savedMaritalStatus = u?.maritalStatus ?? "";
 
   const hasProfileChanges =
     firstName !== savedFirstName ||
@@ -92,8 +104,8 @@ export function useProfileTabUi({ profile, session, patchProfile, profileSyncVer
     if (!profile) return;
 
     await patchProfile.mutateAsync({
-      firstName,
-      lastName,
+      firstName: firstName.trim() || null,
+      lastName: lastName.trim() || null,
       phone: phone.trim() || null,
       country: country.trim() || null,
       city: city.trim() || null,

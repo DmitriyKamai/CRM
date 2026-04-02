@@ -89,7 +89,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
 
     const psychProfile = await prisma.psychologistProfile.findUnique({
       where: { id: ctx.psychologistId },
-      select: { firstName: true, lastName: true }
+      select: { user: { select: { firstName: true, lastName: true, name: true } } }
     });
 
     const client = await prisma.clientProfile.findFirst({
@@ -187,7 +187,10 @@ export async function POST(request: Request, { params }: ParamsPromise) {
           timeStyle: "short"
         });
         const psychologistName = psychProfile
-          ? `${psychProfile.lastName} ${psychProfile.firstName}`.trim() || "Психолог"
+          ? [psychProfile.user?.lastName, psychProfile.user?.firstName]
+              .filter(Boolean).join(" ").trim() ||
+            psychProfile.user?.name ||
+            "Психолог"
           : "Психолог";
         await tx.notification.create({
           data: {
@@ -209,7 +212,10 @@ export async function POST(request: Request, { params }: ParamsPromise) {
       });
       if (clientUser?.telegramChatId) {
         const psychologistName = psychProfile
-          ? `${psychProfile.lastName} ${psychProfile.firstName}`.trim() || "Психолог"
+          ? [psychProfile.user?.lastName, psychProfile.user?.firstName]
+              .filter(Boolean).join(" ").trim() ||
+            psychProfile.user?.name ||
+            "Психолог"
           : "Психолог";
         const dateStr = result.start.toLocaleString("ru-RU", {
           dateStyle: "short",

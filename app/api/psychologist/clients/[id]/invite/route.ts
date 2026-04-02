@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: ParamsPromise) {
 
     const psych = await prisma.psychologistProfile.findUnique({
       where: { id: ctx.psychologistId },
-      select: { id: true, firstName: true, lastName: true }
+      select: { id: true, user: { select: { firstName: true, lastName: true, name: true } } }
     });
 
     if (!psych) {
@@ -94,7 +94,9 @@ export async function POST(request: Request, { params }: ParamsPromise) {
     await sendRegistrationInviteEmail({
       to: targetEmail,
       clientName: `${client.firstName} ${client.lastName}`.trim(),
-      psychologistName: `${psych.lastName ?? ""} ${psych.firstName ?? ""}`.trim() ||
+      psychologistName:
+        [psych.user?.lastName, psych.user?.firstName].filter(Boolean).join(" ").trim() ||
+        psych.user?.name ||
         "ваш психолог",
       inviteUrl
     });

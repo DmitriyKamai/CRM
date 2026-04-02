@@ -64,9 +64,9 @@ export function ClientSettingsForm() {
         <TabsContent value="profile" className="mt-4">
           {activeTab === "profile" && profile && (
             <ClientProfileTab
-              key={profileDataUpdatedAt}
               profile={profile}
               updateProfile={updateProfile}
+              profileSyncVersion={profileDataUpdatedAt}
             />
           )}
         </TabsContent>

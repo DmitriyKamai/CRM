@@ -54,13 +54,12 @@ export default async function SocialCompletePage({ searchParams }: Props) {
       where: { id: userId },
       data: {
         role: "PSYCHOLOGIST",
+        firstName,
+        lastName,
         psychologistProfile: {
           connectOrCreate: {
             where: { userId },
-            create: {
-              firstName,
-              lastName
-            }
+            create: {}
           }
         }
       }

@@ -53,7 +53,7 @@ export async function POST(
       include: {
         slot: true,
         client: { select: { userId: true, psychologistId: true } },
-        psychologist: { select: { id: true, userId: true, firstName: true, lastName: true } }
+        psychologist: { select: { id: true, userId: true, user: { select: { firstName: true, lastName: true, name: true } } } }
       }
     });
 
@@ -63,7 +63,7 @@ export async function POST(
 
     const profile = await prisma.psychologistProfile.findUnique({
       where: { userId: user.id },
-      select: { id: true, firstName: true, lastName: true }
+      select: { id: true }
     });
 
     const isPsychologistByProfile = Boolean(profile && appt.psychologistId === profile.id);
@@ -97,7 +97,10 @@ export async function POST(
     }
 
     const psychologistName = appt.psychologist
-      ? `${appt.psychologist.lastName} ${appt.psychologist.firstName}`.trim() || "Психолог"
+      ? [appt.psychologist.user?.lastName, appt.psychologist.user?.firstName]
+          .filter(Boolean).join(" ").trim() ||
+        appt.psychologist.user?.name ||
+        "Психолог"
       : "Психолог";
 
     if (isClient && action === "confirm") {

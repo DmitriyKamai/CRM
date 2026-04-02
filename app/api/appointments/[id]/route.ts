@@ -49,11 +49,14 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
     const status = rawStatus as AppointmentStatus;
 
     const profile = await prisma.psychologistProfile.findUnique({
-      where: { id: ctx.psychologistId }
+      where: { id: ctx.psychologistId },
+      select: { id: true, user: { select: { firstName: true, lastName: true, name: true } } }
     });
 
     const psychologistName = profile
-      ? `${profile.lastName} ${profile.firstName}`.trim() || "Психолог"
+      ? [profile.user?.lastName, profile.user?.firstName].filter(Boolean).join(" ").trim() ||
+        profile.user?.name ||
+        "Психолог"
       : "Психолог";
 
     const appt = await prisma.appointment.findUnique({

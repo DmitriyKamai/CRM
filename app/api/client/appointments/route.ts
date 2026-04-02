@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   const appointments = await prisma.appointment.findMany({
     where,
     include: {
-      psychologist: { select: { firstName: true, lastName: true } }
+      psychologist: { select: { user: { select: { firstName: true, lastName: true, name: true } } } }
     },
     orderBy: { start: "desc" },
     take: 50
@@ -54,7 +54,9 @@ export async function GET(request: Request) {
       end: a.end.toISOString(),
       status: a.status,
       psychologistName:
-        `${a.psychologist.lastName} ${a.psychologist.firstName}`.trim() ||
+        [a.psychologist.user?.lastName, a.psychologist.user?.firstName]
+          .filter(Boolean).join(" ").trim() ||
+        a.psychologist.user?.name ||
         "Психолог",
       proposedByPsychologist: a.proposedByPsychologist
     }))

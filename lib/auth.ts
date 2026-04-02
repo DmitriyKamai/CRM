@@ -236,20 +236,7 @@ function buildCallbacks(req: Request | null): NextAuthOptions["callbacks"] {
               }
               token.email = dbUser.email;
               token.picture = dbUser.image ?? null;
-              if (dbUser.role === "PSYCHOLOGIST") {
-                const profile = await prisma.psychologistProfile.findUnique({
-                  where: { userId },
-                  select: { firstName: true, lastName: true }
-                });
-                if (profile) {
-                  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
-                  if (fullName) token.name = fullName;
-                } else {
-                  token.name = dbUser.name ?? null;
-                }
-              } else {
-                token.name = dbUser.name ?? null;
-              }
+              token.name = dbUser.name ?? null;
             }
           } catch (e) {
             console.error("[auth] jwt callback:", e);

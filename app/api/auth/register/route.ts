@@ -81,15 +81,14 @@ export async function POST(request: Request) {
       data: {
         email: emailNormalized,
         name: `${data.firstName} ${data.lastName}`,
+        firstName: data.firstName,
+        lastName: data.lastName,
         hashedPassword,
         role,
         ...(role === "PSYCHOLOGIST"
           ? {
               psychologistProfile: {
-                create: {
-                  firstName: data.firstName,
-                  lastName: data.lastName
-                }
+                create: {}
               }
             }
           : undefined)

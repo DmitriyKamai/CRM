@@ -49,13 +49,8 @@ export async function handleCreateDiagnosticLink(
     });
 
     if (!profile) {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
       profile = await prisma.psychologistProfile.create({
-        data: {
-          userId,
-          firstName: user?.name ?? "Специалист",
-          lastName: ""
-        }
+        data: { userId }
       });
     }
 

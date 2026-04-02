@@ -1,17 +1,5 @@
 import { prisma } from "@/lib/db";
 
-/** Поля каталога психологов для клиента (страница списка и API). */
-export const publishedPsychologistCatalogSelect = {
-  id: true,
-  firstName: true,
-  lastName: true,
-  specialization: true,
-  bio: true,
-  country: true,
-  city: true,
-  profilePhotoUrl: true
-} as const;
-
 export type PsychologistCatalogEntry = {
   id: string;
   firstName: string;
@@ -28,8 +16,23 @@ export async function getPublishedPsychologistsForCatalog(): Promise<
 > {
   const rows = await prisma.psychologistProfile.findMany({
     where: { profilePhotoPublished: true },
-    select: publishedPsychologistCatalogSelect,
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
+    select: {
+      id: true,
+      specialization: true,
+      bio: true,
+      profilePhotoUrl: true,
+      user: { select: { firstName: true, lastName: true, name: true, country: true, city: true } }
+    },
+    orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }]
   });
-  return rows;
+  return rows.map(p => ({
+    id: p.id,
+    firstName: p.user.firstName ?? (p.user.name ?? "").split(" ")[0] ?? "",
+    lastName: p.user.lastName ?? (p.user.name ?? "").split(" ").slice(1).join(" ") ?? "",
+    specialization: p.specialization ?? null,
+    bio: p.bio ?? null,
+    country: p.user.country ?? null,
+    city: p.user.city ?? null,
+    profilePhotoUrl: p.profilePhotoUrl ?? null
+  }));
 }

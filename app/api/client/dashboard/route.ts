@@ -79,7 +79,7 @@ async function handleGet(): Promise<Response> {
             },
             include: {
               psychologist: {
-                select: { firstName: true, lastName: true }
+                select: { user: { select: { firstName: true, lastName: true, name: true } } }
               }
             },
             orderBy: { start: "asc" },
@@ -90,7 +90,11 @@ async function handleGet(): Promise<Response> {
             id: a.id,
             start: a.start.toISOString(),
             end: a.end.toISOString(),
-            psychologistName: `${a.psychologist.lastName} ${a.psychologist.firstName}`.trim(),
+            psychologistName:
+              [a.psychologist.user?.lastName, a.psychologist.user?.firstName]
+                .filter(Boolean).join(" ").trim() ||
+              a.psychologist.user?.name ||
+              "Психолог",
             status: a.status as "PENDING_CONFIRMATION" | "SCHEDULED",
             proposedByPsychologist: a.proposedByPsychologist
           }));
@@ -120,7 +124,7 @@ async function handleGet(): Promise<Response> {
             include: {
               test: { select: { title: true } },
               psychologist: {
-                select: { firstName: true, lastName: true }
+                select: { user: { select: { firstName: true, lastName: true, name: true } } }
               }
             },
             orderBy: { createdAt: "desc" },
@@ -158,7 +162,9 @@ async function handleGet(): Promise<Response> {
               token: l.token,
               testTitle: l.test.title,
               psychologistName:
-                `${l.psychologist?.lastName ?? ""} ${l.psychologist?.firstName ?? ""}`.trim() ||
+                [l.psychologist?.user?.lastName, l.psychologist?.user?.firstName]
+                  .filter(Boolean).join(" ").trim() ||
+                l.psychologist?.user?.name ||
                 "Психолог",
               createdAt: l.createdAt.toISOString(),
               hasProgress: currentStep > 0
@@ -170,7 +176,7 @@ async function handleGet(): Promise<Response> {
           where: { clientId: { in: clientIds } },
           include: {
             psychologist: {
-              select: { firstName: true, lastName: true }
+              select: { user: { select: { firstName: true, lastName: true, name: true } } }
             }
           },
           orderBy: { createdAt: "desc" },
@@ -181,7 +187,11 @@ async function handleGet(): Promise<Response> {
           title: decryptRecommendationTitleFromDb(r.title),
           body: decryptRecommendationBodyFromDb(r.body),
           createdAt: r.createdAt.toISOString(),
-          psychologistName: `${r.psychologist.lastName} ${r.psychologist.firstName}`.trim()
+          psychologistName:
+            [r.psychologist.user?.lastName, r.psychologist.user?.firstName]
+              .filter(Boolean).join(" ").trim() ||
+            r.psychologist.user?.name ||
+            "Психолог"
         }));
       } catch (countErr) {
         console.error("[API /api/client/dashboard] prisma:", countErr);

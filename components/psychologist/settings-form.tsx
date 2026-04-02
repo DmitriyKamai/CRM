@@ -3,23 +3,17 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
 import { BIO_MAX_LENGTH, PROFESSION_OPTIONS } from "@/lib/settings/professional-profile";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SettingsFormErrorBoundary } from "@/components/settings/shared/settings-form-error-boundary";
-import {
-  SettingsAccountsTabTrigger,
-  SettingsProfileTabTrigger,
-  SettingsSecurityTabTrigger
-} from "@/components/settings/shared/settings-core-tab-triggers";
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
 import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-block.lazy";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
-import { useProfileTabUi } from "@/hooks/use-profile-tab-ui";
+import { usePersonalProfileTabUi } from "@/hooks/use-personal-profile-tab-ui";
 import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
 import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
@@ -29,6 +23,7 @@ import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settin
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
+import { PsychologistTabsList } from "@/components/psychologist/settings/psychologist-tabs-list";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
 import { postChangePassword } from "@/lib/user-settings/post-change-password";
 
@@ -54,7 +49,7 @@ export function PsychologistSettingsForm({
   } = useProfileSettings();
   const [activeTab, setActiveTab] = useState("profile");
 
-  const profileTab = useProfileTabUi({
+  const profileTab = usePersonalProfileTabUi({
     profile,
     session,
     patchProfile: updateProfile,
@@ -67,53 +62,21 @@ export function PsychologistSettingsForm({
     updateSession,
     patchProfile: updateProfile
   });
-  const accountsTab = useAccountsTabUi({
-    accounts,
-    refetchAccounts,
-    updateSession
-  });
+  const accountsTab = useAccountsTabUi({ accounts, refetchAccounts, updateSession });
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
-  const securityTab = useSecurityTabUi({
-    submitChangePassword: postChangePassword
-  });
+  const securityTab = useSecurityTabUi({ submitChangePassword: postChangePassword });
 
   const clientStatusesTab = useClientStatusesTabUi();
-  const {
-    clientStatuses,
-    clientStatusesLoading,
-    refetchClientStatuses
-  } = useClientStatusesSettings(activeTab === "statuses");
-  const {
-    STATUS_COLOR_PRESETS,
-    addStatusDialogOpen,
-    setAddStatusDialogOpen,
-    newStatusLabel,
-    setNewStatusLabel,
-    newStatusColor,
-    setNewStatusColor,
-    editingStatusId,
-    setEditingStatusId,
-    editingStatusLabel,
-    setEditingStatusLabel,
-    editingStatusColor,
-    setEditingStatusColor
-  } = clientStatusesTab;
+  const { clientStatuses, clientStatusesLoading, refetchClientStatuses } =
+    useClientStatusesSettings(activeTab === "statuses");
 
   useEffect(() => {
     if (!schedulingEnabled && activeTab === "calendar") void (async () => setActiveTab("profile"))();
   }, [schedulingEnabled, activeTab]);
 
-  if (loading) {
-    return <SettingsFormLoadingState />;
-  }
-
-  if (!profile) {
-    return <SettingsFormErrorState variant="network" />;
-  }
-
-  if (!profile.user) {
-    return <SettingsFormErrorState variant="default" />;
-  }
+  if (loading) return <SettingsFormLoadingState />;
+  if (!profile) return <SettingsFormErrorState variant="network" />;
+  if (!profile.user) return <SettingsFormErrorState variant="default" />;
 
   const { saving, hasProfileChanges, image, initials, alt } = profileTab;
   const {
@@ -121,212 +84,163 @@ export function PsychologistSettingsForm({
     publishSaving,
     savingProfessional,
     hasProfessionalChanges,
-    bio,
-    setBio,
-    specialization,
-    setSpecialization,
-    contactPhone,
-    setContactPhone,
-    contactTelegram,
-    setContactTelegram,
-    contactViber,
-    setContactViber,
-    contactWhatsapp,
-    setContactWhatsapp,
+    bio, setBio,
+    specialization, setSpecialization,
+    contactPhone, setContactPhone,
+    contactTelegram, setContactTelegram,
+    contactViber, setContactViber,
+    contactWhatsapp, setContactWhatsapp,
     handlePublishProfileChange,
     handleSaveProfessional
   } = professionalTab;
 
   return (
     <SettingsFormErrorBoundary logPrefix="[PsychologistSettingsForm]">
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
-      <TabsList className="flex h-auto w-full min-w-0 flex-wrap justify-center gap-1 rounded-lg bg-muted/80 p-1 sm:justify-start lg:gap-1.5 lg:p-1.5">
-        <SettingsProfileTabTrigger variant="psychologist" />
-        <TabsTrigger
-          value="professional"
-          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-        >
-          <Briefcase className="h-4 w-4 shrink-0" />
-          <span className="text-left leading-tight">Профиль</span>
-        </TabsTrigger>
-        <SettingsSecurityTabTrigger variant="psychologist" />
-        <SettingsAccountsTabTrigger variant="psychologist" />
-        {schedulingEnabled && (
-          <TabsTrigger
-            value="calendar"
-            className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-          >
-            <CalendarDays className="h-4 w-4 shrink-0" />
-            <span className="text-left leading-tight">Календарь</span>
-          </TabsTrigger>
-        )}
-        <TabsTrigger
-          value="customFields"
-          className="flex max-w-full min-w-0 shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-        >
-          <ListChecks className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 text-left leading-tight">Поля клиента</span>
-        </TabsTrigger>
-        <TabsTrigger
-          value="statuses"
-          className="flex max-w-full min-w-0 shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-        >
-          <ListFilter className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 text-left leading-tight">Статусы клиентов</span>
-        </TabsTrigger>
-      </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
+        <PsychologistTabsList schedulingEnabled={schedulingEnabled} />
 
-      <TabsContent value="profile" className="mt-4">
-        {activeTab === "profile" && (
-        <>
-        <SettingsSection title="Личные данные">
-          <ProfileTabPanel
-            handleSaveProfile={profileTab.handleSaveProfile}
-            saving={saving}
-            hasProfileChanges={hasProfileChanges}
-            image={image}
-            initials={initials}
-            alt={alt}
-            onAvatarSuccess={() => updateSession?.()}
-            firstName={profileTab.firstName}
-            setFirstName={profileTab.setFirstName}
-            lastName={profileTab.lastName}
-            setLastName={profileTab.setLastName}
-            email={profileTab.email}
-            setEmail={profileTab.setEmail}
-            phone={profileTab.phone}
-            setPhone={profileTab.setPhone}
-            dateOfBirth={profileTab.dateOfBirth}
-            dobPopoverOpen={profileTab.dobPopoverOpen}
-            setDobPopoverOpen={profileTab.setDobPopoverOpen}
-            setDateOfBirth={profileTab.setDateOfBirth}
-            gender={profileTab.gender}
-            setGender={profileTab.setGender}
-            country={profileTab.country}
-            setCountry={profileTab.setCountry}
-            countryCode={profileTab.countryCode}
-            setCountryCode={profileTab.setCountryCode}
-            city={profileTab.city}
-            setCity={profileTab.setCity}
-            maritalStatus={profileTab.maritalStatus}
-            setMaritalStatus={profileTab.setMaritalStatus}
-            maritalOptions={MARITAL_OPTIONS}
-          />
-        </SettingsSection>
-        </>
-        )}
-      </TabsContent>
-
-      <TabsContent value="security" className="mt-4">
-        {activeTab === "security" && (
-          <SettingsSecurityTab
-            securityTab={securityTab}
-            activeForSessions={activeTab === "security"}
-            extraSections={
-              schedulingEnabled ? (
-                <SettingsSection title="Ссылка подписки на календарь">
-                  <CalendarFeedTokenRotateSection />
-                </SettingsSection>
-              ) : undefined
-            }
-          />
-        )}
-      </TabsContent>
-
-      <TabsContent value="accounts" className="mt-4">
-        {activeTab === "accounts" && (
-          <SettingsAccountsTab
-            hasGoogle={hasGoogle}
-            unlinkAccountProvider={unlinkAccountProvider}
-            onUnlinkAccount={onUnlinkAccount}
-            onLinkGoogle={onLinkGoogle}
-            telegramBlock={<TelegramAccountBlockLazy />}
-          />
-        )}
-      </TabsContent>
-
-      <TabsContent value="customFields" className="mt-4">
-        <SettingsSection title="Пользовательские поля клиента">
-          <CustomFieldsTabSection enabled={activeTab === "customFields"} />
-        </SettingsSection>
-      </TabsContent>
-
-      <TabsContent value="statuses" className="mt-4">
-        {activeTab === "statuses" && (
-          <SettingsSection title="Статусы клиентов">
-            <ClientStatusesTabPanel
-              clientStatuses={clientStatuses}
-              clientStatusesLoading={clientStatusesLoading}
-              STATUS_COLOR_PRESETS={STATUS_COLOR_PRESETS}
-
-              addStatusDialogOpen={addStatusDialogOpen}
-              setAddStatusDialogOpen={setAddStatusDialogOpen}
-              newStatusLabel={newStatusLabel}
-              setNewStatusLabel={setNewStatusLabel}
-              newStatusColor={newStatusColor}
-              setNewStatusColor={setNewStatusColor}
-
-              editingStatusId={editingStatusId}
-              setEditingStatusId={setEditingStatusId}
-              editingStatusLabel={editingStatusLabel}
-              setEditingStatusLabel={setEditingStatusLabel}
-              editingStatusColor={editingStatusColor}
-              setEditingStatusColor={setEditingStatusColor}
-
-              refetchClientStatuses={refetchClientStatuses}
-            />
-          </SettingsSection>
-        )}
-      </TabsContent>
-
-      {schedulingEnabled && (
-        <TabsContent value="calendar" className="mt-4">
-          {activeTab === "calendar" && (
-            <SettingsSection title="Подписаться на календарь">
-              <CalendarSubscriptionBlock />
+        <TabsContent value="profile" className="mt-4">
+          {activeTab === "profile" && (
+            <SettingsSection title="Личные данные">
+              <ProfileTabPanel
+                handleSaveProfile={profileTab.handleSaveProfile}
+                saving={saving}
+                hasProfileChanges={hasProfileChanges}
+                image={image}
+                initials={initials}
+                alt={alt}
+                onAvatarSuccess={() => updateSession?.()}
+                firstName={profileTab.firstName}
+                setFirstName={profileTab.setFirstName}
+                lastName={profileTab.lastName}
+                setLastName={profileTab.setLastName}
+                email={profileTab.email}
+                setEmail={profileTab.setEmail}
+                phone={profileTab.phone}
+                setPhone={profileTab.setPhone}
+                dateOfBirth={profileTab.dateOfBirth}
+                dobPopoverOpen={profileTab.dobPopoverOpen}
+                setDobPopoverOpen={profileTab.setDobPopoverOpen}
+                setDateOfBirth={profileTab.setDateOfBirth}
+                gender={profileTab.gender}
+                setGender={profileTab.setGender}
+                country={profileTab.country}
+                setCountry={profileTab.setCountry}
+                countryCode={profileTab.countryCode}
+                setCountryCode={profileTab.setCountryCode}
+                city={profileTab.city}
+                setCity={profileTab.setCity}
+                maritalStatus={profileTab.maritalStatus}
+                setMaritalStatus={profileTab.setMaritalStatus}
+                maritalOptions={MARITAL_OPTIONS}
+              />
             </SettingsSection>
           )}
         </TabsContent>
-      )}
 
-      <TabsContent value="professional" className="mt-4">
-        {activeTab === "professional" && (
-        <SettingsSection title="Профессиональный профиль">
-          <ProfessionalTabPanel
-            schedulingEnabled={schedulingEnabled}
-            profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
-            profilePhotoPublished={profilePhotoPublished}
-            initials={initials}
-            alt={alt || "Психолог"}
-            publishSaving={publishSaving}
-            onPublishChange={handlePublishProfileChange}
-            onSuccess={() => void refetchProfile()}
+        <TabsContent value="security" className="mt-4">
+          {activeTab === "security" && (
+            <SettingsSecurityTab
+              securityTab={securityTab}
+              activeForSessions={activeTab === "security"}
+              extraSections={
+                schedulingEnabled ? (
+                  <SettingsSection title="Ссылка подписки на календарь">
+                    <CalendarFeedTokenRotateSection />
+                  </SettingsSection>
+                ) : undefined
+              }
+            />
+          )}
+        </TabsContent>
 
-            handleSaveProfessional={handleSaveProfessional}
-            savingProfessional={savingProfessional}
-            hasProfessionalChanges={hasProfessionalChanges}
+        <TabsContent value="accounts" className="mt-4">
+          {activeTab === "accounts" && (
+            <SettingsAccountsTab
+              hasGoogle={hasGoogle}
+              unlinkAccountProvider={unlinkAccountProvider}
+              onUnlinkAccount={onUnlinkAccount}
+              onLinkGoogle={onLinkGoogle}
+              telegramBlock={<TelegramAccountBlockLazy />}
+            />
+          )}
+        </TabsContent>
 
-            bio={bio}
-            setBio={setBio}
-            BIO_MAX_LENGTH={BIO_MAX_LENGTH}
+        <TabsContent value="customFields" className="mt-4">
+          <SettingsSection title="Пользовательские поля клиента">
+            <CustomFieldsTabSection enabled={activeTab === "customFields"} />
+          </SettingsSection>
+        </TabsContent>
 
-            specialization={specialization}
-            setSpecialization={setSpecialization}
-            PROFESSION_OPTIONS={PROFESSION_OPTIONS}
+        <TabsContent value="statuses" className="mt-4">
+          {activeTab === "statuses" && (
+            <SettingsSection title="Статусы клиентов">
+              <ClientStatusesTabPanel
+                clientStatuses={clientStatuses}
+                clientStatusesLoading={clientStatusesLoading}
+                STATUS_COLOR_PRESETS={clientStatusesTab.STATUS_COLOR_PRESETS}
+                addStatusDialogOpen={clientStatusesTab.addStatusDialogOpen}
+                setAddStatusDialogOpen={clientStatusesTab.setAddStatusDialogOpen}
+                newStatusLabel={clientStatusesTab.newStatusLabel}
+                setNewStatusLabel={clientStatusesTab.setNewStatusLabel}
+                newStatusColor={clientStatusesTab.newStatusColor}
+                setNewStatusColor={clientStatusesTab.setNewStatusColor}
+                editingStatusId={clientStatusesTab.editingStatusId}
+                setEditingStatusId={clientStatusesTab.setEditingStatusId}
+                editingStatusLabel={clientStatusesTab.editingStatusLabel}
+                setEditingStatusLabel={clientStatusesTab.setEditingStatusLabel}
+                editingStatusColor={clientStatusesTab.editingStatusColor}
+                setEditingStatusColor={clientStatusesTab.setEditingStatusColor}
+                refetchClientStatuses={refetchClientStatuses}
+              />
+            </SettingsSection>
+          )}
+        </TabsContent>
 
-            contactPhone={contactPhone}
-            setContactPhone={setContactPhone}
-            contactTelegram={contactTelegram}
-            setContactTelegram={setContactTelegram}
-            contactViber={contactViber}
-            setContactViber={setContactViber}
-            contactWhatsapp={contactWhatsapp}
-            setContactWhatsapp={setContactWhatsapp}
-          />
-        </SettingsSection>
+        {schedulingEnabled && (
+          <TabsContent value="calendar" className="mt-4">
+            {activeTab === "calendar" && (
+              <SettingsSection title="Подписаться на календарь">
+                <CalendarSubscriptionBlock />
+              </SettingsSection>
+            )}
+          </TabsContent>
         )}
-      </TabsContent>
-    </Tabs>
+
+        <TabsContent value="professional" className="mt-4">
+          {activeTab === "professional" && (
+            <SettingsSection title="Профессиональный профиль">
+              <ProfessionalTabPanel
+                schedulingEnabled={schedulingEnabled}
+                profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
+                profilePhotoPublished={profilePhotoPublished}
+                initials={initials}
+                alt={alt || "Психолог"}
+                publishSaving={publishSaving}
+                onPublishChange={handlePublishProfileChange}
+                onSuccess={() => void refetchProfile()}
+                handleSaveProfessional={handleSaveProfessional}
+                savingProfessional={savingProfessional}
+                hasProfessionalChanges={hasProfessionalChanges}
+                bio={bio}
+                setBio={setBio}
+                BIO_MAX_LENGTH={BIO_MAX_LENGTH}
+                specialization={specialization}
+                setSpecialization={setSpecialization}
+                PROFESSION_OPTIONS={PROFESSION_OPTIONS}
+                contactPhone={contactPhone}
+                setContactPhone={setContactPhone}
+                contactTelegram={contactTelegram}
+                setContactTelegram={setContactTelegram}
+                contactViber={contactViber}
+                setContactViber={setContactViber}
+                contactWhatsapp={contactWhatsapp}
+                setContactWhatsapp={setContactWhatsapp}
+              />
+            </SettingsSection>
+          )}
+        </TabsContent>
+      </Tabs>
     </SettingsFormErrorBoundary>
   );
 }

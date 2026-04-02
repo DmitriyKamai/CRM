@@ -114,7 +114,7 @@ export async function POST(request: Request) {
         orderBy: { start: "asc" },
         include: {
           psychologist: {
-            select: { firstName: true, lastName: true, userId: true }
+            select: { userId: true, user: { select: { firstName: true, lastName: true, name: true } } }
           }
         }
       });
@@ -133,10 +133,12 @@ export async function POST(request: Request) {
           end: a.end.toISOString(),
           status: a.status,
           counterpartyName:
-            [a.psychologist.lastName, a.psychologist.firstName]
+            [a.psychologist.user?.lastName, a.psychologist.user?.firstName]
               .filter(Boolean)
               .join(" ")
-              .trim() || "Психолог",
+              .trim() ||
+            a.psychologist.user?.name ||
+            "Психолог",
           proposedByPsychologist: a.proposedByPsychologist
         }));
     }

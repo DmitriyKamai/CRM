@@ -41,7 +41,7 @@ export async function PATCH(request: Request, { params }: ParamsPromise) {
       where: { id },
       include: {
         client: { select: { userId: true, firstName: true, lastName: true } },
-        psychologist: { select: { userId: true, firstName: true, lastName: true } }
+        psychologist: { select: { userId: true, user: { select: { firstName: true, lastName: true, name: true } } } }
       }
     });
 
