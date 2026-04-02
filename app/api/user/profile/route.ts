@@ -3,8 +3,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth, sessionInvalidResponse } from "@/lib/security/api-guards";
 import { BIO_MAX_LENGTH } from "@/lib/settings/professional-profile";
+import {
+  MAX_CLIENT_PREFERRED_NAME_LENGTH,
+  MAX_CLIENT_TIMEZONE_LENGTH
+} from "@/lib/settings/client-account-preferences";
 
 const MAX_EMAIL_LENGTH = 64;
+const MAX_CLIENT_LOCALE_LENGTH = 16;
 const MAX_NAME_LENGTH = 64;
 const MAX_FIRST_NAME_LENGTH = 32;
 const MAX_LAST_NAME_LENGTH = 32;
@@ -89,6 +94,29 @@ export async function GET() {
       };
     }
 
+    let clientAccountProfile: {
+      timezone: string | null;
+      locale: string | null;
+      preferredName: string | null;
+      sessionRemindersEnabled: boolean;
+      marketingEmailsOptIn: boolean;
+    } | null = null;
+
+    if (auth.user.role === "CLIENT") {
+      const cap = await prisma.clientAccountProfile.findUnique({
+        where: { userId }
+      });
+      if (cap) {
+        clientAccountProfile = {
+          timezone: cap.timezone ?? null,
+          locale: cap.locale ?? null,
+          preferredName: cap.preferredName ?? null,
+          sessionRemindersEnabled: cap.sessionRemindersEnabled,
+          marketingEmailsOptIn: cap.marketingEmailsOptIn
+        };
+      }
+    }
+
     return NextResponse.json({
       user: {
         name: user.name,
@@ -104,7 +132,8 @@ export async function GET() {
         gender: user.gender ?? null,
         maritalStatus: user.maritalStatus ?? null
       },
-      psychologistProfile
+      psychologistProfile,
+      clientAccountProfile
     });
   } catch (err) {
     console.error("[GET /api/user/profile]", err);
@@ -317,6 +346,84 @@ export async function PATCH(request: Request) {
         where: { id: userId },
         data: userData
       });
+    }
+
+    // Клиент: предпочтения кабинета (ClientAccountProfile)
+    if (role === "CLIENT" && body.clientAccountProfile !== undefined) {
+      const rawCap = body.clientAccountProfile;
+      if (rawCap !== null && typeof rawCap !== "object") {
+        return NextResponse.json(
+          { message: "Поле clientAccountProfile должно быть объектом" },
+          { status: 400 }
+        );
+      }
+      if (rawCap !== null) {
+        const cap = rawCap as Record<string, unknown>;
+        const data: {
+          timezone?: string | null;
+          locale?: string | null;
+          preferredName?: string | null;
+          sessionRemindersEnabled?: boolean;
+          marketingEmailsOptIn?: boolean;
+        } = {};
+
+        if (cap.timezone !== undefined) {
+          if (cap.timezone === null || cap.timezone === "") {
+            data.timezone = null;
+          } else {
+            const t = String(cap.timezone).trim().slice(0, MAX_CLIENT_TIMEZONE_LENGTH);
+            data.timezone = t.length === 0 ? null : t;
+          }
+        }
+        if (cap.locale !== undefined) {
+          if (cap.locale === null || cap.locale === "") {
+            data.locale = null;
+          } else {
+            const l = String(cap.locale).trim().slice(0, MAX_CLIENT_LOCALE_LENGTH);
+            if (l !== "ru" && l !== "en") {
+              return NextResponse.json(
+                { message: "Недопустимое значение locale (допустимо: ru, en)" },
+                { status: 400 }
+              );
+            }
+            data.locale = l;
+          }
+        }
+        if (cap.preferredName !== undefined) {
+          if (cap.preferredName === null || cap.preferredName === "") {
+            data.preferredName = null;
+          } else {
+            const n = String(cap.preferredName).trim().slice(0, MAX_CLIENT_PREFERRED_NAME_LENGTH);
+            data.preferredName = n.length === 0 ? null : n;
+          }
+        }
+        if (cap.sessionRemindersEnabled !== undefined) {
+          if (typeof cap.sessionRemindersEnabled !== "boolean") {
+            return NextResponse.json(
+              { message: "sessionRemindersEnabled должен быть boolean" },
+              { status: 400 }
+            );
+          }
+          data.sessionRemindersEnabled = cap.sessionRemindersEnabled;
+        }
+        if (cap.marketingEmailsOptIn !== undefined) {
+          if (typeof cap.marketingEmailsOptIn !== "boolean") {
+            return NextResponse.json(
+              { message: "marketingEmailsOptIn должен быть boolean" },
+              { status: 400 }
+            );
+          }
+          data.marketingEmailsOptIn = cap.marketingEmailsOptIn;
+        }
+
+        if (Object.keys(data).length > 0) {
+          await prisma.clientAccountProfile.upsert({
+            where: { userId },
+            create: { userId, ...data },
+            update: data
+          });
+        }
+      }
     }
 
     // Клиент: синхронизируем личные данные во все профили клиента у психологов

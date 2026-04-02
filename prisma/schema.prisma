@@ -88,6 +88,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
 
   psychologistProfile PsychologistProfile?
+  /// Настройки кабинета клиента (1:1). Не путать с ClientProfile у психолога.
+  clientAccountProfile  ClientAccountProfile?
   clientProfiles      ClientProfile[]
 
   // Обратная связь для AuditLog.actor
@@ -97,6 +99,27 @@ model User {
 
   /// Сессии входа (браузер) для списка устройств и отзыва «остальные».
   authLoginSessions AuthLoginSession[]
+}
+
+/// Предпочтения и поля только для роли CLIENT в приложении (1:1 с User).
+/// Расширяется новыми колонками по мере продукта; не дублировать личные данные из User.
+model ClientAccountProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// IANA, напр. Europe/Moscow (напоминания, отображение времени)
+  timezone String?
+  /// Язык интерфейса: ru | en
+  locale   String?
+  /// Как обращаться в приложении (не юридическое ФИО из User)
+  preferredName String?
+
+  sessionRemindersEnabled Boolean @default(true)
+  marketingEmailsOptIn    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// Активная браузерная сессия: стабильный ключ в JWT (`loginSessionKey`), не путать с JWE jti NextAuth.
