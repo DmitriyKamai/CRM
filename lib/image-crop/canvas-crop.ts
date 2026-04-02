@@ -23,6 +23,12 @@ function normalizeCrop(c: PixelCrop): PixelCrop {
   };
 }
 
+export type CroppedImageOptions = {
+  /** Круглая маска (как круглый аватар); углы JPEG заливаются белым. */
+  circular?: boolean;
+  quality?: number;
+};
+
 /**
  * Вырезает область в натуральных пикселях исходника и масштабирует в квадрат outputSize (JPEG).
  */
@@ -30,8 +36,13 @@ export async function getCroppedImageBlob(
   imageSrc: string,
   pixelCrop: PixelCrop,
   outputSize: number,
-  quality = 0.9
+  options?: CroppedImageOptions | number
 ): Promise<Blob> {
+  const opts: CroppedImageOptions =
+    typeof options === "number" ? { quality: options } : (options ?? {});
+  const quality = opts.quality ?? 0.9;
+  const circular = opts.circular ?? false;
+
   const image = await loadImage(imageSrc);
   const crop = normalizeCrop(pixelCrop);
 
@@ -40,6 +51,16 @@ export async function getCroppedImageBlob(
   canvas.height = outputSize;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D недоступен");
+
+  if (circular) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, outputSize, outputSize);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+  }
 
   ctx.drawImage(
     image,
@@ -52,6 +73,10 @@ export async function getCroppedImageBlob(
     outputSize,
     outputSize
   );
+
+  if (circular) {
+    ctx.restore();
+  }
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
