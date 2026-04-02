@@ -6,8 +6,11 @@ import { useSession } from "next-auth/react";
 import { User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
+import { BIO_MAX_LENGTH, PROFESSION_OPTIONS } from "@/lib/settings/professional-profile";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SettingsFormErrorBoundary } from "@/components/settings/shared/settings-form-error-boundary";
+import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
+import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
 const CalendarSubscriptionBlock = dynamic(
   () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
   { ssr: false }
@@ -23,23 +26,11 @@ import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { CustomFieldsTabSection } from "@/components/psychologist/settings/custom-fields-tab-section";
 import { useClientStatusesSettings } from "@/hooks/use-client-statuses-settings";
 import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
-import { ActiveSessionsSection } from "@/components/account/active-sessions-section";
 import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settings/calendar-feed-token-rotate-section";
-import { SecurityTabForm } from "@/components/psychologist/settings/security-tab";
-import { AccountsTabContent } from "@/components/psychologist/settings/accounts-tab";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
-
-const PROFESSION_OPTIONS: { value: string; label: string }[] = [
-  { value: "psychologist", label: "Психолог" },
-  { value: "psychotherapist", label: "Врач-психотерапевт" },
-  { value: "psychiatrist", label: "Психиатр" }
-];
-
-/** Максимум символов в блоке «О себе» */
-const BIO_MAX_LENGTH = 1500;
 
 export function PsychologistSettingsForm({
   schedulingEnabled = true
@@ -160,23 +151,6 @@ export function PsychologistSettingsForm({
     handleSaveProfessional
   } = professionalTab;
 
-  const {
-    handleChangePassword,
-    currentPassword,
-    onCurrentPasswordChange,
-    newPassword,
-    onNewPasswordChange,
-    newPasswordConfirm,
-    onNewPasswordConfirmChange,
-    newPasswordChecks,
-    newPasswordValid,
-    passwordSaving,
-    passwordRequirements,
-    progressTrackColor,
-    progressFillColor,
-    progressFillWidthPct
-  } = securityTab;
-
   return (
     <SettingsFormErrorBoundary logPrefix="[PsychologistSettingsForm]">
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
@@ -277,48 +251,29 @@ export function PsychologistSettingsForm({
 
       <TabsContent value="security" className="mt-4">
         {activeTab === "security" && (
-          <div className="space-y-4">
-            <SettingsSection title="Смена пароля">
-              <SecurityTabForm
-                handleChangePassword={handleChangePassword}
-                currentPassword={currentPassword}
-                onCurrentPasswordChange={onCurrentPasswordChange}
-                newPassword={newPassword}
-                onNewPasswordChange={onNewPasswordChange}
-                newPasswordConfirm={newPasswordConfirm}
-                onNewPasswordConfirmChange={onNewPasswordConfirmChange}
-                newPasswordChecks={newPasswordChecks}
-                newPasswordValid={newPasswordValid}
-                passwordSaving={passwordSaving}
-                passwordRequirements={passwordRequirements}
-                progressTrackColor={progressTrackColor}
-                progressFillColor={progressFillColor}
-                progressFillWidthPct={progressFillWidthPct}
-              />
-            </SettingsSection>
-            <SettingsSection title="Активные сессии">
-              <ActiveSessionsSection active={activeTab === "security"} />
-            </SettingsSection>
-            {schedulingEnabled && (
-              <SettingsSection title="Ссылка подписки на календарь">
-                <CalendarFeedTokenRotateSection />
-              </SettingsSection>
-            )}
-          </div>
+          <SettingsSecurityTab
+            securityTab={securityTab}
+            activeForSessions={activeTab === "security"}
+            extraSections={
+              schedulingEnabled ? (
+                <SettingsSection title="Ссылка подписки на календарь">
+                  <CalendarFeedTokenRotateSection />
+                </SettingsSection>
+              ) : undefined
+            }
+          />
         )}
       </TabsContent>
 
       <TabsContent value="accounts" className="mt-4">
         {activeTab === "accounts" && (
-        <SettingsSection title="Привязка аккаунтов">
-          <AccountsTabContent
+          <SettingsAccountsTab
             hasGoogle={hasGoogle}
             unlinkAccountProvider={unlinkAccountProvider}
             onUnlinkAccount={onUnlinkAccount}
             onLinkGoogle={onLinkGoogle}
             telegramBlock={<TelegramAccountBlock />}
           />
-        </SettingsSection>
         )}
       </TabsContent>
 

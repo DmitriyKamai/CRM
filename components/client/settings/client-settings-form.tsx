@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { User, Lock, Link2 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -8,12 +9,17 @@ import { useClientSettings } from "@/hooks/use-client-settings";
 import { useSecurityTabUi } from "@/hooks/use-security-tab-ui";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
 import { SettingsFormErrorBoundary } from "@/components/settings/shared/settings-form-error-boundary";
-import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { SecurityTabForm } from "@/components/settings/shared/settings-password-form";
-import { LinkedAccountsTabContent } from "@/components/settings/shared/linked-accounts-tab-content";
-import { ActiveSessionsSection } from "@/components/account/active-sessions-section";
-import { TelegramAccountBlock } from "@/components/account/telegram-account-block";
+import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
+import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
 import { ClientProfileTab } from "./client-profile-tab";
+
+const TelegramAccountBlock = dynamic(
+  () =>
+    import("@/components/account/telegram-account-block").then((m) => ({
+      default: m.TelegramAccountBlock
+    })),
+  { ssr: false }
+);
 
 export function ClientSettingsForm() {
   const { update: updateSession } = useSession();
@@ -40,23 +46,6 @@ export function ClientSettingsForm() {
   const { hasGoogle, unlinkAccountProvider, onUnlinkAccount, onLinkGoogle } = accountsTab;
 
   const [activeTab, setActiveTab] = useState("profile");
-
-  const {
-    handleChangePassword,
-    currentPassword,
-    onCurrentPasswordChange,
-    newPassword,
-    onNewPasswordChange,
-    newPasswordConfirm,
-    onNewPasswordConfirmChange,
-    newPasswordChecks,
-    newPasswordValid,
-    passwordSaving,
-    passwordRequirements,
-    progressTrackColor,
-    progressFillColor,
-    progressFillWidthPct
-  } = securityTab;
 
   if (loading) {
     return (
@@ -102,43 +91,22 @@ export function ClientSettingsForm() {
 
         <TabsContent value="security" className="mt-4">
           {activeTab === "security" && (
-            <>
-              <SettingsSection title="Смена пароля">
-                <SecurityTabForm
-                  handleChangePassword={handleChangePassword}
-                  currentPassword={currentPassword}
-                  onCurrentPasswordChange={onCurrentPasswordChange}
-                  newPassword={newPassword}
-                  onNewPasswordChange={onNewPasswordChange}
-                  newPasswordConfirm={newPasswordConfirm}
-                  onNewPasswordConfirmChange={onNewPasswordConfirmChange}
-                  newPasswordChecks={newPasswordChecks}
-                  newPasswordValid={newPasswordValid}
-                  passwordSaving={passwordSaving}
-                  passwordRequirements={passwordRequirements}
-                  progressTrackColor={progressTrackColor}
-                  progressFillColor={progressFillColor}
-                  progressFillWidthPct={progressFillWidthPct}
-                />
-              </SettingsSection>
-              <SettingsSection title="Активные сессии">
-                <ActiveSessionsSection active={activeTab === "security"} />
-              </SettingsSection>
-            </>
+            <SettingsSecurityTab
+              securityTab={securityTab}
+              activeForSessions={activeTab === "security"}
+            />
           )}
         </TabsContent>
 
         <TabsContent value="accounts" className="mt-4">
           {activeTab === "accounts" && (
-            <SettingsSection title="Привязка аккаунтов">
-              <LinkedAccountsTabContent
-                hasGoogle={hasGoogle}
-                unlinkAccountProvider={unlinkAccountProvider}
-                onUnlinkAccount={onUnlinkAccount}
-                onLinkGoogle={onLinkGoogle}
-                telegramBlock={<TelegramAccountBlock />}
-              />
-            </SettingsSection>
+            <SettingsAccountsTab
+              hasGoogle={hasGoogle}
+              unlinkAccountProvider={unlinkAccountProvider}
+              onUnlinkAccount={onUnlinkAccount}
+              onLinkGoogle={onLinkGoogle}
+              telegramBlock={<TelegramAccountBlock />}
+            />
           )}
         </TabsContent>
       </Tabs>

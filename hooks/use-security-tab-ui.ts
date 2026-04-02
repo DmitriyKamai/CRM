@@ -136,3 +136,5 @@ export function useSecurityTabUi({ submitChangePassword }: Options) {
     progressFillWidthPct
   };
 }
+
+export type SecurityTabUiState = ReturnType<typeof useSecurityTabUi>;

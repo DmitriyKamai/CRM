@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { requireAuth, sessionInvalidResponse } from "@/lib/security/api-guards";
-
-/** Максимум символов в блоке «О себе» профессионального профиля */
-const BIO_MAX_LENGTH = 1500;
+import { BIO_MAX_LENGTH } from "@/lib/settings/professional-profile";
 const MAX_EMAIL_LENGTH = 64;
 const MAX_NAME_LENGTH = 64;
 const MAX_FIRST_NAME_LENGTH = 32;

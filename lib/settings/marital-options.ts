@@ -1,4 +1,6 @@
-export const MARITAL_OPTIONS: { value: string; label: string }[] = [
+export type MaritalOption = { value: string; label: string };
+
+export const MARITAL_OPTIONS: MaritalOption[] = [
   { value: "single", label: "Не в браке" },
   { value: "married", label: "В браке" },
   { value: "divorced", label: "В разводе" },

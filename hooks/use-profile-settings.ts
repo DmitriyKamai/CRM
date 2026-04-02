@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LinkedAccount } from "@/lib/settings/linked-account";
+import { profileSettingsKeys } from "@/lib/query-keys/profile-settings";
 
 type Profile = {
   user: {
@@ -32,9 +33,6 @@ type Profile = {
   } | null;
 };
 
-const PROFILE_KEY = ["user-profile-settings"] as const;
-const ACCOUNTS_KEY = ["user-accounts-settings"] as const;
-
 async function fetchProfile(): Promise<Profile> {
   const res = await fetch("/api/user/profile");
   if (res.status === 401) {
@@ -60,14 +58,14 @@ export function useProfileSettings() {
   const qc = useQueryClient();
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: PROFILE_KEY,
+    queryKey: profileSettingsKeys.profile(),
     queryFn: fetchProfile,
     staleTime: 2 * 60 * 1000,
     refetchOnReconnect: false
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ACCOUNTS_KEY,
+    queryKey: profileSettingsKeys.accounts(),
     queryFn: fetchAccounts,
     enabled: !!profile,
     staleTime: 10 * 60 * 1000,
@@ -81,15 +79,17 @@ export function useProfileSettings() {
   }, [profile, hydrated]);
 
   function refetchProfile() {
-    return qc.invalidateQueries({ queryKey: PROFILE_KEY });
+    return qc.invalidateQueries({ queryKey: profileSettingsKeys.profile() });
   }
 
   function refetchAccounts() {
-    return qc.invalidateQueries({ queryKey: ACCOUNTS_KEY });
+    return qc.invalidateQueries({ queryKey: profileSettingsKeys.accounts() });
   }
 
   function updateProfileInCache(updater: (prev: Profile) => Profile) {
-    qc.setQueryData<Profile>(PROFILE_KEY, prev => (prev ? updater(prev) : prev));
+    qc.setQueryData<Profile>(profileSettingsKeys.profile(), (prev) =>
+      prev ? updater(prev) : prev
+    );
   }
 
   return {

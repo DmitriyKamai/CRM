@@ -1,39 +1,16 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AvatarUploadBlock } from "@/components/account/avatar-upload-block";
-import { PhoneInput } from "@/components/ui/phone-input";
-import { CountryAutocomplete, CityAutocomplete } from "@/components/ui/location-autocomplete";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getCountryCodeByName } from "@/lib/data/countries-ru";
-import { shouldCloseCalendarPopoverAfterSelect } from "@/lib/close-calendar-popover";
 import {
   type ClientSettingsProfile,
   type PatchClientProfileBody
 } from "@/hooks/use-client-settings";
 import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-
-const Calendar = dynamic(
-  () => import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
-  { ssr: false }
-);
+import { PersonalProfileForm } from "@/components/settings/shared/personal-profile-form";
 
 export function ClientProfileTab({
   profile,
@@ -111,160 +88,49 @@ export function ClientProfileTab({
 
   return (
     <SettingsSection title="Личные данные">
-      <form onSubmit={handleSaveProfile} className="space-y-5 max-w-2xl">
-        <AvatarUploadBlock
-          image={image}
-          initials={initials}
-          alt={displayName}
-          onSuccess={() => updateSession?.()}
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="client-firstName">Имя</Label>
-            <Input
-              id="client-firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Имя"
-              autoComplete="given-name"
-              maxLength={32}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-lastName">Фамилия</Label>
-            <Input
-              id="client-lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Фамилия"
-              autoComplete="family-name"
-              maxLength={32}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@example.com"
-              autoComplete="email"
-              maxLength={64}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-settings-phone">Телефон</Label>
-            <PhoneInput id="client-settings-phone" value={phone} onChange={setPhone} />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Дата рождения</Label>
-            <Popover open={dobPopoverOpen} onOpenChange={setDobPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  type="button"
-                  className="w-full justify-start text-left font-normal text-foreground bg-[hsl(var(--input-bg))] data-[empty=true]:text-muted-foreground hover:bg-[hsl(var(--input-bg))]/90"
-                  data-empty={!dateOfBirth}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
-                  {dateOfBirth ? (
-                    format(new Date(dateOfBirth), "d MMMM yyyy", { locale: ru })
-                  ) : (
-                    <span>Выберите дату</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dateOfBirth ? new Date(dateOfBirth) : undefined}
-                  onSelect={(d) => {
-                    setDateOfBirth(d ? format(d, "yyyy-MM-dd") : "");
-                    if (shouldCloseCalendarPopoverAfterSelect()) setDobPopoverOpen(false);
-                  }}
-                  locale={ru}
-                  initialFocus
-                  defaultMonth={dateOfBirth ? new Date(dateOfBirth) : new Date()}
-                  captionLayout="dropdown"
-                  startMonth={new Date(1920, 0)}
-                  endMonth={new Date()}
-                  reverseYears
-                  hideNavigation
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-gender">Пол</Label>
-            <Select
-              value={gender || "unspecified"}
-              onValueChange={(value) => setGender(value === "unspecified" ? "" : value)}
-            >
-              <SelectTrigger id="client-gender">
-                <SelectValue placeholder="Выберите" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">Мужской</SelectItem>
-                <SelectItem value="female">Женский</SelectItem>
-                <SelectItem value="unspecified">Не указано</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="client-settings-country">Страна</Label>
-            <CountryAutocomplete
-              id="client-settings-country"
-              value={country}
-              onChange={(name, code) => {
-                setCountry(name);
-                setCountryCode(code || null);
-                if (!name) setCity("");
-              }}
-              placeholder="Страна"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-settings-city">Город</Label>
-            <CityAutocomplete
-              id="client-settings-city"
-              value={city}
-              onChange={setCity}
-              countryCode={countryCode}
-              placeholder="Город"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-marital">Семейное положение</Label>
-            <Select value={maritalStatus || "unspecified"} onValueChange={setMaritalStatus}>
-              <SelectTrigger id="client-marital">
-                <SelectValue placeholder="Выберите" />
-              </SelectTrigger>
-              <SelectContent>
-                {MARITAL_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <Button type="submit" disabled={updateProfile.isPending || !hasProfileChanges}>
-          {updateProfile.isPending ? "Сохранение…" : "Сохранить"}
-        </Button>
-      </form>
+      <PersonalProfileForm
+        formClassName="space-y-5 max-w-2xl"
+        fieldIds={{
+          firstName: "client-firstName",
+          lastName: "client-lastName",
+          email: "email",
+          phone: "client-settings-phone",
+          gender: "client-gender",
+          country: "client-settings-country",
+          city: "client-settings-city",
+          marital: "client-marital"
+        }}
+        handleSaveProfile={handleSaveProfile}
+        saving={updateProfile.isPending}
+        hasProfileChanges={hasProfileChanges}
+        image={image}
+        initials={initials}
+        alt={displayName}
+        onAvatarSuccess={() => updateSession?.()}
+        firstName={firstName}
+        setFirstName={setFirstName}
+        lastName={lastName}
+        setLastName={setLastName}
+        email={email}
+        setEmail={setEmail}
+        phone={phone}
+        setPhone={setPhone}
+        dateOfBirth={dateOfBirth}
+        dobPopoverOpen={dobPopoverOpen}
+        setDobPopoverOpen={setDobPopoverOpen}
+        setDateOfBirth={setDateOfBirth}
+        gender={gender}
+        setGender={setGender}
+        country={country}
+        setCountry={setCountry}
+        countryCode={countryCode}
+        setCountryCode={setCountryCode}
+        city={city}
+        setCity={setCity}
+        maritalStatus={maritalStatus}
+        setMaritalStatus={setMaritalStatus}
+        maritalOptions={MARITAL_OPTIONS}
+      />
     </SettingsSection>
   );
 }
