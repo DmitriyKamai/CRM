@@ -10,6 +10,22 @@
 | `reset-password` | POST | Сброс пароля по токену |
 | `oauth-link-intent` | POST | Привязка OAuth к существующему аккаунту |
 
+## Пользователь (`/api/user/`)
+
+Единая точка для экрана **«Настройки профиля»** (`/settings`) у клиента и психолога.
+
+| Роут | Метод | Описание |
+|------|-------|----------|
+| `profile` | GET | Личные поля из `User` (`firstName`, `lastName`, `name`, email, дата рождения, телефон, страна, город, пол, семейное положение); у `PSYCHOLOGIST` дополнительно блок `psychologistProfile` **только с профессиональными** полями (bio, specialization, публичные контакты, фото каталога и т.д.) |
+| `profile` | PATCH | Обновление `User` (личные поля); у психолога — также поля из `psychologistProfile`, относящиеся к практике. Дублировать личные данные в `PsychologistProfile` не нужно |
+| `avatar` | POST/DELETE | Аватар (`User.image`) |
+| `change-password` | POST | Смена пароля |
+| `accounts` | GET/DELETE | Связанные OAuth-аккаунты |
+| `telegram` | GET/POST/DELETE | Привязка Telegram |
+| `telegram/link` | POST | Одноразовая ссылка для бота |
+
+Тип ответа `GET profile`: `lib/user-settings/types.ts` (`UserSettingsProfile`).
+
 ## Психолог (`/api/psychologist/`)
 
 | Роут | Метод | Описание |

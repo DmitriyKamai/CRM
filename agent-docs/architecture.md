@@ -30,6 +30,22 @@
 - `ClientProfile` может быть без `userId` (офлайн-клиент).
 - Чувствительные строки в БД (заметки клиента, значения кастомных полей, часть диагностик и рекомендаций и т.д.) могут храниться в виде **серверного envelope** (`lib/server-encryption/`). Ключ **`DATA_ENCRYPTION_KEY`**, поведение при отсутствии/ошибке ключа — см. **`SECURITY.md`**, **`DEPLOY.md`**, **`.env.example`**.
 
+## Настройки профиля (`/settings`)
+
+- **Маршрут:** [`app/settings/page.tsx`](../app/settings/page.tsx) — единая страница для `CLIENT` и `PSYCHOLOGIST`; админ перенаправляется. Точка входа клиента: [`app/settings/settings-page-entry.tsx`](../app/settings/settings-page-entry.tsx) (динамические импорты форм по роли).
+- **Данные (личные vs ролевые):**
+  - **`User`** — общие личные поля: `firstName`, `lastName`, `name` (отображаемое ФИО, пересчитывается при сохранении), `email`, `image`, `dateOfBirth`, `phone`, `country`, `city`, `gender`, `maritalStatus`.
+  - **`PsychologistProfile`** — только данные практики: `specialization`, `bio`, публичные контакты, фото каталога, `settingsJson`, Google Sheets token и т.д. **Не дублировать** личные поля психолога в этой модели.
+  - **`ClientProfile`** — карточка клиента у конкретного психолога (CRM); не путать с «моими настройками» в кабинете клиента. При изменении личных данных клиентом сервер может синхронизировать часть полей в связанные `ClientProfile` (см. `PATCH /api/user/profile`).
+- **API:** `GET`/`PATCH` [`/api/user/profile`](../app/api/user/profile/route.ts); тип ответа — [`lib/user-settings/types.ts`](../lib/user-settings/types.ts) (`UserSettingsProfile`: `user` + опционально `psychologistProfile` только с профессиональными полями).
+- **Клиентский UI:**
+  - Запросы настроек: [`hooks/use-user-settings.ts`](../hooks/use-user-settings.ts) (`useClientSettings` / `useProfileSettings` — обёртки с `variant`).
+  - Форма личных данных: [`hooks/use-personal-profile-tab-ui.ts`](../hooks/use-personal-profile-tab-ui.ts) + [`components/settings/shared/personal-profile-form.tsx`](../components/settings/shared/personal-profile-form.tsx).
+  - Общая оболочка вкладок: [`components/settings/shared/settings-form-tabs-layout.tsx`](../components/settings/shared/settings-form-tabs-layout.tsx) — три базовые вкладки (`profile`, `security`, `accounts`), проп `profileTabFooter` для будущих полей только клиента, `children` — дополнительные `TabsContent` (у психолога: профессиональный профиль, календарь, поля клиента, статусы).
+  - Клиент: [`components/client/settings/client-settings-form.tsx`](../components/client/settings/client-settings-form.tsx) + [`client-settings-tabs-list.tsx`](../components/settings/shared/client-settings-tabs-list.tsx).
+  - Психолог: [`components/psychologist/settings-form.tsx`](../components/psychologist/settings-form.tsx) + [`psychologist-tabs-list.tsx`](../components/psychologist/settings/psychologist-tabs-list.tsx); профессиональная вкладка — [`hooks/use-professional-tab-ui.ts`](../hooks/use-professional-tab-ui.ts).
+- **Плановые улучшения (не блокеры):** при появлении полей только для клиента — отдельная 1:1-модель к `User` (не `ClientProfile` у психолога) и блок в `profileTabFooter` / расширение `GET/PATCH profile`; по желанию объединить `useClientSettings`/`useProfileSettings` в один публичный API; вынести общую секцию «Личные данные» (`SettingsSection` + `PersonalProfileForm`), если клиент и психолог снова разойдутся по разметке.
+
 ## Быстрые ссылки
 
 - Полный API: `agent-docs/api.md`

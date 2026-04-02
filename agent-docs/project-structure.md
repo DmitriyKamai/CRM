@@ -4,8 +4,9 @@
 app/                          # Next.js App Router
 ├── page.tsx                  # Лендинг (/)
 ├── auth/                     # Авторизация: login, register, forgot/reset-password
-├── psychologist/             # Кабинет психолога: клиенты, расписание, диагностика, настройки
+├── psychologist/             # Кабинет психолога: клиенты, расписание, диагностика
 ├── client/                   # Кабинет клиента: дашборд, список психологов, запись
+├── settings/                 # Общие настройки профиля (/settings) для CLIENT и PSYCHOLOGIST
 ├── admin/                    # Админка: пользователи, роли, аудит-лог, модули
 ├── diagnostics/[token]/      # Публичная страница прохождения теста по токену
 └── api/                      # API-роуты (см. agent-docs/api.md)
@@ -20,6 +21,7 @@ lib/                          # Серверная бизнес-логика
 ├── audit-log.ts              # Аудит-лог (best-effort запись)
 ├── client-history.ts         # Лента истории действий по клиенту
 ├── platform-modules.ts       # Feature flags: scheduling, diagnostics
+├── user-settings/            # Типы и клиент для PATCH профиля настроек (types, patch-user-profile, …)
 ├── email.ts                  # SMTP (fallback — лог в консоль)
 ├── telegram.ts               # Telegram-уведомления
 ├── security/
@@ -36,13 +38,16 @@ lib/                          # Серверная бизнес-логика
 
 components/                   # React-компоненты
 ├── ui/                       # shadcn/ui компоненты (Radix UI)
-├── psychologist/             # Компоненты кабинета психолога
-├── client/                   # Компоненты кабинета клиента
+├── settings/shared/          # Настройки профиля: personal-profile-form, settings-form-tabs-layout,
+│                             # client-settings-tabs-list, security/accounts tabs, core tab triggers
+├── client/                   # Кабинет клиента (в т.ч. settings/client-settings-form, ClientProfileTab)
+├── psychologist/             # Кабинет психолога (в т.ч. settings-form, вкладки настроек)
 ├── admin/                    # Компоненты админки
 ├── diagnostics/              # Формы тестов
 └── auth/                     # Формы входа/регистрации
 
 hooks/                        # Query-first hooks и локальные workflow hooks
+                              # (use-user-settings, use-personal-profile-tab-ui, use-professional-tab-ui, …)
 
 prisma/
 ├── schema.prisma             # Схема БД
