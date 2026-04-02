@@ -5,8 +5,11 @@ import Cropper, { type Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { toast } from "sonner";
 
-import { getCroppedImageBlob } from "@/lib/image-crop/canvas-crop";
+import { CircularAvatarCropStage } from "@/components/account/circular-avatar-crop-stage";
 import { ImageCropZoomHandle } from "@/components/account/image-crop-zoom-handle";
+import { getCroppedImageBlob } from "@/lib/image-crop/canvas-crop";
+import { exportCircularAvatarCrop } from "@/lib/image-crop/circular-avatar-crop-export";
+import type { CircularAvatarCropParams } from "@/lib/image-crop/circular-avatar-crop-types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,15 +65,19 @@ export function ImageCropDialog({
   defaultOutputSize = 512,
   onCroppedFile
 }: ImageCropDialogProps) {
-  const defaultDescription =
-    cropPreviewShape === "round"
-      ? "Перемещайте фото под кругом. Масштаб — ручкой в углу (потяните вверх или вниз) или колёсиком мыши на области фото."
+  const isRoundAvatar = cropPreviewShape === "round" && circularExport;
+
+  const defaultDescription = isRoundAvatar
+    ? "Фото не двигается: перетащите круг, чтобы выбрать область. Масштаб — только за белый контур круга (потяните край наружу или внутрь)."
+    : cropPreviewShape === "round"
+      ? "Перемещайте фото под кругом."
       : "Перемещайте фото под рамкой. Масштаб — ручкой в углу или колёсиком мыши на области фото.";
 
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [circularParams, setCircularParams] = useState<CircularAvatarCropParams | null>(null);
   const [outputSize, setOutputSize] = useState(defaultOutputSize);
   const [applying, setApplying] = useState(false);
 
@@ -89,6 +96,7 @@ export function ImageCropDialog({
       setCrop({ x: 0, y: 0 });
       setZoom(1);
       setCroppedAreaPixels(null);
+      setCircularParams(null);
       setOutputSize(defaultOutputSize);
     }
   }, [open, file, defaultOutputSize]);
@@ -98,13 +106,20 @@ export function ImageCropDialog({
   }, []);
 
   const handleApply = async () => {
-    if (!objectUrl || !croppedAreaPixels || !file) return;
+    if (!objectUrl || !file) return;
     setApplying(true);
     try {
-      const blob = await getCroppedImageBlob(objectUrl, croppedAreaPixels, outputSize, {
-        circular: circularExport,
-        quality: 0.9
-      });
+      let blob: Blob;
+      if (isRoundAvatar) {
+        if (!circularParams) return;
+        blob = await exportCircularAvatarCrop(objectUrl, circularParams, outputSize, 0.9);
+      } else {
+        if (!croppedAreaPixels) return;
+        blob = await getCroppedImageBlob(objectUrl, croppedAreaPixels, outputSize, {
+          circular: circularExport,
+          quality: 0.9
+        });
+      }
       const base = file.name.replace(/\.[^.]+$/, "") || "photo";
       const outFile = new File([blob], `${base}.jpg`, { type: "image/jpeg" });
       await onCroppedFile(outFile);
@@ -117,6 +132,8 @@ export function ImageCropDialog({
     }
   };
 
+  const canSave = isRoundAvatar ? Boolean(circularParams) : Boolean(croppedAreaPixels);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -127,32 +144,40 @@ export function ImageCropDialog({
 
         {objectUrl ? (
           <div className="space-y-4">
-            <div className="relative h-[min(55vh,400px)] w-full overflow-hidden rounded-lg bg-muted">
-              <Cropper
-                image={objectUrl}
-                crop={crop}
-                zoom={zoom}
-                rotation={0}
-                aspect={aspect}
-                cropShape={cropPreviewShape}
-                showGrid={cropPreviewShape === "rect"}
-                roundCropAreaPixels={cropPreviewShape === "round"}
-                zoomWithScroll
-                minZoom={1}
-                maxZoom={3}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
+            {isRoundAvatar ? (
+              <CircularAvatarCropStage
+                imageSrc={objectUrl}
+                active={open}
+                onParamsChange={setCircularParams}
               />
-              <div className="pointer-events-none absolute inset-0 z-[2] flex items-end justify-end p-2">
-                <ImageCropZoomHandle
+            ) : (
+              <div className="relative h-[min(55vh,400px)] w-full overflow-hidden rounded-lg bg-muted">
+                <Cropper
+                  image={objectUrl}
+                  crop={crop}
                   zoom={zoom}
+                  rotation={0}
+                  aspect={aspect}
+                  cropShape={cropPreviewShape}
+                  showGrid={cropPreviewShape === "rect"}
+                  roundCropAreaPixels={cropPreviewShape === "round"}
+                  zoomWithScroll
+                  minZoom={1}
+                  maxZoom={3}
+                  onCropChange={setCrop}
                   onZoomChange={setZoom}
-                  className="pointer-events-auto shadow-lg"
-                  label="Масштаб: потяните вверх или вниз, также можно крутить колёсико на фото"
+                  onCropComplete={onCropComplete}
                 />
+                <div className="pointer-events-none absolute inset-0 z-[2] flex items-end justify-end p-2">
+                  <ImageCropZoomHandle
+                    zoom={zoom}
+                    onZoomChange={setZoom}
+                    className="pointer-events-auto shadow-lg"
+                    label="Масштаб: потяните вверх или вниз, также можно крутить колёсико на фото"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-sm">Размер сохраняемого фото (сторона квадрата)</Label>
@@ -181,7 +206,7 @@ export function ImageCropDialog({
           </Button>
           <Button
             type="button"
-            disabled={!croppedAreaPixels || applying || !objectUrl}
+            disabled={!canSave || applying || !objectUrl}
             onClick={() => void handleApply()}
           >
             {applying ? "Сохранение…" : "Сохранить"}
