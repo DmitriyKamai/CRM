@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { TabsContent } from "@/components/ui/tabs";
-import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
 import { BIO_MAX_LENGTH, PROFESSION_OPTIONS } from "@/lib/settings/professional-profile";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { PersonalProfileSettingsSection } from "@/components/settings/shared/personal-profile-settings-section";
 import { SettingsFormTabsLayout } from "@/components/settings/shared/settings-form-tabs-layout";
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
@@ -21,6 +19,7 @@ import { useClientStatusesTabUi } from "@/hooks/use-client-statuses-tab-ui";
 import { CalendarFeedTokenRotateSection } from "@/components/psychologist/settings/calendar-feed-token-rotate-section";
 import { ClientStatusesTabPanel } from "@/components/psychologist/settings/client-statuses-tab-panel";
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
+import { PsychologistProfileSettingsTab } from "@/components/psychologist/settings/psychologist-profile-settings-tab";
 import { PsychologistTabsList } from "@/components/psychologist/settings/psychologist-tabs-list";
 
 const CalendarSubscriptionBlock = dynamic(
@@ -73,7 +72,7 @@ export function PsychologistSettingsForm({
   if (!profile) return <SettingsFormErrorState variant="network" />;
   if (!profile.user) return <SettingsFormErrorState variant="default" />;
 
-  const { saving, hasProfileChanges, image, initials, alt } = profileTab;
+  const { initials, alt } = profileTab;
   const {
     profilePhotoPublished,
     publishSaving,
@@ -96,38 +95,7 @@ export function PsychologistSettingsForm({
       onTabChange={setActiveTab}
       tabsList={<PsychologistTabsList schedulingEnabled={schedulingEnabled} />}
       profileSlot={
-        <PersonalProfileSettingsSection
-          handleSaveProfile={profileTab.handleSaveProfile}
-          saving={saving}
-          hasProfileChanges={hasProfileChanges}
-          image={image}
-          initials={initials}
-          alt={alt}
-          onAvatarSuccess={() => void updateSession?.()}
-          firstName={profileTab.firstName}
-          setFirstName={profileTab.setFirstName}
-          lastName={profileTab.lastName}
-          setLastName={profileTab.setLastName}
-          email={profileTab.email}
-          setEmail={profileTab.setEmail}
-          phone={profileTab.phone}
-          setPhone={profileTab.setPhone}
-          dateOfBirth={profileTab.dateOfBirth}
-          dobPopoverOpen={profileTab.dobPopoverOpen}
-          setDobPopoverOpen={profileTab.setDobPopoverOpen}
-          setDateOfBirth={profileTab.setDateOfBirth}
-          gender={profileTab.gender}
-          setGender={profileTab.setGender}
-          country={profileTab.country}
-          setCountry={profileTab.setCountry}
-          countryCode={profileTab.countryCode}
-          setCountryCode={profileTab.setCountryCode}
-          city={profileTab.city}
-          setCity={profileTab.setCity}
-          maritalStatus={profileTab.maritalStatus}
-          setMaritalStatus={profileTab.setMaritalStatus}
-          maritalOptions={MARITAL_OPTIONS}
-        />
+        <PsychologistProfileSettingsTab profileTab={profileTab} updateSession={updateSession} />
       }
       securitySlot={
         <SettingsSecurityTab
