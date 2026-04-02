@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { LinkedAccount } from "@/lib/settings/linked-account";
 
 type Profile = {
   user: {
@@ -31,8 +32,6 @@ type Profile = {
   } | null;
 };
 
-type Account = { provider: string; label: string };
-
 const PROFILE_KEY = ["user-profile-settings"] as const;
 const ACCOUNTS_KEY = ["user-accounts-settings"] as const;
 
@@ -46,14 +45,16 @@ async function fetchProfile(): Promise<Profile> {
   return res.json();
 }
 
-async function fetchAccounts(): Promise<Account[]> {
+async function fetchAccounts(): Promise<LinkedAccount[]> {
   const res = await fetch("/api/user/accounts");
   if (!res.ok) return [];
   const data = await res.json().catch(() => ({ accounts: [] }));
   return data?.accounts ?? [];
 }
 
-export type { Profile, Account };
+export type { Profile };
+/** @deprecated Используйте LinkedAccount из lib/settings/linked-account */
+export type Account = LinkedAccount;
 
 export function useProfileSettings() {
   const qc = useQueryClient();

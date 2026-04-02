@@ -5,6 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
 
 import { clientSettingsKeys } from "@/lib/query-keys/client-settings";
+import type { LinkedAccount } from "@/lib/settings/linked-account";
 
 export type ClientSettingsProfile = {
   user: {
@@ -21,7 +22,7 @@ export type ClientSettingsProfile = {
   };
 };
 
-export type ClientSettingsAccount = { provider: string; label: string };
+export type ClientSettingsAccount = LinkedAccount;
 
 async function fetchProfile(): Promise<ClientSettingsProfile> {
   const r = await fetch("/api/user/profile");
@@ -82,16 +83,9 @@ async function postChangePassword(body: {
   }
 }
 
-async function deleteLinkedAccount(provider: "google" | "apple"): Promise<void> {
-  const res = await fetch(`/api/user/accounts?provider=${provider}`, { method: "DELETE" });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error((data as { message?: string }).message ?? "Не удалось отвязать");
-  }
-}
-
 /**
- * Данные и мутации экрана настроек клиента: профиль, аккаунты, сохранение, пароль, отвязка OAuth.
+ * Данные и мутации экрана настроек клиента: профиль, аккаунты, сохранение, смена пароля.
+ * Отвязка OAuth — через useAccountsTabUi (как у психолога).
  */
 export function useClientSettings() {
   const queryClient = useQueryClient();
@@ -122,40 +116,26 @@ export function useClientSettings() {
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: postChangePassword,
-    onSuccess: () => {
-      toast.success("Пароль изменён");
-    },
-    onError: (e: Error) => {
-      toast.error(e.message);
-    }
-  });
-
-  const unlinkAccountMutation = useMutation({
-    mutationFn: deleteLinkedAccount,
-    onSuccess: async (_, provider) => {
-      toast.success(provider === "google" ? "Google отвязан" : "Apple отвязан");
-      await queryClient.invalidateQueries({ queryKey: clientSettingsKeys.accounts() });
-      await updateSession?.();
-    },
-    onError: (e: Error) => {
-      toast.error(e.message);
-    }
+    mutationFn: postChangePassword
   });
 
   const loading = profileQuery.isPending || accountsQuery.isPending;
   const profile = profileQuery.data ?? null;
   const accounts = accountsQuery.data?.accounts ?? [];
 
+  function refetchAccounts() {
+    return queryClient.invalidateQueries({ queryKey: clientSettingsKeys.accounts() });
+  }
+
   return {
     profile,
     accounts,
+    refetchAccounts,
     loading,
     profileError: profileQuery.isError,
     /** Для сброса локального состояния полей профиля после рефетча (без useEffect). */
     profileDataUpdatedAt: profileQuery.dataUpdatedAt,
     updateProfile: updateProfileMutation,
-    changePassword: changePasswordMutation,
-    unlinkAccount: unlinkAccountMutation
+    changePassword: changePasswordMutation
   };
 }

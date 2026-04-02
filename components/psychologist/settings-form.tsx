@@ -1,11 +1,13 @@
 "use client";
 
-import React, { Component, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SettingsFormErrorBoundary } from "@/components/settings/shared/settings-form-error-boundary";
 const CalendarSubscriptionBlock = dynamic(
   () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
   { ssr: false }
@@ -30,14 +32,6 @@ import { ProfessionalTabPanel } from "@/components/psychologist/settings/profess
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
 
-const MARITAL_OPTIONS: { value: string; label: string }[] = [
-  { value: "single", label: "Не в браке" },
-  { value: "married", label: "В браке" },
-  { value: "divorced", label: "В разводе" },
-  { value: "widowed", label: "Вдовец / Вдова" },
-  { value: "unspecified", label: "Не указано" }
-];
-
 const PROFESSION_OPTIONS: { value: string; label: string }[] = [
   { value: "psychologist", label: "Психолог" },
   { value: "psychotherapist", label: "Врач-психотерапевт" },
@@ -46,50 +40,6 @@ const PROFESSION_OPTIONS: { value: string; label: string }[] = [
 
 /** Максимум символов в блоке «О себе» */
 const BIO_MAX_LENGTH = 1500;
-
-/** Перехватывает ошибки рендера контента настроек и логирует их. */
-class SettingsFormErrorBoundary extends Component<
-  { children: React.ReactNode },
-  { hasError: boolean; message: string }
-> {
-  state = { hasError: false, message: "" };
-
-  static getDerivedStateFromError(error: unknown) {
-    return { hasError: true, message: (error as Error)?.message ?? String(error) };
-  }
-
-  componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    console.error("[SettingsForm] render error:", error, info?.componentStack);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="rounded-md border border-destructive/60 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Ошибка при отображении формы настроек. Обновите страницу. ({this.state.message})
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-function Section({
-  title,
-  children
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="min-w-0 border-border/80">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="min-w-0 space-y-4">{children}</CardContent>
-    </Card>
-  );
-}
 
 export function PsychologistSettingsForm({
   schedulingEnabled = true
@@ -124,7 +74,19 @@ export function PsychologistSettingsForm({
     updateSession
   });
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
-  const securityTab = useSecurityTabUi();
+  const securityTab = useSecurityTabUi({
+    submitChangePassword: async (body) => {
+      const res = await fetch("/api/user/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { message?: string }).message ?? "Не удалось сменить пароль");
+      }
+    }
+  });
 
   const clientStatusesTab = useClientStatusesTabUi();
   const {
@@ -216,7 +178,7 @@ export function PsychologistSettingsForm({
   } = securityTab;
 
   return (
-    <SettingsFormErrorBoundary>
+    <SettingsFormErrorBoundary logPrefix="[PsychologistSettingsForm]">
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
       <TabsList className="flex h-auto w-full min-w-0 flex-wrap justify-center gap-1 rounded-lg bg-muted/80 p-1 sm:justify-start lg:gap-1.5 lg:p-1.5">
         <TabsTrigger
@@ -275,7 +237,7 @@ export function PsychologistSettingsForm({
       <TabsContent value="profile" className="mt-4">
         {activeTab === "profile" && (
         <>
-        <Section title="Личные данные">
+        <SettingsSection title="Личные данные">
           <ProfileTabPanel
             handleSaveProfile={profileTab.handleSaveProfile}
             saving={saving}
@@ -308,7 +270,7 @@ export function PsychologistSettingsForm({
             setMaritalStatus={profileTab.setMaritalStatus}
             maritalOptions={MARITAL_OPTIONS}
           />
-        </Section>
+        </SettingsSection>
         </>
         )}
       </TabsContent>
@@ -316,7 +278,7 @@ export function PsychologistSettingsForm({
       <TabsContent value="security" className="mt-4">
         {activeTab === "security" && (
           <div className="space-y-4">
-            <Section title="Смена пароля">
+            <SettingsSection title="Смена пароля">
               <SecurityTabForm
                 handleChangePassword={handleChangePassword}
                 currentPassword={currentPassword}
@@ -333,14 +295,14 @@ export function PsychologistSettingsForm({
                 progressFillColor={progressFillColor}
                 progressFillWidthPct={progressFillWidthPct}
               />
-            </Section>
-            <Section title="Активные сессии">
+            </SettingsSection>
+            <SettingsSection title="Активные сессии">
               <ActiveSessionsSection active={activeTab === "security"} />
-            </Section>
+            </SettingsSection>
             {schedulingEnabled && (
-              <Section title="Ссылка подписки на календарь">
+              <SettingsSection title="Ссылка подписки на календарь">
                 <CalendarFeedTokenRotateSection />
-              </Section>
+              </SettingsSection>
             )}
           </div>
         )}
@@ -348,7 +310,7 @@ export function PsychologistSettingsForm({
 
       <TabsContent value="accounts" className="mt-4">
         {activeTab === "accounts" && (
-        <Section title="Привязка аккаунтов">
+        <SettingsSection title="Привязка аккаунтов">
           <AccountsTabContent
             hasGoogle={hasGoogle}
             unlinkAccountProvider={unlinkAccountProvider}
@@ -356,19 +318,19 @@ export function PsychologistSettingsForm({
             onLinkGoogle={onLinkGoogle}
             telegramBlock={<TelegramAccountBlock />}
           />
-        </Section>
+        </SettingsSection>
         )}
       </TabsContent>
 
       <TabsContent value="customFields" className="mt-4">
-        <Section title="Пользовательские поля клиента">
+        <SettingsSection title="Пользовательские поля клиента">
           <CustomFieldsTabSection enabled={activeTab === "customFields"} />
-        </Section>
+        </SettingsSection>
       </TabsContent>
 
       <TabsContent value="statuses" className="mt-4">
         {activeTab === "statuses" && (
-          <Section title="Статусы клиентов">
+          <SettingsSection title="Статусы клиентов">
             <ClientStatusesTabPanel
               clientStatuses={clientStatuses}
               clientStatusesLoading={clientStatusesLoading}
@@ -390,23 +352,23 @@ export function PsychologistSettingsForm({
 
               refetchClientStatuses={refetchClientStatuses}
             />
-          </Section>
+          </SettingsSection>
         )}
       </TabsContent>
 
       {schedulingEnabled && (
         <TabsContent value="calendar" className="mt-4">
           {activeTab === "calendar" && (
-            <Section title="Подписаться на календарь">
+            <SettingsSection title="Подписаться на календарь">
               <CalendarSubscriptionBlock />
-            </Section>
+            </SettingsSection>
           )}
         </TabsContent>
       )}
 
       <TabsContent value="professional" className="mt-4">
         {activeTab === "professional" && (
-        <Section title="Профессиональный профиль">
+        <SettingsSection title="Профессиональный профиль">
           <ProfessionalTabPanel
             schedulingEnabled={schedulingEnabled}
             profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
@@ -438,7 +400,7 @@ export function PsychologistSettingsForm({
             contactWhatsapp={contactWhatsapp}
             setContactWhatsapp={setContactWhatsapp}
           />
-        </Section>
+        </SettingsSection>
         )}
       </TabsContent>
     </Tabs>

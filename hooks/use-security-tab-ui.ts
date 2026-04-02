@@ -3,36 +3,24 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type { PasswordChecks } from "@/components/psychologist/settings/security-tab";
+import type { PasswordChecks } from "@/lib/settings/password-rules";
+import {
+  evaluatePasswordRules,
+  getPasswordValidationError,
+  SETTINGS_PASSWORD_REQUIREMENTS
+} from "@/lib/settings/password-rules";
 
-type PasswordRequirement = { key: keyof PasswordChecks; text: string };
+export type SubmitChangePasswordBody = {
+  currentPassword: string;
+  newPassword: string;
+};
 
-const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
-  { key: "length", text: "Не менее 8 символов" },
-  { key: "letters", text: "Буквы (A–Z, а–я)" },
-  { key: "digits", text: "Цифры" },
-  { key: "special", text: "Спецсимволы (!, ?, % и т.п.)" }
-];
+type Options = {
+  /** Сетевой вызов без toast: при ошибке бросить Error(message). */
+  submitChangePassword: (body: SubmitChangePasswordBody) => Promise<void>;
+};
 
-function evaluatePasswordRules(password: string): PasswordChecks {
-  return {
-    length: password.length >= 8,
-    letters: /[A-Za-zА-Яа-я]/.test(password),
-    digits: /\d/.test(password),
-    special: /[^A-Za-zА-Яа-я0-9\s]/.test(password)
-  };
-}
-
-function getPasswordValidationError(password: string, checks: PasswordChecks): string | null {
-  if (password.length === 0) return null;
-  if (!checks.length) return "Пароль должен быть не короче 8 символов";
-  if (!checks.letters) return "Пароль должен содержать буквы";
-  if (!checks.digits) return "Пароль должен содержать цифры";
-  if (!checks.special) return "Добавьте специальный символ (например, !, ?, %)";
-  return null;
-}
-
-export function useSecurityTabUi() {
+export function useSecurityTabUi({ submitChangePassword }: Options) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
@@ -58,22 +46,17 @@ export function useSecurityTabUi() {
 
     setPasswordSaving(true);
     try {
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось сменить пароль");
-        return;
-      }
+      await submitChangePassword({ currentPassword, newPassword });
       toast.success("Пароль изменён");
       setCurrentPassword("");
       setNewPassword("");
       setNewPasswordConfirm("");
       setNewPasswordChecks(evaluatePasswordRules(""));
       setTouchedNewPassword(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Не удалось сменить пароль";
+      toast.error(message);
     } finally {
       setPasswordSaving(false);
     }
@@ -96,7 +79,10 @@ export function useSecurityTabUi() {
   const newPasswordValid = !!newPassword && !newPasswordError;
 
   const passedCount = useMemo(() => {
-    return PASSWORD_REQUIREMENTS.reduce((acc, req) => acc + (newPasswordChecks[req.key] ? 1 : 0), 0);
+    return SETTINGS_PASSWORD_REQUIREMENTS.reduce(
+      (acc, req) => acc + (newPasswordChecks[req.key] ? 1 : 0),
+      0
+    );
   }, [newPasswordChecks]);
 
   const progressStage = !newPassword
@@ -144,10 +130,9 @@ export function useSecurityTabUi() {
     newPasswordChecks,
     newPasswordValid,
     passwordSaving,
-    passwordRequirements: PASSWORD_REQUIREMENTS,
+    passwordRequirements: SETTINGS_PASSWORD_REQUIREMENTS,
     progressTrackColor,
     progressFillColor,
     progressFillWidthPct
   };
 }
-

@@ -27,20 +27,13 @@ import {
   type ClientSettingsProfile,
   type PatchClientProfileBody
 } from "@/hooks/use-client-settings";
-import { SettingsSection } from "./settings-section";
+import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
+import { SettingsSection } from "@/components/settings/shared/settings-section";
 
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
   { ssr: false }
 );
-
-const MARITAL_OPTIONS: { value: string; label: string }[] = [
-  { value: "single", label: "Не в браке" },
-  { value: "married", label: "В браке" },
-  { value: "divorced", label: "В разводе" },
-  { value: "widowed", label: "Вдовец / Вдова" },
-  { value: "unspecified", label: "Не указано" }
-];
 
 export function ClientProfileTab({
   profile,

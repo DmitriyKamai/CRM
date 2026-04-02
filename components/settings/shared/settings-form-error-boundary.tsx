@@ -2,8 +2,14 @@
 
 import React, { Component } from "react";
 
-export class ClientSettingsFormErrorBoundary extends Component<
-  { children: React.ReactNode },
+type Props = {
+  children: React.ReactNode;
+  /** Префикс в console.error при отлове ошибки */
+  logPrefix?: string;
+};
+
+export class SettingsFormErrorBoundary extends Component<
+  Props,
   { hasError: boolean; message: string }
 > {
   state = { hasError: false, message: "" };
@@ -13,7 +19,8 @@ export class ClientSettingsFormErrorBoundary extends Component<
   }
 
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    console.error("[ClientSettingsForm] render error:", error, info?.componentStack);
+    const prefix = this.props.logPrefix ?? "[SettingsForm]";
+    console.error(`${prefix} render error:`, error, info?.componentStack);
   }
 
   render() {

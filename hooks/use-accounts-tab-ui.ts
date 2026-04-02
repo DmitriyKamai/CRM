@@ -1,6 +1,6 @@
 "use client";
 
-import type { Account } from "@/hooks/use-profile-settings";
+import type { LinkedAccount } from "@/lib/settings/linked-account";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 type UpdateSessionFn = (() => unknown) | undefined;
 
 type Props = {
-  accounts: Account[];
+  accounts: LinkedAccount[];
   refetchAccounts: () => unknown;
   updateSession?: UpdateSessionFn;
 };
