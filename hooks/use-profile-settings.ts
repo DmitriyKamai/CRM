@@ -1,11 +1,10 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
+import { useUserSettingsQueries } from "@/hooks/use-user-settings-queries";
 import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import type { LinkedAccount } from "@/lib/settings/linked-account";
-import { fetchUserSettingsAccounts } from "@/lib/user-settings/fetch-user-accounts";
-import { fetchUserSettingsProfile } from "@/lib/user-settings/fetch-user-profile";
 import type { UserSettingsProfile } from "@/lib/user-settings/types";
 
 export type Profile = UserSettingsProfile;
@@ -14,23 +13,10 @@ export type Account = LinkedAccount;
 
 export function useProfileSettings() {
   const qc = useQueryClient();
+  const { profileQuery, accountsQuery } = useUserSettingsQueries();
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: userSettingsKeys.profile(),
-    queryFn: fetchUserSettingsProfile,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
-  });
-
-  const { data: accounts = [] } = useQuery({
-    queryKey: userSettingsKeys.accounts(),
-    queryFn: fetchUserSettingsAccounts,
-    enabled: !!profile,
-    staleTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
-  });
+  const profile = profileQuery.data ?? null;
+  const accounts = accountsQuery.data ?? [];
 
   function refetchProfile() {
     return qc.invalidateQueries({ queryKey: userSettingsKeys.profile() });
@@ -47,8 +33,9 @@ export function useProfileSettings() {
   }
 
   return {
-    profile: profile ?? null,
-    loading: profileLoading,
+    profile,
+    /** Только профиль: аккаунты подгружаются отдельно и не блокируют экран. */
+    loading: profileQuery.isPending,
     accounts,
     refetchProfile,
     refetchAccounts,

@@ -17,14 +17,7 @@ import {
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
-const CalendarSubscriptionBlock = dynamic(
-  () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
-  { ssr: false }
-);
-const TelegramAccountBlock = dynamic(
-  () => import("@/components/account/telegram-account-block").then((m) => ({ default: m.TelegramAccountBlock })),
-  { ssr: false }
-);
+import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-block.lazy";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useProfileTabUi } from "@/hooks/use-profile-tab-ui";
 import { useProfessionalTabUi } from "@/hooks/use-professional-tab-ui";
@@ -38,6 +31,11 @@ import { ProfessionalTabPanel } from "@/components/psychologist/settings/profess
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
 import { postChangePassword } from "@/lib/user-settings/post-change-password";
+
+const CalendarSubscriptionBlock = dynamic(
+  () => import("@/components/schedule/calendar-subscription").then((m) => ({ default: m.CalendarSubscriptionBlock })),
+  { ssr: false }
+);
 
 export function PsychologistSettingsForm({
   schedulingEnabled = true
@@ -239,7 +237,7 @@ export function PsychologistSettingsForm({
             unlinkAccountProvider={unlinkAccountProvider}
             onUnlinkAccount={onUnlinkAccount}
             onLinkGoogle={onLinkGoogle}
-            telegramBlock={<TelegramAccountBlock />}
+            telegramBlock={<TelegramAccountBlockLazy />}
           />
         )}
       </TabsContent>

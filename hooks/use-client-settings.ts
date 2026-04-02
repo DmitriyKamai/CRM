@@ -1,13 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
+import { useUserSettingsQueries } from "@/hooks/use-user-settings-queries";
 import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import type { LinkedAccount } from "@/lib/settings/linked-account";
-import { fetchUserSettingsAccounts } from "@/lib/user-settings/fetch-user-accounts";
-import { fetchUserSettingsProfile } from "@/lib/user-settings/fetch-user-profile";
 import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
 import { postChangePassword } from "@/lib/user-settings/post-change-password";
 import type { UserSettingsProfile } from "@/lib/user-settings/types";
@@ -34,23 +33,7 @@ export type PatchClientProfileBody = {
 export function useClientSettings() {
   const queryClient = useQueryClient();
   const { update: updateSession } = useSession();
-
-  const profileQuery = useQuery({
-    queryKey: userSettingsKeys.profile(),
-    queryFn: fetchUserSettingsProfile,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
-  });
-
-  const accountsQuery = useQuery({
-    queryKey: userSettingsKeys.accounts(),
-    queryFn: fetchUserSettingsAccounts,
-    enabled: !!profileQuery.data,
-    staleTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
-  });
+  const { profileQuery, accountsQuery } = useUserSettingsQueries();
 
   const updateProfileMutation = useMutation({
     mutationFn: (body: PatchClientProfileBody) => patchUserProfile(body),

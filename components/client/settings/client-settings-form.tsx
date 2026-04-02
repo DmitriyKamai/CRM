@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
@@ -16,15 +15,8 @@ import {
 import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
+import { TelegramAccountBlockLazy } from "@/components/account/telegram-account-block.lazy";
 import { ClientProfileTab } from "./client-profile-tab";
-
-const TelegramAccountBlock = dynamic(
-  () =>
-    import("@/components/account/telegram-account-block").then((m) => ({
-      default: m.TelegramAccountBlock
-    })),
-  { ssr: false }
-);
 
 export function ClientSettingsForm() {
   const { update: updateSession } = useSession();
@@ -95,7 +87,7 @@ export function ClientSettingsForm() {
               unlinkAccountProvider={unlinkAccountProvider}
               onUnlinkAccount={onUnlinkAccount}
               onLinkGoogle={onLinkGoogle}
-              telegramBlock={<TelegramAccountBlock />}
+              telegramBlock={<TelegramAccountBlockLazy />}
             />
           )}
         </TabsContent>

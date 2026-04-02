@@ -17,17 +17,9 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
-
-const PROFESSION_LABELS: Record<string, string> = {
-  psychologist: "Психолог",
-  psychotherapist: "Врач-психотерапевт",
-  psychiatrist: "Психиатр"
-};
-
-function getProfessionLabel(specialization: string | null | undefined): string {
-  if (!specialization?.trim()) return "Специалист";
-  return PROFESSION_LABELS[specialization.trim()] ?? "Специалист";
-}
+import { userSettingsKeys } from "@/lib/query-keys/user-settings";
+import { getProfessionDisplayLabel } from "@/lib/settings/professional-profile";
+import { fetchUserSettingsProfile } from "@/lib/user-settings/fetch-user-profile";
 
 function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
@@ -85,17 +77,13 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
     void (async () => setMounted(true))();
   }, []);
 
-  const { data: profileData } = useQuery({
-    queryKey: ["user-profile-nav"],
-    queryFn: async () => {
-      const res = await fetch("/api/user/profile");
-      if (!res.ok) return null;
-      return res.json() as Promise<{
-        psychologistProfile?: { specialization?: string | null };
-      } | null>;
-    },
+  const { data: profileData, isError: profileQueryError } = useQuery({
+    queryKey: userSettingsKeys.profile(),
+    queryFn: fetchUserSettingsProfile,
     enabled: role === "PSYCHOLOGIST",
-    staleTime: 5 * 60 * 1000
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   });
 
   const user = session?.user;
@@ -117,7 +105,11 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
 
   const professionLabel =
     role === "PSYCHOLOGIST"
-      ? getProfessionLabel(profileData?.psychologistProfile?.specialization ?? null)
+      ? getProfessionDisplayLabel(
+          profileQueryError || !profileData
+            ? null
+            : (profileData.psychologistProfile?.specialization ?? null)
+        )
       : null;
 
   const roleLabel =
