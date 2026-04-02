@@ -9,11 +9,9 @@ import {
   getPasswordValidationError,
   SETTINGS_PASSWORD_REQUIREMENTS
 } from "@/lib/settings/password-rules";
+import type { ChangePasswordBody } from "@/lib/user-settings/post-change-password";
 
-export type SubmitChangePasswordBody = {
-  currentPassword: string;
-  newPassword: string;
-};
+export type SubmitChangePasswordBody = ChangePasswordBody;
 
 type Options = {
   /** Сетевой вызов без toast: при ошибке бросить Error(message). */

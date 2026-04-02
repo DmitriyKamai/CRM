@@ -3,12 +3,18 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { User, Lock, Link2, CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
+import { CalendarDays, Briefcase, ListChecks, ListFilter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MARITAL_OPTIONS } from "@/lib/settings/marital-options";
 import { BIO_MAX_LENGTH, PROFESSION_OPTIONS } from "@/lib/settings/professional-profile";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SettingsFormErrorBoundary } from "@/components/settings/shared/settings-form-error-boundary";
+import {
+  SettingsAccountsTabTrigger,
+  SettingsProfileTabTrigger,
+  SettingsSecurityTabTrigger
+} from "@/components/settings/shared/settings-core-tab-triggers";
+import { SettingsFormErrorState, SettingsFormLoadingState } from "@/components/settings/shared/settings-page-states";
 import { SettingsSecurityTab } from "@/components/settings/shared/settings-security-tab";
 import { SettingsAccountsTab } from "@/components/settings/shared/settings-accounts-tab";
 const CalendarSubscriptionBlock = dynamic(
@@ -31,6 +37,7 @@ import { ClientStatusesTabPanel } from "@/components/psychologist/settings/clien
 import { ProfessionalTabPanel } from "@/components/psychologist/settings/professional-tab-panel";
 import { ProfileTabPanel } from "@/components/psychologist/settings/profile-tab-panel";
 import { useAccountsTabUi } from "@/hooks/use-accounts-tab-ui";
+import { postChangePassword } from "@/lib/user-settings/post-change-password";
 
 export function PsychologistSettingsForm({
   schedulingEnabled = true
@@ -66,17 +73,7 @@ export function PsychologistSettingsForm({
   });
   const { unlinkAccountProvider, hasGoogle, onUnlinkAccount, onLinkGoogle } = accountsTab;
   const securityTab = useSecurityTabUi({
-    submitChangePassword: async (body) => {
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error((data as { message?: string }).message ?? "Не удалось сменить пароль");
-      }
-    }
+    submitChangePassword: postChangePassword
   });
 
   const clientStatusesTab = useClientStatusesTabUi();
@@ -106,27 +103,15 @@ export function PsychologistSettingsForm({
   }, [schedulingEnabled, activeTab]);
 
   if (loading) {
-    return (
-      <div className="text-sm text-muted-foreground py-8">
-        Загрузка настроек…
-      </div>
-    );
+    return <SettingsFormLoadingState />;
   }
 
   if (!profile) {
-    return (
-      <div className="text-sm text-muted-foreground py-8">
-        Не удалось загрузить настройки. Проверьте подключение и обновите страницу.
-      </div>
-    );
+    return <SettingsFormErrorState variant="network" />;
   }
 
   if (!profile.user) {
-    return (
-      <div className="text-sm text-muted-foreground py-8">
-        Не удалось загрузить настройки. Обновите страницу.
-      </div>
-    );
+    return <SettingsFormErrorState variant="default" />;
   }
 
   const { saving, hasProfileChanges, image, initials, alt } = profileTab;
@@ -155,13 +140,7 @@ export function PsychologistSettingsForm({
     <SettingsFormErrorBoundary logPrefix="[PsychologistSettingsForm]">
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? "profile")} className="w-full">
       <TabsList className="flex h-auto w-full min-w-0 flex-wrap justify-center gap-1 rounded-lg bg-muted/80 p-1 sm:justify-start lg:gap-1.5 lg:p-1.5">
-        <TabsTrigger
-          value="profile"
-          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-        >
-          <User className="h-4 w-4 shrink-0" />
-          <span className="text-left leading-tight">Личные данные</span>
-        </TabsTrigger>
+        <SettingsProfileTabTrigger variant="psychologist" />
         <TabsTrigger
           value="professional"
           className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
@@ -169,20 +148,8 @@ export function PsychologistSettingsForm({
           <Briefcase className="h-4 w-4 shrink-0" />
           <span className="text-left leading-tight">Профиль</span>
         </TabsTrigger>
-        <TabsTrigger
-          value="security"
-          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-        >
-          <Lock className="h-4 w-4 shrink-0" />
-          <span className="text-left leading-tight">Безопасность</span>
-        </TabsTrigger>
-        <TabsTrigger
-          value="accounts"
-          className="flex shrink-0 items-center gap-1.5 whitespace-normal px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
-        >
-          <Link2 className="h-4 w-4 shrink-0" />
-          <span className="text-left leading-tight">Аккаунты</span>
-        </TabsTrigger>
+        <SettingsSecurityTabTrigger variant="psychologist" />
+        <SettingsAccountsTabTrigger variant="psychologist" />
         {schedulingEnabled && (
           <TabsTrigger
             value="calendar"

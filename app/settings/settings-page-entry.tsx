@@ -1,36 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { dynamicSettingsForm } from "@/lib/settings/dynamic-settings-form";
 
-function SettingsFormDynamicLoading() {
-  return (
-    <div className="animate-pulse space-y-4">
-      <div className="h-10 rounded-lg bg-muted" />
-      <div className="h-64 rounded-lg bg-muted" />
-    </div>
-  );
-}
-
-const ClientSettingsForm = dynamic(
-  () =>
-    import("@/components/client/settings-form").then((m) => ({
-      default: m.ClientSettingsForm
-    })),
-  {
-    ssr: false,
-    loading: SettingsFormDynamicLoading
-  }
+const ClientSettingsForm = dynamicSettingsForm(() =>
+  import("@/components/client/settings-form").then((m) => ({ default: m.ClientSettingsForm }))
 );
 
-const PsychologistSettingsForm = dynamic(
-  () =>
-    import("@/components/psychologist/settings-form").then((m) => ({
-      default: m.PsychologistSettingsForm
-    })),
-  {
-    ssr: false,
-    loading: SettingsFormDynamicLoading
-  }
+const PsychologistSettingsForm = dynamicSettingsForm(() =>
+  import("@/components/psychologist/settings-form").then((m) => ({
+    default: m.PsychologistSettingsForm
+  }))
 );
 
 export function SettingsPageEntry({

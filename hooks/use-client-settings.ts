@@ -1,49 +1,20 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
-import { clientSettingsKeys } from "@/lib/query-keys/client-settings";
+import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import type { LinkedAccount } from "@/lib/settings/linked-account";
+import { fetchUserSettingsAccounts } from "@/lib/user-settings/fetch-user-accounts";
+import { fetchUserSettingsProfile } from "@/lib/user-settings/fetch-user-profile";
+import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
+import { postChangePassword } from "@/lib/user-settings/post-change-password";
+import type { UserSettingsProfile } from "@/lib/user-settings/types";
 
-export type ClientSettingsProfile = {
-  user: {
-    name: string | null;
-    email: string;
-    image: string | null;
-    dateOfBirth: string | null;
-    role: string;
-    phone?: string | null;
-    country?: string | null;
-    city?: string | null;
-    gender?: string | null;
-    maritalStatus?: string | null;
-  };
-};
+export type ClientSettingsProfile = UserSettingsProfile;
 
 export type ClientSettingsAccount = LinkedAccount;
-
-async function fetchProfile(): Promise<ClientSettingsProfile> {
-  const r = await fetch("/api/user/profile");
-  if (r.status === 401) {
-    await signOut({ callbackUrl: "/auth/login" });
-    throw new Error("unauthorized");
-  }
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error((err as { message?: string }).message ?? "Ошибка загрузки профиля");
-  }
-  return r.json() as Promise<ClientSettingsProfile>;
-}
-
-async function fetchAccounts(): Promise<{ accounts: ClientSettingsAccount[] }> {
-  const r = await fetch("/api/user/accounts");
-  if (!r.ok) {
-    return { accounts: [] };
-  }
-  return r.json() as Promise<{ accounts: ClientSettingsAccount[] }>;
-}
 
 export type PatchClientProfileBody = {
   name: string | null;
@@ -56,33 +27,6 @@ export type PatchClientProfileBody = {
   maritalStatus: string | null;
 };
 
-async function patchProfile(body: PatchClientProfileBody): Promise<void> {
-  const res = await fetch("/api/user/profile", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error((data as { message?: string }).message ?? "Не удалось сохранить");
-  }
-}
-
-async function postChangePassword(body: {
-  currentPassword: string;
-  newPassword: string;
-}): Promise<void> {
-  const res = await fetch("/api/user/change-password", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error((data as { message?: string }).message ?? "Не удалось сменить пароль");
-  }
-}
-
 /**
  * Данные и мутации экрана настроек клиента: профиль, аккаунты, сохранение, смена пароля.
  * Отвязка OAuth — через useAccountsTabUi (как у психолога).
@@ -92,22 +36,27 @@ export function useClientSettings() {
   const { update: updateSession } = useSession();
 
   const profileQuery = useQuery({
-    queryKey: clientSettingsKeys.profile(),
-    queryFn: fetchProfile,
-    refetchOnWindowFocus: false
+    queryKey: userSettingsKeys.profile(),
+    queryFn: fetchUserSettingsProfile,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   });
 
   const accountsQuery = useQuery({
-    queryKey: clientSettingsKeys.accounts(),
-    queryFn: fetchAccounts,
-    refetchOnWindowFocus: false
+    queryKey: userSettingsKeys.accounts(),
+    queryFn: fetchUserSettingsAccounts,
+    enabled: !!profileQuery.data,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: patchProfile,
+    mutationFn: (body: PatchClientProfileBody) => patchUserProfile(body),
     onSuccess: async () => {
       toast.success("Сохранено");
-      await queryClient.invalidateQueries({ queryKey: clientSettingsKeys.profile() });
+      await queryClient.invalidateQueries({ queryKey: userSettingsKeys.profile() });
       await updateSession?.();
     },
     onError: (e: Error) => {
@@ -121,10 +70,10 @@ export function useClientSettings() {
 
   const loading = profileQuery.isPending || accountsQuery.isPending;
   const profile = profileQuery.data ?? null;
-  const accounts = accountsQuery.data?.accounts ?? [];
+  const accounts = accountsQuery.data ?? [];
 
   function refetchAccounts() {
-    return queryClient.invalidateQueries({ queryKey: clientSettingsKeys.accounts() });
+    return queryClient.invalidateQueries({ queryKey: userSettingsKeys.accounts() });
   }
 
   return {

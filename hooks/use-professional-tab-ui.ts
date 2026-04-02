@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { Profile } from "@/hooks/use-profile-settings";
+import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
 
 type Props = {
   profile: Profile | null;
@@ -39,16 +40,7 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
   async function handlePublishProfileChange(published: boolean) {
     setSavingPublish(true);
     try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profilePhotoPublished: published })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось сохранить");
-        return;
-      }
+      await patchUserProfile({ profilePhotoPublished: published });
 
       setProfilePhotoPublished(published);
       updateProfileInCache((prev) =>
@@ -64,6 +56,8 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
           : prev
       );
       toast.success(published ? "Профиль опубликован" : "Профиль снят с публикации");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
       setSavingPublish(false);
     }
@@ -75,23 +69,14 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
 
     setSavingProfessional(true);
     try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bio: bio.trim() || null,
-          specialization: specialization || null,
-          contactPhone: contactPhone.trim() || null,
-          contactTelegram: contactTelegram.trim() || null,
-          contactViber: contactViber.trim() || null,
-          contactWhatsapp: contactWhatsapp.trim() || null
-        })
+      await patchUserProfile({
+        bio: bio.trim() || null,
+        specialization: specialization || null,
+        contactPhone: contactPhone.trim() || null,
+        contactTelegram: contactTelegram.trim() || null,
+        contactViber: contactViber.trim() || null,
+        contactWhatsapp: contactWhatsapp.trim() || null
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось сохранить");
-        return;
-      }
 
       toast.success("Сохранено");
       updateProfileInCache((prev) => ({
@@ -110,6 +95,8 @@ export function useProfessionalTabUi({ profile, updateProfileInCache }: Props) {
             }
           : prev.psychologistProfile
       }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
       setSavingProfessional(false);
     }

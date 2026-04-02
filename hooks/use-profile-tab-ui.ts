@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import type { Profile } from "@/hooks/use-profile-settings";
 import { DEFAULT_COUNTRY_CODE, DEFAULT_COUNTRY_NAME, getCountryCodeByName } from "@/lib/data/countries-ru";
+import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
 
 type SessionLike = {
   user?: {
@@ -97,30 +98,20 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
 
     setSaving(true);
     try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          phone: phone.trim() || null,
-          country: country.trim() || null,
-          city: city.trim() || null,
-          gender: gender || null,
-          maritalStatus: maritalStatus || null,
-          ...(email.trim() &&
-          email.trim().toLowerCase() !== (profile.user?.email ?? "").trim().toLowerCase()
-            ? { email: email.trim() }
-            : {}),
-          dateOfBirth: dateOfBirth || null
-        })
+      await patchUserProfile({
+        firstName,
+        lastName,
+        phone: phone.trim() || null,
+        country: country.trim() || null,
+        city: city.trim() || null,
+        gender: gender || null,
+        maritalStatus: maritalStatus || null,
+        ...(email.trim() &&
+        email.trim().toLowerCase() !== (profile.user?.email ?? "").trim().toLowerCase()
+          ? { email: email.trim() }
+          : {}),
+        dateOfBirth: dateOfBirth || null
       });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.message ?? "Не удалось сохранить");
-        return;
-      }
 
       toast.success("Сохранено");
       updateSession?.();
@@ -160,6 +151,8 @@ export function useProfileTabUi({ profile, session, updateSession, updateProfile
               contactWhatsapp: null
             }
       }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
       setSaving(false);
     }

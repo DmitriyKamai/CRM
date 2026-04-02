@@ -1,56 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import type { LinkedAccount } from "@/lib/settings/linked-account";
-import { profileSettingsKeys } from "@/lib/query-keys/profile-settings";
+import { fetchUserSettingsAccounts } from "@/lib/user-settings/fetch-user-accounts";
+import { fetchUserSettingsProfile } from "@/lib/user-settings/fetch-user-profile";
+import type { UserSettingsProfile } from "@/lib/user-settings/types";
 
-type Profile = {
-  user: {
-    name: string | null;
-    email: string;
-    image: string | null;
-    dateOfBirth: string | null;
-    role: string;
-  };
-  psychologistProfile: {
-    firstName: string;
-    lastName: string;
-    phone: string | null;
-    country: string | null;
-    city: string | null;
-    gender: string | null;
-    maritalStatus: string | null;
-    specialization: string | null;
-    bio: string | null;
-    profilePhotoUrl: string | null;
-    profilePhotoPublished: boolean;
-    contactPhone: string | null;
-    contactTelegram: string | null;
-    contactViber: string | null;
-    contactWhatsapp: string | null;
-  } | null;
-};
-
-async function fetchProfile(): Promise<Profile> {
-  const res = await fetch("/api/user/profile");
-  if (res.status === 401) {
-    signOut({ callbackUrl: "/auth/login" });
-    throw new Error("unauthorized");
-  }
-  if (!res.ok) throw new Error("Не удалось загрузить профиль");
-  return res.json();
-}
-
-async function fetchAccounts(): Promise<LinkedAccount[]> {
-  const res = await fetch("/api/user/accounts");
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => ({ accounts: [] }));
-  return data?.accounts ?? [];
-}
-
-export type { Profile };
+export type Profile = UserSettingsProfile;
 /** @deprecated Используйте LinkedAccount из lib/settings/linked-account */
 export type Account = LinkedAccount;
 
@@ -58,36 +16,32 @@ export function useProfileSettings() {
   const qc = useQueryClient();
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: profileSettingsKeys.profile(),
-    queryFn: fetchProfile,
+    queryKey: userSettingsKeys.profile(),
+    queryFn: fetchUserSettingsProfile,
     staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: false
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: profileSettingsKeys.accounts(),
-    queryFn: fetchAccounts,
+    queryKey: userSettingsKeys.accounts(),
+    queryFn: fetchUserSettingsAccounts,
     enabled: !!profile,
     staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: false
   });
 
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (profile && !hydrated) void (async () => setHydrated(true))();
-  }, [profile, hydrated]);
-
   function refetchProfile() {
-    return qc.invalidateQueries({ queryKey: profileSettingsKeys.profile() });
+    return qc.invalidateQueries({ queryKey: userSettingsKeys.profile() });
   }
 
   function refetchAccounts() {
-    return qc.invalidateQueries({ queryKey: profileSettingsKeys.accounts() });
+    return qc.invalidateQueries({ queryKey: userSettingsKeys.accounts() });
   }
 
   function updateProfileInCache(updater: (prev: Profile) => Profile) {
-    qc.setQueryData<Profile>(profileSettingsKeys.profile(), (prev) =>
+    qc.setQueryData<Profile>(userSettingsKeys.profile(), (prev) =>
       prev ? updater(prev) : prev
     );
   }
