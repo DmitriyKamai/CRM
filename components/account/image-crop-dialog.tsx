@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Cropper, { type Area } from "react-easy-crop";
-import "react-easy-crop/react-easy-crop.css";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CircleStencil,
+  Cropper,
+  type CropperRef,
+  RectangleStencil
+} from "react-advanced-cropper";
+import "react-advanced-cropper/dist/style.css";
+import "react-advanced-cropper/dist/themes/default.css";
 import { toast } from "sonner";
 
-import { CircularAvatarCropStage } from "@/components/account/circular-avatar-crop-stage";
-import { ImageCropZoomHandle } from "@/components/account/image-crop-zoom-handle";
-import { getCroppedImageBlob } from "@/lib/image-crop/canvas-crop";
-import { exportCircularAvatarCrop } from "@/lib/image-crop/circular-avatar-crop-export";
-import type { CircularAvatarCropParams } from "@/lib/image-crop/circular-avatar-crop-types";
+import { squareCanvasToCircularJpegBlob } from "@/lib/image-crop/square-canvas-to-circular-jpeg";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,11 +41,11 @@ export type ImageCropDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   file: File | null;
-  /** Соотношение сторон рамки обрезки (1 = квадрат). */
+  /** Соотношение сторон прямоугольного стенсила (1 = квадрат). Круг всегда 1:1. */
   aspect: number;
   /** Вид рамки: круг (аватар) или прямоугольник (фото профиля). */
   cropPreviewShape?: "rect" | "round";
-  /** Обрезать итоговый JPEG по кругу (для круглого отображения аватара). */
+  /** Итоговый JPEG с круглой маской и белыми углами (аватар). */
   circularExport?: boolean;
   title: string;
   description?: string;
@@ -68,16 +70,12 @@ export function ImageCropDialog({
   const isRoundAvatar = cropPreviewShape === "round" && circularExport;
 
   const defaultDescription = isRoundAvatar
-    ? "Фото не двигается: перетащите круг, чтобы выбрать область. Масштаб — только за белый контур круга (потяните край наружу или внутрь)."
-    : cropPreviewShape === "round"
-      ? "Перемещайте фото под кругом."
-      : "Перемещайте фото под рамкой. Масштаб — ручкой в углу или колёсиком мыши на области фото.";
+    ? "Перетащите круг и при необходимости потяните за маркеры по контуру, чтобы изменить масштаб области. Фото под стенсилом двигается стандартными жестами кропера."
+    : "Перемещайте и масштабируйте фото, настройте рамку. Углы и стороны рамки можно тянуть для размера.";
 
+  const cropperRef = useRef<CropperRef>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [circularParams, setCircularParams] = useState<CircularAvatarCropParams | null>(null);
+  const [cropReady, setCropReady] = useState(false);
   const [outputSize, setOutputSize] = useState(defaultOutputSize);
   const [applying, setApplying] = useState(false);
 
@@ -93,33 +91,42 @@ export function ImageCropDialog({
 
   useEffect(() => {
     if (open) {
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
-      setCircularParams(null);
+      setCropReady(false);
       setOutputSize(defaultOutputSize);
     }
   }, [open, file, defaultOutputSize]);
 
-  const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
-    setCroppedAreaPixels(areaPixels);
+  const syncReady = useCallback(() => {
+    const c = cropperRef.current;
+    setCropReady(Boolean(c?.isLoaded()));
   }, []);
 
   const handleApply = async () => {
-    if (!objectUrl || !file) return;
+    const c = cropperRef.current;
+    if (!c?.isLoaded() || !file) return;
     setApplying(true);
     try {
-      let blob: Blob;
-      if (isRoundAvatar) {
-        if (!circularParams) return;
-        blob = await exportCircularAvatarCrop(objectUrl, circularParams, outputSize, 0.9);
-      } else {
-        if (!croppedAreaPixels) return;
-        blob = await getCroppedImageBlob(objectUrl, croppedAreaPixels, outputSize, {
-          circular: circularExport,
-          quality: 0.9
-        });
+      const canvas = c.getCanvas({
+        width: outputSize,
+        height: outputSize,
+        fillColor: "#ffffff",
+        imageSmoothingQuality: "high"
+      });
+      if (!canvas) {
+        toast.error("Не удалось получить изображение");
+        return;
       }
+
+      const blob = isRoundAvatar
+        ? await squareCanvasToCircularJpegBlob(canvas, outputSize, 0.9)
+        : await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob(
+              (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
+              "image/jpeg",
+              0.9
+            );
+          });
+
       const base = file.name.replace(/\.[^.]+$/, "") || "photo";
       const outFile = new File([blob], `${base}.jpg`, { type: "image/jpeg" });
       await onCroppedFile(outFile);
@@ -132,8 +139,6 @@ export function ImageCropDialog({
     }
   };
 
-  const canSave = isRoundAvatar ? Boolean(circularParams) : Boolean(croppedAreaPixels);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -144,40 +149,27 @@ export function ImageCropDialog({
 
         {objectUrl ? (
           <div className="space-y-4">
-            {isRoundAvatar ? (
-              <CircularAvatarCropStage
-                imageSrc={objectUrl}
-                active={open}
-                onParamsChange={setCircularParams}
+            <div className="relative h-[min(55vh,400px)] w-full min-h-[280px] overflow-hidden rounded-lg border border-border/60 bg-muted">
+              <Cropper
+                key={objectUrl}
+                ref={cropperRef}
+                src={objectUrl}
+                className="advanced-cropper h-full !max-h-none bg-muted"
+                stencilComponent={isRoundAvatar ? CircleStencil : RectangleStencil}
+                stencilProps={
+                  isRoundAvatar
+                    ? { movable: true, resizable: true, grid: false }
+                    : {
+                        movable: true,
+                        resizable: true,
+                        aspectRatio: aspect,
+                        grid: true
+                      }
+                }
+                onReady={syncReady}
+                onUpdate={syncReady}
               />
-            ) : (
-              <div className="relative h-[min(55vh,400px)] w-full overflow-hidden rounded-lg bg-muted">
-                <Cropper
-                  image={objectUrl}
-                  crop={crop}
-                  zoom={zoom}
-                  rotation={0}
-                  aspect={aspect}
-                  cropShape={cropPreviewShape}
-                  showGrid={cropPreviewShape === "rect"}
-                  roundCropAreaPixels={cropPreviewShape === "round"}
-                  zoomWithScroll
-                  minZoom={1}
-                  maxZoom={3}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropComplete}
-                />
-                <div className="pointer-events-none absolute inset-0 z-[2] flex items-end justify-end p-2">
-                  <ImageCropZoomHandle
-                    zoom={zoom}
-                    onZoomChange={setZoom}
-                    className="pointer-events-auto shadow-lg"
-                    label="Масштаб: потяните вверх или вниз, также можно крутить колёсико на фото"
-                  />
-                </div>
-              </div>
-            )}
+            </div>
 
             <div className="space-y-2">
               <Label className="text-sm">Размер сохраняемого фото (сторона квадрата)</Label>
@@ -206,7 +198,7 @@ export function ImageCropDialog({
           </Button>
           <Button
             type="button"
-            disabled={!canSave || applying || !objectUrl}
+            disabled={!cropReady || applying || !objectUrl}
             onClick={() => void handleApply()}
           >
             {applying ? "Сохранение…" : "Сохранить"}
