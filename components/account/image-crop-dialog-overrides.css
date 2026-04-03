@@ -1,12 +1,23 @@
 /*
- * Тема диалога: у библиотеки корень .advanced-cropper { background: black }.
- * При fitArea сбоку видны «полосы» — переопределяем везде, где может просвечивать.
+ * Тема: у библиотеки .advanced-cropper { background: black }.
+ * Цепочка wrapper → fade → boundary — везде задаём фон темы, иначе снизу/по краям
+ * остаётся чёрная полоса (flex не заполняет высоту, просвечивает дефолт).
  */
 .image-crop-dialog__viewport .advanced-cropper,
+.image-crop-dialog__viewport .advanced-cropper-wrapper,
+.image-crop-dialog__viewport .advanced-cropper-wrapper__fade,
+.image-crop-dialog__viewport .advanced-cropper-fade,
+.image-crop-dialog__viewport .advanced-cropper-fade--visible,
 .image-crop-dialog__viewport .advanced-cropper__boundary,
 .image-crop-dialog__viewport .advanced-cropper__wrapper,
 .image-crop-dialog__viewport .advanced-cropper__background-wrapper {
   background-color: hsl(var(--muted)) !important;
+}
+
+.image-crop-dialog__viewport .advanced-cropper-wrapper__fade.advanced-cropper-fade {
+  flex: 1 1 auto;
+  min-height: 100%;
+  width: 100%;
 }
 
 .image-crop-dialog__viewport .advanced-cropper {

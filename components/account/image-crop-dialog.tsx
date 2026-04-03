@@ -84,8 +84,8 @@ export function ImageCropDialog({
     showOutputSizeSelectProp ?? !isRoundAvatar;
 
   const defaultDescription = isRoundAvatar
-    ? "Фото заполняет область целиком. Перемещайте круг и тяните угловые маркеры, чтобы выбрать фрагмент и масштаб."
-    : "Двигайте и масштабируйте фото, настройте рамку — углы и стороны можно тянуть.";
+    ? "Видно всё фото; пустые поля по краям — нормально. Перемещайте круг и тяните маркеры, чтобы выбрать область."
+    : "Видно всё фото в рамке. Двигайте и масштабируйте снимок, настройте рамку — углы и стороны можно тянуть.";
 
   const cropperRef = useRef<CropperRef>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -174,27 +174,15 @@ export function ImageCropDialog({
         {objectUrl ? (
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
             <div className="flex w-full flex-col gap-6">
-              <div
-                className={cn(
-                  "image-crop-dialog__viewport isolate overflow-hidden rounded-xl bg-muted ring-1 ring-border/40",
-                  isRoundAvatar
-                    ? "relative mx-auto aspect-square w-full max-w-[min(100%,380px)]"
-                    : "relative w-full"
-                )}
-              >
-                <div
-                  className={cn(
-                    isRoundAvatar
-                      ? "absolute inset-0 min-h-0"
-                      : "h-[min(42dvh,360px)] min-h-[200px] w-full sm:h-[min(44dvh,380px)] sm:min-h-[220px]"
-                  )}
-                >
+              <div className="image-crop-dialog__viewport relative isolate w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
+                <div className="h-[min(46dvh,420px)] min-h-[220px] w-full sm:min-h-[240px]">
                   <Cropper
                     key={objectUrl}
                     ref={cropperRef}
                     src={objectUrl}
-                    imageRestriction={ImageRestriction.fillArea}
-                    className="advanced-cropper !max-h-none h-full w-full"
+                    imageRestriction={ImageRestriction.fitArea}
+                    className="advanced-cropper !max-h-none h-full min-h-0 w-full"
+                    style={{ backgroundColor: "hsl(var(--muted))" }}
                     backgroundWrapperProps={
                       isRoundAvatar
                         ? { moveImage: false, scaleImage: false }
