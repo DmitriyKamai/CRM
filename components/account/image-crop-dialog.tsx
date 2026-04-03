@@ -174,17 +174,21 @@ export function ImageCropDialog({
         {objectUrl ? (
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
             <div className="flex w-full flex-col gap-6">
-              <div className="image-crop-dialog__viewport relative isolate w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
-                <div className="h-[min(46dvh,420px)] min-h-[220px] w-full sm:min-h-[240px]">
-                  <Cropper
-                    key={objectUrl}
-                    ref={cropperRef}
-                    src={objectUrl}
-                    imageRestriction={
-                      isRoundAvatar ? ImageRestriction.fillArea : ImageRestriction.fitArea
-                    }
-                    className="advanced-cropper !max-h-none h-full min-h-0 w-full"
-                    style={{ backgroundColor: "hsl(var(--muted))" }}
+              <div
+                className={cn(
+                  "image-crop-dialog__viewport relative isolate w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border/40",
+                  "h-[min(46dvh,420px)] min-h-[220px] sm:min-h-[240px]"
+                )}
+              >
+                <Cropper
+                  key={objectUrl}
+                  ref={cropperRef}
+                  src={objectUrl}
+                  imageRestriction={
+                    isRoundAvatar ? ImageRestriction.fillArea : ImageRestriction.fitArea
+                  }
+                  className="advanced-cropper !max-h-none absolute inset-0 min-h-0 w-full"
+                  style={{ backgroundColor: "hsl(var(--muted))" }}
                     backgroundWrapperProps={
                       isRoundAvatar
                         ? { moveImage: false, scaleImage: false }
@@ -204,7 +208,6 @@ export function ImageCropDialog({
                     onReady={syncReady}
                     onUpdate={syncReady}
                   />
-                </div>
               </div>
 
               {showOutputSizeSelect ? (

@@ -9,6 +9,9 @@
 .image-crop-dialog__viewport .advanced-cropper-fade,
 .image-crop-dialog__viewport .advanced-cropper-fade--visible,
 .image-crop-dialog__viewport .advanced-cropper__boundary,
+.image-crop-dialog__viewport .advanced-cropper-boundary,
+.image-crop-dialog__viewport .advanced-cropper-boundary__stretcher,
+.image-crop-dialog__viewport .advanced-cropper-boundary__content,
 .image-crop-dialog__viewport .advanced-cropper__wrapper,
 .image-crop-dialog__viewport .advanced-cropper__background-wrapper {
   background-color: hsl(var(--muted)) !important;
@@ -17,7 +20,13 @@
 .image-crop-dialog__viewport .advanced-cropper-wrapper__fade.advanced-cropper-fade {
   flex: 1 1 auto;
   min-height: 100%;
+  height: 100%;
   width: 100%;
+}
+
+/* Корень кропера в absolute inset-0: без явной высоты цепочка flex внутри библиотеки даёт щель и просвечивает чёрный фон темы. */
+.image-crop-dialog__viewport > .advanced-cropper.advanced-cropper-wrapper {
+  min-height: 100%;
 }
 
 .image-crop-dialog__viewport .advanced-cropper {
