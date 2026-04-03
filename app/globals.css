@@ -207,12 +207,6 @@
    */
   .surface-glass[data-surface="dialog"] {
     border-color: hsl(0 0% 100% / 0.14);
-    /**
-     * Поля (SelectTrigger, TimeInput) сидят на bg-[hsl(var(--input-bg))].
-     * В модалке «Новая запись» их много — сплошной --input-bg визуально «забивает» стекло;
-     * кроп в основном текст + viewport, поэтому казалось, что у записи другое стекло.
-     */
-    --input-bg: 0 0% 100% / 0.55;
   }
 
   .dark .surface-glass[data-surface="dialog"] {
@@ -220,7 +214,6 @@
     background-color: hsl(0 0% 100% / 0.09);
     -webkit-backdrop-filter: blur(14px) saturate(1.25);
     backdrop-filter: blur(14px) saturate(1.25);
-    --input-bg: 0 0% 100% / 0.12;
   }
 
   /** Нижняя плашка — чуть плотнее белого, читаемость кнопки. */
