@@ -1,5 +1,14 @@
-/* Тема диалога: библиотека задаёт .advanced-cropper { background: black } */
+/*
+ * Тема диалога: у библиотеки корень .advanced-cropper { background: black }.
+ * При fitArea сбоку видны «полосы» — переопределяем везде, где может просвечивать.
+ */
+.image-crop-dialog__viewport .advanced-cropper,
+.image-crop-dialog__viewport .advanced-cropper__boundary,
+.image-crop-dialog__viewport .advanced-cropper__wrapper,
+.image-crop-dialog__viewport .advanced-cropper__background-wrapper {
+  background-color: hsl(var(--muted)) !important;
+}
+
 .image-crop-dialog__viewport .advanced-cropper {
-  background: hsl(var(--muted)) !important;
   color: hsl(var(--foreground)) !important;
 }

@@ -105,8 +105,8 @@ export function AvatarUploadBlock({ image, initials, alt, onSuccess }: Props) {
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          JPEG, PNG, WebP или GIF, не более 2 МБ. После выбора — круглая область и размер файла. Или
-          аватар из Google/Apple в разделе «Аккаунты».
+          JPEG, PNG, WebP или GIF, не более 2 МБ. После выбора — круглое кадрирование, сохранение 512×512
+          px. Или аватар из Google/Apple в разделе «Аккаунты».
         </p>
       </div>
 
@@ -121,7 +121,6 @@ export function AvatarUploadBlock({ image, initials, alt, onSuccess }: Props) {
         cropPreviewShape="round"
         circularExport
         title="Обрежьте аватар"
-        defaultOutputSize={512}
         onCroppedFile={(f) => uploadCroppedFile(f)}
       />
     </div>
