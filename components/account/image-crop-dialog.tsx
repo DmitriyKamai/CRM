@@ -84,7 +84,7 @@ export function ImageCropDialog({
     showOutputSizeSelectProp ?? !isRoundAvatar;
 
   const defaultDescription = isRoundAvatar
-    ? "Фото заполняет область (края могут быть за пределами экрана). Перемещайте круг и тяните маркеры, чтобы выбрать фрагмент."
+    ? "Видно всё фото; поля по краям — цвет интерфейса (не чёрный). Перемещайте круг и тяните маркеры, чтобы выбрать область."
     : "Видно всё фото в рамке. Двигайте и масштабируйте снимок, настройте рамку — углы и стороны можно тянуть.";
 
   const cropperRef = useRef<CropperRef>(null);
@@ -207,9 +207,7 @@ export function ImageCropDialog({
                   key={objectUrl}
                   ref={cropperRef}
                   src={objectUrl}
-                  imageRestriction={
-                    isRoundAvatar ? ImageRestriction.fillArea : ImageRestriction.fitArea
-                  }
+                  imageRestriction={ImageRestriction.fitArea}
                   className="advanced-cropper !max-h-none absolute inset-0 min-h-0 w-full"
                   style={{ backgroundColor: "hsl(var(--muted))" }}
                     backgroundWrapperProps={

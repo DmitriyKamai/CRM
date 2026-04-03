@@ -1,7 +1,6 @@
 /*
- * Тема: у библиотеки .advanced-cropper { background: black }.
- * Цепочка wrapper → fade → boundary — везде задаём фон темы, иначе снизу/по краям
- * остаётся чёрная полоса (flex не заполняет высоту, просвечивает дефолт).
+ * Дефолт библиотеки: .advanced-cropper { background: black } — для нас не нужен.
+ * Поля при object-fit: contain (fitArea) — тот же фон, что и у превью: hsl(var(--muted)).
  */
 .image-crop-dialog__viewport .advanced-cropper,
 .image-crop-dialog__viewport .advanced-cropper-wrapper,
@@ -38,4 +37,6 @@
 
 .image-crop-dialog__viewport .advanced-cropper {
   color: hsl(var(--foreground)) !important;
+  /* На случай порядка стилей: корень не должен просвечивать чёрным из темы cropper. */
+  background-color: hsl(var(--muted)) !important;
 }
