@@ -1,0 +1,5 @@
+/* Тема диалога: библиотека задаёт .advanced-cropper { background: black } */
+.image-crop-dialog__viewport .advanced-cropper {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}

@@ -9,9 +9,11 @@ import {
 } from "react-advanced-cropper";
 import "react-advanced-cropper/dist/style.css";
 import "react-advanced-cropper/dist/themes/default.css";
+import "./image-crop-dialog-overrides.css";
 import { toast } from "sonner";
 
 import { squareCanvasToCircularJpegBlob } from "@/lib/image-crop/square-canvas-to-circular-jpeg";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -70,8 +72,8 @@ export function ImageCropDialog({
   const isRoundAvatar = cropPreviewShape === "round" && circularExport;
 
   const defaultDescription = isRoundAvatar
-    ? "Перетащите круг и при необходимости потяните за маркеры по контуру, чтобы изменить масштаб области. Фото под стенсилом двигается стандартными жестами кропера."
-    : "Перемещайте и масштабируйте фото, настройте рамку. Углы и стороны рамки можно тянуть для размера.";
+    ? "Перетащите круг, тяните маркеры по контуру для масштаба. Само фото двигается жестами (как в карте)."
+    : "Двигайте и масштабируйте фото, настройте рамку — углы и стороны можно тянуть.";
 
   const cropperRef = useRef<CropperRef>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -141,69 +143,87 @@ export function ImageCropDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description ?? defaultDescription}</DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className={cn(
+          "max-w-2xl gap-0 overflow-hidden p-0",
+          "flex max-h-[min(90dvh,880px)] flex-col sm:max-w-2xl"
+        )}
+      >
+        <div className="shrink-0 border-b border-border/50 px-6 pb-3 pt-6 pr-14">
+          <DialogHeader className="space-y-2 text-left">
+            <DialogTitle className="pr-2 leading-snug">{title}</DialogTitle>
+            <DialogDescription className="text-pretty leading-relaxed">
+              {description ?? defaultDescription}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
         {objectUrl ? (
-          <div className="space-y-4">
-            <div className="relative h-[min(55vh,400px)] w-full min-h-[280px] overflow-hidden rounded-lg border border-border/60 bg-muted">
-              <Cropper
-                key={objectUrl}
-                ref={cropperRef}
-                src={objectUrl}
-                className="advanced-cropper h-full !max-h-none bg-muted"
-                stencilComponent={isRoundAvatar ? CircleStencil : RectangleStencil}
-                stencilProps={
-                  isRoundAvatar
-                    ? { movable: true, resizable: true, grid: false }
-                    : {
-                        movable: true,
-                        resizable: true,
-                        aspectRatio: aspect,
-                        grid: true
-                      }
-                }
-                onReady={syncReady}
-                onUpdate={syncReady}
-              />
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            <div className="mx-auto flex w-full max-w-lg flex-col gap-5">
+              <div className="image-crop-dialog__viewport relative isolate w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border/50">
+                <div className="h-[min(42dvh,360px)] w-full min-h-[200px] sm:h-[min(44dvh,380px)] sm:min-h-[220px]">
+                  <Cropper
+                    key={objectUrl}
+                    ref={cropperRef}
+                    src={objectUrl}
+                    className="advanced-cropper !max-h-none h-full w-full"
+                    stencilComponent={isRoundAvatar ? CircleStencil : RectangleStencil}
+                    stencilProps={
+                      isRoundAvatar
+                        ? { movable: true, resizable: true, grid: false }
+                        : {
+                            movable: true,
+                            resizable: true,
+                            aspectRatio: aspect,
+                            grid: true
+                          }
+                    }
+                    onReady={syncReady}
+                    onUpdate={syncReady}
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm">Размер сохраняемого фото (сторона квадрата)</Label>
-              <Select
-                value={String(outputSize)}
-                onValueChange={(v) => setOutputSize(Number(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {outputSizeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 pb-1">
+                <Label className="text-sm font-medium text-foreground">
+                  Размер сохраняемого фото (сторона квадрата)
+                </Label>
+                <Select
+                  value={String(outputSize)}
+                  onValueChange={(v) => setOutputSize(Number(v))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {outputSizeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         ) : null}
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Отмена
-          </Button>
-          <Button
-            type="button"
-            disabled={!cropReady || applying || !objectUrl}
-            onClick={() => void handleApply()}
-          >
-            {applying ? "Сохранение…" : "Сохранить"}
-          </Button>
-        </DialogFooter>
+        <div className="shrink-0 border-t border-border/60 bg-muted/30 px-6 py-4 backdrop-blur-[2px]">
+          <DialogFooter className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              className="min-w-[8.5rem] shrink-0"
+              disabled={!cropReady || applying || !objectUrl}
+              onClick={() => void handleApply()}
+            >
+              {applying ? "Сохранение…" : "Сохранить"}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
