@@ -35,8 +35,8 @@ type DialogContentProps = React.ComponentPropsWithoutRef<
   /** Если false — кнопка закрытия не рендерится (разместите свою внутри children). */
   showCloseButton?: boolean;
   /**
-   * Внутренний блок со скроллом (родитель с затемнением «вокруг» остаётся overflow: visible).
-   * По умолчанию: колонка flex, отступы, max-height и скролл.
+   * Если задан — один внутренний контейнер с этими классами (как в ImageCropDialog: своя сетка, p-0).
+   * Если не задан — два слоя: оболочка overflow-hidden + скругление и тело со скроллом и p-6 (как у окна обрезки).
    */
   scrollContainerClassName?: string;
 };
@@ -55,7 +55,9 @@ const DialogContent = React.forwardRef<
       ...props
     },
     ref
-  ) => (
+  ) => {
+    const customShell = Boolean(scrollContainerClassName?.trim());
+    return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
@@ -67,14 +69,22 @@ const DialogContent = React.forwardRef<
         )}
         {...props}
       >
-        <div
-          className={cn(
-            "dialog-content-inner flex max-h-[90vh] flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-xl p-6",
-            scrollContainerClassName
-          )}
-        >
-          {children}
-        </div>
+        {customShell ? (
+          <div
+            className={cn(
+              "dialog-content-inner flex max-h-[90vh] flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-xl p-6",
+              scrollContainerClassName
+            )}
+          >
+            {children}
+          </div>
+        ) : (
+          <div className="flex max-h-[90vh] min-h-0 flex-col overflow-hidden rounded-xl">
+            <div className="dialog-content-inner flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden p-6">
+              {children}
+            </div>
+          </div>
+        )}
         {showCloseButton ? (
           <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-4 w-4" />
@@ -83,7 +93,8 @@ const DialogContent = React.forwardRef<
         ) : null}
       </DialogPrimitive.Content>
     </DialogPortal>
-  )
+    );
+  }
 );
 DialogContent.displayName = DialogPrimitive.Content.displayName
 

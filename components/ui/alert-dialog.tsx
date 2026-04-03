@@ -41,8 +41,10 @@ const AlertDialogContent = React.forwardRef<
       )}
       {...props}
     >
-      <div className="flex max-h-[90vh] flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-none p-6 sm:rounded-lg">
-        {children}
+      <div className="flex max-h-[90vh] min-h-0 flex-col overflow-hidden rounded-none sm:rounded-lg">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden p-6">
+          {children}
+        </div>
       </div>
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
