@@ -202,16 +202,18 @@
   }
 
   /**
-   * Модальные окна: слабее контур, чем у обычного .surface-glass (без яркой белой рамки).
-   * Тени остаются у .dialog-outside-dim — здесь только border и чуть прозрачнее вуаль в тёмной теме.
+   * Модальные окна: один селектор по data-surface (без второго класса .surface-glass-*).
+   * В тёмной теме — тоньше вуаль и сильнее blur, чтобы просвечивала страница за оверлеем.
    */
-  .surface-glass.surface-glass-dialog-panel {
+  .surface-glass[data-surface="dialog"] {
     border-color: hsl(0 0% 100% / 0.14);
   }
 
-  .dark .surface-glass.surface-glass-dialog-panel {
-    border-color: hsl(0 0% 100% / 0.08);
-    background-color: hsl(0 0% 100% / 0.14);
+  .dark .surface-glass[data-surface="dialog"] {
+    border-color: hsl(0 0% 100% / 0.06);
+    background-color: hsl(0 0% 100% / 0.09);
+    -webkit-backdrop-filter: blur(14px) saturate(1.25);
+    backdrop-filter: blur(14px) saturate(1.25);
   }
 
   /** Нижняя плашка — чуть плотнее белого, читаемость кнопки. */

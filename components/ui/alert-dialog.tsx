@@ -35,14 +35,17 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
       ref={ref}
+      data-surface="dialog"
       className={cn(
-        "surface-glass surface-glass-dialog-panel dialog-outside-dim fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-visible p-0 text-foreground duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        "surface-glass dialog-outside-dim fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-visible p-0 text-foreground duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
       {...props}
     >
-      <div className="flex max-h-[90vh] min-h-0 flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-none bg-transparent p-6 sm:rounded-lg">
-        {children}
+      <div className="flex min-h-0 max-h-[min(90dvh,880px)] flex-col gap-0 overflow-hidden rounded-none bg-transparent p-0 sm:rounded-lg">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+          <div className="flex flex-col gap-4">{children}</div>
+        </div>
       </div>
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>

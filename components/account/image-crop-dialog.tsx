@@ -18,6 +18,7 @@ import { squareCanvasToCircularJpegBlob } from "@/lib/image-crop/square-canvas-t
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
+  DIALOG_INNER_SHELL,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -230,9 +231,7 @@ export function ImageCropDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        scrollContainerClassName={cn(
-          "flex min-h-0 max-h-[min(90dvh,880px)] flex-col gap-0 overflow-hidden p-0 rounded-xl"
-        )}
+        scrollContainerClassName={DIALOG_INNER_SHELL}
         className={cn("max-w-2xl gap-0 sm:max-w-2xl")}
       >
         <div className="shrink-0 border-b border-border/50 px-6 pb-3 pt-6 pr-14">
