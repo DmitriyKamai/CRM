@@ -110,6 +110,24 @@ export function ImageCropDialog({
     }
   }, [open, file, defaultOutputSize]);
 
+  /** После открытия и анимации диалога пересчитываем boundary (stretcher иначе бывает ниже viewport). */
+  useEffect(() => {
+    if (!open || !objectUrl) return;
+    let cancelled = false;
+    const refresh = () => {
+      if (!cancelled) void cropperRef.current?.refresh?.();
+    };
+    const t0 = window.setTimeout(refresh, 0);
+    const t1 = window.setTimeout(refresh, 150);
+    const t2 = window.setTimeout(refresh, 320);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [open, objectUrl]);
+
   const syncReady = useCallback(() => {
     const c = cropperRef.current;
     setCropReady(Boolean(c?.isLoaded()));
@@ -172,7 +190,12 @@ export function ImageCropDialog({
         </div>
 
         {objectUrl ? (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+          <div
+            className={cn(
+              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-5",
+              showOutputSizeSelect ? "pb-4" : "pb-0"
+            )}
+          >
             <div className="flex w-full flex-col gap-6">
               <div
                 className={cn(

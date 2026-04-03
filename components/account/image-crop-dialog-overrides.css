@@ -24,9 +24,16 @@
   width: 100%;
 }
 
-/* Корень кропера в absolute inset-0: без явной высоты цепочка flex внутри библиотеки даёт щель и просвечивает чёрный фон темы. */
+/* Корень кропера absolute inset-0: fade и boundary тянутся на всю высоту viewport. */
 .image-crop-dialog__viewport > .advanced-cropper.advanced-cropper-wrapper {
   min-height: 100%;
+  height: 100%;
+}
+
+.image-crop-dialog__viewport .advanced-cropper-boundary,
+.image-crop-dialog__viewport .advanced-cropper__boundary {
+  min-height: 100%;
+  height: 100%;
 }
 
 .image-crop-dialog__viewport .advanced-cropper {
