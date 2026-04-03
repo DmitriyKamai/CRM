@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleStencil,
   Cropper,
@@ -13,6 +13,7 @@ import "react-advanced-cropper/dist/themes/default.css";
 import "./image-crop-dialog-overrides.css";
 import { toast } from "sonner";
 
+import { fitImageDisplaySize } from "@/lib/image-crop/fit-display-size";
 import { squareCanvasToCircularJpegBlob } from "@/lib/image-crop/square-canvas-to-circular-jpeg";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,12 @@ const DEFAULT_OUTPUT_OPTIONS = [
 
 /** Экспорт аватара на сервер — один разумный размер, без выбора в UI. */
 const AVATAR_EXPORT_PX = 512;
+
+/** Вертикальный предел области кропа (согласован с прежним h-[min(46dvh,420px)]). */
+function maxCropViewportHeightPx(): number {
+  if (typeof window === "undefined") return 420;
+  return Math.min(window.innerHeight * 0.46, 420);
+}
 
 export type ImageCropDialogProps = {
   open: boolean;
@@ -84,11 +91,15 @@ export function ImageCropDialog({
     showOutputSizeSelectProp ?? !isRoundAvatar;
 
   const defaultDescription = isRoundAvatar
-    ? "Видно всё фото; поля по краям — цвет интерфейса (не чёрный). Перемещайте круг и тяните маркеры, чтобы выбрать область."
-    : "Видно всё фото в рамке. Двигайте и масштабируйте снимок, настройте рамку — углы и стороны можно тянуть.";
+    ? "Рамка подогнана под размер фото. Перемещайте круг и тяните маркеры, чтобы выбрать область."
+    : "Рамка подогнана под размер фото. Двигайте и масштабируйте снимок, настройте рамку — углы и стороны можно тянуть.";
 
   const cropperRef = useRef<CropperRef>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const [availWidth, setAvailWidth] = useState(560);
+  const [maxCropH, setMaxCropH] = useState(420);
   const [cropReady, setCropReady] = useState(false);
   const [outputSize, setOutputSize] = useState(defaultOutputSize);
   const [applying, setApplying] = useState(false);
@@ -110,7 +121,51 @@ export function ImageCropDialog({
     }
   }, [open, file, defaultOutputSize]);
 
-  /** После открытия и анимации диалога пересчитываем boundary (stretcher иначе бывает ниже viewport). */
+  useEffect(() => {
+    if (!objectUrl) {
+      setNaturalSize(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      setNaturalSize({
+        w: img.naturalWidth,
+        h: img.naturalHeight
+      });
+    };
+    img.onerror = () => setNaturalSize(null);
+    img.src = objectUrl;
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [objectUrl]);
+
+  useEffect(() => {
+    const upd = () => setMaxCropH(maxCropViewportHeightPx());
+    upd();
+    window.addEventListener("resize", upd);
+    return () => window.removeEventListener("resize", upd);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const el = measureRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setAvailWidth(Math.max(80, Math.floor(el.clientWidth)));
+    });
+    ro.observe(el);
+    setAvailWidth(Math.max(80, Math.floor(el.clientWidth)));
+    return () => ro.disconnect();
+  }, [open, objectUrl]);
+
+  const displaySize = useMemo(() => {
+    if (!naturalSize) return null;
+    return fitImageDisplaySize(naturalSize.w, naturalSize.h, availWidth, maxCropH);
+  }, [naturalSize, availWidth, maxCropH]);
+
+  /** После открытия, анимации и смены размера рамки пересчитываем boundary. */
   useEffect(() => {
     if (!open || !objectUrl) return;
     let cancelled = false;
@@ -126,7 +181,7 @@ export function ImageCropDialog({
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [open, objectUrl]);
+  }, [open, objectUrl, displaySize?.width, displaySize?.height]);
 
   const syncReady = useCallback(() => {
     const c = cropperRef.current;
@@ -197,12 +252,21 @@ export function ImageCropDialog({
             )}
           >
             <div className="flex w-full flex-col gap-6">
-              <div
-                className={cn(
-                  "image-crop-dialog__viewport relative isolate w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border/40",
-                  "h-[min(46dvh,420px)] min-h-[220px] sm:min-h-[240px]"
-                )}
-              >
+              <div ref={measureRef} className="w-full">
+                <div
+                  className={cn(
+                    "image-crop-dialog__viewport relative isolate mx-auto overflow-hidden rounded-xl bg-muted ring-1 ring-border/40",
+                    !displaySize && "min-h-[220px] w-full sm:min-h-[240px]"
+                  )}
+                  style={
+                    displaySize
+                      ? {
+                          width: displaySize.width,
+                          height: displaySize.height
+                        }
+                      : undefined
+                  }
+                >
                 <Cropper
                   key={objectUrl}
                   ref={cropperRef}
@@ -229,6 +293,7 @@ export function ImageCropDialog({
                     onReady={syncReady}
                     onUpdate={syncReady}
                   />
+                </div>
               </div>
 
               {showOutputSizeSelect ? (
