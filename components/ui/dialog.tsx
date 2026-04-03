@@ -78,8 +78,8 @@ const DialogContent = React.forwardRef<
           <div className={cn(scrollContainerClassName)}>{children}</div>
         ) : (
           <div className={DIALOG_INNER_SHELL}>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
-              <div className="flex flex-col gap-4">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-transparent px-6 py-5">
+              <div className="flex flex-col gap-4 bg-transparent">{children}</div>
             </div>
           </div>
         )}

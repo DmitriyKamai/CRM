@@ -202,18 +202,39 @@
   }
 
   /**
-   * Модальные окна: один селектор по data-surface (без второго класса .surface-glass-*).
-   * В тёмной теме — тоньше вуаль и сильнее blur, чтобы просвечивала страница за оверлеем.
+   * Модальные окна (Dialog / AlertDialog): нужен селектор с dialog-outside-dim + data-surface,
+   * иначе кольцо 100vmax и тени из .dialog-outside-dim остаются «как у панелей» и визуально
+   * перекрывают более прозрачную вуаль из .surface-glass[data-surface="dialog"].
    */
   .surface-glass[data-surface="dialog"] {
     border-color: hsl(0 0% 100% / 0.14);
   }
 
-  .dark .surface-glass[data-surface="dialog"] {
+  .surface-glass.dialog-outside-dim[data-surface="dialog"] {
+    background-color: hsl(0 0% 100% / 0.36);
+    -webkit-backdrop-filter: blur(8px) saturate(1.15);
+    backdrop-filter: blur(8px) saturate(1.15);
+    box-shadow:
+      0 0 0 100vmax rgb(0 0 0 / 0.22),
+      inset -0.75px -0.5px rgba(255, 255, 255, 0.1),
+      inset 0.75px 0.5px rgba(255, 255, 255, 0.025),
+      3px 2px 10px rgba(0, 0, 0, 0.18),
+      inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+      inset 0px 0px 40px 5px rgba(255, 255, 255, 0.025);
+  }
+
+  .dark .surface-glass.dialog-outside-dim[data-surface="dialog"] {
     border-color: hsl(0 0% 100% / 0.06);
-    background-color: hsl(0 0% 100% / 0.09);
-    -webkit-backdrop-filter: blur(14px) saturate(1.25);
-    backdrop-filter: blur(14px) saturate(1.25);
+    background-color: hsl(0 0% 100% / 0.055);
+    -webkit-backdrop-filter: blur(14px) saturate(1.12);
+    backdrop-filter: blur(14px) saturate(1.12);
+    box-shadow:
+      0 0 0 100vmax rgb(0 0 0 / 0.34),
+      inset -0.75px -0.5px rgba(255, 255, 255, 0.06),
+      inset 0.75px 0.5px rgba(255, 255, 255, 0.025),
+      3px 2px 12px rgba(0, 0, 0, 0.3),
+      inset 0px 0px 10px 5px rgba(255, 255, 255, 0.02),
+      inset 0px 0px 40px 5px rgba(255, 255, 255, 0.015);
   }
 
   /** Нижняя плашка — чуть плотнее белого, читаемость кнопки. */
