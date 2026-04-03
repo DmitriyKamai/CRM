@@ -157,10 +157,10 @@ export function ImageCropDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-2xl gap-0 overflow-hidden p-0",
-          "flex max-h-[min(90dvh,880px)] flex-col sm:max-w-2xl"
+        scrollContainerClassName={cn(
+          "flex min-h-0 max-h-[min(90dvh,880px)] flex-col gap-0 overflow-hidden p-0 rounded-xl"
         )}
+        className={cn("max-w-2xl gap-0 sm:max-w-2xl")}
       >
         <div className="shrink-0 border-b border-border/50 px-6 pb-3 pt-6 pr-14">
           <DialogHeader className="space-y-2 text-left">
@@ -239,7 +239,7 @@ export function ImageCropDialog({
           </div>
         ) : null}
 
-        <div className="shrink-0 border-t border-border/50 bg-background/95 px-6 py-4">
+        <div className="shrink-0 border-t border-border/50 px-6 py-4">
           <DialogFooter className="mt-0 flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 sm:space-x-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Отмена

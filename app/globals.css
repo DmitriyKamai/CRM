@@ -177,6 +177,30 @@
       inset 0px 0px 40px 5px rgba(255, 255, 255, 0.02);
   }
 
+  /**
+   * Диалог: затемнение только снаружи рамки (не накрывает стекло — backdrop blur виден на странице).
+   * Первый слой — «бесконечная» тень; дальше те же слои, что у .surface-glass (без них тень перезаписала бы оформление).
+   */
+  .surface-glass.dialog-outside-dim {
+    box-shadow:
+      0 0 0 100vmax rgb(0 0 0 / 0.38),
+      inset -0.75px -0.5px rgba(255, 255, 255, 0.1),
+      inset 0.75px 0.5px rgba(255, 255, 255, 0.025),
+      3px 2px 10px rgba(0, 0, 0, 0.25),
+      inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+      inset 0px 0px 40px 5px rgba(255, 255, 255, 0.025);
+  }
+
+  .dark .surface-glass.dialog-outside-dim {
+    box-shadow:
+      0 0 0 100vmax rgb(0 0 0 / 0.52),
+      inset -0.75px -0.5px rgba(255, 255, 255, 0.08),
+      inset 0.75px 0.5px rgba(255, 255, 255, 0.03),
+      3px 2px 14px rgba(0, 0, 0, 0.45),
+      inset 0px 0px 10px 5px rgba(255, 255, 255, 0.025),
+      inset 0px 0px 40px 5px rgba(255, 255, 255, 0.02);
+  }
+
   /** Нижняя плашка — чуть плотнее белого, читаемость кнопки. */
   .surface-glass-dock {
     border: 1px solid hsl(0 0% 100% / 0.5);

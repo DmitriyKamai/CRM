@@ -103,10 +103,15 @@ export function ClientsImportDialog(props: {
       }}
     >
       <DialogContent
+        scrollContainerClassName={
+          hasSource
+            ? "flex h-full max-h-none min-h-0 flex-1 flex-col gap-4 overflow-hidden rounded-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:p-6"
+            : undefined
+        }
         className={
           hasSource
-            ? "max-w-none w-full h-[100dvh] max-h-[100dvh] min-h-0 left-0 top-0 translate-x-0 translate-y-0 rounded-none flex flex-col overflow-hidden gap-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:p-6"
-            : "max-w-2xl max-h-[90vh] overflow-y-auto"
+            ? "max-w-none flex h-[100dvh] max-h-[100dvh] min-h-0 w-full flex-col gap-0 overflow-visible rounded-none p-0 left-0 top-0 translate-x-0 translate-y-0"
+            : "max-w-2xl overflow-visible"
         }
       >
         <DialogHeader className={hasSource ? "shrink-0 text-left" : undefined}>

@@ -21,7 +21,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-transparent data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -34,6 +34,11 @@ type DialogContentProps = React.ComponentPropsWithoutRef<
 > & {
   /** Если false — кнопка закрытия не рендерится (разместите свою внутри children). */
   showCloseButton?: boolean;
+  /**
+   * Внутренний блок со скроллом (родитель с затемнением «вокруг» остаётся overflow: visible).
+   * По умолчанию: колонка flex, отступы, max-height и скролл.
+   */
+  scrollContainerClassName?: string;
 };
 
 const DialogContent = React.forwardRef<
@@ -46,6 +51,7 @@ const DialogContent = React.forwardRef<
       children,
       "aria-describedby": ariaDescribedBy,
       showCloseButton = true,
+      scrollContainerClassName,
       ...props
     },
     ref
@@ -56,12 +62,19 @@ const DialogContent = React.forwardRef<
         ref={ref}
         aria-describedby={ariaDescribedBy}
         className={cn(
-          "surface-glass isolate fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto overflow-x-hidden rounded-xl p-6 text-foreground duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+          "surface-glass dialog-outside-dim isolate fixed left-[50%] top-[50%] z-50 w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-visible rounded-xl p-0 text-foreground duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
           className
         )}
         {...props}
       >
-        {children}
+        <div
+          className={cn(
+            "dialog-content-inner flex max-h-[90vh] flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-xl p-6",
+            scrollContainerClassName
+          )}
+        >
+          {children}
+        </div>
         {showCloseButton ? (
           <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-4 w-4" />

@@ -26,7 +26,10 @@ Command.displayName = CommandPrimitive.displayName
 const CommandDialog = ({ children, ...props }: DialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0 shadow-lg">
+      <DialogContent
+        scrollContainerClassName="flex max-h-[85vh] flex-col overflow-hidden rounded-xl p-0"
+        className="max-w-lg"
+      >
         <DialogTitle className="sr-only">Командная палитра</DialogTitle>
         <DialogDescription className="sr-only">
           Поиск и выполнение быстрых команд приложения.
