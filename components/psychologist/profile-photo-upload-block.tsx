@@ -134,8 +134,8 @@ export function ProfilePhotoUploadBlock({
           </div>
           <p className="text-xs text-muted-foreground">
             {schedulingEnabled
-              ? "Фото для карточки «Записаться к психологу». JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование и размер."
-              : "Фото профиля. JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование и размер."}
+              ? "Фото для карточки «Записаться к психологу». JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование, сохранение 512×512 px."
+              : "Фото профиля. JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование, сохранение 512×512 px."}
           </p>
         </div>
       </div>
@@ -149,8 +149,7 @@ export function ProfilePhotoUploadBlock({
         file={pendingFile}
         aspect={1}
         title="Обрежьте фото профиля"
-        description="Выберите область для квадратной карточки. Настройте масштаб и размер сохраняемого файла."
-        defaultOutputSize={720}
+        description="Выберите область для квадратной карточки 512×512 px. Настройте масштаб и рамку."
         onCroppedFile={(f) => uploadCroppedFile(f)}
       />
       {schedulingEnabled && (

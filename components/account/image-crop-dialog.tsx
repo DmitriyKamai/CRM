@@ -26,24 +26,8 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-
-const DEFAULT_OUTPUT_OPTIONS = [
-  { label: "400 px — компактно", value: 400 },
-  { label: "512 px — стандарт", value: 512 },
-  { label: "720 px — крупнее", value: 720 },
-  { label: "1024 px — максимум", value: 1024 }
-] as const;
-
-/** Экспорт аватара на сервер — один разумный размер, без выбора в UI. */
-const AVATAR_EXPORT_PX = 512;
+/** Экспорт кропа на сервер — один размер (квадрат), без выбора в UI. */
+const EXPORT_SIDE_PX = 512;
 
 /** Вертикальный предел области кропа (согласован с прежним h-[min(46dvh,420px)]). */
 function maxCropViewportHeightPx(): number {
@@ -61,15 +45,8 @@ export type ImageCropDialogProps = {
   cropPreviewShape?: "rect" | "round";
   /** Итоговый JPEG с круглой маской и белыми углами (аватар). */
   circularExport?: boolean;
-  /**
-   * Показывать выбор стороны квадрата экспорта. Для аватара выключайте — размер фиксированный.
-   * @default true для прямоугольного кропа, false если round + circularExport
-   */
-  showOutputSizeSelect?: boolean;
   title: string;
   description?: string;
-  outputSizeOptions?: readonly { label: string; value: number }[];
-  defaultOutputSize?: number;
   onCroppedFile: (file: File) => void | Promise<void>;
 };
 
@@ -80,20 +57,15 @@ export function ImageCropDialog({
   aspect,
   cropPreviewShape = "rect",
   circularExport = false,
-  showOutputSizeSelect: showOutputSizeSelectProp,
   title,
   description,
-  outputSizeOptions = DEFAULT_OUTPUT_OPTIONS,
-  defaultOutputSize = 512,
   onCroppedFile
 }: ImageCropDialogProps) {
   const isRoundAvatar = cropPreviewShape === "round" && circularExport;
-  const showOutputSizeSelect =
-    showOutputSizeSelectProp ?? !isRoundAvatar;
 
   const defaultDescription = isRoundAvatar
-    ? "Рамка подогнана под размер фото. Перемещайте круг и тяните маркеры, чтобы выбрать область."
-    : "Рамка подогнана под размер фото. Двигайте и масштабируйте снимок, настройте рамку — углы и стороны можно тянуть.";
+    ? "Рамка подогнана под размер фото. Перемещайте круг и тяните маркеры, чтобы выбрать область. Сохранение — 512×512 px."
+    : "Рамка подогнана под размер фото. Двигайте и масштабируйте снимок, настройте рамку — углы и стороны можно тянуть. Сохранение — 512×512 px.";
 
   const cropperRef = useRef<CropperRef>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -102,7 +74,6 @@ export function ImageCropDialog({
   const [availWidth, setAvailWidth] = useState(560);
   const [maxCropH, setMaxCropH] = useState(420);
   const [cropReady, setCropReady] = useState(false);
-  const [outputSize, setOutputSize] = useState(defaultOutputSize);
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
@@ -116,11 +87,8 @@ export function ImageCropDialog({
   }, [file]);
 
   useEffect(() => {
-    if (open) {
-      setCropReady(false);
-      setOutputSize(defaultOutputSize);
-    }
-  }, [open, file, defaultOutputSize]);
+    if (open) setCropReady(false);
+  }, [open, file]);
 
   useEffect(() => {
     if (!objectUrl) {
@@ -194,10 +162,9 @@ export function ImageCropDialog({
     if (!c?.isLoaded() || !file) return;
     setApplying(true);
     try {
-      const side = isRoundAvatar ? AVATAR_EXPORT_PX : outputSize;
       const canvas = c.getCanvas({
-        width: side,
-        height: side,
+        width: EXPORT_SIDE_PX,
+        height: EXPORT_SIDE_PX,
         fillColor: "#ffffff",
         imageSmoothingQuality: "high"
       });
@@ -207,7 +174,7 @@ export function ImageCropDialog({
       }
 
       const blob = isRoundAvatar
-        ? await squareCanvasToCircularJpegBlob(canvas, AVATAR_EXPORT_PX, 0.9)
+        ? await squareCanvasToCircularJpegBlob(canvas, EXPORT_SIDE_PX, 0.9)
         : await new Promise<Blob>((resolve, reject) => {
             canvas.toBlob(
               (b) => (b ? resolve(b) : reject(new Error("toBlob"))),
@@ -244,12 +211,7 @@ export function ImageCropDialog({
         </div>
 
         {objectUrl ? (
-          <div
-            className={cn(
-              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-5",
-              showOutputSizeSelect ? "pb-4" : "pb-0"
-            )}
-          >
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-0 pt-5">
             <div className="flex w-full flex-col gap-6">
               <div ref={measureRef} className="w-full">
                 <div
@@ -294,32 +256,6 @@ export function ImageCropDialog({
                   />
                 </div>
               </div>
-
-              {showOutputSizeSelect ? (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground" htmlFor="image-crop-output-size">
-                    Размер сохраняемого фото (сторона квадрата)
-                  </Label>
-                  <Select
-                    value={String(outputSize)}
-                    onValueChange={(v) => setOutputSize(Number(v))}
-                  >
-                    <SelectTrigger
-                      id="image-crop-output-size"
-                      className="w-full focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {outputSizeOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={String(opt.value)}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
             </div>
           </div>
         ) : null}
