@@ -201,6 +201,19 @@
       inset 0px 0px 40px 5px rgba(255, 255, 255, 0.02);
   }
 
+  /**
+   * Модальные окна: слабее контур, чем у обычного .surface-glass (без яркой белой рамки).
+   * Тени остаются у .dialog-outside-dim — здесь только border и чуть прозрачнее вуаль в тёмной теме.
+   */
+  .surface-glass.surface-glass-dialog-panel {
+    border-color: hsl(0 0% 100% / 0.14);
+  }
+
+  .dark .surface-glass.surface-glass-dialog-panel {
+    border-color: hsl(0 0% 100% / 0.08);
+    background-color: hsl(0 0% 100% / 0.14);
+  }
+
   /** Нижняя плашка — чуть плотнее белого, читаемость кнопки. */
   .surface-glass-dock {
     border: 1px solid hsl(0 0% 100% / 0.5);

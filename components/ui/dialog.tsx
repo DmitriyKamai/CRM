@@ -35,8 +35,8 @@ type DialogContentProps = React.ComponentPropsWithoutRef<
   /** Если false — кнопка закрытия не рендерится (разместите свою внутри children). */
   showCloseButton?: boolean;
   /**
-   * Если задан — один внутренний контейнер с этими классами (как в ImageCropDialog: своя сетка, p-0).
-   * Если не задан — два слоя: оболочка overflow-hidden + скругление и тело со скроллом и p-6 (как у окна обрезки).
+   * Если задан — один внутренний контейнер (как ImageCropDialog: своя сетка, p-0).
+   * Если не задан — один блок со скроллом и p-6 (та же схема «стекло на Content», без лишней оболочки).
    */
   scrollContainerClassName?: string;
 };
@@ -64,7 +64,7 @@ const DialogContent = React.forwardRef<
         ref={ref}
         aria-describedby={ariaDescribedBy}
         className={cn(
-          "surface-glass dialog-outside-dim isolate fixed left-[50%] top-[50%] z-50 w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-visible rounded-xl p-0 text-foreground duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+          "surface-glass surface-glass-dialog-panel dialog-outside-dim fixed left-[50%] top-[50%] z-50 w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-visible rounded-xl p-0 text-foreground duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
           className
         )}
         {...props}
@@ -72,17 +72,15 @@ const DialogContent = React.forwardRef<
         {customShell ? (
           <div
             className={cn(
-              "dialog-content-inner flex max-h-[90vh] flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-xl p-6",
+              "dialog-content-inner flex max-h-[90vh] flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-xl bg-transparent p-6",
               scrollContainerClassName
             )}
           >
             {children}
           </div>
         ) : (
-          <div className="flex max-h-[90vh] min-h-0 flex-col overflow-hidden rounded-xl">
-            <div className="dialog-content-inner flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden p-6">
-              {children}
-            </div>
+          <div className="dialog-content-inner flex max-h-[90vh] min-h-0 flex-col gap-4 overflow-y-auto overflow-x-hidden rounded-xl bg-transparent p-6">
+            {children}
           </div>
         )}
         {showCloseButton ? (
