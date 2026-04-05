@@ -5,6 +5,12 @@ import {
   validatePublicSlug
 } from "@/lib/settings/public-profile-slug";
 
+describe("normalizePublicSlugInput", () => {
+  it("оставляет завершающий дефис при наборе", () => {
+    expect(normalizePublicSlugInput("ivan-")).toBe("ivan-");
+  });
+});
+
 describe("validatePublicSlug", () => {
   it("принимает обычный slug", () => {
     expect(validatePublicSlug("ivan-petrov")).toEqual({ ok: true, slug: "ivan-petrov" });

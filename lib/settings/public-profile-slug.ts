@@ -75,12 +75,14 @@ const MIN_SLUG_LENGTH = 3;
 /**
  * Приводит ввод к нижнему регистру, заменяет пробелы и подчёркивания на дефис,
  * удаляет недопустимые символы.
+ * Завершающий дефис не обрезаем — иначе при вводе «ivan-» он исчезает до следующей буквы;
+ * финальная проверка — в `validatePublicSlug`.
  */
 export function normalizePublicSlugInput(raw: string): string {
   let s = raw.trim().toLowerCase().replace(/[\s_]+/g, "-");
   s = s.replace(/[^a-z0-9-]/g, "");
   s = s.replace(/-+/g, "-");
-  s = s.replace(/^-+|-+$/g, "");
+  s = s.replace(/^-+/, "");
   if (s.length > MAX_SLUG_LENGTH) {
     s = s.slice(0, MAX_SLUG_LENGTH).replace(/-+$/g, "");
   }
