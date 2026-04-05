@@ -213,8 +213,16 @@ model PsychologistProfile {
   contactViber       String?
   contactWhatsapp    String?
   profilePhotoUrl     String?   // фото для карточки в «Записаться к психологу» (отдельно от User.image — аватар)
-  /// Показывать карточку клиентам в каталоге (колонка БД profilePhotoPublished).
-  profilePhotoPublished Boolean @default(false)
+  /// Латиница, цифры и дефис; уникальный адрес `/client/psychologists/{slug}`.
+  publicSlug            String?  @unique
+  /// Публичная страница доступна по slug (или по legacy id, пока slug пуст).
+  profilePagePublished  Boolean  @default(false)
+  /// Карточка в каталоге «Найти психолога» (страница при этом тоже должна быть опубликована).
+  catalogVisible        Boolean  @default(false)
+  /// Город и страна приёма для клиентов (не путать с личным адресом в User).
+  practiceCountry       String?
+  practiceCity          String?
+  worksOnline           Boolean  @default(false)
   settingsJson   Json?    // общие настройки, включая параметры расписания по умолчанию
   /// OAuth refresh token Google Sheets. При `GOOGLE_SHEETS_TOKEN_ENCRYPTION_KEY` шифруется в приложении (см. lib/google-sheets-refresh-token-crypto.ts, DEPLOY.md).
   googleSheetsRefreshToken String? @db.Text

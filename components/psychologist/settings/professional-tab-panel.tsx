@@ -2,24 +2,31 @@
 
 import type { Dispatch, FC, SetStateAction } from "react";
 
+import { ProfilePhotoUploadBlock } from "@/components/psychologist/profile-photo-upload-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ProfilePhotoUploadBlock } from "@/components/psychologist/profile-photo-upload-block";
+import { Switch } from "@/components/ui/switch";
+import { normalizePublicSlugInput } from "@/lib/settings/public-profile-slug";
 
 export type ProfessionOption = { value: string; label: string };
 
 type Props = {
-  schedulingEnabled: boolean;
   profilePhotoUrl: string | null;
-  profilePhotoPublished: boolean;
   initials: string;
   alt: string;
-  publishSaving: boolean;
-  onPublishChange: (published: boolean) => void;
   onSuccess: () => void;
+
+  profilePagePublished: boolean;
+  catalogVisible: boolean;
+  visibilitySaving: boolean;
+  onProfilePagePublishedChange: (published: boolean) => void;
+  onCatalogVisibleChange: (visible: boolean) => void;
+
+  publicSlug: string;
+  setPublicSlug: Dispatch<SetStateAction<string>>;
 
   handleSaveProfessional: (e: React.FormEvent) => Promise<void>;
   savingProfessional: boolean;
@@ -33,6 +40,13 @@ type Props = {
   setSpecialization: Dispatch<SetStateAction<string>>;
   PROFESSION_OPTIONS: ProfessionOption[];
 
+  practiceCountry: string;
+  setPracticeCountry: Dispatch<SetStateAction<string>>;
+  practiceCity: string;
+  setPracticeCity: Dispatch<SetStateAction<string>>;
+  worksOnline: boolean;
+  setWorksOnline: Dispatch<SetStateAction<boolean>>;
+
   contactPhone: string;
   setContactPhone: Dispatch<SetStateAction<string>>;
   contactTelegram: string;
@@ -44,14 +58,17 @@ type Props = {
 };
 
 export const ProfessionalTabPanel: FC<Props> = ({
-  schedulingEnabled,
   profilePhotoUrl,
-  profilePhotoPublished,
   initials,
   alt,
-  publishSaving,
-  onPublishChange,
   onSuccess,
+  profilePagePublished,
+  catalogVisible,
+  visibilitySaving,
+  onProfilePagePublishedChange,
+  onCatalogVisibleChange,
+  publicSlug,
+  setPublicSlug,
   handleSaveProfessional,
   savingProfessional,
   hasProfessionalChanges,
@@ -61,6 +78,12 @@ export const ProfessionalTabPanel: FC<Props> = ({
   specialization,
   setSpecialization,
   PROFESSION_OPTIONS,
+  practiceCountry,
+  setPracticeCountry,
+  practiceCity,
+  setPracticeCity,
+  worksOnline,
+  setWorksOnline,
   contactPhone,
   setContactPhone,
   contactTelegram,
@@ -70,23 +93,133 @@ export const ProfessionalTabPanel: FC<Props> = ({
   contactWhatsapp,
   setContactWhatsapp
 }) => {
+  const slugPreview =
+    normalizePublicSlugInput(publicSlug) || "ваш-адрес";
+
   return (
-    <div className="w-full">
-      <div className="w-full">
-        <ProfilePhotoUploadBlock
-          profilePhotoUrl={profilePhotoUrl}
-          profilePhotoPublished={profilePhotoPublished}
-          schedulingEnabled={schedulingEnabled}
-          initials={initials}
-          alt={alt}
-          onSuccess={() => onSuccess()}
-          onPublishChange={onPublishChange}
-          publishSaving={publishSaving}
-        />
+    <div className="w-full space-y-8">
+      <ProfilePhotoUploadBlock
+        profilePhotoUrl={profilePhotoUrl}
+        initials={initials}
+        alt={alt}
+        onSuccess={() => onSuccess()}
+      />
+
+      <div className="space-y-4 rounded-lg border border-border/80 p-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Публичная страница</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Адрес в латинице (3–32 символа: буквы, цифры, дефис). Чтобы включить
+            публикацию, укажите уникальный адрес и сохраните форму ниже при
+            необходимости, затем включите «Опубликовать страницу».
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="public-slug">Адрес страницы</Label>
+          <Input
+            id="public-slug"
+            value={publicSlug}
+            onChange={(e) => setPublicSlug(normalizePublicSlugInput(e.target.value))}
+            placeholder="например, ivan-petrov"
+            maxLength={32}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <p className="text-xs text-muted-foreground break-all">
+            Ссылка для клиентов:{" "}
+            <span className="font-medium text-foreground">
+              /client/psychologists/{slugPreview}
+            </span>
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 p-4">
+          <div className="space-y-0.5 min-w-0">
+            <Label htmlFor="page-published" className="text-base cursor-pointer">
+              Опубликовать страницу
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Страница доступна по ссылке выше (или по техническому id, если адрес
+              ещё не задан — для старых профилей).
+            </p>
+          </div>
+          <Switch
+            id="page-published"
+            checked={profilePagePublished}
+            onCheckedChange={onProfilePagePublishedChange}
+            disabled={visibilitySaving}
+            className="shrink-0 cursor-pointer disabled:cursor-pointer"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 p-4">
+          <div className="space-y-0.5 min-w-0">
+            <Label htmlFor="catalog-visible" className="text-base cursor-pointer">
+              Показывать в каталоге
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Карточка в разделе «Найти психолога». Нужна опубликованная страница.
+            </p>
+          </div>
+          <Switch
+            id="catalog-visible"
+            checked={catalogVisible}
+            onCheckedChange={onCatalogVisibleChange}
+            disabled={visibilitySaving || !profilePagePublished}
+            className="shrink-0 cursor-pointer disabled:cursor-pointer"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border border-border/80 p-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Где веду приём</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Эти данные видят клиенты на странице профиля и в каталоге — отдельно от
+            личного адреса в анкете.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="practice-country">Страна</Label>
+            <Input
+              id="practice-country"
+              value={practiceCountry}
+              onChange={(e) => setPracticeCountry(e.target.value)}
+              placeholder="Беларусь"
+              maxLength={64}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="practice-city">Город</Label>
+            <Input
+              id="practice-city"
+              value={practiceCity}
+              onChange={(e) => setPracticeCity(e.target.value)}
+              placeholder="Минск"
+              maxLength={64}
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="works-online" className="text-base cursor-pointer">
+              Работаю онлайн
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              На странице появится отметка «Онлайн».
+            </p>
+          </div>
+          <Switch
+            id="works-online"
+            checked={worksOnline}
+            onCheckedChange={setWorksOnline}
+            className="shrink-0 cursor-pointer"
+          />
+        </div>
       </div>
 
       <form onSubmit={handleSaveProfessional} className="w-full space-y-5">
-        {/* О себе */}
         <div className="space-y-2">
           <Label htmlFor="bio">О себе</Label>
           <Textarea
@@ -103,7 +236,6 @@ export const ProfessionalTabPanel: FC<Props> = ({
           </p>
         </div>
 
-        {/* Профессия */}
         <div className="space-y-2">
           <Label>Профессия</Label>
           <RadioGroup
@@ -122,7 +254,6 @@ export const ProfessionalTabPanel: FC<Props> = ({
           </RadioGroup>
         </div>
 
-        {/* Контакты для клиентов */}
         <div className="space-y-3">
           <div>
             <p className="text-sm font-medium">Контакты для клиентов</p>
@@ -131,7 +262,6 @@ export const ProfessionalTabPanel: FC<Props> = ({
             </p>
           </div>
 
-          {/* Телефон и Telegram */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="contact-phone" className="flex items-center gap-1.5">
@@ -160,7 +290,6 @@ export const ProfessionalTabPanel: FC<Props> = ({
 
             <div className="space-y-2">
               <Label htmlFor="contact-telegram" className="flex items-center gap-1.5">
-                {/* Telegram */}
                 <svg
                   viewBox="0 0 24 24"
                   width="15"
@@ -189,11 +318,9 @@ export const ProfessionalTabPanel: FC<Props> = ({
             </div>
           </div>
 
-          {/* Viber и WhatsApp */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="contact-viber" className="flex items-center gap-1.5">
-                {/* Viber */}
                 <svg viewBox="0 0 24 24" width="15" height="15" className="shrink-0" aria-hidden>
                   <path
                     fill="#7360f2"
@@ -213,7 +340,6 @@ export const ProfessionalTabPanel: FC<Props> = ({
 
             <div className="space-y-2">
               <Label htmlFor="contact-whatsapp" className="flex items-center gap-1.5">
-                {/* WhatsApp */}
                 <svg viewBox="0 0 24 24" width="15" height="15" className="shrink-0" aria-hidden>
                   <path
                     fill="#25D366"
@@ -240,4 +366,3 @@ export const ProfessionalTabPanel: FC<Props> = ({
     </div>
   );
 };
-

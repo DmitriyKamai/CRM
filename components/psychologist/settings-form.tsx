@@ -96,7 +96,6 @@ export function PsychologistSettingsForm({
       <PsychologistSettingsCalendarTab schedulingEnabled={schedulingEnabled} activeTab={activeTab} />
       <PsychologistSettingsProfessionalTab
         activeTab={activeTab}
-        schedulingEnabled={schedulingEnabled}
         profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
         professionalTab={professionalTab}
         initials={initials}

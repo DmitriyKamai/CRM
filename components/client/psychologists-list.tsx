@@ -45,13 +45,25 @@ function matchesSearchTokens(p: PsychologistCatalogEntry, q: string): boolean {
     p.firstName,
     p.lastName,
     `${p.firstName} ${p.lastName}`,
-    p.country,
-    p.city,
-    p.bio ?? ""
+    p.practiceCountry,
+    p.practiceCity,
+    p.publicSlug,
+    p.bio ?? "",
+    p.worksOnline ? "онлайн" : ""
   ]
     .map((x) => String(x ?? "").toLowerCase())
     .join(" \n ");
   return tokens.every((t) => hay.includes(t));
+}
+
+function catalogLocationLine(p: PsychologistCatalogEntry): string | null {
+  const city = normalize(p.practiceCity);
+  const country = normalize(p.practiceCountry);
+  const place = [city, country].filter(Boolean).join(", ");
+  if (p.worksOnline && place) return `Онлайн · ${place}`;
+  if (p.worksOnline) return "Онлайн";
+  if (place) return place;
+  return null;
 }
 
 export function PublicPsychologistsList({
@@ -73,11 +85,13 @@ export function PublicPsychologistsList({
   const cityOptions = useMemo(() => {
     const pool =
       selectedCountry != null
-        ? allPsychologists.filter((p) => normalize(p.country) === selectedCountry)
+        ? allPsychologists.filter(
+            (p) => normalize(p.practiceCountry) === selectedCountry
+          )
         : allPsychologists;
     const set = new Set<string>();
     for (const p of pool) {
-      const c = normalize(p.city);
+      const c = normalize(p.practiceCity);
       if (c) set.add(c);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "ru"));
@@ -92,7 +106,7 @@ export function PublicPsychologistsList({
   const countryOptions = useMemo(() => {
     const set = new Set<string>();
     for (const p of allPsychologists) {
-      const c = normalize(p.country);
+      const c = normalize(p.practiceCountry);
       if (c) set.add(c);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "ru"));
@@ -100,8 +114,10 @@ export function PublicPsychologistsList({
 
   const filtered = useMemo(() => {
     return allPsychologists.filter((p) => {
-      if (activeCityFilter && normalize(p.city) !== activeCityFilter) return false;
-      if (selectedCountry && normalize(p.country) !== selectedCountry) return false;
+      if (activeCityFilter && normalize(p.practiceCity) !== activeCityFilter)
+        return false;
+      if (selectedCountry && normalize(p.practiceCountry) !== selectedCountry)
+        return false;
       if (!matchesSearchTokens(p, deferredSearch)) return false;
       return true;
     });
@@ -300,11 +316,10 @@ export function PublicPsychologistsList({
               .slice(0, 2);
             const professionLabel = getProfessionLabel(p.specialization);
             const bioTrimmed = normalize(p.bio);
-            const profileHref = `/client/psychologists/${p.id}`;
+            const profileSegment = p.publicSlug ?? p.id;
+            const profileHref = `/client/psychologists/${profileSegment}`;
             const bookingHref = `${profileHref}#booking`;
-            const locationLine = [normalize(p.city), normalize(p.country)]
-              .filter(Boolean)
-              .join(", ");
+            const locationLine = catalogLocationLine(p);
 
             return (
               <article

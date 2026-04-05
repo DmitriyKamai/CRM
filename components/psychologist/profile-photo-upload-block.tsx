@@ -4,31 +4,20 @@ import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ImageCropDialog } from "@/components/account/image-crop-dialog";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 type Props = {
   profilePhotoUrl: string | null;
-  profilePhotoPublished: boolean;
-  /** false — модуль записей выключен: без публикации в каталоге */
-  schedulingEnabled?: boolean;
   initials: string;
   alt: string;
   onSuccess?: () => void;
-  onPublishChange?: (published: boolean) => void;
-  publishSaving?: boolean;
 };
 
 export function ProfilePhotoUploadBlock({
   profilePhotoUrl,
-  profilePhotoPublished,
-  schedulingEnabled = true,
   initials,
   alt,
-  onSuccess,
-  onPublishChange,
-  publishSaving
+  onSuccess
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -81,11 +70,6 @@ export function ProfilePhotoUploadBlock({
     }
   };
 
-  const handlePublishChange = async (checked: boolean) => {
-    if (publishSaving || onPublishChange === undefined) return;
-    onPublishChange(checked);
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start gap-4">
@@ -133,9 +117,8 @@ export function ProfilePhotoUploadBlock({
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {schedulingEnabled
-              ? "Фото для карточки «Записаться к психологу». JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование, сохранение 512×512 px."
-              : "Фото профиля. JPEG, PNG, WebP или GIF, до 2 МБ. После выбора — кадрирование, сохранение 512×512 px."}
+            Фото для публичной карточки. JPEG, PNG, WebP или GIF, до 2 МБ. После
+            выбора — кадрирование, сохранение 512×512 px.
           </p>
         </div>
       </div>
@@ -152,25 +135,6 @@ export function ProfilePhotoUploadBlock({
         description="Выберите область для квадратной карточки 512×512 px. Настройте масштаб и рамку."
         onCroppedFile={(f) => uploadCroppedFile(f)}
       />
-      {schedulingEnabled && (
-        <div className="flex items-center justify-between rounded-lg border border-border/80 p-4">
-          <div className="space-y-0.5">
-            <Label htmlFor="profile-published" className="text-base cursor-pointer">
-              Опубликовать профиль
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Только при включённой опции клиенты увидят ваш профиль в разделе «Записаться к психологу».
-            </p>
-          </div>
-          <Switch
-            id="profile-published"
-            checked={profilePhotoPublished}
-            onCheckedChange={handlePublishChange}
-            disabled={publishSaving}
-            className="cursor-pointer disabled:cursor-pointer"
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -8,7 +8,6 @@ import { ProfessionalTabPanel } from "@/components/psychologist/settings/profess
 
 export type PsychologistSettingsProfessionalTabProps = {
   activeTab: string;
-  schedulingEnabled: boolean;
   profilePhotoUrl: string | null;
   professionalTab: ReturnType<typeof useProfessionalTabUi>;
   initials: string;
@@ -18,7 +17,6 @@ export type PsychologistSettingsProfessionalTabProps = {
 
 export function PsychologistSettingsProfessionalTab({
   activeTab,
-  schedulingEnabled,
   profilePhotoUrl,
   professionalTab,
   initials,
@@ -26,10 +24,13 @@ export function PsychologistSettingsProfessionalTab({
   onRefetchProfile
 }: PsychologistSettingsProfessionalTabProps) {
   const {
-    profilePhotoPublished,
-    publishSaving,
+    profilePagePublished,
+    catalogVisible,
+    visibilitySaving,
     savingProfessional,
     hasProfessionalChanges,
+    publicSlug,
+    setPublicSlug,
     bio,
     setBio,
     specialization,
@@ -42,7 +43,14 @@ export function PsychologistSettingsProfessionalTab({
     setContactViber,
     contactWhatsapp,
     setContactWhatsapp,
-    handlePublishProfileChange,
+    practiceCountry,
+    setPracticeCountry,
+    practiceCity,
+    setPracticeCity,
+    worksOnline,
+    setWorksOnline,
+    handleProfilePagePublishedChange,
+    handleCatalogVisibleChange,
     handleSaveProfessional
   } = professionalTab;
 
@@ -51,14 +59,17 @@ export function PsychologistSettingsProfessionalTab({
       {activeTab === "professional" && (
         <SettingsSection title="Профессиональный профиль">
           <ProfessionalTabPanel
-            schedulingEnabled={schedulingEnabled}
             profilePhotoUrl={profilePhotoUrl}
-            profilePhotoPublished={profilePhotoPublished}
             initials={initials}
             alt={alt}
-            publishSaving={publishSaving}
-            onPublishChange={handlePublishProfileChange}
             onSuccess={() => void onRefetchProfile()}
+            profilePagePublished={profilePagePublished}
+            catalogVisible={catalogVisible}
+            visibilitySaving={visibilitySaving}
+            onProfilePagePublishedChange={handleProfilePagePublishedChange}
+            onCatalogVisibleChange={handleCatalogVisibleChange}
+            publicSlug={publicSlug}
+            setPublicSlug={setPublicSlug}
             handleSaveProfessional={handleSaveProfessional}
             savingProfessional={savingProfessional}
             hasProfessionalChanges={hasProfessionalChanges}
@@ -68,6 +79,12 @@ export function PsychologistSettingsProfessionalTab({
             specialization={specialization}
             setSpecialization={setSpecialization}
             PROFESSION_OPTIONS={PROFESSION_OPTIONS}
+            practiceCountry={practiceCountry}
+            setPracticeCountry={setPracticeCountry}
+            practiceCity={practiceCity}
+            setPracticeCity={setPracticeCity}
+            worksOnline={worksOnline}
+            setWorksOnline={setWorksOnline}
             contactPhone={contactPhone}
             setContactPhone={setContactPhone}
             contactTelegram={contactTelegram}

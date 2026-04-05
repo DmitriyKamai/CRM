@@ -7,6 +7,10 @@ import { toast } from "sonner";
 import type { Profile } from "@/hooks/use-user-settings";
 import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
+import {
+  normalizePublicSlugInput,
+  validatePublicSlug
+} from "@/lib/settings/public-profile-slug";
 
 type UpdateSessionFn = (() => unknown) | undefined;
 
@@ -17,17 +21,27 @@ type Props = {
   patchProfile: UseMutationResult<unknown, Error, object>;
 };
 
-export function useProfessionalTabUi({ profile, profileSyncVersion, updateSession, patchProfile }: Props) {
+export function useProfessionalTabUi({
+  profile,
+  profileSyncVersion,
+  updateSession,
+  patchProfile
+}: Props) {
   const queryClient = useQueryClient();
-  const [profilePhotoPublished, setProfilePhotoPublished] = useState(false);
-  const [publishSaving, setSavingPublish] = useState(false);
+  const [profilePagePublished, setProfilePagePublished] = useState(false);
+  const [catalogVisible, setCatalogVisible] = useState(false);
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
 
+  const [publicSlug, setPublicSlug] = useState("");
   const [bio, setBio] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactTelegram, setContactTelegram] = useState("");
   const [contactViber, setContactViber] = useState("");
   const [contactWhatsapp, setContactWhatsapp] = useState("");
+  const [practiceCountry, setPracticeCountry] = useState("");
+  const [practiceCity, setPracticeCity] = useState("");
+  const [worksOnline, setWorksOnline] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -38,7 +52,12 @@ export function useProfessionalTabUi({ profile, profileSyncVersion, updateSessio
     setContactTelegram(profile.psychologistProfile?.contactTelegram ?? "");
     setContactViber(profile.psychologistProfile?.contactViber ?? "");
     setContactWhatsapp(profile.psychologistProfile?.contactWhatsapp ?? "");
-    setProfilePhotoPublished(profile.psychologistProfile?.profilePhotoPublished ?? false);
+    setPublicSlug(profile.psychologistProfile?.publicSlug ?? "");
+    setProfilePagePublished(profile.psychologistProfile?.profilePagePublished ?? false);
+    setCatalogVisible(profile.psychologistProfile?.catalogVisible ?? false);
+    setPracticeCountry(profile.psychologistProfile?.practiceCountry ?? "");
+    setPracticeCity(profile.psychologistProfile?.practiceCity ?? "");
+    setWorksOnline(profile.psychologistProfile?.worksOnline ?? false);
   }, [profile, profileSyncVersion]);
 
   async function syncProfileAfterPatch() {
@@ -46,17 +65,58 @@ export function useProfessionalTabUi({ profile, profileSyncVersion, updateSessio
     await updateSession?.();
   }
 
-  async function handlePublishProfileChange(published: boolean) {
-    setSavingPublish(true);
+  async function handleProfilePagePublishedChange(published: boolean) {
+    if (visibilitySaving) return;
+    if (published) {
+      const normalized = normalizePublicSlugInput(publicSlug);
+      const checked = validatePublicSlug(normalized);
+      if (!checked.ok) {
+        toast.error(checked.message);
+        return;
+      }
+    }
+    setVisibilitySaving(true);
     try {
-      await patchUserProfile({ profilePhotoPublished: published });
+      const body: Record<string, unknown> = { profilePagePublished: published };
+      if (published) {
+        const normalized = normalizePublicSlugInput(publicSlug);
+        const checked = validatePublicSlug(normalized);
+        if (!checked.ok) {
+          toast.error(checked.message);
+          return;
+        }
+        body.publicSlug = checked.slug;
+      }
+      await patchUserProfile(body);
       await syncProfileAfterPatch();
-      setProfilePhotoPublished(published);
-      toast.success(published ? "Профиль опубликован" : "Профиль снят с публикации");
+      setProfilePagePublished(published);
+      if (!published) setCatalogVisible(false);
+      toast.success(published ? "Страница опубликована" : "Страница снята с публикации");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
-      setSavingPublish(false);
+      setVisibilitySaving(false);
+    }
+  }
+
+  async function handleCatalogVisibleChange(visible: boolean) {
+    if (visibilitySaving) return;
+    const pageOn =
+      profilePagePublished || profile?.psychologistProfile?.profilePagePublished;
+    if (visible && !pageOn) {
+      toast.error("Сначала опубликуйте страницу профиля");
+      return;
+    }
+    setVisibilitySaving(true);
+    try {
+      await patchUserProfile({ catalogVisible: visible });
+      await syncProfileAfterPatch();
+      setCatalogVisible(visible);
+      toast.success(visible ? "Профиль в каталоге" : "Скрыто из каталога");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
+    } finally {
+      setVisibilitySaving(false);
     }
   }
 
@@ -64,13 +124,28 @@ export function useProfessionalTabUi({ profile, profileSyncVersion, updateSessio
     e.preventDefault();
     if (!profile) return;
 
+    const slugNorm = normalizePublicSlugInput(publicSlug);
+    let slugOut: string | null = null;
+    if (slugNorm.length > 0) {
+      const checked = validatePublicSlug(slugNorm);
+      if (!checked.ok) {
+        toast.error(checked.message);
+        return;
+      }
+      slugOut = checked.slug;
+    }
+
     await patchProfile.mutateAsync({
       bio: bio.trim() || null,
       specialization: specialization || null,
       contactPhone: contactPhone.trim() || null,
       contactTelegram: contactTelegram.trim() || null,
       contactViber: contactViber.trim() || null,
-      contactWhatsapp: contactWhatsapp.trim() || null
+      contactWhatsapp: contactWhatsapp.trim() || null,
+      publicSlug: slugOut,
+      practiceCountry: practiceCountry.trim() || null,
+      practiceCity: practiceCity.trim() || null,
+      worksOnline
     });
   }
 
@@ -80,6 +155,10 @@ export function useProfessionalTabUi({ profile, profileSyncVersion, updateSessio
   const savedContactTelegram = profile?.psychologistProfile?.contactTelegram ?? "";
   const savedContactViber = profile?.psychologistProfile?.contactViber ?? "";
   const savedContactWhatsapp = profile?.psychologistProfile?.contactWhatsapp ?? "";
+  const savedSlug = profile?.psychologistProfile?.publicSlug ?? "";
+  const savedPracticeCountry = profile?.psychologistProfile?.practiceCountry ?? "";
+  const savedPracticeCity = profile?.psychologistProfile?.practiceCity ?? "";
+  const savedWorksOnline = profile?.psychologistProfile?.worksOnline ?? false;
 
   const hasProfessionalChanges =
     (bio.trim() || "") !== (savedBio || "") ||
@@ -87,15 +166,22 @@ export function useProfessionalTabUi({ profile, profileSyncVersion, updateSessio
     (contactPhone.trim() || "") !== (savedContactPhone || "") ||
     (contactTelegram.trim() || "") !== (savedContactTelegram || "") ||
     (contactViber.trim() || "") !== (savedContactViber || "") ||
-    (contactWhatsapp.trim() || "") !== (savedContactWhatsapp || "");
+    (contactWhatsapp.trim() || "") !== (savedContactWhatsapp || "") ||
+    normalizePublicSlugInput(publicSlug) !== normalizePublicSlugInput(savedSlug) ||
+    (practiceCountry.trim() || "") !== (savedPracticeCountry || "") ||
+    (practiceCity.trim() || "") !== (savedPracticeCity || "") ||
+    worksOnline !== savedWorksOnline;
 
   return {
-    profilePhotoPublished,
-    publishSaving,
+    profilePagePublished,
+    catalogVisible,
+    visibilitySaving,
 
     savingProfessional: patchProfile.isPending,
     hasProfessionalChanges,
 
+    publicSlug,
+    setPublicSlug,
     bio,
     setBio,
     specialization,
@@ -108,8 +194,15 @@ export function useProfessionalTabUi({ profile, profileSyncVersion, updateSessio
     setContactViber,
     contactWhatsapp,
     setContactWhatsapp,
+    practiceCountry,
+    setPracticeCountry,
+    practiceCity,
+    setPracticeCity,
+    worksOnline,
+    setWorksOnline,
 
     handleSaveProfessional,
-    handlePublishProfileChange
+    handleProfilePagePublishedChange,
+    handleCatalogVisibleChange
   };
 }

@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { requireAuth, sessionInvalidResponse } from "@/lib/security/api-guards";
 import { BIO_MAX_LENGTH } from "@/lib/settings/professional-profile";
+import {
+  normalizePublicSlugInput,
+  validatePublicSlug
+} from "@/lib/settings/public-profile-slug";
 
 const MAX_EMAIL_LENGTH = 64;
 const MAX_NAME_LENGTH = 64;
@@ -50,7 +55,12 @@ export async function GET() {
       specialization: string | null;
       bio: string | null;
       profilePhotoUrl: string | null;
-      profilePhotoPublished: boolean;
+      publicSlug: string | null;
+      profilePagePublished: boolean;
+      catalogVisible: boolean;
+      practiceCountry: string | null;
+      practiceCity: string | null;
+      worksOnline: boolean;
       contactPhone: string | null;
       contactTelegram: string | null;
       contactViber: string | null;
@@ -65,7 +75,12 @@ export async function GET() {
           specialization: true,
           bio: true,
           profilePhotoUrl: true,
-          profilePhotoPublished: true,
+          publicSlug: true,
+          profilePagePublished: true,
+          catalogVisible: true,
+          practiceCountry: true,
+          practiceCity: true,
+          worksOnline: true,
           contactPhone: true,
           contactTelegram: true,
           contactViber: true,
@@ -81,7 +96,12 @@ export async function GET() {
         specialization: profile.specialization ?? null,
         bio: profile.bio ?? null,
         profilePhotoUrl: profile.profilePhotoUrl ?? null,
-        profilePhotoPublished: profile.profilePhotoPublished ?? false,
+        publicSlug: profile.publicSlug ?? null,
+        profilePagePublished: profile.profilePagePublished ?? false,
+        catalogVisible: profile.catalogVisible ?? false,
+        practiceCountry: profile.practiceCountry ?? null,
+        practiceCity: profile.practiceCity ?? null,
+        worksOnline: profile.worksOnline ?? false,
         contactPhone: profile.contactPhone ?? null,
         contactTelegram: profile.contactTelegram ?? null,
         contactViber: profile.contactViber ?? null,
@@ -134,11 +154,16 @@ export async function PATCH(request: Request) {
       const profileUpdates: {
         specialization?: string | null;
         bio?: string | null;
-        profilePhotoPublished?: boolean;
         contactPhone?: string | null;
         contactTelegram?: string | null;
         contactViber?: string | null;
         contactWhatsapp?: string | null;
+        publicSlug?: string | null;
+        profilePagePublished?: boolean;
+        catalogVisible?: boolean;
+        practiceCountry?: string | null;
+        practiceCity?: string | null;
+        worksOnline?: boolean;
       } = {};
 
       if (body.specialization !== undefined) {
@@ -185,20 +210,117 @@ export async function PATCH(request: Request) {
         profileUpdates.contactWhatsapp =
           raw === null ? null : raw.trim().slice(0, MAX_CONTACT_LINK_LENGTH);
       }
-      const published =
-        typeof body.profilePhotoPublished === "boolean"
-          ? body.profilePhotoPublished
-          : typeof body.profilePublished === "boolean"
-            ? body.profilePublished
-            : undefined;
-      if (published !== undefined) profileUpdates.profilePhotoPublished = published;
+
+      if (body.publicSlug !== undefined) {
+        if (body.publicSlug === null || body.publicSlug === "") {
+          profileUpdates.publicSlug = null;
+        } else {
+          const normalized = normalizePublicSlugInput(String(body.publicSlug));
+          const checked = validatePublicSlug(normalized);
+          if (!checked.ok) {
+            return NextResponse.json({ message: checked.message }, { status: 400 });
+          }
+          profileUpdates.publicSlug = checked.slug;
+        }
+      }
+
+      if (typeof body.profilePagePublished === "boolean") {
+        profileUpdates.profilePagePublished = body.profilePagePublished;
+      }
+      if (typeof body.catalogVisible === "boolean") {
+        profileUpdates.catalogVisible = body.catalogVisible;
+      }
+      /** @deprecated старый единый флаг — страница и каталог вместе */
+      if (typeof body.profilePhotoPublished === "boolean") {
+        profileUpdates.profilePagePublished = body.profilePhotoPublished;
+        profileUpdates.catalogVisible = body.profilePhotoPublished;
+      }
+      if (typeof body.profilePublished === "boolean") {
+        profileUpdates.profilePagePublished = body.profilePublished;
+      }
+
+      if (body.practiceCountry !== undefined) {
+        const raw =
+          body.practiceCountry === null || body.practiceCountry === ""
+            ? null
+            : String(body.practiceCountry);
+        profileUpdates.practiceCountry =
+          raw === null ? null : raw.trim().slice(0, MAX_COUNTRY_LENGTH);
+      }
+      if (body.practiceCity !== undefined) {
+        const raw =
+          body.practiceCity === null || body.practiceCity === ""
+            ? null
+            : String(body.practiceCity);
+        profileUpdates.practiceCity =
+          raw === null ? null : raw.trim().slice(0, MAX_CITY_LENGTH);
+      }
+      if (typeof body.worksOnline === "boolean") {
+        profileUpdates.worksOnline = body.worksOnline;
+      }
 
       if (Object.keys(profileUpdates).length > 0) {
-        await prisma.psychologistProfile.upsert({
+        const current = await prisma.psychologistProfile.findUnique({
           where: { userId },
-          create: { userId, ...profileUpdates },
-          update: profileUpdates
+          select: {
+            profilePagePublished: true,
+            catalogVisible: true
+          }
         });
+        if (!current) {
+          return NextResponse.json(
+            { message: "Профиль специалиста не найден" },
+            { status: 400 }
+          );
+        }
+
+        const mergedPage =
+          profileUpdates.profilePagePublished !== undefined
+            ? profileUpdates.profilePagePublished
+            : current.profilePagePublished;
+        const mergedCatalog =
+          profileUpdates.catalogVisible !== undefined
+            ? profileUpdates.catalogVisible
+            : current.catalogVisible;
+
+        if (profileUpdates.profilePagePublished === false) {
+          profileUpdates.catalogVisible = false;
+        }
+
+        const effectivePage =
+          profileUpdates.profilePagePublished === false ? false : mergedPage;
+        const effectiveCatalog =
+          profileUpdates.profilePagePublished === false
+            ? false
+            : mergedCatalog;
+
+        if (effectiveCatalog && !effectivePage) {
+          return NextResponse.json(
+            {
+              message:
+                "Сначала опубликуйте страницу профиля — без этого каталог недоступен."
+            },
+            { status: 400 }
+          );
+        }
+
+        try {
+          await prisma.psychologistProfile.update({
+            where: { userId },
+            data: profileUpdates
+          });
+        } catch (err) {
+          if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === "P2002"
+          ) {
+            return NextResponse.json(
+              { message: "Этот адрес страницы уже занят. Выберите другой." },
+              { status: 400 }
+            );
+          }
+          throw err;
+        }
       }
     }
 

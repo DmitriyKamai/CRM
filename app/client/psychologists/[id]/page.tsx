@@ -62,18 +62,20 @@ function buildViberLink(value: string): string {
 }
 
 export default async function PsychologistBookingPage({ params }: ParamsPromise) {
-  const { id } = await params;
+  const { id: segment } = await params;
+  const slugKey = segment.trim().toLowerCase();
 
   type PsychologistBookingDTO = {
     id: string;
     firstName: string;
     lastName: string;
-    country: string | null;
-    city: string | null;
     specialization: string | null;
     bio: string | null;
     profilePhotoUrl: string | null;
-    profilePhotoPublished: boolean;
+    profilePagePublished: boolean;
+    practiceCountry: string | null;
+    practiceCity: string | null;
+    worksOnline: boolean;
     contactPhone: string | null;
     contactTelegram: string | null;
     contactViber: string | null;
@@ -84,19 +86,25 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
   let errorMessage: string | null = null;
 
   try {
-    const raw = await prisma.psychologistProfile.findUnique({
-      where: { id },
+    const raw = await prisma.psychologistProfile.findFirst({
+      where: {
+        profilePagePublished: true,
+        OR: [{ id: segment }, { publicSlug: slugKey }]
+      },
       select: {
         id: true,
         specialization: true,
         bio: true,
         profilePhotoUrl: true,
-        profilePhotoPublished: true,
+        profilePagePublished: true,
+        practiceCountry: true,
+        practiceCity: true,
+        worksOnline: true,
         contactPhone: true,
         contactTelegram: true,
         contactViber: true,
         contactWhatsapp: true,
-        user: { select: { firstName: true, lastName: true, name: true, country: true, city: true } }
+        user: { select: { firstName: true, lastName: true, name: true } }
       }
     });
     if (raw) {
@@ -104,12 +112,13 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
         id: raw.id,
         firstName: raw.user.firstName ?? (raw.user.name ?? "").split(" ")[0] ?? "",
         lastName: raw.user.lastName ?? (raw.user.name ?? "").split(" ").slice(1).join(" ") ?? "",
-        country: raw.user.country ?? null,
-        city: raw.user.city ?? null,
         specialization: raw.specialization ?? null,
         bio: raw.bio ?? null,
         profilePhotoUrl: raw.profilePhotoUrl ?? null,
-        profilePhotoPublished: raw.profilePhotoPublished,
+        profilePagePublished: raw.profilePagePublished,
+        practiceCountry: raw.practiceCountry ?? null,
+        practiceCity: raw.practiceCity ?? null,
+        worksOnline: raw.worksOnline ?? false,
         contactPhone: raw.contactPhone ?? null,
         contactTelegram: raw.contactTelegram ?? null,
         contactViber: raw.contactViber ?? null,
@@ -119,7 +128,7 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
       psychologist = null;
     }
 
-    if (!psychologist || !psychologist.profilePhotoPublished) {
+    if (!psychologist || !psychologist.profilePagePublished) {
       notFound();
     }
   } catch (err) {
@@ -149,9 +158,9 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
   const bookingEnabled = modules.scheduling;
 
   const fullName = `${psychologist.firstName} ${psychologist.lastName}`.trim();
-  const cityLine =
-    psychologist.country || psychologist.city
-      ? [psychologist.country, psychologist.city].filter(Boolean).join(", ")
+  const practiceLine =
+    psychologist.practiceCity || psychologist.practiceCountry
+      ? [psychologist.practiceCity, psychologist.practiceCountry].filter(Boolean).join(", ")
       : null;
 
   const phoneHref = psychologist.contactPhone
@@ -237,16 +246,21 @@ export default async function PsychologistBookingPage({ params }: ParamsPromise)
               <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                 {fullName || "Психолог"}
               </h1>
-              {(specializationLabel || cityLine) && (
+              {(specializationLabel || psychologist.worksOnline || practiceLine) && (
                 <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
                   {specializationLabel && (
                     <Badge variant="secondary" className="font-medium">
                       {specializationLabel}
                     </Badge>
                   )}
-                  {cityLine && (
+                  {psychologist.worksOnline && (
                     <Badge variant="outline" className="font-normal text-muted-foreground">
-                      {cityLine}
+                      Онлайн
+                    </Badge>
+                  )}
+                  {practiceLine && (
+                    <Badge variant="outline" className="font-normal text-muted-foreground">
+                      Работаю в {practiceLine}
                     </Badge>
                   )}
                 </div>

@@ -19,7 +19,12 @@ export type UserSettingsProfile = {
     specialization: string | null;
     bio: string | null;
     profilePhotoUrl: string | null;
-    profilePhotoPublished: boolean;
+    publicSlug: string | null;
+    profilePagePublished: boolean;
+    catalogVisible: boolean;
+    practiceCountry: string | null;
+    practiceCity: string | null;
+    worksOnline: boolean;
     contactPhone: string | null;
     contactTelegram: string | null;
     contactViber: string | null;
