@@ -1,11 +1,17 @@
-/** Зарезервированные сегменты URL и служебные имена. */
-const RESERVED_SLUGS = new Set([
+/**
+ * Зарезервированные адреса (точное совпадение).
+ * Плюс проверка префиксов служебных сегментов — см. `reservedRoutePrefixConflict`.
+ */
+const RESERVED_SLUGS_EXACT = new Set([
   "api",
   "auth",
   "admin",
   "settings",
   "login",
   "register",
+  "logout",
+  "signin",
+  "signout",
   "static",
   "psychologists",
   "client",
@@ -17,8 +23,51 @@ const RESERVED_SLUGS = new Set([
   "favicon",
   "icon",
   "robots",
-  "sitemap"
+  "sitemap",
+  "manifest",
+  "well-known",
+  "id",
+  "null",
+  "undefined",
+  "true",
+  "false",
+  "internal",
+  "private",
+  "public",
+  "www",
+  "ftp",
+  "cdn",
+  "assets",
+  "files",
+  "uploads",
+  "status",
+  "health",
+  "billing",
+  "docs",
+  "help",
+  "support",
+  "blog",
+  "ingest",
+  "trace"
 ]);
+
+/**
+ * Корневые сегменты приложения и похожие на них пути: нельзя `segment` и `segment-…`
+ * (имитация вложенных маршрутов).
+ */
+const RESERVED_ROUTE_PREFIX_ROOTS = [
+  "admin",
+  "auth",
+  "api",
+  "client",
+  "settings",
+  "psychologist",
+  "psychologists",
+  "diagnostics",
+  "static",
+  "_next",
+  "new"
+] as const;
 
 const MAX_SLUG_LENGTH = 32;
 const MIN_SLUG_LENGTH = 3;
@@ -42,9 +91,18 @@ export type PublicSlugValidation =
   | { ok: true; slug: string }
   | { ok: false; message: string };
 
+function reservedRoutePrefixConflict(normalized: string): boolean {
+  for (const root of RESERVED_ROUTE_PREFIX_ROOTS) {
+    if (normalized === root || normalized.startsWith(`${root}-`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Проверка после normalizePublicSlugInput: 3–32 символа, латиница/цифры/дефис,
- * с буквы, не заканчивается дефисом, не зарезервировано.
+ * с буквы, не начинается с «id», не зарезервировано и не похоже на служебный путь.
  */
 export function validatePublicSlug(normalized: string): PublicSlugValidation {
   if (normalized.length < MIN_SLUG_LENGTH) {
@@ -68,8 +126,22 @@ export function validatePublicSlug(normalized: string): PublicSlugValidation {
   if (/--/.test(normalized)) {
     return { ok: false, message: "Не используйте два дефиса подряд." };
   }
-  if (RESERVED_SLUGS.has(normalized)) {
+  if (normalized.startsWith("id")) {
+    return {
+      ok: false,
+      message:
+        "Адрес не может начинаться с «id» — так похоже на технический идентификатор. Например: emma-smith, my-therapy."
+    };
+  }
+  if (RESERVED_SLUGS_EXACT.has(normalized)) {
     return { ok: false, message: "Такой адрес зарезервирован системой." };
+  }
+  if (reservedRoutePrefixConflict(normalized)) {
+    return {
+      ok: false,
+      message:
+        "Этот адрес совпадает со служебным разделом сайта или похож на него. Выберите другой."
+    };
   }
   return { ok: true, slug: normalized };
 }

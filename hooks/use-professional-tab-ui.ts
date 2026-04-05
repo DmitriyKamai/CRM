@@ -5,6 +5,7 @@ import { useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import type { Profile } from "@/hooks/use-user-settings";
+import { getCountryCodeByName } from "@/lib/data/countries-ru";
 import { userSettingsKeys } from "@/lib/query-keys/user-settings";
 import { patchUserProfile } from "@/lib/user-settings/patch-user-profile";
 import {
@@ -41,6 +42,8 @@ export function useProfessionalTabUi({
   const [contactWhatsapp, setContactWhatsapp] = useState("");
   const [practiceCountry, setPracticeCountry] = useState("");
   const [practiceCity, setPracticeCity] = useState("");
+  /** ISO кода страны для автодополнения города (как в личном профиле). */
+  const [practiceCountryCode, setPracticeCountryCode] = useState<string | null>(null);
   const [worksOnline, setWorksOnline] = useState(false);
 
   useEffect(() => {
@@ -55,8 +58,10 @@ export function useProfessionalTabUi({
     setPublicSlug(profile.psychologistProfile?.publicSlug ?? "");
     setProfilePagePublished(profile.psychologistProfile?.profilePagePublished ?? false);
     setCatalogVisible(profile.psychologistProfile?.catalogVisible ?? false);
-    setPracticeCountry(profile.psychologistProfile?.practiceCountry ?? "");
+    const pc = profile.psychologistProfile?.practiceCountry ?? "";
+    setPracticeCountry(pc);
     setPracticeCity(profile.psychologistProfile?.practiceCity ?? "");
+    setPracticeCountryCode(pc ? (getCountryCodeByName(pc) ?? null) : null);
     setWorksOnline(profile.psychologistProfile?.worksOnline ?? false);
   }, [profile, profileSyncVersion]);
 
@@ -198,6 +203,8 @@ export function useProfessionalTabUi({
     setPracticeCountry,
     practiceCity,
     setPracticeCity,
+    practiceCountryCode,
+    setPracticeCountryCode,
     worksOnline,
     setWorksOnline,
 

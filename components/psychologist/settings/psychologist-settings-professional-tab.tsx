@@ -47,6 +47,8 @@ export function PsychologistSettingsProfessionalTab({
     setContactWhatsapp,
     practiceCountry,
     setPracticeCountry,
+    practiceCountryCode,
+    setPracticeCountryCode,
     practiceCity,
     setPracticeCity,
     worksOnline,
@@ -84,6 +86,8 @@ export function PsychologistSettingsProfessionalTab({
             PROFESSION_OPTIONS={PROFESSION_OPTIONS}
             practiceCountry={practiceCountry}
             setPracticeCountry={setPracticeCountry}
+            practiceCountryCode={practiceCountryCode}
+            setPracticeCountryCode={setPracticeCountryCode}
             practiceCity={practiceCity}
             setPracticeCity={setPracticeCity}
             worksOnline={worksOnline}

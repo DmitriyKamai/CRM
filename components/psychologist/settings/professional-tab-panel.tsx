@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { Dispatch, FC, SetStateAction } from "react";
 
 import { ProfilePhotoUploadBlock } from "@/components/psychologist/profile-photo-upload-block";
@@ -11,6 +12,22 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
 import { normalizePublicSlugInput } from "@/lib/settings/public-profile-slug";
+
+const CountryAutocomplete = dynamic(
+  () =>
+    import("@/components/ui/location-autocomplete").then((m) => ({
+      default: m.CountryAutocomplete
+    })),
+  { ssr: false }
+);
+
+const CityAutocomplete = dynamic(
+  () =>
+    import("@/components/ui/location-autocomplete").then((m) => ({
+      default: m.CityAutocomplete
+    })),
+  { ssr: false }
+);
 
 export type ProfessionOption = { value: string; label: string };
 
@@ -45,6 +62,8 @@ type Props = {
 
   practiceCountry: string;
   setPracticeCountry: Dispatch<SetStateAction<string>>;
+  practiceCountryCode: string | null;
+  setPracticeCountryCode: Dispatch<SetStateAction<string | null>>;
   practiceCity: string;
   setPracticeCity: Dispatch<SetStateAction<string>>;
   worksOnline: boolean;
@@ -84,6 +103,8 @@ export const ProfessionalTabPanel: FC<Props> = ({
   PROFESSION_OPTIONS,
   practiceCountry,
   setPracticeCountry,
+  practiceCountryCode,
+  setPracticeCountryCode,
   practiceCity,
   setPracticeCity,
   worksOnline,
@@ -115,9 +136,10 @@ export const ProfessionalTabPanel: FC<Props> = ({
         <div>
           <h3 className="text-sm font-semibold text-foreground">Публичная страница</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Адрес в латинице (3–32 символа: буквы, цифры, дефис). Чтобы включить
-            публикацию, укажите уникальный адрес и сохраните форму ниже при
-            необходимости, затем включите «Опубликовать страницу».
+            Адрес в латинице (3–32 символа: буквы, цифры, дефис). Нельзя начинать с
+            «id» и нельзя брать служебные имена разделов сайта. Чтобы включить
+            публикацию, укажите адрес и при необходимости сохраните форму ниже,
+            затем включите «Опубликовать страницу».
           </p>
         </div>
         <div className="space-y-2">
@@ -186,22 +208,25 @@ export const ProfessionalTabPanel: FC<Props> = ({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="practice-country">Страна</Label>
-            <Input
+            <CountryAutocomplete
               id="practice-country"
               value={practiceCountry}
-              onChange={(e) => setPracticeCountry(e.target.value)}
-              placeholder="Беларусь"
-              maxLength={64}
+              onChange={(name, code) => {
+                setPracticeCountry(name);
+                setPracticeCountryCode(code || null);
+                if (!name) setPracticeCity("");
+              }}
+              placeholder="Страна"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="practice-city">Город</Label>
-            <Input
+            <CityAutocomplete
               id="practice-city"
               value={practiceCity}
-              onChange={(e) => setPracticeCity(e.target.value)}
-              placeholder="Минск"
-              maxLength={64}
+              onChange={setPracticeCity}
+              countryCode={practiceCountryCode}
+              placeholder="Город"
             />
           </div>
         </div>
