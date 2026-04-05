@@ -56,8 +56,10 @@ export function PsychologistSettingsForm({
   if (loading) return <SettingsFormLoadingState />;
   if (!profile) return <SettingsFormErrorState variant="network" />;
   if (!profile.user) return <SettingsFormErrorState variant="default" />;
+  if (!profile.psychologistProfile) return <SettingsFormErrorState variant="default" />;
 
   const { initials, alt } = profileTab;
+  const psychProfile = profile.psychologistProfile;
 
   return (
     <SettingsFormTabsLayout
@@ -96,8 +98,8 @@ export function PsychologistSettingsForm({
       <PsychologistSettingsCalendarTab schedulingEnabled={schedulingEnabled} activeTab={activeTab} />
       <PsychologistSettingsProfessionalTab
         activeTab={activeTab}
-        profilePublicId={profile.psychologistProfile?.id ?? ""}
-        profilePhotoUrl={profile.psychologistProfile?.profilePhotoUrl ?? null}
+        publicRouteSerial={psychProfile.publicRouteSerial}
+        profilePhotoUrl={psychProfile.profilePhotoUrl ?? null}
         professionalTab={professionalTab}
         initials={initials}
         alt={alt || "Психолог"}

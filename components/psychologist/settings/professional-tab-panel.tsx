@@ -32,8 +32,8 @@ const CityAutocomplete = dynamic(
 export type ProfessionOption = { value: string; label: string };
 
 type Props = {
-  /** `PsychologistProfile.id` для превью ссылки без кастомного slug */
-  profilePublicId: string;
+  /** Порядковый публичный номер (`/id{N}` без алиаса) */
+  publicRouteSerial: number;
   profilePhotoUrl: string | null;
   initials: string;
   alt: string;
@@ -80,7 +80,7 @@ type Props = {
 };
 
 export const ProfessionalTabPanel: FC<Props> = ({
-  profilePublicId,
+  publicRouteSerial,
   profilePhotoUrl,
   initials,
   alt,
@@ -119,7 +119,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
   setContactWhatsapp
 }) => {
   const profilePathPreview = psychologistPublicProfilePath({
-    id: profilePublicId,
+    publicRouteSerial,
     publicSlug: normalizePublicSlugInput(publicSlug) || null
   });
 
@@ -166,7 +166,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
             </Label>
             <p className="text-xs text-muted-foreground">
               Страница открывается по короткой ссылке с корня сайта. Если кастомный
-              адрес не задан, используется технический id профиля в URL.
+              алиас не задан, используется адрес вида /id1, /id2… по порядку регистрации.
             </p>
           </div>
           <Switch

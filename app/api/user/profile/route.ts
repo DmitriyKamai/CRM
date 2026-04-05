@@ -53,6 +53,7 @@ export async function GET() {
 
     type PsychologistProfileDTO = {
       id: string;
+      publicRouteSerial: number;
       specialization: string | null;
       bio: string | null;
       profilePhotoUrl: string | null;
@@ -74,6 +75,7 @@ export async function GET() {
         where: { userId },
         select: {
           id: true,
+          publicRouteSerial: true,
           specialization: true,
           bio: true,
           profilePhotoUrl: true,
@@ -96,6 +98,7 @@ export async function GET() {
       }
       psychologistProfile = {
         id: profile.id,
+        publicRouteSerial: profile.publicRouteSerial,
         specialization: profile.specialization ?? null,
         bio: profile.bio ?? null,
         profilePhotoUrl: profile.profilePhotoUrl ?? null,

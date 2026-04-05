@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCachedAppSession } from "@/lib/server-session";
 import { prisma } from "@/lib/db";
+import { allocatePublicRouteSerial } from "@/lib/psychologist-public-route-serial";
 
 type Props = {
   searchParams: Promise<{ role?: string; from?: string }>;
@@ -50,19 +51,29 @@ export default async function SocialCompletePage({ searchParams }: Props) {
     const nameParts = fullName.split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] ?? "Психолог";
     const lastName = nameParts.slice(1).join(" ") ?? "";
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        role: "PSYCHOLOGIST",
-        firstName,
-        lastName,
-        psychologistProfile: {
-          connectOrCreate: {
-            where: { userId },
-            create: {}
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.psychologistProfile.findUnique({
+        where: { userId }
+      });
+      if (existing) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { role: "PSYCHOLOGIST", firstName, lastName }
+        });
+        return;
+      }
+      const serial = await allocatePublicRouteSerial(tx);
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          role: "PSYCHOLOGIST",
+          firstName,
+          lastName,
+          psychologistProfile: {
+            create: { publicRouteSerial: serial }
           }
         }
-      }
+      });
     });
     redirect("/psychologist");
   }

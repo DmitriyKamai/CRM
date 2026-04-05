@@ -5,6 +5,7 @@ import type { TestType } from "@prisma/client";
 import { safeLogAudit } from "@/lib/audit-log";
 import { ClientHistoryType, safeLogClientHistory } from "@/lib/client-history";
 import { prisma } from "@/lib/db";
+import { allocatePublicRouteSerial } from "@/lib/psychologist-public-route-serial";
 import { assertModuleEnabled } from "@/lib/platform-modules";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withPrismaLock } from "@/lib/prisma-request-lock";
@@ -49,8 +50,11 @@ export async function handleCreateDiagnosticLink(
     });
 
     if (!profile) {
-      profile = await prisma.psychologistProfile.create({
-        data: { userId }
+      profile = await prisma.$transaction(async (tx) => {
+        const serial = await allocatePublicRouteSerial(tx);
+        return tx.psychologistProfile.create({
+          data: { userId, publicRouteSerial: serial }
+        });
       });
     }
 

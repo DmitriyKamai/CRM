@@ -17,6 +17,7 @@ export type UserSettingsProfile = {
   /** Только профессиональные данные психолога (не личные — они в user). */
   psychologistProfile: {
     id: string;
+    publicRouteSerial: number;
     specialization: string | null;
     bio: string | null;
     profilePhotoUrl: string | null;

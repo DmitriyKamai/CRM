@@ -16,7 +16,7 @@ export default async function LegacyPsychologistProfileRedirect({ params }: Para
       profilePagePublished: true,
       OR: [{ id: trimmed }, { publicSlug: trimmed.toLowerCase() }]
     },
-    select: { id: true, publicSlug: true }
+    select: { id: true, publicSlug: true, publicRouteSerial: true }
   });
 
   if (!raw) notFound();

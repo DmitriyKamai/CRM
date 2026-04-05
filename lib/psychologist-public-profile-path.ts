@@ -1,7 +1,9 @@
-/** Канонический путь публичной страницы психолога: `/{slug}` или `/{profileId}`. */
+/** Канонический путь: `/{slug}` при алиасе или `/id{N}` по порядку регистрации. */
 export function psychologistPublicProfilePath(profile: {
-  id: string;
   publicSlug: string | null;
+  publicRouteSerial: number;
 }): string {
-  return `/${profile.publicSlug ?? profile.id}`;
+  const slug = profile.publicSlug?.trim().toLowerCase();
+  if (slug) return `/${slug}`;
+  return `/id${profile.publicRouteSerial}`;
 }

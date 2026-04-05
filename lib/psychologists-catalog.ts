@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 
 export type PsychologistCatalogEntry = {
   id: string;
-  /** Сегмент URL публичной страницы; если null — используется `id`. */
+  publicRouteSerial: number;
+  /** Алиас URL; если null — канонический путь `/id{publicRouteSerial}`. */
   publicSlug: string | null;
   firstName: string;
   lastName: string;
@@ -21,6 +22,7 @@ export async function getPublishedPsychologistsForCatalog(): Promise<
     where: { catalogVisible: true, profilePagePublished: true },
     select: {
       id: true,
+      publicRouteSerial: true,
       publicSlug: true,
       specialization: true,
       bio: true,
@@ -34,6 +36,7 @@ export async function getPublishedPsychologistsForCatalog(): Promise<
   });
   return rows.map(p => ({
     id: p.id,
+    publicRouteSerial: p.publicRouteSerial,
     publicSlug: p.publicSlug ?? null,
     firstName: p.user.firstName ?? (p.user.name ?? "").split(" ")[0] ?? "",
     lastName: p.user.lastName ?? (p.user.name ?? "").split(" ").slice(1).join(" ") ?? "",

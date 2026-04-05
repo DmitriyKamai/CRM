@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { prisma } from "@/lib/db";
+import { allocatePublicRouteSerial } from "@/lib/psychologist-public-route-serial";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logZodError } from "@/lib/log-validation-error";
 
@@ -77,23 +78,34 @@ export async function POST(request: Request) {
 
     const emailNormalized = data.email.trim().toLowerCase();
 
-    const user = await prisma.user.create({
-      data: {
-        email: emailNormalized,
-        name: `${data.firstName} ${data.lastName}`,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        hashedPassword,
-        role,
-        ...(role === "PSYCHOLOGIST"
-          ? {
-              psychologistProfile: {
-                create: {}
+    const user =
+      role === "PSYCHOLOGIST"
+        ? await prisma.$transaction(async (tx) => {
+            const serial = await allocatePublicRouteSerial(tx);
+            return tx.user.create({
+              data: {
+                email: emailNormalized,
+                name: `${data.firstName} ${data.lastName}`,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                hashedPassword,
+                role,
+                psychologistProfile: {
+                  create: { publicRouteSerial: serial }
+                }
               }
+            });
+          })
+        : await prisma.user.create({
+            data: {
+              email: emailNormalized,
+              name: `${data.firstName} ${data.lastName}`,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              hashedPassword,
+              role
             }
-          : undefined)
-      }
-    });
+          });
 
     if (role === "CLIENT") {
       let linked = false;

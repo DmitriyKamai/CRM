@@ -49,6 +49,7 @@ function matchesSearchTokens(p: PsychologistCatalogEntry, q: string): boolean {
     p.practiceCountry,
     p.practiceCity,
     p.publicSlug,
+    `id${p.publicRouteSerial}`,
     p.bio ?? "",
     p.worksOnline ? "онлайн" : ""
   ]
@@ -318,7 +319,7 @@ export function PublicPsychologistsList({
             const professionLabel = getProfessionLabel(p.specialization);
             const bioTrimmed = normalize(p.bio);
             const profileHref = psychologistPublicProfilePath({
-              id: p.id,
+              publicRouteSerial: p.publicRouteSerial,
               publicSlug: p.publicSlug
             });
             const bookingHref = `${profileHref}#booking`;

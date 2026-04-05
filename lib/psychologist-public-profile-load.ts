@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
+import { parsePublicRouteSerialFromSegment } from "@/lib/psychologist-public-route-serial";
 
 export type PsychologistPublicProfileDto = {
   id: string;
+  publicRouteSerial: number;
   firstName: string;
   lastName: string;
   specialization: string | null;
@@ -19,7 +21,7 @@ export type PsychologistPublicProfileDto = {
 };
 
 /**
- * Профиль с опубликованной страницей по сегменту URL (id или publicSlug).
+ * Профиль с опубликованной страницей по сегменту URL: алиас, id{N} или legacy cuid.
  */
 export async function loadPublishedPsychologistByUrlSegment(
   segment: string
@@ -27,14 +29,25 @@ export async function loadPublishedPsychologistByUrlSegment(
   const trimmed = segment.trim();
   if (!trimmed) return null;
   const slugKey = trimmed.toLowerCase();
+  const serial = parsePublicRouteSerialFromSegment(trimmed);
+
+  const orConditions: Array<
+    | { id: string }
+    | { publicSlug: string }
+    | { publicRouteSerial: number }
+  > = [{ id: trimmed }, { publicSlug: slugKey }];
+  if (serial !== null) {
+    orConditions.push({ publicRouteSerial: serial });
+  }
 
   const raw = await prisma.psychologistProfile.findFirst({
     where: {
       profilePagePublished: true,
-      OR: [{ id: trimmed }, { publicSlug: slugKey }]
+      OR: orConditions
     },
     select: {
       id: true,
+      publicRouteSerial: true,
       publicSlug: true,
       specialization: true,
       bio: true,
@@ -55,6 +68,7 @@ export async function loadPublishedPsychologistByUrlSegment(
 
   return {
     id: raw.id,
+    publicRouteSerial: raw.publicRouteSerial,
     publicSlug: raw.publicSlug ?? null,
     firstName: raw.user.firstName ?? (raw.user.name ?? "").split(" ")[0] ?? "",
     lastName:
