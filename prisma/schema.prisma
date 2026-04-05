@@ -213,7 +213,7 @@ model PsychologistProfile {
   contactViber       String?
   contactWhatsapp    String?
   profilePhotoUrl     String?   // фото для карточки в «Записаться к психологу» (отдельно от User.image — аватар)
-  /// Латиница, цифры и дефис; уникальный адрес `/client/psychologists/{slug}`.
+  /// Латиница, цифры и дефис; публичный URL `/{slug}` (без slug — `/{id}` профиля).
   publicSlug            String?  @unique
   /// Публичная страница доступна по slug (или по legacy id, пока slug пуст).
   profilePagePublished  Boolean  @default(false)

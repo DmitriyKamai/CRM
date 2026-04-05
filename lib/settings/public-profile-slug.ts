@@ -10,6 +10,7 @@ const RESERVED_SLUGS = new Set([
   "psychologists",
   "client",
   "psychologist",
+  "diagnostics",
   "new",
   "_next",
   "opengraph-image",

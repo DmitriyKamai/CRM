@@ -9,11 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
 import { normalizePublicSlugInput } from "@/lib/settings/public-profile-slug";
 
 export type ProfessionOption = { value: string; label: string };
 
 type Props = {
+  /** `PsychologistProfile.id` для превью ссылки без кастомного slug */
+  profilePublicId: string;
   profilePhotoUrl: string | null;
   initials: string;
   alt: string;
@@ -58,6 +61,7 @@ type Props = {
 };
 
 export const ProfessionalTabPanel: FC<Props> = ({
+  profilePublicId,
   profilePhotoUrl,
   initials,
   alt,
@@ -93,8 +97,10 @@ export const ProfessionalTabPanel: FC<Props> = ({
   contactWhatsapp,
   setContactWhatsapp
 }) => {
-  const slugPreview =
-    normalizePublicSlugInput(publicSlug) || "ваш-адрес";
+  const profilePathPreview = psychologistPublicProfilePath({
+    id: profilePublicId,
+    publicSlug: normalizePublicSlugInput(publicSlug) || null
+  });
 
   return (
     <div className="w-full space-y-8">
@@ -127,9 +133,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
           />
           <p className="text-xs text-muted-foreground break-all">
             Ссылка для клиентов:{" "}
-            <span className="font-medium text-foreground">
-              /client/psychologists/{slugPreview}
-            </span>
+            <span className="font-medium text-foreground">{profilePathPreview}</span>
           </p>
         </div>
 
@@ -139,8 +143,8 @@ export const ProfessionalTabPanel: FC<Props> = ({
               Опубликовать страницу
             </Label>
             <p className="text-xs text-muted-foreground">
-              Страница доступна по ссылке выше (или по техническому id, если адрес
-              ещё не задан — для старых профилей).
+              Страница открывается по короткой ссылке с корня сайта. Если кастомный
+              адрес не задан, используется технический id профиля в URL.
             </p>
           </div>
           <Switch

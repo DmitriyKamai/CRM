@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
  *   вкладка «Записи» в профиле клиента (пропсы с сервера обязательны везде, где ренерится профиль).
  * diagnostics: все /api/diagnostics/*, GET психолога …/diagnostics, админ-тесты, страница /diagnostics/[token].
  *
- * Каталог психологов для клиента (/client/psychologists) не зависит от scheduling; запись на слоты — зависит.
+ * Каталог психологов для клиента (/client/psychologists) не зависит от scheduling; публичный профиль — `/{slug|id}`; запись на слоты — зависит.
  */
 /** Единственная строка настроек инстанса CRM */
 export const PLATFORM_SETTINGS_ID = "default";

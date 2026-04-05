@@ -26,9 +26,11 @@ interface Props {
   psychologistId: string;
   /** Имя для редких подсказок / ошибок; в заголовке не дублируем */
   psychologistName: string;
+  /** Канонический путь профиля после входа (например `/{slug}` или `/{id}`) */
+  profilePath?: string;
 }
 
-export function ClientBooking({ psychologistId, psychologistName }: Props) {
+export function ClientBooking({ psychologistId, psychologistName, profilePath }: Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [slots, setSlots] = useState<SlotDto[]>([]);
@@ -37,7 +39,8 @@ export function ClientBooking({ psychologistId, psychologistName }: Props) {
   const [bookingId, setBookingId] = useState<string | null>(null);
 
   const isLoggedIn = status === "authenticated" && !!session?.user;
-  const loginUrl = `/auth/login?callbackUrl=${encodeURIComponent(`/client/psychologists/${psychologistId}`)}`;
+  const returnPath = profilePath ?? `/${psychologistId}`;
+  const loginUrl = `/auth/login?callbackUrl=${encodeURIComponent(returnPath)}`;
 
   async function loadSlots() {
     setLoading(true);

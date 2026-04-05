@@ -8,6 +8,7 @@ import { ProfessionalTabPanel } from "@/components/psychologist/settings/profess
 
 export type PsychologistSettingsProfessionalTabProps = {
   activeTab: string;
+  profilePublicId: string;
   profilePhotoUrl: string | null;
   professionalTab: ReturnType<typeof useProfessionalTabUi>;
   initials: string;
@@ -17,6 +18,7 @@ export type PsychologistSettingsProfessionalTabProps = {
 
 export function PsychologistSettingsProfessionalTab({
   activeTab,
+  profilePublicId,
   profilePhotoUrl,
   professionalTab,
   initials,
@@ -59,6 +61,7 @@ export function PsychologistSettingsProfessionalTab({
       {activeTab === "professional" && (
         <SettingsSection title="Профессиональный профиль">
           <ProfessionalTabPanel
+            profilePublicId={profilePublicId}
             profilePhotoUrl={profilePhotoUrl}
             initials={initials}
             alt={alt}

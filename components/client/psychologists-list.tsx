@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, Search, X } from "lucide-react";
 
 import type { PsychologistCatalogEntry } from "@/lib/psychologists-catalog";
+import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -316,8 +317,10 @@ export function PublicPsychologistsList({
               .slice(0, 2);
             const professionLabel = getProfessionLabel(p.specialization);
             const bioTrimmed = normalize(p.bio);
-            const profileSegment = p.publicSlug ?? p.id;
-            const profileHref = `/client/psychologists/${profileSegment}`;
+            const profileHref = psychologistPublicProfilePath({
+              id: p.id,
+              publicSlug: p.publicSlug
+            });
             const bookingHref = `${profileHref}#booking`;
             const locationLine = catalogLocationLine(p);
 

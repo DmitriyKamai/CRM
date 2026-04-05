@@ -52,6 +52,7 @@ export async function GET() {
       : null;
 
     type PsychologistProfileDTO = {
+      id: string;
       specialization: string | null;
       bio: string | null;
       profilePhotoUrl: string | null;
@@ -72,6 +73,7 @@ export async function GET() {
       const profile = await prisma.psychologistProfile.findUnique({
         where: { userId },
         select: {
+          id: true,
           specialization: true,
           bio: true,
           profilePhotoUrl: true,
@@ -93,6 +95,7 @@ export async function GET() {
         );
       }
       psychologistProfile = {
+        id: profile.id,
         specialization: profile.specialization ?? null,
         bio: profile.bio ?? null,
         profilePhotoUrl: profile.profilePhotoUrl ?? null,
