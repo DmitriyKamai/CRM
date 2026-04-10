@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -11,7 +12,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Boxes
+  Boxes,
+  LogIn
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -90,16 +92,23 @@ export function SidebarNavContent({
   onCollapsedChange
 }: SidebarNavContentProps) {
   const pathname = usePathname();
+  const { status } = useSession();
+  const isGuestClient = role === "CLIENT" && status === "unauthenticated";
 
   const navItems = useMemo(() => {
     const base =
       role === "PSYCHOLOGIST" ? PSYCHOLOGIST_NAV :
       role === "CLIENT" ? CLIENT_NAV :
       ADMIN_NAV;
-    return filterNavForModules(role, base, modules);
-  }, [role, modules]);
+    const filtered = filterNavForModules(role, base, modules);
+    if (isGuestClient) {
+      return filtered.filter((item) => item.href === "/client/psychologists");
+    }
+    return filtered;
+  }, [role, modules, isGuestClient]);
 
   const settingsHref = SETTINGS_HREF[role] ?? "/";
+  const loginHref = `/auth/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
 
   const linkProps = onNavigate ? { onClick: onNavigate } : {};
 
@@ -147,21 +156,37 @@ export function SidebarNavContent({
       </nav>
 
       <div className="px-2 pb-2 shrink-0">
-        <Link
-          href={settingsHref}
-          title={collapsed ? "Настройки" : undefined}
-          className={cn(
-            "flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
-            collapsed ? "justify-center px-0" : "px-3",
-            pathname.startsWith(settingsHref)
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          )}
-          {...linkProps}
-        >
-          <Settings className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="truncate">Настройки</span>}
-        </Link>
+        {isGuestClient ? (
+          <Link
+            href={loginHref}
+            title={collapsed ? "Войти" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
+              collapsed ? "justify-center px-0" : "px-3",
+              "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+            {...linkProps}
+          >
+            <LogIn className="h-4 w-4 shrink-0" />
+            {!collapsed && <span className="truncate">Войти</span>}
+          </Link>
+        ) : (
+          <Link
+            href={settingsHref}
+            title={collapsed ? "Настройки" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
+              collapsed ? "justify-center px-0" : "px-3",
+              pathname.startsWith(settingsHref)
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+            {...linkProps}
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            {!collapsed && <span className="truncate">Настройки</span>}
+          </Link>
+        )}
       </div>
 
       <div className="border-t border-[hsl(var(--sidebar-border))] shrink-0" />

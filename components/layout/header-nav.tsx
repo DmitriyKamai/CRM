@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Moon, Settings, Sun, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, Moon, Settings, Sun, LogOut, LayoutDashboard, LogIn } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -70,17 +71,21 @@ type HeaderNavProps = {
 };
 
 export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
-  const { data: session } = useSession();
+  const pathname = usePathname();
+  const { data: session, status } = useSession();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     void (async () => setMounted(true))();
   }, []);
 
+  const isAuthenticated = status === "authenticated" && !!session?.user;
+  const sessionRole = (session?.user as { role?: string } | undefined)?.role;
+
   const { data: profileData, isError: profileQueryError } = useQuery({
     queryKey: userSettingsKeys.profile(),
     queryFn: fetchUserSettingsProfile,
-    enabled: role === "PSYCHOLOGIST",
+    enabled: isAuthenticated && sessionRole === "PSYCHOLOGIST",
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false
@@ -100,11 +105,22 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
         : "?"
     : "?";
 
-  const settingsHref = SETTINGS_HREF[role] ?? "/";
-  const profileHref = PROFILE_HREF[role] ?? "/";
+  const effectiveNavRole: HeaderNavProps["role"] =
+    isAuthenticated &&
+    sessionRole &&
+    sessionRole !== "UNSPECIFIED" &&
+    (sessionRole === "PSYCHOLOGIST" ||
+      sessionRole === "CLIENT" ||
+      sessionRole === "ADMIN")
+      ? sessionRole
+      : role;
+
+  const settingsHref = SETTINGS_HREF[effectiveNavRole] ?? "/";
+  const profileHref = PROFILE_HREF[effectiveNavRole] ?? "/";
+  const loginHref = `/auth/login?callbackUrl=${encodeURIComponent(pathname || "/")}`;
 
   const professionLabel =
-    role === "PSYCHOLOGIST"
+    sessionRole === "PSYCHOLOGIST"
       ? getProfessionDisplayLabel(
           profileQueryError || !profileData
             ? null
@@ -113,13 +129,25 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
       : null;
 
   const roleLabel =
-    role === "PSYCHOLOGIST"
-      ? mounted ? professionLabel ?? "Специалист" : "—"
-      : role === "CLIENT"
-        ? mounted ? "Клиент" : "—"
-        : role === "ADMIN"
-          ? mounted ? "Администратор" : "—"
-          : mounted ? "Пользователь" : "—";
+    sessionRole === "PSYCHOLOGIST"
+      ? mounted
+        ? professionLabel ?? "Специалист"
+        : "—"
+      : sessionRole === "CLIENT"
+        ? mounted
+          ? "Клиент"
+          : "—"
+        : sessionRole === "ADMIN"
+          ? mounted
+            ? "Администратор"
+            : "—"
+          : sessionRole === "UNSPECIFIED"
+            ? mounted
+              ? "Роль не выбрана"
+              : "—"
+            : mounted
+              ? "Пользователь"
+              : "—";
 
   return (
     <header className="relative z-40 flex min-w-0 h-14 shrink-0 items-center justify-between gap-2 rounded-none border-x-0 border-t-0 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] px-4">
@@ -146,75 +174,92 @@ export function HeaderNav({ role, onMenuClick, brand }: HeaderNavProps) {
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         <ThemeToggle />
-        <div className="mr-1 sm:mr-2">
-          <NotificationsPanel />
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="relative h-9 w-9 rounded-full p-0 focus-visible:ring-2 focus-visible:ring-offset-2"
-              aria-label="Меню пользователя"
-            >
-              <Avatar className="h-9 w-9">
-                <AvatarImage
-                  src={mounted ? user?.image ?? undefined : undefined}
-                  alt={mounted ? name : ""}
-                />
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="min-w-72 w-max max-w-[min(22rem,95vw)]"
-            forceMount
-          >
-            <div className="flex items-center gap-3 p-2">
-              <Avatar className="h-14 w-14 shrink-0">
-                <AvatarImage
-                  src={mounted ? user?.image ?? undefined : undefined}
-                  alt={mounted ? name : ""}
-                />
-                <AvatarFallback className="bg-muted text-sm font-medium">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p className="truncate text-sm font-medium leading-none">
-                  {mounted ? name : "—"}
-                </p>
-                <p className="break-all text-xs text-muted-foreground">
-                  {mounted ? email : ""}
-                </p>
-                <p className="text-xs text-muted-foreground">{roleLabel}</p>
-              </div>
+        {isAuthenticated ? (
+          <>
+            <div className="mr-1 sm:mr-2">
+              <NotificationsPanel />
             </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={settingsHref} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                Настройки профиля
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={profileHref} className="cursor-pointer">
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                Перейти в кабинет
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer text-muted-foreground focus:bg-destructive/10 focus:text-destructive"
-              onSelect={() => signOut({ callbackUrl: "/" })}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Выйти
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full p-0 focus-visible:ring-2 focus-visible:ring-offset-2"
+                  aria-label="Меню пользователя"
+                >
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage
+                      src={mounted ? user?.image ?? undefined : undefined}
+                      alt={mounted ? name : ""}
+                    />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="min-w-72 w-max max-w-[min(22rem,95vw)]"
+                forceMount
+              >
+                <div className="flex items-center gap-3 p-2">
+                  <Avatar className="h-14 w-14 shrink-0">
+                    <AvatarImage
+                      src={mounted ? user?.image ?? undefined : undefined}
+                      alt={mounted ? name : ""}
+                    />
+                    <AvatarFallback className="bg-muted text-sm font-medium">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <p className="truncate text-sm font-medium leading-none">
+                      {mounted ? name : "—"}
+                    </p>
+                    <p className="break-all text-xs text-muted-foreground">
+                      {mounted ? email : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{roleLabel}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={settingsHref} className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Настройки профиля
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={profileHref} className="cursor-pointer">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Перейти в кабинет
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-muted-foreground focus:bg-destructive/10 focus:text-destructive"
+                  onSelect={() => signOut({ callbackUrl: "/" })}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Выйти
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ) : status === "loading" ? (
+          <div
+            className="h-9 w-9 shrink-0 rounded-full bg-muted animate-pulse"
+            aria-hidden
+            title="Загрузка сессии"
+          />
+        ) : (
+          <Button asChild size="sm" className="shrink-0 gap-1.5">
+            <Link href={loginHref}>
+              <LogIn className="h-4 w-4" />
+              Войти
+            </Link>
+          </Button>
+        )}
       </div>
     </header>
   );
