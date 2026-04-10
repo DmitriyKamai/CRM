@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 function CatalogCardSkeleton() {
   return (
     <Card className="flex h-full flex-col overflow-hidden rounded-2xl shadow-sm">
-      <Skeleton className="aspect-[4/3] w-full rounded-t-2xl rounded-b-none" />
+      <Skeleton className="aspect-square w-full rounded-t-2xl rounded-b-none" />
       <CardContent className="space-y-2 p-3">
         <Skeleton className="mx-auto h-4 w-2/3 sm:h-5" />
         <div className="flex justify-center gap-1.5">

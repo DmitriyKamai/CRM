@@ -338,7 +338,7 @@ export function PublicPsychologistsList({
                     className="absolute inset-0 z-[1] rounded-2xl outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                   <CardContent className="pointer-events-none relative z-0 flex flex-col p-0">
-                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl bg-muted">
+                    <div className="relative aspect-square w-full overflow-hidden rounded-t-2xl bg-muted">
                       <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-2xl">
                         <AvatarImage
                           src={p.profilePhotoUrl ?? undefined}
