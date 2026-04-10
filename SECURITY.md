@@ -6,13 +6,13 @@
 
 - **Аутентификация:** NextAuth (JWT-сессии), пароли через bcrypt.
 - **Валидация входных данных:** по возможности Zod в API-роутах.
-- **Заголовки:** `proxy.ts` (ранее `middleware`) — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, **`Content-Security-Policy-Report-Only`** (Next.js/React: в режиме только отчётов для `script-src` и `script-src-elem` указано `'unsafe-inline'`, чтобы не засорять отчёты; при переходе на enforcing — nonce/хэши), в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
+- **Заголовки:** `proxy.ts` (ранее `middleware`) — `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, `**Content-Security-Policy-Report-Only`** (Next.js/React: в режиме только отчётов для `script-src` и `script-src-elem` указано `'unsafe-inline'`, чтобы не засорять отчёты; при переходе на enforcing — nonce/хэши), в production — `Strict-Transport-Security` (ожидается HTTPS за прокси).
 - **Rate limiting:** `lib/rate-limit.ts` — регистрация, восстановление пароля, сброс пароля. Поддерживает Redis/Upstash (если настроены) и fallback в in-memory (на dev/single instance).
-- **Guards для API:** `lib/security/api-guards.ts` — `requireAuth`, `requireRoles`, `requirePsychologist`, `requireAdmin`, `requireClient`, `getClientIp`. Большинство маршрутов в `app/api/**` уже используют эти хелперы вместо ручного `getServerSession` + проверки роли.
+- **Guards для API:** `lib/security/api-guards.ts` — `requireAuth`, `requireRoles`, `requirePsychologist`, `requireAdmin`, `requireClient`, `getClientIp`. Большинство маршрутов в `app/api/`** уже используют эти хелперы вместо ручного `getServerSession` + проверки роли.
 - **Владение ресурсами:** для `PATCH`/`DELETE` слота расписания проверяется `psychologistId` слота — нельзя менять чужие слоты по id.
 - **Аудит-лог:** таблица `prisma/AuditLog` и best-effort записи о смене роли админом, перевыпуске календарной ссылки, смене пароля, удалении слота расписания, изменении статуса записи (подтверждение/отмена) психологом, переключении активности теста админом, создании диагностической ссылки, импорте/экспорте клиентов, удалении файла клиента, **отвязке клиента от психолога** (`CLIENT_DELETE`, в API — `psychologistId: null`) и **массовом обновлении кастомных полей** клиента.
 - **CI:** `.github/workflows/ci.yml` — после `npm ci` и `prisma generate` прогоняются `tsc`, `npm run lint` и `npm audit --omit=dev`.
-- **ICS по ссылке:** только токен в БД (`CalendarFeedToken`), перевыпуск из кабинета (**`POST /api/calendar/feed-url`**).
+- **ICS по ссылке:** только токен в БД (`CalendarFeedToken`), перевыпуск из кабинета (`**POST /api/calendar/feed-url`**).
 - **Перевыпуск календарной ссылки:** лимит на `POST /api/calendar/feed-url` — защита от спама перевыпусками.
 - **Сессия:** JWT max **14 суток**, продление не чаще **24 ч** при активности (`lib/auth.ts`).
 
@@ -22,20 +22,22 @@
 
 ### ICS-календарь по ссылке — почему это не «взлом по желанию»
 
-**`GET /api/calendar/feed/<token>`** (и устаревший **`?token=`**) — секретная ссылка (подписка по URL в Google/Apple Calendar).
+`**GET /api/calendar/feed/<token>`** (и устаревший `**?token=**`) — секретная ссылка (подписка по URL в Google/Apple Calendar).
 
-- Токен — случайные **256 бит**, хранится в `CalendarFeedToken` (один активный на профиль). Выдача: **`GET /api/calendar/feed-url`**, перевыпуск: **`POST /api/calendar/feed-url`** (сессия психолога) — прежний URL перестаёт работать.
+- Токен — случайные **256 бит**, хранится в `CalendarFeedToken` (один активный на профиль). Выдача: `**GET /api/calendar/feed-url`**, перевыпуск: `**POST /api/calendar/feed-url**` (сессия психолога) — прежний URL перестаёт работать.
 - **Подобрать чужой токен нереалистично**; **утёкший** токен даёт лишь **чтение ICS**, не доступ к аккаунту.
 
 Практика: HTTPS, не логировать query целиком. Лимит: **600 запросов / 10 мин** на IP.
 
-| Область | Поведение |
-|--------|-----------|
-| **`GET /api/calendar/feed/<token>`** | Чтение ICS при валидном токене из БД. |
-| **`GET` / `POST /api/calendar/feed-url`** | Текущая ссылка / **перевыпуск** токена. |
-| **`POST /api/auth/register`**, **`forgot-password`**, **`reset-password`** | Публичные; уже с rate limit по IP / email. |
-| **`POST /api/auth/[...nextauth]`** | NextAuth (логин, OAuth callback и т.д.). |
-| **Диагностики по ссылке** (страницы/ API с `token` из `diagnosticLink`) | Доступ по одноразовым/лимитированным ссылкам из БД — см. соответствующие роуты в `app/api/diagnostics/`. |
+
+| Область                                                                    | Поведение                                                                                                |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `**GET /api/calendar/feed/<token>`**                                       | Чтение ICS при валидном токене из БД.                                                                    |
+| `**GET` / `POST /api/calendar/feed-url**`                                  | Текущая ссылка / **перевыпуск** токена.                                                                  |
+| `**POST /api/auth/register`**, `**forgot-password**`, `**reset-password**` | Публичные; уже с rate limit по IP / email.                                                               |
+| `**POST /api/auth/[...nextauth]**`                                         | NextAuth (логин, OAuth callback и т.д.).                                                                 |
+| **Диагностики по ссылке** (страницы/ API с `token` из `diagnosticLink`)    | Доступ по одноразовым/лимитированным ссылкам из БД — см. соответствующие роуты в `app/api/diagnostics/`. |
+
 
 Остальные маршруты под `app/api/` ожидают сессию и проверку роли через guards.
 
@@ -47,22 +49,18 @@
 
 ## Серверное шифрование чувствительных полей
 
-- Реализация: **`lib/server-encryption/`** (AES-256-GCM, envelope с маркером в JSON, AAD по типу поля).
-- Секрет: **`DATA_ENCRYPTION_KEY`** (32 байта в base64). Хранить только в менеджере секретов / env хостинга, не в репозитории.
+- Реализация: `**lib/server-encryption/`** (AES-256-GCM, envelope с маркером в JSON, AAD по типу поля).
+- Секрет: `**DATA_ENCRYPTION_KEY**` (32 байта в base64). Хранить только в менеджере секретов / env хостинга, не в репозитории.
 - При ошибке расшифровки (нет ключа, неверный ключ, повреждённые данные) в лог пишется сообщение, в API поле может вернуться **пустым**, чтобы не отдавать 500 на весь список клиентов.
 - **Запись** новых зашифрованных значений по-прежнему требует валидный ключ в окружении.
-- Подробности деплоя и Vercel: **`DEPLOY.md`**, шаблон переменных: **`.env.example`**.
+- Подробности деплоя и Vercel: `**DEPLOY.md`**, шаблон переменных: `**.env.example**`.
 
 ## Секреты и окружение
 
 - Не коммитьте `.env*`. В репозитории уже в `.gitignore`.
 - В проде: уникальные `NEXTAUTH_SECRET`, пароли БД, ключи OAuth/email.
-- Регулярно: `npm audit` (в проекте есть скрипт `npm run security:audit`). Полная локальная проверка: **`npm run security:check`** (типы + lint + audit).
-- Шаблон переменных: **`.env.example`** (без секретов в репозитории).
-
-## Сообщить об уязвимости
-
-Напишите владельцу репозитория / ответственному за продукт **приватно** (не через публичный issue), с описанием шагов воспроизведения и влияния. Ожидаемый срок ответа — по договорённости команды.
+- Регулярно: `npm audit` (в проекте есть скрипт `npm run security:audit`). Полная локальная проверка: `**npm run security:check**` (типы + lint + audit).
+- Шаблон переменных: `**.env.example**` (без секретов в репозитории).
 
 ## Дальнейшие шаги (рекомендации)
 
@@ -70,3 +68,4 @@
 - CSP: дальше — после сбора отчётов ужесточать `style-src`/добавлять nonce (если понадобится).
 - При частых ложных срабатываниях `npm audit` в CI — задать политику (например, только уровень `high` / `--audit-level`) или отдельный scheduled job.
 - Сканирование секретов в PR (GitHub secret scanning, gitleaks).
+
