@@ -72,25 +72,25 @@ export function useProfessionalTabUi({
 
   async function handleProfilePagePublishedChange(published: boolean) {
     if (visibilitySaving) return;
+
+    let validatedSlug: string | undefined;
     if (published) {
       const normalized = normalizePublicSlugInput(publicSlug);
-      const checked = validatePublicSlug(normalized);
-      if (!checked.ok) {
-        toast.error(checked.message);
-        return;
-      }
-    }
-    setVisibilitySaving(true);
-    try {
-      const body: Record<string, unknown> = { profilePagePublished: published };
-      if (published) {
-        const normalized = normalizePublicSlugInput(publicSlug);
+      if (normalized.length > 0) {
         const checked = validatePublicSlug(normalized);
         if (!checked.ok) {
           toast.error(checked.message);
           return;
         }
-        body.publicSlug = checked.slug;
+        validatedSlug = checked.slug;
+      }
+    }
+
+    setVisibilitySaving(true);
+    try {
+      const body: Record<string, unknown> = { profilePagePublished: published };
+      if (published && validatedSlug !== undefined) {
+        body.publicSlug = validatedSlug;
       }
       await patchUserProfile(body);
       await syncProfileAfterPatch();
