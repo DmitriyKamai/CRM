@@ -9,7 +9,6 @@ import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -339,16 +338,21 @@ export function PublicPsychologistsList({
                   />
                   <CardContent className="pointer-events-none relative z-0 flex flex-col p-0">
                     <div className="relative aspect-square w-full overflow-hidden rounded-t-2xl bg-muted">
-                      <Avatar className="absolute inset-0 h-full w-full rounded-none rounded-t-2xl">
-                        <AvatarImage
-                          src={p.profilePhotoUrl ?? undefined}
+                      {p.profilePhotoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.profilePhotoUrl}
                           alt=""
-                          className="rounded-none rounded-t-2xl object-cover"
+                          className="h-full w-full object-cover"
                         />
-                        <AvatarFallback className="bg-placeholder-surface rounded-none rounded-t-2xl text-2xl font-semibold tracking-tight text-muted-foreground">
+                      ) : (
+                        <div
+                          className="bg-placeholder-surface flex h-full w-full items-center justify-center text-2xl font-semibold tracking-tight text-muted-foreground"
+                          aria-hidden
+                        >
                           {initials || "?"}
-                        </AvatarFallback>
-                      </Avatar>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2 px-3 pb-2 pt-2.5 text-center">
                       <p

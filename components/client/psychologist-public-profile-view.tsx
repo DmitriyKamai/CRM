@@ -112,12 +112,11 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
 
       <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="flex flex-col gap-8 p-6 pt-6 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
-          <div className="mx-auto flex shrink-0 justify-center lg:mx-0">
+          <div className="mx-auto flex w-full max-w-[280px] shrink-0 justify-center lg:mx-0">
             <div
               className={cn(
-                "relative overflow-hidden border-4 border-background shadow-lg ring-1 ring-border/50",
-                "h-36 w-36 rounded-full sm:h-40 sm:w-40",
-                "lg:h-[22rem] lg:w-[17rem] lg:rounded-3xl lg:border-2"
+                "relative aspect-square w-full overflow-hidden rounded-lg border-4 border-background bg-muted",
+                "shadow-lg ring-1 ring-border/50"
               )}
             >
               {psychologist.profilePhotoUrl ? (
