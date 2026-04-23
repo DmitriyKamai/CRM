@@ -244,6 +244,30 @@ model PsychologistProfile {
   clientRegistrationInvites ClientRegistrationInvite[]
   clientStatuses            ClientStatus[]
   calendarFeedToken         CalendarFeedToken?
+  therapyApproaches         TherapyApproach[] @relation("PsychologistTherapyApproaches")
+}
+
+/// Справочник психотерапевтических подходов (КПТ, гештальт, EMDR…). Сидится миграцией/скриптом.
+model TherapyApproach {
+  id          String   @id @default(cuid())
+  /// Машинный идентификатор в латинице: cbt, gestalt, emdr…
+  slug        String   @unique
+  /// Отображаемое название на русском.
+  nameRu      String
+  /// Группа для UI: base | third_wave | psychodynamic | couple | brief | trauma | expressive | other.
+  family      String
+  /// Короткое пояснение для тултипа клиенту (1 строка, 1–2 предложения).
+  description String?  @db.Text
+  /// Сортировка внутри семейства (меньше — выше).
+  orderIndex  Int      @default(0)
+  /// Если false — не доступен для новых назначений (оставляем в БД ради истории).
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  psychologists PsychologistProfile[] @relation("PsychologistTherapyApproaches")
+
+  @@index([family, orderIndex])
 }
 
 /// Секретная ссылка ICS-календаря (можно перевыпустить — старая перестаёт работать).

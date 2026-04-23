@@ -13,6 +13,12 @@ import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 function formatPhoneHref(phone: string): string {
@@ -165,14 +171,46 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
               )}
             </header>
 
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-foreground">О себе</h2>
-              <div className="rounded-xl bg-muted/50 px-4 py-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
-                {psychologist.bio
-                  ? psychologist.bio
-                  : "Психолог ещё не заполнил информацию о себе."}
-              </div>
-            </section>
+            {psychologist.bio && (
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-foreground">О себе</h2>
+                <div className="rounded-xl bg-muted/50 px-4 py-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+                  {psychologist.bio}
+                </div>
+              </section>
+            )}
+
+            {psychologist.therapyApproaches.length > 0 && (
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-foreground">Методы работы</h2>
+                <TooltipProvider delayDuration={200}>
+                  <div className="flex flex-wrap gap-2">
+                    {psychologist.therapyApproaches.map((a) =>
+                      a.description ? (
+                        <Tooltip key={a.slug}>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="secondary"
+                              className="cursor-help font-medium"
+                              tabIndex={0}
+                            >
+                              {a.nameRu}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                            {a.description}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Badge key={a.slug} variant="secondary" className="font-medium">
+                          {a.nameRu}
+                        </Badge>
+                      )
+                    )}
+                  </div>
+                </TooltipProvider>
+              </section>
+            )}
 
             {hasContacts && (
               <>

@@ -53,6 +53,8 @@ export function PsychologistSettingsProfessionalTab({
     setPracticeCity,
     worksOnline,
     setWorksOnline,
+    therapyApproachSlugs,
+    setTherapyApproachSlugs,
     handleProfilePagePublishedChange,
     handleCatalogVisibleChange,
     handleSaveProfessional
@@ -92,6 +94,8 @@ export function PsychologistSettingsProfessionalTab({
             setPracticeCity={setPracticeCity}
             worksOnline={worksOnline}
             setWorksOnline={setWorksOnline}
+            therapyApproachSlugs={therapyApproachSlugs}
+            setTherapyApproachSlugs={setTherapyApproachSlugs}
             contactPhone={contactPhone}
             setContactPhone={setContactPhone}
             contactTelegram={contactTelegram}

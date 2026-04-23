@@ -45,6 +45,7 @@ export function useProfessionalTabUi({
   /** ISO кода страны для автодополнения города (как в личном профиле). */
   const [practiceCountryCode, setPracticeCountryCode] = useState<string | null>(null);
   const [worksOnline, setWorksOnline] = useState(false);
+  const [therapyApproachSlugs, setTherapyApproachSlugs] = useState<string[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -63,6 +64,9 @@ export function useProfessionalTabUi({
     setPracticeCity(profile.psychologistProfile?.practiceCity ?? "");
     setPracticeCountryCode(pc ? (getCountryCodeByName(pc) ?? null) : null);
     setWorksOnline(profile.psychologistProfile?.worksOnline ?? false);
+    setTherapyApproachSlugs(
+      profile.psychologistProfile?.therapyApproachSlugs ?? []
+    );
   }, [profile, profileSyncVersion]);
 
   async function syncProfileAfterPatch() {
@@ -150,7 +154,8 @@ export function useProfessionalTabUi({
       publicSlug: slugOut,
       practiceCountry: practiceCountry.trim() || null,
       practiceCity: practiceCity.trim() || null,
-      worksOnline
+      worksOnline,
+      therapyApproachSlugs
     });
   }
 
@@ -164,6 +169,13 @@ export function useProfessionalTabUi({
   const savedPracticeCountry = profile?.psychologistProfile?.practiceCountry ?? "";
   const savedPracticeCity = profile?.psychologistProfile?.practiceCity ?? "";
   const savedWorksOnline = profile?.psychologistProfile?.worksOnline ?? false;
+  const savedTherapyApproachSlugs =
+    profile?.psychologistProfile?.therapyApproachSlugs ?? [];
+
+  const therapyApproachesChanged =
+    therapyApproachSlugs.length !== savedTherapyApproachSlugs.length ||
+    [...therapyApproachSlugs].sort().join("\u0001") !==
+      [...savedTherapyApproachSlugs].sort().join("\u0001");
 
   const hasProfessionalChanges =
     (bio.trim() || "") !== (savedBio || "") ||
@@ -175,7 +187,8 @@ export function useProfessionalTabUi({
     normalizePublicSlugInput(publicSlug) !== normalizePublicSlugInput(savedSlug) ||
     (practiceCountry.trim() || "") !== (savedPracticeCountry || "") ||
     (practiceCity.trim() || "") !== (savedPracticeCity || "") ||
-    worksOnline !== savedWorksOnline;
+    worksOnline !== savedWorksOnline ||
+    therapyApproachesChanged;
 
   return {
     profilePagePublished,
@@ -207,6 +220,8 @@ export function useProfessionalTabUi({
     setPracticeCountryCode,
     worksOnline,
     setWorksOnline,
+    therapyApproachSlugs,
+    setTherapyApproachSlugs,
 
     handleSaveProfessional,
     handleProfilePagePublishedChange,

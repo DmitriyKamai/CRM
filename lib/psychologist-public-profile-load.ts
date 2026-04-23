@@ -1,5 +1,14 @@
 import { prisma } from "@/lib/db";
 import { parsePublicRouteSerialFromSegment } from "@/lib/psychologist-public-route-serial";
+import type { TherapyApproachFamily } from "@/lib/settings/therapy-approaches";
+import { THERAPY_APPROACH_FAMILIES } from "@/lib/settings/therapy-approaches";
+
+export type PsychologistPublicTherapyApproach = {
+  slug: string;
+  nameRu: string;
+  family: TherapyApproachFamily;
+  description: string | null;
+};
 
 export type PsychologistPublicProfileDto = {
   id: string;
@@ -18,7 +27,14 @@ export type PsychologistPublicProfileDto = {
   contactTelegram: string | null;
   contactViber: string | null;
   contactWhatsapp: string | null;
+  therapyApproaches: PsychologistPublicTherapyApproach[];
 };
+
+function toFamily(raw: string): TherapyApproachFamily {
+  return (THERAPY_APPROACH_FAMILIES as readonly string[]).includes(raw)
+    ? (raw as TherapyApproachFamily)
+    : "other";
+}
 
 /**
  * Профиль с опубликованной страницей по сегменту URL: алиас, id{N} или legacy cuid.
@@ -60,7 +76,17 @@ export async function loadPublishedPsychologistByUrlSegment(
       contactTelegram: true,
       contactViber: true,
       contactWhatsapp: true,
-      user: { select: { firstName: true, lastName: true, name: true } }
+      user: { select: { firstName: true, lastName: true, name: true } },
+      therapyApproaches: {
+        where: { isActive: true },
+        orderBy: [{ family: "asc" }, { orderIndex: "asc" }, { nameRu: "asc" }],
+        select: {
+          slug: true,
+          nameRu: true,
+          family: true,
+          description: true
+        }
+      }
     }
   });
 
@@ -83,6 +109,12 @@ export async function loadPublishedPsychologistByUrlSegment(
     contactPhone: raw.contactPhone ?? null,
     contactTelegram: raw.contactTelegram ?? null,
     contactViber: raw.contactViber ?? null,
-    contactWhatsapp: raw.contactWhatsapp ?? null
+    contactWhatsapp: raw.contactWhatsapp ?? null,
+    therapyApproaches: raw.therapyApproaches.map((a) => ({
+      slug: a.slug,
+      nameRu: a.nameRu,
+      family: toFamily(a.family),
+      description: a.description ?? null
+    }))
   };
 }

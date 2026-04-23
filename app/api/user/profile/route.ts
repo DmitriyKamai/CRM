@@ -8,6 +8,10 @@ import {
   normalizePublicSlugInput,
   validatePublicSlug
 } from "@/lib/settings/public-profile-slug";
+import {
+  MAX_THERAPY_APPROACHES_PER_PSYCHOLOGIST,
+  normalizeTherapyApproachSlugs
+} from "@/lib/settings/therapy-approaches";
 
 const MAX_EMAIL_LENGTH = 64;
 const MAX_NAME_LENGTH = 64;
@@ -67,6 +71,7 @@ export async function GET() {
       contactTelegram: string | null;
       contactViber: string | null;
       contactWhatsapp: string | null;
+      therapyApproachSlugs: string[];
     };
 
     let psychologistProfile: PsychologistProfileDTO | null = null;
@@ -88,7 +93,10 @@ export async function GET() {
           contactPhone: true,
           contactTelegram: true,
           contactViber: true,
-          contactWhatsapp: true
+          contactWhatsapp: true,
+          therapyApproaches: {
+            select: { slug: true }
+          }
         }
       });
       if (!profile) {
@@ -111,7 +119,8 @@ export async function GET() {
         contactPhone: profile.contactPhone ?? null,
         contactTelegram: profile.contactTelegram ?? null,
         contactViber: profile.contactViber ?? null,
-        contactWhatsapp: profile.contactWhatsapp ?? null
+        contactWhatsapp: profile.contactWhatsapp ?? null,
+        therapyApproachSlugs: profile.therapyApproaches.map((a) => a.slug)
       };
     }
 
@@ -265,7 +274,14 @@ export async function PATCH(request: Request) {
         profileUpdates.worksOnline = body.worksOnline;
       }
 
-      if (Object.keys(profileUpdates).length > 0) {
+      let therapyApproachSlugsInput: string[] | undefined;
+      if (body.therapyApproachSlugs !== undefined) {
+        therapyApproachSlugsInput = normalizeTherapyApproachSlugs(
+          body.therapyApproachSlugs
+        );
+      }
+
+      if (Object.keys(profileUpdates).length > 0 || therapyApproachSlugsInput !== undefined) {
         const current = await prisma.psychologistProfile.findUnique({
           where: { userId },
           select: {
@@ -310,10 +326,46 @@ export async function PATCH(request: Request) {
           );
         }
 
+        let approachIdsToSet: { id: string }[] | undefined;
+        if (therapyApproachSlugsInput !== undefined) {
+          if (therapyApproachSlugsInput.length === 0) {
+            approachIdsToSet = [];
+          } else {
+            const found = await prisma.therapyApproach.findMany({
+              where: { slug: { in: therapyApproachSlugsInput }, isActive: true },
+              select: { id: true, slug: true }
+            });
+            const validSlugs = new Set(found.map((a) => a.slug));
+            const unknown = therapyApproachSlugsInput.filter((s) => !validSlugs.has(s));
+            if (unknown.length > 0) {
+              return NextResponse.json(
+                {
+                  message: `Неизвестные подходы: ${unknown.slice(0, 3).join(", ")}`
+                },
+                { status: 400 }
+              );
+            }
+            if (found.length > MAX_THERAPY_APPROACHES_PER_PSYCHOLOGIST) {
+              return NextResponse.json(
+                {
+                  message: `Максимум ${MAX_THERAPY_APPROACHES_PER_PSYCHOLOGIST} подходов`
+                },
+                { status: 400 }
+              );
+            }
+            approachIdsToSet = found.map((a) => ({ id: a.id }));
+          }
+        }
+
         try {
           await prisma.psychologistProfile.update({
             where: { userId },
-            data: profileUpdates
+            data: {
+              ...profileUpdates,
+              ...(approachIdsToSet !== undefined && {
+                therapyApproaches: { set: approachIdsToSet }
+              })
+            }
           });
         } catch (err) {
           if (

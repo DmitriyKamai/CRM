@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import type { Dispatch, FC, SetStateAction } from "react";
 
 import { ProfilePhotoUploadBlock } from "@/components/psychologist/profile-photo-upload-block";
+import { TherapyApproachesField } from "@/components/psychologist/settings/therapy-approaches-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +70,9 @@ type Props = {
   worksOnline: boolean;
   setWorksOnline: Dispatch<SetStateAction<boolean>>;
 
+  therapyApproachSlugs: string[];
+  setTherapyApproachSlugs: Dispatch<SetStateAction<string[]>>;
+
   contactPhone: string;
   setContactPhone: Dispatch<SetStateAction<string>>;
   contactTelegram: string;
@@ -109,6 +113,8 @@ export const ProfessionalTabPanel: FC<Props> = ({
   setPracticeCity,
   worksOnline,
   setWorksOnline,
+  therapyApproachSlugs,
+  setTherapyApproachSlugs,
   contactPhone,
   setContactPhone,
   contactTelegram,
@@ -284,6 +290,11 @@ export const ProfessionalTabPanel: FC<Props> = ({
             ))}
           </RadioGroup>
         </div>
+
+        <TherapyApproachesField
+          selectedSlugs={therapyApproachSlugs}
+          onChange={setTherapyApproachSlugs}
+        />
 
         <div className="space-y-3">
           <div>

@@ -31,5 +31,7 @@ export type UserSettingsProfile = {
     contactTelegram: string | null;
     contactViber: string | null;
     contactWhatsapp: string | null;
+    /** Slugs из справочника TherapyApproach, выбранные психологом. */
+    therapyApproachSlugs: string[];
   } | null;
 };
