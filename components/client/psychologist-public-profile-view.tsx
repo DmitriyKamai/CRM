@@ -2,14 +2,15 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 import {
-  ContactBrandPhoneIcon,
   ContactBrandTelegramIcon,
   ContactBrandViberIcon,
   ContactBrandWhatsappIcon
 } from "@/components/client/contact-channel-brand-icons";
+import { PublicProfileContactPhone } from "@/components/client/public-profile-contact-phone";
 import { ClientBooking } from "@/components/schedule/client-booking";
 import type { PsychologistPublicProfileDto } from "@/lib/psychologist-public-profile-load";
 import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
+import { formatTelegramForDisplay } from "@/lib/public-contact-format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -219,23 +220,11 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
                   <h2 className="text-sm font-semibold text-foreground">Связаться</h2>
                   <div className="flex min-w-0 flex-wrap gap-2">
                     {phoneHref && psychologist.contactPhone && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-auto max-w-full min-w-0 gap-2 py-2"
-                        asChild
-                      >
-                        <a
-                          href={phoneHref}
-                          title={psychologist.contactPhone}
-                          className="min-w-0"
-                        >
-                          <ContactBrandPhoneIcon className="shrink-0" />
-                          <span className="min-w-0 break-words text-left">
-                            {psychologist.contactPhone}
-                          </span>
-                        </a>
-                      </Button>
+                      <PublicProfileContactPhone
+                        displayText={psychologist.contactPhone}
+                        href={phoneHref}
+                        className="max-w-full"
+                      />
                     )}
                     {telegramHref && psychologist.contactTelegram && (
                       <Button
@@ -253,7 +242,7 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
                         >
                           <ContactBrandTelegramIcon className="shrink-0" />
                           <span className="min-w-0 break-words text-left">
-                            {psychologist.contactTelegram}
+                            {formatTelegramForDisplay(psychologist.contactTelegram)}
                           </span>
                         </a>
                       </Button>
