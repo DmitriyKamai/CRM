@@ -32,5 +32,6 @@ describe("validatePublicSlug", () => {
     expect(validatePublicSlug("admin-panel").ok).toBe(false);
     expect(validatePublicSlug("client-ivan").ok).toBe(false);
     expect(validatePublicSlug("my-client").ok).toBe(true);
+    expect(validatePublicSlug("catalog").ok).toBe(false);
   });
 });

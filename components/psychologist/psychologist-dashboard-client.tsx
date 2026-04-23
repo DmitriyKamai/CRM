@@ -156,7 +156,7 @@ export function PsychologistDashboardClient({
                   size="sm"
                   variant="ghost"
                   className="justify-start"
-                  onClick={() => router.push("/client/psychologists")}
+                  onClick={() => router.push("/catalog")}
                 >
                   Посмотреть запись глазами клиента
                 </Button>

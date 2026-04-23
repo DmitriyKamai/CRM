@@ -20,7 +20,7 @@ function CatalogCardSkeleton() {
   );
 }
 
-export default function PsychologistsListLoading() {
+export default function CatalogLoading() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:py-10">
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">

@@ -37,7 +37,7 @@ const PSYCHOLOGIST_NAV: NavItem[] = [
 
 const CLIENT_NAV: NavItem[] = [
   { href: "/client", label: "Кабинет", icon: <LayoutDashboard className="h-4 w-4" />, exact: true },
-  { href: "/client/psychologists", label: "Найти психолога", icon: <Users className="h-4 w-4" /> },
+  { href: "/catalog", label: "Найти психолога", icon: <Users className="h-4 w-4" /> },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -102,7 +102,7 @@ export function SidebarNavContent({
       ADMIN_NAV;
     const filtered = filterNavForModules(role, base, modules);
     if (isGuestClient) {
-      return filtered.filter((item) => item.href === "/client/psychologists");
+      return filtered.filter((item) => item.href === "/catalog");
     }
     return filtered;
   }, [role, modules, isGuestClient]);

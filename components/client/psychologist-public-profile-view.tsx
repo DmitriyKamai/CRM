@@ -109,7 +109,7 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
       )}
     >
       <Link
-        href="/client/psychologists"
+        href="/catalog"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />

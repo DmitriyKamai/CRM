@@ -66,7 +66,7 @@ export function DashboardMetrics({
           <ul className="list-disc list-inside space-y-1">
             <li>
               <Link
-                href="/client/psychologists"
+                href="/catalog"
                 className="text-primary/90 transition-colors hover:text-primary"
               >
                 {schedulingEnabled

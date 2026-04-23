@@ -40,7 +40,7 @@ export default async function PublicPsychologistProfilePage({ params }: ParamsPr
       <div className="space-y-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-6 text-amber-900 dark:text-amber-200">
         <p className="font-medium">Ошибка загрузки страницы</p>
         <p className="text-sm">{errorMessage}</p>
-        <Link href="/client/psychologists" className="text-sm underline">
+        <Link href="/catalog" className="text-sm underline">
           К списку психологов
         </Link>
       </div>
