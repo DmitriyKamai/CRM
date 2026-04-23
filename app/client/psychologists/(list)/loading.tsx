@@ -34,6 +34,7 @@ export default function PsychologistsListLoading() {
           <Skeleton className="h-14 w-full max-w-xs rounded-md" />
           <Skeleton className="h-14 w-full max-w-[14rem] rounded-md" />
           <Skeleton className="h-14 w-full max-w-[14rem] rounded-md" />
+          <Skeleton className="h-14 w-full max-w-[16rem] rounded-md" />
           <div className="flex flex-1 justify-end gap-2">
             <Skeleton className="h-8 w-28" />
             <Skeleton className="h-8 w-20" />

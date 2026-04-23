@@ -4,8 +4,10 @@ import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { MapPin, Search, X } from "lucide-react";
 
+import { PsychologistCatalogApproachFilter } from "@/components/client/psychologist-catalog-approach-filter";
 import type { PsychologistCatalogEntry } from "@/lib/psychologists-catalog";
 import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
+import type { TherapyApproachDto } from "@/lib/settings/therapy-approaches";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -37,7 +39,11 @@ function normalize(s: string | null | undefined): string {
   return (s ?? "").trim();
 }
 
-function matchesSearchTokens(p: PsychologistCatalogEntry, q: string): boolean {
+function matchesSearchTokens(
+  p: PsychologistCatalogEntry,
+  q: string,
+  approachNames: string[]
+): boolean {
   const trimmed = q.trim().toLowerCase();
   if (!trimmed) return true;
   const tokens = trimmed.split(/\s+/).filter(Boolean);
@@ -50,7 +56,8 @@ function matchesSearchTokens(p: PsychologistCatalogEntry, q: string): boolean {
     p.publicSlug,
     `id${p.publicRouteSerial}`,
     p.bio ?? "",
-    p.worksOnline ? "онлайн" : ""
+    p.worksOnline ? "онлайн" : "",
+    ...approachNames
   ]
     .map((x) => String(x ?? "").toLowerCase())
     .join(" \n ");
@@ -69,16 +76,19 @@ function catalogLocationLine(p: PsychologistCatalogEntry): string | null {
 
 export function PublicPsychologistsList({
   schedulingEnabled = true,
-  initialPsychologists
+  initialPsychologists,
+  approachOptions
 }: {
   schedulingEnabled?: boolean;
   /** С сервера (SSR) — без «мигания» и лишнего запроса при первом открытии */
   initialPsychologists: PsychologistCatalogEntry[];
+  approachOptions: TherapyApproachDto[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearch = useDeferredValue(searchQuery);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedApproachSlugs, setSelectedApproachSlugs] = useState<string[]>([]);
 
   const allPsychologists = initialPsychologists;
 
@@ -113,24 +123,48 @@ export function PublicPsychologistsList({
     return [...set].sort((a, b) => a.localeCompare(b, "ru"));
   }, [allPsychologists]);
 
+  const nameByApproachSlug = useMemo(
+    () => new Map(approachOptions.map((a) => [a.slug, a.nameRu])),
+    [approachOptions]
+  );
+
   const filtered = useMemo(() => {
     return allPsychologists.filter((p) => {
       if (activeCityFilter && normalize(p.practiceCity) !== activeCityFilter)
         return false;
       if (selectedCountry && normalize(p.practiceCountry) !== selectedCountry)
         return false;
-      if (!matchesSearchTokens(p, deferredSearch)) return false;
+      if (selectedApproachSlugs.length > 0) {
+        const setP = new Set(p.therapyApproachSlugs);
+        const hasAny = selectedApproachSlugs.some((s) => setP.has(s));
+        if (!hasAny) return false;
+      }
+      const approachNames = p.therapyApproachSlugs
+        .map((s) => nameByApproachSlug.get(s))
+        .filter((x): x is string => Boolean(x));
+      if (!matchesSearchTokens(p, deferredSearch, approachNames)) return false;
       return true;
     });
-  }, [allPsychologists, deferredSearch, activeCityFilter, selectedCountry]);
+  }, [
+    allPsychologists,
+    deferredSearch,
+    activeCityFilter,
+    selectedCountry,
+    selectedApproachSlugs,
+    nameByApproachSlug
+  ]);
 
   const filtersActive =
-    searchQuery.trim() !== "" || selectedCity !== null || selectedCountry !== null;
+    searchQuery.trim() !== "" ||
+    selectedCity !== null ||
+    selectedCountry !== null ||
+    selectedApproachSlugs.length > 0;
 
   function resetFilters() {
     setSearchQuery("");
     setSelectedCity(null);
     setSelectedCountry(null);
+    setSelectedApproachSlugs([]);
   }
 
   const total = allPsychologists.length;
@@ -246,6 +280,13 @@ export function PublicPsychologistsList({
                 </SelectContent>
               </Select>
             </div>
+
+            <PsychologistCatalogApproachFilter
+              id="psych-approach"
+              options={approachOptions}
+              value={selectedApproachSlugs}
+              onChange={setSelectedApproachSlugs}
+            />
 
             <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 lg:ml-auto">
               <p
@@ -379,6 +420,29 @@ export function PublicPsychologistsList({
                             />
                             <span className="truncate">{locationLine}</span>
                           </Badge>
+                        ) : null}
+                        {p.therapyApproachSlugs.length > 0 ? (
+                          <div
+                            className="flex w-full max-w-full flex-wrap justify-center gap-1"
+                            aria-label="Методы"
+                          >
+                            {p.therapyApproachSlugs
+                              .slice(0, 2)
+                              .map((slug) => (
+                                <Badge
+                                  key={slug}
+                                  variant="outline"
+                                  className="max-w-full truncate border-primary/20 px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
+                                >
+                                  {nameByApproachSlug.get(slug) ?? slug}
+                                </Badge>
+                              ))}
+                            {p.therapyApproachSlugs.length > 2 ? (
+                              <span className="text-[10px] text-muted-foreground">
+                                +{p.therapyApproachSlugs.length - 2}
+                              </span>
+                            ) : null}
+                          </div>
                         ) : null}
                       </div>
                     </div>

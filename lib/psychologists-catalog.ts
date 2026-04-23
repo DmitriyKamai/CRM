@@ -13,6 +13,8 @@ export type PsychologistCatalogEntry = {
   practiceCity: string | null;
   worksOnline: boolean;
   profilePhotoUrl: string | null;
+  /** Slugs подходов из справочника (для фильтра каталога). */
+  therapyApproachSlugs: string[];
 };
 
 export async function getPublishedPsychologistsForCatalog(): Promise<
@@ -30,7 +32,11 @@ export async function getPublishedPsychologistsForCatalog(): Promise<
       practiceCountry: true,
       practiceCity: true,
       worksOnline: true,
-      user: { select: { firstName: true, lastName: true, name: true } }
+      user: { select: { firstName: true, lastName: true, name: true } },
+      therapyApproaches: {
+        where: { isActive: true },
+        select: { slug: true }
+      }
     },
     orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }]
   });
@@ -45,6 +51,7 @@ export async function getPublishedPsychologistsForCatalog(): Promise<
     practiceCountry: p.practiceCountry ?? null,
     practiceCity: p.practiceCity ?? null,
     worksOnline: p.worksOnline ?? false,
-    profilePhotoUrl: p.profilePhotoUrl ?? null
+    profilePhotoUrl: p.profilePhotoUrl ?? null,
+    therapyApproachSlugs: p.therapyApproaches.map((a) => a.slug)
   }));
 }

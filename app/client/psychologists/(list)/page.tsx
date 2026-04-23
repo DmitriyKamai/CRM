@@ -1,13 +1,15 @@
 import { PublicPsychologistsList } from "@/components/client/psychologists-list";
 import { getPublishedPsychologistsForCatalog } from "@/lib/psychologists-catalog";
 import { getPlatformModuleFlags } from "@/lib/platform-modules";
+import { listActiveTherapyApproaches } from "@/lib/settings/therapy-approaches";
 
 export const dynamic = "force-dynamic";
 
 export default async function PsychologistsListPage() {
-  const [modules, psychologists] = await Promise.all([
+  const [modules, psychologists, approachOptions] = await Promise.all([
     getPlatformModuleFlags(),
-    getPublishedPsychologistsForCatalog()
+    getPublishedPsychologistsForCatalog(),
+    listActiveTherapyApproaches()
   ]);
 
   return (
@@ -15,6 +17,7 @@ export default async function PsychologistsListPage() {
       <PublicPsychologistsList
         schedulingEnabled={modules.scheduling}
         initialPsychologists={psychologists}
+        approachOptions={approachOptions}
       />
     </div>
   );
