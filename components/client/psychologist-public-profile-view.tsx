@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck, ChevronLeft, MapPin } from "lucide-react";
+import { CalendarCheck, ChevronLeft, MapPin, Monitor } from "lucide-react";
 
 import {
   ContactBrandPhoneIcon,
@@ -11,6 +11,10 @@ import { PublicProfileContactPhone } from "@/components/client/public-profile-co
 import { ClientBooking } from "@/components/schedule/client-booking";
 import type { PsychologistPublicProfileDto } from "@/lib/psychologist-public-profile-load";
 import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
+import {
+  PSYCHOLOGIST_WORKS_ONLINE_HINT,
+  PSYCHOLOGIST_WORKS_ONLINE_LABEL
+} from "@/lib/psychologist-works-online-ui";
 import {
   formatTelegramForDisplay,
   normalizePhoneForCopy
@@ -129,7 +133,7 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
 
       <article className="overflow-hidden rounded-3xl border bg-card shadow-sm">
         <div className="flex flex-col gap-8 p-5 pt-5 sm:p-6 lg:flex-row lg:items-start lg:gap-10 lg:p-8">
-          <div className="mx-auto flex w-full max-w-[280px] shrink-0 justify-center lg:mx-0">
+          <div className="mx-auto flex w-full max-w-[280px] shrink-0 flex-col gap-3 lg:mx-0">
             <div
               className={cn(
                 "relative aspect-square w-full overflow-hidden rounded-xl bg-muted",
@@ -154,6 +158,12 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
                 </div>
               )}
             </div>
+            <Button className="w-full shadow-sm" asChild>
+              <a href={primaryActionHref}>
+                <CalendarCheck className="h-4 w-4" aria-hidden />
+                {primaryActionLabel}
+              </a>
+            </Button>
           </div>
 
           <div className="min-w-0 flex-1 space-y-6 lg:pt-2">
@@ -161,28 +171,22 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
               <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                 {fullName || "Психолог"}
               </h1>
-              <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-                {specializationLabel ? (
+              {specializationLabel ? (
+                <div className="flex justify-center lg:justify-start">
                   <Badge variant="secondary" className="font-semibold">
                     {specializationLabel}
                   </Badge>
-                ) : null}
-                <Button className="w-full shadow-sm sm:w-auto sm:shrink-0" asChild>
-                  <a href={primaryActionHref}>
-                    <CalendarCheck className="h-4 w-4" aria-hidden />
-                    {primaryActionLabel}
-                  </a>
-                </Button>
-              </div>
+                </div>
+              ) : null}
               {(psychologist.worksOnline || practiceLine) && (
                 <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground lg:justify-start">
                   {psychologist.worksOnline && (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
-                        aria-hidden
-                      />
-                      Онлайн
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-foreground/90"
+                      title={PSYCHOLOGIST_WORKS_ONLINE_HINT}
+                    >
+                      <Monitor className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {PSYCHOLOGIST_WORKS_ONLINE_LABEL}
                     </span>
                   )}
                   {practiceLine && (

@@ -2,11 +2,15 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Search, X } from "lucide-react";
+import { MapPin, Monitor, Search, X } from "lucide-react";
 
 import { PsychologistCatalogApproachFilter } from "@/components/client/psychologist-catalog-approach-filter";
 import type { PsychologistCatalogEntry } from "@/lib/psychologists-catalog";
 import { psychologistPublicProfilePath } from "@/lib/psychologist-public-profile-path";
+import {
+  PSYCHOLOGIST_WORKS_ONLINE_HINT,
+  PSYCHOLOGIST_WORKS_ONLINE_LABEL
+} from "@/lib/psychologist-works-online-ui";
 import type { TherapyApproachDto } from "@/lib/settings/therapy-approaches";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +60,9 @@ function matchesSearchTokens(
     p.publicSlug,
     `id${p.publicRouteSerial}`,
     p.bio ?? "",
-    p.worksOnline ? "онлайн" : "",
+    p.worksOnline
+      ? ["онлайн", "приём онлайн", PSYCHOLOGIST_WORKS_ONLINE_LABEL.toLowerCase()].join(" ")
+      : "",
     ...approachNames
   ]
     .map((x) => String(x ?? "").toLowerCase())
@@ -68,8 +74,8 @@ function catalogLocationLine(p: PsychologistCatalogEntry): string | null {
   const city = normalize(p.practiceCity);
   const country = normalize(p.practiceCountry);
   const place = [city, country].filter(Boolean).join(", ");
-  if (p.worksOnline && place) return `Онлайн · ${place}`;
-  if (p.worksOnline) return "Онлайн";
+  if (p.worksOnline && place) return `${PSYCHOLOGIST_WORKS_ONLINE_LABEL} · ${place}`;
+  if (p.worksOnline) return PSYCHOLOGIST_WORKS_ONLINE_LABEL;
   if (place) return place;
   return null;
 }
@@ -455,12 +461,12 @@ export function PublicPsychologistsList({
                         </div>
                       )}
                       {p.worksOnline ? (
-                        <div className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
-                            aria-hidden
-                          />
-                          Онлайн
+                        <div
+                          className="absolute left-2 top-2 inline-flex max-w-[min(100%,11rem)] items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium leading-tight text-foreground shadow-sm backdrop-blur"
+                          title={PSYCHOLOGIST_WORKS_ONLINE_HINT}
+                        >
+                          <Monitor className="h-3 w-3 shrink-0" aria-hidden />
+                          <span className="truncate">{PSYCHOLOGIST_WORKS_ONLINE_LABEL}</span>
                         </div>
                       ) : null}
                     </div>

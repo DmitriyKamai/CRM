@@ -239,7 +239,8 @@ export const ProfessionalTabPanel: FC<Props> = ({
               Работаю онлайн
             </Label>
             <p className="text-xs text-muted-foreground">
-              На странице появится отметка «Онлайн».
+              В каталоге и профиле появится метка «Приём онлайн» — это формат работы
+              (дистанционные сессии), а не статус «сейчас на сайте».
             </p>
           </div>
           <Switch
