@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck, ChevronLeft, MapPin, Video } from "lucide-react";
+import { CalendarCheck, ChevronLeft, MapPin } from "lucide-react";
 
 import {
   ContactBrandPhoneIcon,
@@ -132,8 +132,8 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
           <div className="mx-auto flex w-full max-w-[280px] shrink-0 justify-center lg:mx-0">
             <div
               className={cn(
-                "relative aspect-square w-full overflow-hidden rounded-lg border-4 border-background bg-muted",
-                "shadow-lg ring-1 ring-border/50"
+                "relative aspect-square w-full overflow-hidden rounded-xl bg-muted",
+                "shadow-md ring-1 ring-border/40"
               )}
             >
               {psychologist.profilePhotoUrl ? (
@@ -158,29 +158,30 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
 
           <div className="min-w-0 flex-1 space-y-6 lg:pt-2">
             <header className="space-y-4 text-center lg:text-left">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0 space-y-3">
-                  <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
-                    {fullName || "Психолог"}
-                  </h1>
-                  {specializationLabel && (
-                    <Badge variant="secondary" className="font-semibold">
-                      {specializationLabel}
-                    </Badge>
-                  )}
-                </div>
-                <Button className="hidden shrink-0 shadow-sm sm:inline-flex" asChild>
+              <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
+                {fullName || "Психолог"}
+              </h1>
+              <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                {specializationLabel ? (
+                  <Badge variant="secondary" className="font-semibold">
+                    {specializationLabel}
+                  </Badge>
+                ) : null}
+                <Button className="w-full shadow-sm sm:w-auto sm:shrink-0" asChild>
                   <a href={primaryActionHref}>
                     <CalendarCheck className="h-4 w-4" aria-hidden />
                     {primaryActionLabel}
                   </a>
                 </Button>
               </div>
-              {(specializationLabel || psychologist.worksOnline || practiceLine) && (
+              {(psychologist.worksOnline || practiceLine) && (
                 <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground lg:justify-start">
                   {psychologist.worksOnline && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1">
-                      <Video className="h-3.5 w-3.5" aria-hidden />
+                    <span className="inline-flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                        aria-hidden
+                      />
                       Онлайн
                     </span>
                   )}

@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Search, Video, X } from "lucide-react";
+import { MapPin, Search, X } from "lucide-react";
 
 import { PsychologistCatalogApproachFilter } from "@/components/client/psychologist-catalog-approach-filter";
 import type { PsychologistCatalogEntry } from "@/lib/psychologists-catalog";
@@ -455,8 +455,11 @@ export function PublicPsychologistsList({
                         </div>
                       )}
                       {p.worksOnline ? (
-                        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
-                          <Video className="h-3 w-3 text-primary" aria-hidden />
+                        <div className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                            aria-hidden
+                          />
                           Онлайн
                         </div>
                       ) : null}
