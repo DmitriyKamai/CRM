@@ -116,10 +116,9 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
       ? "Связаться"
       : "Вернуться в каталог";
 
-  const hasProfileDetails =
-    !!(psychologist.bio ||
-      psychologist.therapyApproaches.length > 0 ||
-      hasContacts);
+  const hasProfileDetails = !!(
+    psychologist.bio || psychologist.therapyApproaches.length > 0
+  );
 
   return (
     <div
@@ -171,7 +170,7 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
             </Button>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-4 lg:pt-2">
+          <div className="min-w-0 flex-1 space-y-6 lg:pt-2">
             <header className="space-y-4 text-center lg:text-left">
               <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                 {fullName || "Психолог"}
@@ -203,6 +202,59 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
                 </div>
               )}
             </header>
+
+            {hasContacts && (
+              <>
+                <Separator className="opacity-60" />
+                <section
+                  id="contacts"
+                  className="space-y-3 scroll-mt-24 text-center lg:text-left"
+                >
+                  <h2 className="text-sm font-semibold text-foreground">Связаться</h2>
+                  <div className="flex min-w-0 flex-wrap justify-center gap-2 lg:justify-start">
+                    {phoneHref && psychologist.contactPhone && (
+                      <PublicProfileContactPhone
+                        displayText={psychologist.contactPhone}
+                        href={phoneHref}
+                        icon={<ContactBrandPhoneIcon className="shrink-0" />}
+                        copyText={normalizePhoneForCopy(psychologist.contactPhone)}
+                        copiedMessage="Номер скопирован"
+                        copyLabel="Скопировать номер"
+                        className="max-w-full"
+                      />
+                    )}
+                    {telegramHref && psychologist.contactTelegram && (
+                      <PublicProfileContactPhone
+                        displayText={formatTelegramForDisplay(psychologist.contactTelegram)}
+                        href={telegramHref}
+                        icon={<ContactBrandTelegramIcon className="shrink-0" />}
+                        title={psychologist.contactTelegram}
+                        external
+                        className="max-w-full"
+                      />
+                    )}
+                    {whatsappHref && psychologist.contactWhatsapp && (
+                      <PublicProfileContactPhone
+                        displayText="WhatsApp"
+                        href={whatsappHref}
+                        icon={<ContactBrandWhatsappIcon className="shrink-0" />}
+                        title={psychologist.contactWhatsapp}
+                        external
+                      />
+                    )}
+                    {viberHref && psychologist.contactViber && (
+                      <PublicProfileContactPhone
+                        displayText="Viber"
+                        href={viberHref}
+                        icon={<ContactBrandViberIcon className="shrink-0" />}
+                        title={psychologist.contactViber}
+                        external
+                      />
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
           </div>
         </div>
       </article>
@@ -249,56 +301,6 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
                   </div>
                 </TooltipProvider>
               </section>
-            )}
-
-            {hasContacts && (
-              <>
-                <Separator className="opacity-60" />
-                <section id="contacts" className="space-y-3 scroll-mt-24">
-                  <h2 className="text-sm font-semibold text-foreground">Связаться</h2>
-                  <div className="flex min-w-0 flex-wrap gap-2">
-                    {phoneHref && psychologist.contactPhone && (
-                      <PublicProfileContactPhone
-                        displayText={psychologist.contactPhone}
-                        href={phoneHref}
-                        icon={<ContactBrandPhoneIcon className="shrink-0" />}
-                        copyText={normalizePhoneForCopy(psychologist.contactPhone)}
-                        copiedMessage="Номер скопирован"
-                        copyLabel="Скопировать номер"
-                        className="max-w-full"
-                      />
-                    )}
-                    {telegramHref && psychologist.contactTelegram && (
-                      <PublicProfileContactPhone
-                        displayText={formatTelegramForDisplay(psychologist.contactTelegram)}
-                        href={telegramHref}
-                        icon={<ContactBrandTelegramIcon className="shrink-0" />}
-                        title={psychologist.contactTelegram}
-                        external
-                        className="max-w-full"
-                      />
-                    )}
-                    {whatsappHref && psychologist.contactWhatsapp && (
-                      <PublicProfileContactPhone
-                        displayText="WhatsApp"
-                        href={whatsappHref}
-                        icon={<ContactBrandWhatsappIcon className="shrink-0" />}
-                        title={psychologist.contactWhatsapp}
-                        external
-                      />
-                    )}
-                    {viberHref && psychologist.contactViber && (
-                      <PublicProfileContactPhone
-                        displayText="Viber"
-                        href={viberHref}
-                        icon={<ContactBrandViberIcon className="shrink-0" />}
-                        title={psychologist.contactViber}
-                        external
-                      />
-                    )}
-                  </div>
-                </section>
-              </>
             )}
           </div>
         </article>
