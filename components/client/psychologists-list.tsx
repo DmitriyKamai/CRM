@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Search, X } from "lucide-react";
+import { MapPin, Search, Video, X } from "lucide-react";
 
 import { PsychologistCatalogApproachFilter } from "@/components/client/psychologist-catalog-approach-filter";
 import type { PsychologistCatalogEntry } from "@/lib/psychologists-catalog";
@@ -169,6 +169,9 @@ export function PublicPsychologistsList({
 
   const total = allPsychologists.length;
   const shown = filtered.length;
+  const selectedApproachLabels = selectedApproachSlugs
+    .map((slug) => ({ slug, label: nameByApproachSlug.get(slug) ?? slug }))
+    .sort((a, b) => a.label.localeCompare(b.label, "ru"));
 
   return (
     <div className="space-y-8">
@@ -323,6 +326,63 @@ export function PublicPsychologistsList({
               )}
             </div>
           </div>
+          {filtersActive && (
+            <div className="flex flex-wrap items-center gap-2 pt-1" aria-label="Активные фильтры">
+              {searchQuery.trim() && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 rounded-full px-2.5 text-xs"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Поиск: {searchQuery.trim()}
+                  <X className="ml-1 h-3 w-3" aria-hidden />
+                </Button>
+              )}
+              {selectedCountry && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 rounded-full px-2.5 text-xs"
+                  onClick={() => setSelectedCountry(null)}
+                >
+                  Страна: {selectedCountry}
+                  <X className="ml-1 h-3 w-3" aria-hidden />
+                </Button>
+              )}
+              {activeCityFilter && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 rounded-full px-2.5 text-xs"
+                  onClick={() => setSelectedCity(null)}
+                >
+                  Город: {activeCityFilter}
+                  <X className="ml-1 h-3 w-3" aria-hidden />
+                </Button>
+              )}
+              {selectedApproachLabels.map((a) => (
+                <Button
+                  key={a.slug}
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 rounded-full px-2.5 text-xs"
+                  onClick={() =>
+                    setSelectedApproachSlugs((current) =>
+                      current.filter((slug) => slug !== a.slug)
+                    )
+                  }
+                >
+                  {a.label}
+                  <X className="ml-1 h-3 w-3" aria-hidden />
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -371,14 +431,14 @@ export function PublicPsychologistsList({
                 aria-labelledby={nameId}
                 className="h-full"
               >
-                <Card className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-colors hover:border-primary/50">
+                <Card className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md">
                   <Link
                     href={profileHref}
                     aria-labelledby={nameId}
                     className="absolute inset-0 z-[1] rounded-2xl outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                   <CardContent className="pointer-events-none relative z-0 flex flex-col p-0">
-                    <div className="relative aspect-square w-full overflow-hidden rounded-t-2xl bg-muted">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl bg-muted">
                       {p.profilePhotoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -394,36 +454,39 @@ export function PublicPsychologistsList({
                           {initials || "?"}
                         </div>
                       )}
+                      {p.worksOnline ? (
+                        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
+                          <Video className="h-3 w-3 text-primary" aria-hidden />
+                          Онлайн
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="space-y-2 px-3 pb-2 pt-2.5 text-center">
+                    <div className="space-y-3 px-3 pb-3 pt-3 text-left">
                       <p
                         id={nameId}
-                        className="text-sm font-semibold leading-tight text-foreground sm:text-base"
+                        className="text-base font-semibold leading-tight text-foreground"
                       >
                         {p.firstName} {p.lastName}
                       </p>
-                      <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex flex-col items-start gap-2">
                         <Badge
                           variant="secondary"
-                          className="max-w-full px-2 py-0 text-xs font-medium"
+                          className="max-w-full px-2 py-0 text-xs font-semibold"
                         >
                           {professionLabel}
                         </Badge>
                         {locationLine ? (
-                          <Badge
-                            variant="outline"
-                            className="max-w-full gap-1 px-2 py-0 text-xs font-normal text-muted-foreground"
-                          >
+                          <div className="flex max-w-full items-center gap-1.5 text-xs text-muted-foreground">
                             <MapPin
                               className="h-3 w-3 shrink-0"
                               aria-hidden
                             />
                             <span className="truncate">{locationLine}</span>
-                          </Badge>
+                          </div>
                         ) : null}
                         {p.therapyApproachSlugs.length > 0 ? (
                           <div
-                            className="flex w-full max-w-full flex-wrap justify-center gap-1"
+                            className="flex w-full max-w-full flex-wrap gap-1"
                             aria-label="Методы"
                           >
                             {p.therapyApproachSlugs
@@ -432,7 +495,7 @@ export function PublicPsychologistsList({
                                 <Badge
                                   key={slug}
                                   variant="outline"
-                                  className="max-w-full truncate border-primary/20 px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
+                                  className="max-w-full truncate border-primary/30 bg-primary/5 px-1.5 py-0 text-[10px] font-medium text-foreground/80"
                                 >
                                   {nameByApproachSlug.get(slug) ?? slug}
                                 </Badge>
@@ -447,16 +510,19 @@ export function PublicPsychologistsList({
                       </div>
                     </div>
                     {bioTrimmed ? (
-                      <div className="px-3 pb-3 pt-0.5">
-                        <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                      <div className="px-3 pb-3 pt-0">
+                        <p className="rounded-xl bg-muted/35 px-3 py-2 text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
                           {bioTrimmed}
                         </p>
                       </div>
                     ) : null}
                   </CardContent>
                   {schedulingEnabled ? (
-                    <CardFooter className="relative z-[2] mt-auto pointer-events-auto border-t border-border/60 bg-card px-3 pb-4 pt-3">
-                      <Button className="w-full" size="sm" asChild>
+                    <CardFooter className="relative z-[2] mt-auto pointer-events-auto flex-col items-stretch gap-2 border-t border-border/60 bg-card px-3 pb-4 pt-3">
+                      <p className="text-center text-xs text-muted-foreground">
+                        Запись на странице профиля
+                      </p>
+                      <Button className="w-full shadow-sm" size="sm" asChild>
                         <Link href={bookingHref}>Записаться</Link>
                       </Button>
                     </CardFooter>

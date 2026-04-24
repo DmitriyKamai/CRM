@@ -142,12 +142,9 @@ export const ProfessionalTabPanel: FC<Props> = ({
         <div>
           <h3 className="text-sm font-semibold text-foreground">Публичная страница</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Необязательно: короткий адрес в латинице (3–32 символа: буквы, цифры,
-            дефис). Нельзя начинать с «id» и нельзя брать служебные имена разделов
-            сайта. Если поле пустое — страница доступна по стандартному адресу{" "}
-            <span className="whitespace-nowrap">/id…</span> (номер в порядке
-            регистрации). Сохраните форму ниже, если меняли алиас, контакты или блок
-            «Где веду приём».
+            Управляйте короткой ссылкой, публикацией страницы и показом в каталоге.
+            Если алиас пустой, используется адрес вида{" "}
+            <span className="whitespace-nowrap">/id…</span>.
           </p>
         </div>
         <div className="space-y-2">
@@ -173,8 +170,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
               Опубликовать страницу
             </Label>
             <p className="text-xs text-muted-foreground">
-              Страница открывается по короткой ссылке с корня сайта. Если кастомный
-              алиас не задан, используется адрес вида /id1, /id2… по порядку регистрации.
+              Публичная ссылка становится доступна клиентам.
             </p>
           </div>
           <Switch
@@ -192,7 +188,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
               Показывать в каталоге
             </Label>
             <p className="text-xs text-muted-foreground">
-              Карточка в разделе «Найти психолога». Нужна опубликованная страница.
+              Карточка появится в `/catalog`. Нужна опубликованная страница.
             </p>
           </div>
           <Switch
@@ -209,8 +205,7 @@ export const ProfessionalTabPanel: FC<Props> = ({
         <div>
           <h3 className="text-sm font-semibold text-foreground">Где веду приём</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Эти данные видят клиенты на странице профиля и в каталоге — отдельно от
-            личного адреса в анкете.
+            Эти данные видят клиенты на странице профиля и в каталоге.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

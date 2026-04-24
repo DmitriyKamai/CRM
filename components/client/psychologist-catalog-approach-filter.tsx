@@ -12,6 +12,7 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import {
   THERAPY_APPROACH_FAMILIES,
   THERAPY_APPROACH_FAMILY_LABELS,
@@ -102,7 +103,10 @@ export function PsychologistCatalogApproachFilter({
             type="button"
             id={id}
             variant="outline"
-            className="mt-1 h-9 w-full justify-between px-2.5 text-left font-normal sm:min-w-[10rem]"
+            className={cn(
+              "mt-1 h-9 w-full justify-between px-2.5 text-left font-normal transition-colors sm:min-w-[10rem]",
+              count > 0 && "border-primary/50 bg-primary/5 text-foreground"
+            )}
             aria-expanded={open}
             aria-label={
               count === 0
