@@ -70,14 +70,12 @@ function matchesSearchTokens(
   return tokens.every((t) => hay.includes(t));
 }
 
-function catalogLocationLine(p: PsychologistCatalogEntry): string | null {
+/** Только город и страна (без «приём онлайн» — его показываем отдельной строкой под фото). */
+function catalogPracticePlace(p: PsychologistCatalogEntry): string | null {
   const city = normalize(p.practiceCity);
   const country = normalize(p.practiceCountry);
   const place = [city, country].filter(Boolean).join(", ");
-  if (p.worksOnline && place) return `${PSYCHOLOGIST_WORKS_ONLINE_LABEL} · ${place}`;
-  if (p.worksOnline) return PSYCHOLOGIST_WORKS_ONLINE_LABEL;
-  if (place) return place;
-  return null;
+  return place || null;
 }
 
 export function PublicPsychologistsList({
@@ -429,7 +427,7 @@ export function PublicPsychologistsList({
               publicSlug: p.publicSlug
             });
             const bookingHref = `${profileHref}#booking`;
-            const locationLine = catalogLocationLine(p);
+            const practicePlace = catalogPracticePlace(p);
 
             return (
               <article
@@ -460,15 +458,6 @@ export function PublicPsychologistsList({
                           {initials || "?"}
                         </div>
                       )}
-                      {p.worksOnline ? (
-                        <div
-                          className="absolute left-2 top-2 inline-flex max-w-[min(100%,11rem)] items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium leading-tight text-foreground shadow-sm backdrop-blur"
-                          title={PSYCHOLOGIST_WORKS_ONLINE_HINT}
-                        >
-                          <Monitor className="h-3 w-3 shrink-0" aria-hidden />
-                          <span className="truncate">{PSYCHOLOGIST_WORKS_ONLINE_LABEL}</span>
-                        </div>
-                      ) : null}
                     </div>
                     <div className="space-y-3 px-3 pb-3 pt-3 text-left">
                       <p
@@ -484,13 +473,27 @@ export function PublicPsychologistsList({
                         >
                           {professionLabel}
                         </Badge>
-                        {locationLine ? (
+                        {p.worksOnline ? (
+                          <div
+                            className="flex max-w-full items-center gap-1.5 text-xs text-muted-foreground"
+                            title={PSYCHOLOGIST_WORKS_ONLINE_HINT}
+                          >
+                            <Monitor
+                              className="h-3 w-3 shrink-0 text-muted-foreground"
+                              aria-hidden
+                            />
+                            <span className="truncate">
+                              {PSYCHOLOGIST_WORKS_ONLINE_LABEL}
+                            </span>
+                          </div>
+                        ) : null}
+                        {practicePlace ? (
                           <div className="flex max-w-full items-center gap-1.5 text-xs text-muted-foreground">
                             <MapPin
                               className="h-3 w-3 shrink-0"
                               aria-hidden
                             />
-                            <span className="truncate">{locationLine}</span>
+                            <span className="truncate">{practicePlace}</span>
                           </div>
                         ) : null}
                         {p.therapyApproachSlugs.length > 0 ? (

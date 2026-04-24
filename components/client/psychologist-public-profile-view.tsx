@@ -116,6 +116,11 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
       ? "Связаться"
       : "Вернуться в каталог";
 
+  const hasProfileDetails =
+    !!(psychologist.bio ||
+      psychologist.therapyApproaches.length > 0 ||
+      hasContacts);
+
   return (
     <div
       className={cn(
@@ -166,7 +171,7 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
             </Button>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-6 lg:pt-2">
+          <div className="min-w-0 flex-1 space-y-4 lg:pt-2">
             <header className="space-y-4 text-center lg:text-left">
               <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                 {fullName || "Психолог"}
@@ -198,7 +203,13 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
                 </div>
               )}
             </header>
+          </div>
+        </div>
+      </article>
 
+      {hasProfileDetails ? (
+        <article className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+          <div className="space-y-6 p-5 sm:p-6 lg:p-8">
             {psychologist.bio && (
               <section className="space-y-2">
                 <h2 className="text-sm font-semibold text-foreground">О себе</h2>
@@ -290,8 +301,8 @@ export function PsychologistPublicProfileView({ psychologist, bookingEnabled }: 
               </>
             )}
           </div>
-        </div>
-      </article>
+        </article>
+      ) : null}
 
       {!bookingEnabled && (
         <p className="text-balance text-center text-sm text-muted-foreground">
