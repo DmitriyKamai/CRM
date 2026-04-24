@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Empatix - The Mindful CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-low": "#f6f3f0",
+                        "outline-variant": "#dac1ba",
+                        "surface-container": "#f0edea",
+                        "on-tertiary-fixed": "#1f1c00",
+                        "on-secondary-fixed-variant": "#623e31",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#695f00",
+                        "inverse-primary": "#ffb59c",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#521802",
+                        "inverse-surface": "#31302f",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fcf9f6",
+                        "on-primary-fixed": "#390c00",
+                        "surface": "#fcf9f6",
+                        "tertiary-fixed": "#f2e57c",
+                        "on-secondary-container": "#7a5244",
+                        "secondary-fixed-dim": "#efbbaa",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#b9ad4b",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#d5c963",
+                        "primary": "#94492e",
+                        "on-primary-fixed-variant": "#763219",
+                        "on-secondary-fixed": "#301409",
+                        "on-surface-variant": "#54433d",
+                        "background": "#fcf9f6",
+                        "on-background": "#1c1c1a",
+                        "surface-container-highest": "#e5e2df",
+                        "surface-container-high": "#eae8e5",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e5e2df",
+                        "primary-fixed": "#ffdbcf",
+                        "on-tertiary-container": "#474000",
+                        "primary-container": "#d37b5c",
+                        "primary-fixed-dim": "#ffb59c",
+                        "surface-tint": "#94492e",
+                        "on-surface": "#1c1c1a",
+                        "secondary-fixed": "#ffdbcf",
+                        "inverse-on-surface": "#f3f0ed",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#7d5547",
+                        "surface-dim": "#dcd9d7",
+                        "secondary-container": "#fec8b7",
+                        "outline": "#87736c",
+                        "on-tertiary-fixed-variant": "#4f4800"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hero-gradient {
+            background: radial-gradient(circle at top right, rgba(211, 123, 92, 0.08) 0%, rgba(252, 249, 246, 0) 50%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- PublicNavigation -->
+<nav class="w-full fixed top-0 z-50 bg-transparent font-manrope">
+<div class="max-w-7xl mx-auto flex justify-between items-center py-6 px-4">
+<div class="flex items-center gap-2">
+<span class="text-2xl font-black text-stone-900 dark:text-white tracking-tight">Empatix</span>
+</div>
+<div class="hidden md:flex items-center space-x-10">
+<a class="text-stone-600 dark:text-stone-300 font-bold hover:opacity-80 transition-opacity" href="#">Features</a>
+<a class="text-stone-600 dark:text-stone-300 hover:opacity-80 transition-opacity" href="#">Pricing</a>
+<a class="text-stone-600 dark:text-stone-300 hover:opacity-80 transition-opacity" href="#">About</a>
+<a class="text-stone-600 dark:text-stone-300 hover:opacity-80 transition-opacity" href="#">Contact</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-stone-600 dark:text-stone-300 font-medium hover:opacity-80 px-4 py-2">Sign In</button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-2.5 rounded-xl font-bold shadow-[0_12px_40px_rgba(148,73,46,0.12)] hover:scale-[1.02] transition-all active:scale-95">Join Now</button>
+</div>
+</div>
+</nav>
+<main class="pt-24">
+<!-- Hero Section -->
+<section class="relative min-h-[921px] flex items-center overflow-hidden hero-gradient">
+<div class="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-16 items-center">
+<div class="z-10">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low text-primary text-xs font-bold tracking-widest uppercase mb-8">
+<span class="material-symbols-outlined text-[14px]">verified_user</span>
+                        HIPAA Compliant &amp; Secure
+                    </div>
+<h1 class="text-5xl lg:text-7xl font-headline font-extrabold text-on-surface leading-[1.1] mb-6">
+                        Спокойствие в практике, фокус на человеке
+                    </h1>
+<p class="text-xl text-on-surface-variant leading-relaxed mb-10 max-w-lg">
+                        Единая система для учета клиентов, расписания и диагностики. Создана специально для психотерапевтов.
+                    </p>
+<div class="flex flex-col sm:flex-row gap-4">
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-10 py-5 rounded-xl font-bold text-lg shadow-[0_12px_40px_rgba(148,73,46,0.15)] hover:scale-[1.02] transition-all active:scale-95">
+                            Начать бесплатно
+                        </button>
+<button class="flex items-center justify-center gap-2 bg-surface-container-lowest border-2 border-outline-variant/20 text-on-surface px-10 py-5 rounded-xl font-bold text-lg hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">play_circle</span>
+                            Узнать больше
+                        </button>
+</div>
+<div class="mt-12 flex items-center gap-6 opacity-60">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">lock</span>
+<span class="text-sm font-medium">End-to-End Encryption</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">cloud_done</span>
+<span class="text-sm font-medium">Auto-Backups</span>
+</div>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+<div class="absolute -bottom-20 -left-20 w-80 h-80 bg-tertiary/5 rounded-full blur-3xl"></div>
+<!-- Abstract Calm Workspace Illustration -->
+<div class="relative z-10 glass-panel p-4 rounded-[40px] shadow-2xl">
+<img alt="Therapeutic Workspace" class="w-full h-auto rounded-[32px] object-cover aspect-[4/3]" data-alt="Modern minimalist home office with warm natural light, soft textured walls, organic wooden desk, and a peaceful green plant in a ceramic pot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKcI-5vbKFKbhk0wp79LN5NXluO6lNwi_rFbOcxw5zbZTgTNlo8ZFvInxNDLPo4eZuPgN7q0R-YGKUFAPwJTw_J2GfZNTENdu2cm578RM8-L87VnZsT_dP5u7kFG4zuCam3oWPmTuKWYCN5-S9flJWIHlkpG4SwmXAXrHXrLDOseUWSrLAS3LxQVITtV_pHuoWuuCvlmBgQjiEq0Y5HpEIr1UgJw-fK43kG1O6ohBN6AziV9I44VPscGu1Gs3pUZKHFmAxHFBVmEwu"/>
+<!-- Floating Glass UI Elements -->
+<div class="absolute top-1/2 -right-12 glass-panel p-6 rounded-2xl shadow-xl w-64 border border-white/50">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container"></div>
+<div class="flex-1">
+<div class="h-2 w-20 bg-on-surface-variant/20 rounded mb-1"></div>
+<div class="h-2 w-12 bg-on-surface-variant/10 rounded"></div>
+</div>
+</div>
+<div class="h-24 w-full bg-surface-container-low rounded-lg mb-4"></div>
+<div class="flex justify-between items-center">
+<div class="h-6 w-16 bg-primary/20 rounded-full"></div>
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Trust Indicators Bento -->
+<section class="py-24 bg-surface-container-low/50">
+<div class="max-w-7xl mx-auto px-4">
+<div class="text-center mb-16">
+<h2 class="text-3xl font-headline font-bold mb-4">Безопасность вашего пространства</h2>
+<p class="text-on-surface-variant">Мы заботимся о данных так же, как вы о своих клиентах.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Security Card -->
+<div class="bg-surface-container-lowest p-10 rounded-[20px] shadow-sm hover:shadow-md transition-shadow">
+<div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-8">
+<span class="material-symbols-outlined text-primary text-3xl">shield_person</span>
+</div>
+<h3 class="text-xl font-headline font-bold mb-4">HIPAA Compliance</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Полное соответствие международным стандартам безопасности медицинских данных. Все данные зашифрованы.
+                        </p>
+</div>
+<!-- Focus Card -->
+<div class="bg-surface-container-lowest p-10 rounded-[20px] shadow-sm hover:shadow-md transition-shadow">
+<div class="w-14 h-14 bg-tertiary/10 rounded-2xl flex items-center justify-center mb-8">
+<span class="material-symbols-outlined text-tertiary text-3xl">psychology</span>
+</div>
+<h3 class="text-xl font-headline font-bold mb-4">Фокус на терапии</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Интерфейс не перегружен. Мы убрали всё лишнее, чтобы вы могли сосредоточиться на работе с человеком.
+                        </p>
+</div>
+<!-- Support Card -->
+<div class="bg-surface-container-lowest p-10 rounded-[20px] shadow-sm hover:shadow-md transition-shadow">
+<div class="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center mb-8">
+<span class="material-symbols-outlined text-secondary text-3xl">sentiment_satisfied</span>
+</div>
+<h3 class="text-xl font-headline font-bold mb-4">Человечная поддержка</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Наша команда всегда на связи, чтобы помочь вам с настройкой и переносом данных из других систем.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Product Preview Asymmetric Section -->
+<section class="py-32 overflow-hidden">
+<div class="max-w-7xl mx-auto px-4">
+<div class="grid lg:grid-cols-5 gap-12 items-center">
+<div class="lg:col-span-3">
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tertiary/20 rounded-[32px] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+<div class="relative bg-surface p-2 rounded-[32px] shadow-2xl">
+<img alt="Empatix Dashboard Preview" class="rounded-[24px] w-full" data-alt="Clean software interface showing a therapeutic client dashboard with calm pastel charts, upcoming appointments, and session note highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnPgCaTGKDxJjkWz_kd5dPiiplmpHh_O4bIvpXf0rJTzi9xI6j7898tlw4e6V2W35-PXuuLFqwSi7G51_QJkYeRSBxUyWljO06z5J6BP2GcmzSmVA-O-NUnN15LBw0OCrT2seAmTRNB3sNhWjUssAZ5TOgIJaLogRGiZDz0tR-IHdGaz_o_bapZPWyu8GrTwJC4r9DjEejFbbVb5CoCFObD3Wk5STBOs7z3rA3mB2wTEjZLU2HfZajn42eAaHFEzB2T10eAUcB7N4G"/>
+</div>
+</div>
+</div>
+<div class="lg:col-span-2 space-y-12">
+<div>
+<h2 class="text-4xl font-headline font-bold leading-tight mb-6">Всё, что нужно для частной практики</h2>
+<ul class="space-y-6">
+<li class="flex gap-4">
+<div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<span class="font-bold block mb-1">Умное расписание</span>
+<p class="text-on-surface-variant text-sm">Синхронизация с Google Calendar и автоматические напоминания.</p>
+</div>
+</li>
+<li class="flex gap-4">
+<div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<span class="font-bold block mb-1">Клинические заметки</span>
+<p class="text-on-surface-variant text-sm">Безопасное хранение анамнеза и динамики сессий в одном месте.</p>
+</div>
+</li>
+<li class="flex gap-4">
+<div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<span class="font-bold block mb-1">Инструменты диагностики</span>
+<p class="text-on-surface-variant text-sm">Встроенные тесты и опросники с автоматическим подсчетом.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-24">
+<div class="max-w-5xl mx-auto px-4">
+<div class="bg-primary text-on-primary rounded-[40px] p-12 md:p-20 text-center relative overflow-hidden">
+<div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-primary-container/20 rounded-full -ml-32 -mb-32 blur-3xl"></div>
+<h2 class="text-3xl md:text-5xl font-headline font-extrabold mb-8 relative z-10">Готовы сделать практику осознаннее?</h2>
+<p class="text-lg opacity-90 mb-12 max-w-2xl mx-auto relative z-10">Присоединяйтесь к 2000+ профессионалов, которые уже доверили нам свое рабочее пространство.</p>
+<div class="flex flex-col sm:flex-row justify-center items-center gap-6 relative z-10">
+<button class="bg-surface-container-lowest text-primary px-12 py-5 rounded-xl font-extrabold text-lg shadow-xl hover:scale-105 transition-all">Начать 14 дней бесплатно</button>
+<span class="text-sm font-medium opacity-80 underline cursor-pointer">Посмотреть демо</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low dark:bg-stone-900 w-full py-12 px-8 mt-24">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-8 md:space-y-0">
+<div>
+<span class="text-lg font-bold text-stone-900 dark:text-stone-50">Empatix</span>
+<p class="font-inter text-[10px] uppercase tracking-widest opacity-60 mt-2">© 2024 Empatix. Secure &amp; Ethical CRM for Psychotherapy.</p>
+</div>
+<div class="flex space-x-8">
+<a class="font-inter text-xs uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" href="#">Privacy</a>
+<a class="font-inter text-xs uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" href="#">Terms</a>
+<a class="font-inter text-xs uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity underline" href="#">HIPAA Compliance</a>
+<a class="font-inter text-xs uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" href="#">Resources</a>
+</div>
+<div class="flex items-center gap-4 opacity-60">
+<span class="material-symbols-outlined">language</span>
+<span class="text-xs font-bold tracking-widest uppercase">Русский</span>
+</div>
+</div>
+</footer>
+</body></html>
