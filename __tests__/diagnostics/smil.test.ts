@@ -20,10 +20,10 @@ describe("computeSmilRawScores", () => {
     expect(raw.L).toBe(0);
   });
 
-  it("L-шкала: 15 прямых ключей, все «верно» → сырой = 15", () => {
+  it("L-шкала: 15 обратных ключей, все «неверно» → сырой = 15", () => {
     const answers: SmilAnswerMap = {};
     [15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 195, 225, 255, 285].forEach(i => {
-      answers[i] = 1;
+      answers[i] = 0;
     });
     const raw = computeSmilRawScores(answers, "male");
     expect(raw.L).toBe(15);
@@ -40,15 +40,20 @@ describe("computeSmilRawScores", () => {
     expect(raw.F).toBe(20); // 20 обратных
   });
 
-  it("шкала 5 использует женский ключ для variant=female", () => {
+  it("шкала 5 использует разные ключи для мужчин и женщин", () => {
     const answers: SmilAnswerMap = {};
-    // Пункт 26 — direct в female, reverse в male
+    // По Собчик: пункт 26 — direct в мужском ключе и reverse в женском.
     answers[26] = 1;
-    computeSmilRawScores(answers, "male");
+    const rawMale = computeSmilRawScores(answers, "male");
     const rawFemale = computeSmilRawScores(answers, "female");
-    // Для male: 26 не в direct male (нет 26 в male direct), но в reverse male → answers[26]=1 не даёт балл
-    // Для female: 26 в direct female → answers[26]=1 даёт балл
-    expect(rawFemale["5"]).toBeGreaterThanOrEqual(1);
+    expect(rawMale["5"]).toBeGreaterThanOrEqual(1);
+    expect(rawFemale["5"]).toBe(0);
+  });
+
+  it("шкала 2: обратный ключ включает пункты 2 и 8", () => {
+    const answers: SmilAnswerMap = { 2: 0, 8: 0 };
+    const raw = computeSmilRawScores(answers, "male");
+    expect(raw["2"]).toBeGreaterThanOrEqual(2);
   });
 });
 
